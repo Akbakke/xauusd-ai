@@ -6,62 +6,38 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`NATIVE_M5_TARGET_AUDIT_COMPLETE_COVERAGE_LIMITS_PROVIDER_PENDING`.
+`NATIVE_M5_BAR_DIRECTION_SOURCE_V2_PREPARED_NOT_ADMITTED`.
 
-ALDRI M1 til retning gjelder hele kjeden. Entry er pauset, og gamle
-M1-avhengige loadere og dataklargjørere er fortsatt sperret.
+Brukeren presiserte at faktiske åpnings- og sluttprissammenligninger
+skal være kjente på samtlige observerte barer i alle fem TF.
+Åpning sammenlignes med forrige observerte åpning, og slutt med
+forrige observerte slutt. Hvert fortegn er −1, 0 eller +1.
+Likhet er kjent null, og blandede fortegn beholdes separat.
 
-### Faktisk native M5-kontroll
+Den tidligere 3,5 %-dekningen gjaldt en annen, nå avløst ATR-/intrabar-
+fasit. Den viste ikke at faktiske M5-open/close-opplysninger manglet.
+Den gamle engangsplanen001 og alle kvitteringer er historiske og konsumert.
 
-Engangsplan `NATIVE_M5_DIRECTION_TARGETS_20261119_001` er fullført og
-konsumert med exit 0, 4G/512M og 290,79 sekunder. Den leste bare native
-M5 time/OHLC fra 16 årspartier, med kausal M15/H1/H4/D1-ATR.
-1 093 769 rader ble dekodet; 1 091 836 sluttidspunkter var strengt før
-cutoff 01.10.2024. Mai–september ga 29 964 egne M5-tidspunkter.
-Ingen gammel M1-akse, fasit, maske, prior eller lukkeautoritet ble brukt.
-Modellforward, optimizer og normaliseringsfit var null.
+Måleieren er revidert til v2 med native M5 og kanonisk M15/H1/H4/D1-
+resampling. ATR-, størrelses- og prisbanegater er fjernet fra barfakta.
+Gap og faktisk M5-medlemstelling er separate opplysninger.
+Bare første observerte kildebar mangler forgjenger.
 
-Originale CLAIM, RESULT, TARGETS og TERMINAL er hashkontrollert og
-bevares. Uavhengig av produsenten ble 18 lagrede mål-/maske-/aksearrays
-og alle rapporterte tellinger gjenskapt fra NPZ. F-prisendringer ble
-regnet fra lagrede native M5-sluttpriser og issue-ATR. Rå ATR og S-OHLC-
-klassifikasjon ble ikke beregnet uavhengig på nytt i denne kontrollen.
+Prognosemål peker til neste faktiske TF-barslutt etter M5-utstedelsen.
+Framtidsmetadata er mål og mates aldri til modellinput. Når en høyere
+TF allerede har åpnet, markeres åpningens faktiske observerbarhet separat.
+Modenhet kontrolleres før framtidig fasit leses.
 
-| Tidsramme | Kjent framtidig S-side | Observerbart F-endepunkt |
-|---|---:|---:|
-| M5 | 1 050 | 29 854 |
-| M15 | 6 105 | 29 634 |
-| H1 | 18 731 | 28 644 |
-| H4 | 22 342 | 27 708 |
-| D1 | 10 549 | 23 556 |
+Ny runner002 har egen plan-/stage-/utmappeidentitet. Den bruker bare
+native 2024-data med januar–april som forgjengerhistorikk og mai–september
+som valgt periode. Publisering krever kjent forgjenger for hver valgt
+observert bar på alle fem TF. Ingen slik fysisk jobb er innrømmet ennå.
 
-S-fasiten er en konservativ kandidat. Kjent M5-side dekker bare 3,50 %
-av alle tidspunktene. Det finnes 109 kildegap i valgt periode; med alle
-gap behandlet som ukjente får D1 ingen komplette lokale 288-barsvinduer.
-D1-ATR bruker faktiske aggregater med 246/276 observerte M5-barer.
-F har egne masker og beviser bare eksakt endepunktendring over gap.
-Disse grensene må kvalifiseres før eventuell modellfit.
-
-RESULT har vellykket kilde-/input-/policybookend. Den opprinnelige
-TERMINAL mangler feltet source_unchanged; terminalfeltet i policy er
-derfor null. Rapporteieren er rettet for fremtidig publisering.
-Originalkvitteringen er urørt. Eksakte stier og hasher står i policy.
-
-### Gjenværende dataklargjøring
-
-Full featureprovider og normalisering trenger egne M5-bindinger.
-Eksisterende squeeze-eier støtter nå en egen M5/M15/H1/H4/D1-kontrakt,
-ferske parametre, manifest og binding med native M5-manifest og egen
-fit-plan. Gammel kildekontrakt avvises før avhengigheter leses.
-Syntetisk fem-TF-fit, lagring, innlasting og featureberegning består,
-og eksisterende seksklokkerute har beholdt sin egen funksjon.
-Gamle seksklokkeparametre ommerkes ikke. Fysisk ny fitting og samsvar
-mellom kildeprisene og de innsendte fit-tabellene er ennå ikke kvalifisert.
-De åtte familiene og D1/makro beholdes.
-
-53 fokuserte mål-, rapport- og squeeze-tester bestod.
-Trening, TEST, GC, broker og handel er stengt. Ingen ny fit eller
-relansering av den konsumerte datakontrollen er innrømmet.
+Kilde- og syntetiske tester er klargjort. Etter faktisk barfaktakontroll
+gjenstår ferske native fem-TF-squeezeparametre, uavhengig featureprovider,
+normalisering og ny binding fra barfasit til modelloutput/tap.
+De åtte indikatorfamiliene og D1/makro er fortsatt prosjektmålet.
+ALDRI M1 til retning består. Entry, modellfit, TEST og handel er stengt.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
 

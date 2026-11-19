@@ -35,6 +35,10 @@ Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt
 - Modell-/treningskode endres bare for en konkret observert blokkering eller
   vedtatt designendring. Begrunn minste rettelse før implementasjon. Ingen
   forebyggende refaktorering, brede søk, nye rammeverk eller gjentatte fullsuiter.
+- Retningsfasit på alle fem TF sammenligner åpning mot forrige åpning
+  og slutt mot forrige slutt. Begge fortegn og kjent likhet beholdes.
+  ATR, bevegelsesstørrelse og intrabarorden skal ikke filtrere disse
+  observerte barfaktaene. Se brukerpresisering19.11 i GX1_RULES.md.
 - ALDRI M1 til retning. Bruk native M5 med lukket M15/H1/H4/D1.
   Forbudet omfatter inputs, fasit/labels, masker, radutvalg, priorer,
   normalisering, tap, modellutvalg, evaluering og dataklargjøring/metadata.

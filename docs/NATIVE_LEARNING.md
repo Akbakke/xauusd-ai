@@ -7,62 +7,56 @@ ikke relanser ferdige inputs, kapasitetstester eller engangsplaner.
 
 ## Prognosemål før Entry
 
-Retningsarbeidet bruker bare native M5 med kausalt lukket M15/H1/H4/D1.
-Operatøren presiserte18.11 at M1 aldri skal inngå i retning. Dette gjelder
-inputs, fasit/labels, masker, radutvalg, priorer, normalisering, tap,
-modellutvalg og evaluering, også via dataklargjøring og metadata.
-M1 er for senere oppfølging av en åpnet handel. Entry og Entry-Q er pauset.
-M1-avledede modeller og checkpoints brukes ikke som retnings-warmstart.
+Retningsarbeidet bruker native M5 og kausalt lukkede M15/H1/H4/D1-barer.
+M1-forbudet omfatter inputs, fasit, masker, akser/radutvalg, priorer,
+normalisering, tap, modellutvalg, evaluering og dataklargjøring/metadata.
+M1 tilhører senere oppfølging av en åpnet handel. Entry er pauset.
+M1-avledede modeller/checkpoints brukes ikke som retnings-warmstart.
 
-Prognosen gjelder løpende OPP/NED/FLATT på hver av de fem tidsrammene,
-med fortsettelse, avtakende bevegelse og vendinger. Kausal M5-utstedelse
-skal forutsi senere tilstand. Et fast utstedelsesprisanker eller en
-terminal nettoendring kan ikke erstatte den lokale tilstandens forløp.
-Bevegelse, stillstand og ukjent utfall trenger separate sanne masker.
+Gjeldende barfasit er to separate sammenligninger på hver tidsramme:
 
-Pris- og tidsgrunnlaget er native M5 OHLC og faktisk lukkede høyere TF.
-Kilde, oppløsning, barstart, varighet, sluttklokke, dekning og hasher
-bindes eksplisitt. Indikatorer og ATR bruker sine kausale lukkede barer.
-M5-kilden må bekrefte native M5 uten M1-resampling eller M1-filtrering.
-Tidsakser og inkluderte rader verifiseres direkte mot M5-kilden.
-Eksisterende provider/metadata med M1-avhengigheter erstattes før bruk.
+- åpning nå minus forrige observerte bars åpning
+- slutt nå minus forrige observerte bars slutt
 
-For S-tilstand gjenbrukes 0,5 × Wilder ATR(14) som den tidligere valgte
-kandidaten til bevegelsesstørrelse. Ny M5-basert lokal range og retning
-må kvalifiseres på TRAIN-prisbaner med sanne masker for manglende data
-og ukjent rekkefølge innen M5-baren. Ingen rekkefølge eller M1-bane
-konstrueres fra M5 OHLC. Et ukjent hull er ukjent til faktisk M5-dekning
-gjenoppretter det deklarerte observasjonsbehovet. Gamle M1-baserte
-lukkeautoriter, sideetiketter og maskefiler gir ingen slik kvalifikasjon.
+Hver verdi gir fortegnet −1, 0 eller +1. Null er kjent likhet. Blandede
+fortegn er to kjente opplysninger. Samtlige observerte barer med kjent
+forgjenger merkes. ATR, størrelse, high/low-rekkefølge og gaplengde
+begrenser ikke disse prisfaktaene. Faktiske kildegap, observasjonstellinger
+og første kildebar uten forgjenger rapporteres separat.
+Den tidligere 3,5 %-dekningen gjaldt en avløst målsemantikk.
 
-F-målet er egen framtidig nettoendring mellom eksakte M5-sluttpriser med
-kausal ATR ved utstedelse. Dets M5-prisverdier kan gjenbrukes ved verifisert
-kilde-/klokkeidentitet. Bindingen må ha nye selvstendige M5-akser, masker,
-radutvalg og TRAIN-priorer. Et kjent endepunkt beviser ingen mellomliggende
-prisbane. S- og F-fasit og deres observasjonsmasker er egne mål.
+Barene bruker eksisterende native M5-resampler og kausal tilgjengelighet
+ved barlabel pluss TF-varighet. Åpning er første observerte M5-åpning
+i TF-bøtten, slutt er siste observerte M5-slutt. Tomme bøtter skaper ingen
+bar. Ingen manglende pris eller uobservert intrabarrekkefølge konstrueres.
 
-Alle genuine indikatorer og de åtte spesialistfamiliene med D1/makro
-beholdes på M5/høyere. Formel, enhet, warmup, maske, normalisering og
-faktisk forbruk skal dokumenteres. Samspill eller prediktiv nytte bevises
-med måling på den aktuelle funksjonen og de bundne radene.
+Et M5-prognosetidspunkt får framtidsfasit fra den neste faktiske
+TF-baren som lukker etter utstedelsen. Målene leses først når sluttiden
+er strengt før skåringsgrensen. Framtidig dato, indeks, dekning og masker
+er kun målmetadata. De inngår aldri i modellens forward.
 
-Squeeze-parametre for retning bruker en egen fem-TF-kildekontrakt i
+På høyere TF kan åpningen allerede være observerbar gjennom lukkede
+M5-barer ved prognosetidspunktet. Dette merkes med faktisk første
+M5-medlems tilgjengelighet. Prognosekvalitet for den senere sluttretningen
+måles separat fra en åpning som allerede var kjent.
+
+Alle genuine indikatorer, åtte spesialistfamilier og D1/makro beholdes.
+ATR er en inputindikator. Den er ingen terskel for om open/close-fasiten
+er kjent. Samme M5/høyere proveniens gjelder hele featurekjeden.
+
+Squeeze-parametre for retning bruker egen fem-TF-kontrakt i
 `volatility_squeeze_state_v1`. Fit, parameterfil, manifest og binding
 skal angi native M5-manifest og samme egne fit-plan. Produsenten beviser
-native M5/høyere barer til fit-tabellenes hash, med faktisk cutoff.
-Lasting avviser gammel kildekontrakt før videre kilde- eller metadatalesing.
+native barer til fit-tabellenes hash og cutoff. Fysisk fitting og
+uavhengig M5-featureprovider må kvalifiseres før ny modellfit.
 
-Før modellfit trenger den nye kjeden egen kilde-/input-/målidentitet,
-fersk baseline og samsvar i output, tap og skåring. Faste FIT-rader,
-kronologisk senere utvikling og TRAIN-priorer må bruke samme M5-kontrakt.
-Mål retning, kalibrering, fortsettelse/vendinger, dekning og ukjente utfall.
-Overlappende observasjoner behandles som avhengige. TEST er forseglet.
+Nye mål krever egen kilde-/input-/målidentitet, fersk baseline og samme
+semantikk i output, tap og skåring. Målene skal følge de fem TFs egne
+barer. Gjentatte høyere-TF-mål ved flere M5-utstedelser er avhengige
+observasjoner, og unike målbarer rapporteres. TEST er forseglet.
 
-De gamle M1-baserte S-loaderne og dataklargjørerne er sperret før lesing.
-Historiske kvitteringer bevares med sitt opprinnelige omfang. M5-fasit,
-selvstendig provider og nye bindinger må bygges og kvalifiseres før noen
-ny retningsmåling eller fit. Metode for tidligere og senere faser nedenfor
-gir ingen adgang til M1 i retningsarbeidet.
+Metode for tidligere og senere faser nedenfor gir ingen adgang til M1
+eller den avløste ATR-/intrabarfasiten i det aktive retningsarbeidet.
 
 ## Før en modell kan startes
 

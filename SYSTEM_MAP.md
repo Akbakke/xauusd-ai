@@ -3,8 +3,8 @@
 Gjeldende bindinger eies av NEXT_RUN_POLICY.json; dokumentet er ikke en recipe.
 
 Aktiv fase er prognose av OPP/NED/FLATT på M5, M15, H1, H4 og D1
-ved hver lukkede M5-bar. S beskriver lokal markedstilstand. F beskriver
-framtidig nettoendring med egen observasjonsmaske. Entry, Entry-Q og Exit
+ved hver lukkede M5-bar. Fasit sammenligner hver TF-bars åpning med
+forrige åpning og slutt med forrige slutt, med kjente likhetsutfall. Entry, Entry-Q og Exit
 kommer senere. Siste kjørte kontroll brukte TA-profilen med åtte
 spesialistfamilier og D1/makro via global kontekst. Native GC-retning
 har en egen modellrute. Den dedikerte TA-modellen med fem S/F-tilstander
@@ -15,8 +15,8 @@ native XAUUSD M5-priser og kausalt lukkede M15/H1/H4/D1-barer
   → indikatorer, observasjonsmasker, native signalmanifest og FIT-statistikk
   → åtte spesialistfamilier og D1/makro-kontekst
   → familie- og tidsrammeoppmerksomhet, separat blanding innen hver tidsramme
-  → per-TF skjult vektor direkte til separate S/F-hoder
-  → separate skårer for aktivitet, kjent OPP/NED og M5-vendinger
+  → per-TF representasjon og egne prognoser for åpnings- og sluttretning
+  → egen skåring av framtidig sluttretning og allerede observerbar åpning
 ```
 
 Retningsinputs, fasit, masker, akser, priorer, tap og evaluering bygges

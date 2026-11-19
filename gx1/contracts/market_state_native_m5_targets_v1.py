@@ -1,4 +1,4 @@
-"""Pure direction targets on native closed M5 prices and observed higher bars."""
+"""Native M5 and higher bar directions from consecutive observed opens/closes."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,13 +14,9 @@ from gx1.features.htf_features import (
     MULTI_TF_RESAMPLE_ORIGIN_CONTRACT, MULTI_TF_SHIFT, MULTI_TF_TIMEFRAMES,
     _resample_ohlc_for_model_native_scalars, multi_tf_resample,
 )
-from gx1.features.technical_indicators_v1 import EMA50_200_ATR_PERIOD, wilder_atr
 
 TIMEFRAMES = tuple(MULTI_TF_TIMEFRAMES)
 TICK_NS = 300_000_000_000
-NATIVE_K = tuple(int(MULTI_TF_SHIFT[tf].value // TICK_NS) for tf in TIMEFRAMES)
-MOVE_ATR = 0.5
-DOWN, FLAT, UP, ACTIVE_UNKNOWN, UNKNOWN = 1, 2, 4, 5, 7
 
 
 def _need(condition, reason):
@@ -30,31 +26,32 @@ def _need(condition, reason):
 
 def contract():
     value = {
-        'schema_version': 'gx1_market_state_native_m5_targets_v1',
-        'role': 'candidate_targets_no_training_or_trading_authority',
-        'timeframes': list(TIMEFRAMES), 'native_query_k': list(NATIVE_K),
-        'source_bar_seconds': 300, 'issue': 'native_bar_start_plus_300_seconds',
-        'cutoff': 'exclusive_source_close_and_target_validity',
+        'schema_version': 'gx1_market_state_native_m5_bar_directions_v2',
+        'role': 'bar_direction_targets_no_training_or_trading_authority',
+        'timeframes': list(TIMEFRAMES), 'source_bar_seconds': 300,
         'source_columns': ['open', 'high', 'low', 'close'],
+        'issue': 'native_M5_bar_start_plus_300_seconds',
+        'cutoff': 'exclusive_source_M5_close_and_native_TF_bar_availability',
         'tf_resample_origin': dict(MULTI_TF_RESAMPLE_ORIGIN_CONTRACT),
-        'ATR': 'canonical_Wilder_ATR14_on_observed_native_M5_aggregates',
-        'ATR_partial_bins': 'as_is_actual_M5_counts_reported_no_complete_market_coverage_assertion',
-        'move_ATR': MOVE_ATR, 'local_observed_M5_bars': list(NATIVE_K),
-        'S': 'local_range_and_conservative_ending_direction_at_exact_future_M5_close',
-        'S_range': 'rolling_observed_high_low_including_previous_close_except_unknown_gap',
-        'S_flat': 'complete_local_span_and_range_lt_half_causal_TF_ATR',
-        'S_activity': 'complete_range_ge_threshold_or_conservative_direction_proof',
-        'S_side': 'OHLC_ending_direction_no_intrabar_order_inference',
-        'S_gap': 'every_non_300s_gap_resets_direction_and_local_span_first_new_bar_counts_one',
-        'F': 'exact_future_M5_close_minus_issue_close_scaled_by_TF_ATR_at_issue',
-        'F_side': 'absolute_change_ge_half_ATR_else_FLAT_NET',
-        'F_gap': 'reported_endpoints_do_not_claim_intermediate_path',
-        'unknown_numeric_values': 'NaN_and_false_eligibility',
-        'maturity': 'validity_strictly_before_explicit_fold_upper',
-        'allowed_bits': {'DOWN': DOWN, 'FLAT_OR_FLAT_NET': FLAT, 'UP': UP,
-                         'ACTIVE_SIDE_UNKNOWN': ACTIVE_UNKNOWN, 'UNKNOWN': UNKNOWN},
-        'activity_mask': 'eligible_and_mature_and_bits_not_7',
-        'side_mask': 'eligible_and_mature_and_bits_in_1_4',
+        'tf_duration_ns': {tf: int(MULTI_TF_SHIFT[tf].value) for tf in TIMEFRAMES},
+        'observed_TF_bar': 'canonical_nonempty_native_M5_aggregate_available_at_label_plus_TF_duration',
+        'open_sign': 'sign(current_observed_TF_open_minus_previous_observed_TF_open)',
+        'close_sign': 'sign(current_observed_TF_close_minus_previous_observed_TF_close)',
+        'sign_values': [-1, 0, 1],
+        'equality': 'known_zero_when_previous_observed_TF_bar_exists',
+        'mixed_open_close': 'two_separate_known_signs',
+        'observed_previous': 'all_observed_TF_bars_except_first_source_prefix_bar',
+        'previous_unknown_storage': 'NaN_previous_prices_and_zero_signs_with_false_mask',
+        'source_gap': 'reported_observed_M5_interruption_or_missing_TF_bins_comparisons_remain_known',
+        'partial_TF_bins': 'observed_M5_count_reported_first_open_last_close_no_missing_values_inferred',
+        'future_target': 'next_observed_TF_bar_with_available_ns_strictly_after_M5_issue',
+        'target_maturity': 'next_actual_TF_available_ns_strictly_before_fold_upper',
+        'open_availability': 'first_actual_M5_member_close_of_observed_TF_bar',
+        'open_known_at_issue': 'target_open_available_ns_le_M5_issue_may_precede_target_close',
+        'forecast_interpretation': 'close_sign_predictive_score_separate_from_already_observed_open_sign',
+        'gathered_metadata': 'future_time_index_eligibility_and_labels_are_target_only_never_features',
+        'future_eligibility': 'target_present_and_mature_and_observed_previous',
+        'immature_target_storage': 'target_row_minus_one_zero_signs_and_false_observed_previous',
     }
     raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
     return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
@@ -65,123 +62,111 @@ def _owned(array):
                          dtype=array.dtype).reshape(array.shape)
 
 
-def _ending_direction(side, low_anchor, high_anchor, high, low, close, threshold):
-    # Resolution-independent OHLC proof retained from the earlier state algorithm.
-    # A wide bar with an interior close cannot prove its final directional leg.
-    if high - low >= threshold:
-        if close == high:
-            return UP, high, high
-        if close == low:
-            return DOWN, low, low
-        return UNKNOWN, close, close
-    if side == UP:
-        lo, hi = max(low_anchor, high), max(high_anchor, high)
-        if lo - low >= threshold:
-            return DOWN, low, low
-        if hi - low < threshold:
-            return UP, lo, hi
-        return UNKNOWN, close, close
-    if side == DOWN:
-        lo, hi = min(low_anchor, low), min(high_anchor, low)
-        if high - hi >= threshold:
-            return UP, high, high
-        if high - lo < threshold:
-            return DOWN, lo, hi
-        return UNKNOWN, close, close
-    up, down = high - low_anchor >= threshold, high_anchor - low >= threshold
-    if up and not down:
-        return UP, high, high
-    if down and not up:
-        return DOWN, low, low
-    if up and down:
-        return UNKNOWN, close, close
-    return UNKNOWN, min(low_anchor, low), max(high_anchor, high)
+@dataclass(frozen=True)
+class NativeTFBarDirections:
+    bar_start_ns: np.ndarray
+    available_ns: np.ndarray
+    open_available_ns: np.ndarray
+    ohlc: np.ndarray
+    previous_open: np.ndarray
+    previous_close: np.ndarray
+    open_sign: np.ndarray
+    close_sign: np.ndarray
+    observed_previous: np.ndarray
+    m5_count: np.ndarray
+    source_gap: np.ndarray
 
 
 @dataclass(frozen=True)
 class NativeM5Targets:
     issue_ns: np.ndarray
     source_row: np.ndarray
-    close: np.ndarray
-    atr: np.ndarray
-    atr_available_ns: np.ndarray
-    tf_bar_m5_counts: np.ndarray
+    ohlc: np.ndarray
     source_gap: np.ndarray
-    s_allowed: np.ndarray
-    s_span_complete: np.ndarray
-    s_local_range: np.ndarray
+    bars_by_timeframe: MappingProxyType
     source_ref: MappingProxyType
     cutoff_ns: int
 
-    def _query(self, issues, query_k, fold_upper_ns):
-        _need(isinstance(issues, np.ndarray) and issues.dtype == np.int64
-              and issues.ndim == 1 and len(issues) > 0
-              and isinstance(query_k, np.ndarray) and query_k.dtype == np.int64
-              and query_k.shape == (len(issues), len(TIMEFRAMES))
-              and np.all((query_k >= 1) & (query_k <= np.asarray(NATIVE_K)))
+    def gather_next_bar(self, issue_ns, *, fold_upper_ns):
+        """Gather each TF's next actual close, checking maturity before labels."""
+        _need(isinstance(issue_ns, np.ndarray) and issue_ns.dtype == np.int64
+              and issue_ns.ndim == 1 and len(issue_ns) > 0
               and type(fold_upper_ns) is int and 0 < fold_upper_ns <= self.cutoff_ns,
               'QUERY')
-        at = np.searchsorted(self.issue_ns, issues)
+        at = np.searchsorted(self.issue_ns, issue_ns)
         _need(np.all(at < len(self.issue_ns))
-              and np.array_equal(self.issue_ns[at], issues)
-              and np.all(issues < fold_upper_ns)
-              and np.all(issues <= np.iinfo(np.int64).max - max(NATIVE_K) * TICK_NS),
-              'ISSUE_AXIS')
-        validity = issues[:, None] + query_k * TICK_NS
-        mature = validity < fold_upper_ns
-        endpoint = np.full(query_k.shape, -1, np.int64)
-        wanted = validity[mature]
-        positions = np.searchsorted(self.issue_ns, wanted)
-        present = positions < len(self.issue_ns)
-        present[present] &= self.issue_ns[positions[present]] == wanted[present]
-        endpoint.flat[np.flatnonzero(mature)[present]] = positions[present]
-        return at, validity, mature, endpoint
-
-    def gather_state(self, issue_ns, query_k, *, fold_upper_ns):
-        _, validity, mature, endpoint = self._query(issue_ns, query_k, fold_upper_ns)
-        allowed = np.full(query_k.shape, UNKNOWN, np.uint8)
-        present = endpoint >= 0
-        columns = np.broadcast_to(np.arange(len(TIMEFRAMES)), query_k.shape)
-        allowed[present] = self.s_allowed[endpoint[present], columns[present]]
+              and np.array_equal(self.issue_ns[at], issue_ns)
+              and np.all(issue_ns < fold_upper_ns), 'ISSUE_AXIS')
+        shape = (len(issue_ns), len(TIMEFRAMES))
+        target_row = np.full(shape, -1, np.int64)
+        validity = np.full(shape, -1, np.int64)
+        target_present = np.zeros(shape, np.bool_)
+        mature = np.zeros(shape, np.bool_)
+        open_known = np.zeros(shape, np.bool_)
+        previous = np.zeros(shape, np.bool_)
+        open_sign = np.zeros(shape, np.int8)
+        close_sign = np.zeros(shape, np.int8)
+        count = np.zeros(shape, np.int64)
+        gap = np.zeros(shape, np.bool_)
+        for j, tf in enumerate(TIMEFRAMES):
+            bars = self.bars_by_timeframe[tf]
+            next_row = np.searchsorted(bars.available_ns, issue_ns, side='right')
+            present = next_row < len(bars.available_ns)
+            target_present[:, j] = present
+            validity[present, j] = bars.available_ns[next_row[present]]
+            open_known[present, j] = bars.open_available_ns[next_row[present]] <= issue_ns[present]
+            ready = present & (validity[:, j] < fold_upper_ns)
+            mature[:, j] = ready
+            selected = next_row[ready]
+            target_row[ready, j] = selected
+            previous[ready, j] = bars.observed_previous[selected]
+            open_sign[ready, j] = bars.open_sign[selected]
+            close_sign[ready, j] = bars.close_sign[selected]
+            count[ready, j] = bars.m5_count[selected]
+            gap[ready, j] = bars.source_gap[selected]
         return {
-            'issue_ns': issue_ns.copy(), 'query_k': query_k.copy(),
-            'validity_ns': validity, 'source_row': endpoint,
-            'allowed': allowed, 'eligible': present & (allowed != UNKNOWN),
-            'mature': mature,
+            'issue_ns': issue_ns.copy(), 'target_row': target_row,
+            'validity_ns': validity, 'target_present': target_present,
+            'observed_previous': previous, 'mature': mature,
+            'eligible': mature & previous, 'open_known_at_issue': open_known,
+            'open_sign': open_sign, 'close_sign': close_sign,
+            'm5_count': count, 'source_gap': gap,
         }
 
-    def gather_displacement(self, issue_ns, *, fold_upper_ns):
-        query = np.broadcast_to(np.asarray(NATIVE_K, np.int64),
-                                (len(issue_ns), len(TIMEFRAMES))).copy()
-        at, validity, mature, endpoint = self._query(issue_ns, query, fold_upper_ns)
-        present = endpoint >= 0
-        scale = self.atr[at]
-        eligible = present & np.isfinite(scale) & (scale > 0)
-        delta = np.full(query.shape, np.nan, np.float64)
-        origin = np.broadcast_to(self.close[at, None], query.shape)
-        delta[eligible] = self.close[endpoint[eligible]] - origin[eligible]
-        magnitude = np.full(query.shape, np.nan, np.float64)
-        magnitude[eligible] = np.abs(delta[eligible]) / scale[eligible]
-        allowed = np.full(query.shape, UNKNOWN, np.uint8)
-        allowed[eligible] = FLAT
-        active = eligible & (magnitude >= MOVE_ATR)
-        allowed[active & (delta < 0)] = DOWN
-        allowed[active & (delta > 0)] = UP
-        gaps = np.zeros(query.shape, np.bool_)
-        row_distance = endpoint - at[:, None]
-        gaps[present] = row_distance[present] != query[present]
-        _need(np.isfinite(delta[eligible]).all() and np.isfinite(magnitude[eligible]).all(),
-              'DISPLACEMENT_NUMERIC')
-        return {
-            'issue_ns': issue_ns.copy(), 'query_k': query, 'validity_ns': validity,
-            'source_row': endpoint, 'allowed': allowed, 'eligible': eligible,
-            'mature': mature, 'endpoint_present': present, 'gap_between': gaps,
-            'net_change': delta, 'abs_change_over_atr': magnitude,
-        }
+
+def _bar_directions(frame, source_gap_frame, tf, cutoff_ns):
+    bars = _resample_ohlc_for_model_native_scalars(frame, tf)
+    duration = int(MULTI_TF_SHIFT[tf].value)
+    available = bars.index.asi8 + duration
+    keep = available < cutoff_ns
+    bars = bars.loc[keep]
+    available = available[keep].astype(np.int64, copy=False)
+    values = bars.loc[:, ['open', 'high', 'low', 'close']].to_numpy(np.float64)
+    source_available = pd.Series(frame.index.asi8 + TICK_NS, index=frame.index)
+    open_available = multi_tf_resample(source_available, tf).first().reindex(
+        bars.index).to_numpy(np.int64)
+    counts = multi_tf_resample(frame, tf).size().reindex(bars.index).to_numpy(np.int64)
+    gaps = multi_tf_resample(source_gap_frame, tf).max().reindex(bars.index)
+    gap = gaps['source_gap'].to_numpy(np.bool_)
+    if len(available) > 1:
+        gap[1:] |= np.diff(available) != duration
+    previous = np.arange(len(bars)) > 0
+    previous_open = np.full(len(bars), np.nan, np.float64)
+    previous_close = np.full(len(bars), np.nan, np.float64)
+    previous_open[1:] = values[:-1, 0]
+    previous_close[1:] = values[:-1, 3]
+    open_sign = np.zeros(len(bars), np.int8)
+    close_sign = np.zeros(len(bars), np.int8)
+    open_sign[1:] = np.sign(values[1:, 0] - previous_open[1:]).astype(np.int8)
+    close_sign[1:] = np.sign(values[1:, 3] - previous_close[1:]).astype(np.int8)
+    arrays = (bars.index.asi8.astype(np.int64), available, open_available, values,
+              previous_open, previous_close, open_sign, close_sign,
+              previous.astype(np.bool_), counts, gap)
+    return NativeTFBarDirections(*(_owned(value) for value in arrays))
 
 
 def build_native_m5_targets(bar_start_ns, ohlc, *, source_ref, cutoff_ns):
-    """Build source-clock targets without IO, historical selections or fitting."""
+    """Build immutable observed bar comparisons from supplied native M5 arrays."""
     _need(isinstance(bar_start_ns, np.ndarray) and bar_start_ns.dtype == np.int64
           and bar_start_ns.ndim == 1 and len(bar_start_ns) > 0
           and isinstance(ohlc, np.ndarray) and ohlc.dtype == np.float64
@@ -203,56 +188,10 @@ def build_native_m5_targets(bar_start_ns, ohlc, *, source_ref, cutoff_ns):
     frame = pd.DataFrame(ohlc.copy(), columns=('open', 'high', 'low', 'close'),
                          index=pd.to_datetime(bar_start_ns, utc=True))
     issue = bar_start_ns + TICK_NS
-    n = len(issue)
-    atr = np.full((n, len(TIMEFRAMES)), np.nan, np.float64)
-    available_at = np.zeros((n, len(TIMEFRAMES)), np.int64)
-    counts = np.zeros((n, len(TIMEFRAMES)), np.int64)
-    for j, tf in enumerate(TIMEFRAMES):
-        bars = _resample_ohlc_for_model_native_scalars(frame, tf)
-        available = bars.index.asi8 + int(MULTI_TF_SHIFT[tf].value)
-        observed = multi_tf_resample(frame, tf).size().reindex(bars.index).to_numpy(np.int64)
-        values = wilder_atr(bars.high, bars.low, bars.close, EMA50_200_ATR_PERIOD).to_numpy(np.float64)
-        at = np.searchsorted(available, issue, side='right') - 1
-        known = at >= 0
-        atr[known, j] = values[at[known]]
-        available_at[known, j] = available[at[known]]
-        counts[known, j] = observed[at[known]]
-    _need(np.all(available_at <= issue[:, None]), 'ATR_AVAILABILITY')
     gap = np.r_[False, np.diff(issue) != TICK_NS]
-    rows = np.arange(n, dtype=np.int64)
-    last_reset = np.maximum.accumulate(np.where(gap, rows, 0))
-    previous_close = np.r_[ohlc[0, 0], ohlc[:-1, 3]]
-    previous_close[gap] = ohlc[gap, 0]
-    high = np.maximum(ohlc[:, 1], previous_close)
-    low = np.minimum(ohlc[:, 2], previous_close)
-    allowed = np.full(atr.shape, UNKNOWN, np.uint8)
-    span_complete = np.zeros(atr.shape, np.bool_)
-    local_range = np.zeros(atr.shape, np.float64)
-    for j, window in enumerate(NATIVE_K):
-        local_range[:, j] = (
-            pd.Series(high).rolling(window, min_periods=1).max()
-            - pd.Series(low).rolling(window, min_periods=1).min()).to_numpy(np.float64)
-        complete = rows - last_reset + 1 >= window
-        span_complete[:, j] = complete
-        side, lo, hi = UNKNOWN, float(ohlc[0, 0]), float(ohlc[0, 0])
-        for row in range(n):
-            scale = atr[row, j]
-            if gap[row] or not np.isfinite(scale) or scale <= 0:
-                side, lo, hi = UNKNOWN, float(ohlc[row, 0]), float(ohlc[row, 0])
-            if not np.isfinite(scale) or scale <= 0:
-                continue
-            threshold = MOVE_ATR * scale
-            side, lo, hi = _ending_direction(
-                side, lo, hi, float(ohlc[row, 1]), float(ohlc[row, 2]),
-                float(ohlc[row, 3]), float(threshold))
-            if complete[row] and local_range[row, j] < threshold:
-                allowed[row, j] = FLAT
-            elif side in (DOWN, UP):
-                allowed[row, j] = side
-            elif complete[row] and local_range[row, j] >= threshold:
-                allowed[row, j] = ACTIVE_UNKNOWN
-    _need(np.isfinite(local_range).all(), 'LOCAL_RANGE')
-    arrays = (issue, rows, ohlc[:, 3], atr, available_at, counts,
-              gap, allowed, span_complete, local_range)
-    return NativeM5Targets(*(_owned(value) for value in arrays),
-                           MappingProxyType(dict(source_ref)), cutoff_ns)
+    gap_frame = pd.DataFrame({'source_gap': gap}, index=frame.index)
+    bars = {tf: _bar_directions(frame, gap_frame, tf, cutoff_ns) for tf in TIMEFRAMES}
+    return NativeM5Targets(
+        _owned(issue), _owned(np.arange(len(issue), dtype=np.int64)),
+        _owned(ohlc), _owned(gap), MappingProxyType(bars),
+        MappingProxyType(dict(source_ref)), cutoff_ns)

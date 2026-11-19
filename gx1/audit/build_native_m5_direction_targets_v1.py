@@ -23,9 +23,9 @@ from gx1.contracts.gx1_capped_execution_v1 import (
 from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-STAGE = 'native_m5_direction_targets_20261119_001'
-PLAN = REPO / 'configs/research/NATIVE_M5_DIRECTION_TARGETS_20261119_001.json'
-ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_TARGETS_20261119_001')
+STAGE = 'native_m5_bar_direction_targets_20261119_002'
+PLAN = REPO / 'configs/research/NATIVE_M5_BAR_DIRECTION_TARGETS_20261119_002.json'
+ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_BAR_DIRECTION_TARGETS_20261119_002')
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
 NATIVE = Path('/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927')
 MANIFEST_SHA = 'ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca'
@@ -122,7 +122,7 @@ def native_source_spec():
     binding = {'path': str(NATIVE / 'MANIFEST.json'), 'sha256': MANIFEST_SHA}
     manifest = source_manifest(binding)
     parts = []
-    for year in range(2009, 2025):
+    for year in (2024,):
         path = NATIVE / f'year={year}/part-000.parquet'
         parquet = pq.ParquetFile(path)
         column = parquet.schema_arrow.names.index('time')
@@ -139,7 +139,7 @@ def build_plan(*, source_spec, source_base_commit=None):
     need(source_spec == native_source_spec(), 'EXACT_SOURCE_SPEC')
     head = source_base_commit or subprocess.check_output(
         ['git', 'rev-parse', 'HEAD'], cwd=REPO, text=True).strip()
-    return {'schema_version': 'native_m5_direction_target_audit_plan_v1',
+    return {'schema_version': 'native_m5_bar_direction_target_audit_plan_v1',
         'stage': STAGE, 'status': 'PREPARED_NOT_ADMITTED', 'output_root': str(ROOT),
         'source_base_commit': head, 'source_spec': source_spec,
         'source_metadata': {p['path']: part_metadata(p) for p in source_spec['parts']},
@@ -147,9 +147,9 @@ def build_plan(*, source_spec, source_base_commit=None):
         'target_contract': contract(), 'columns': COLUMNS, 'execution': EXECUTION,
         'runtime_versions': {'numpy': np.__version__, 'pandas': pd.__version__, 'pyarrow': pyarrow.__version__},
         'max_invocations': 1, 'source_resolution_seconds': 300,
-        'native_prehistory': 'all_declared_native_M5_from_2009_before_cutoff',
+        'native_prehistory': 'January_April_2024_for_previous_observed_bar_only_no_ATR_warmup',
         'decoded_crossing_group': 'filter_bar_start_plus_300s_strictly_before_cutoff',
-        'unknown_gaps': 'conservative_unknown_without_closure_authority',
+        'source_gaps': 'reported_between_observed_bars_without_suppressing_open_close_comparisons',
         'target_tapes': 1, 'model_forwards': 0, 'optimizer_steps': 0,
         'normalization_fits': 0, 'test_data_used': False, 'economic_edge_proven': False}
 
@@ -224,62 +224,78 @@ def read_source(plan):
 
 
 def calculate(plan):
-    from gx1.contracts.market_state_native_m5_targets_v1 import build_native_m5_targets, NATIVE_K, TIMEFRAMES
+    from gx1.contracts.market_state_native_m5_targets_v1 import build_native_m5_targets, TIMEFRAMES
     starts, ohlc, decoded = read_source(plan)
     spec = plan['source_spec']
-    targets = build_native_m5_targets(starts, ohlc, source_ref=spec['manifest'], cutoff_ns=spec['cutoff_ns'])
+    targets = build_native_m5_targets(
+        starts, ohlc, source_ref=spec['manifest'], cutoff_ns=spec['cutoff_ns'])
     selected = np.flatnonzero((targets.issue_ns >= spec['issue_start_ns'])
                               & (targets.issue_ns < spec['cutoff_ns']))
     need(len(selected) > 0, 'EMPTY_ISSUES')
     issues = targets.issue_ns[selected]
-    query = np.broadcast_to(np.asarray(NATIVE_K, dtype=np.int64), (len(issues), 5)).copy()
-    state = targets.gather_state(issues, query, fold_upper_ns=spec['cutoff_ns'])
-    future = targets.gather_displacement(issues, fold_upper_ns=spec['cutoff_ns'])
+    future = targets.gather_next_bar(issues, fold_upper_ns=spec['cutoff_ns'])
     arrays = {'issue_ns': issues, 'source_row': targets.source_row[selected],
-              'close': targets.close[selected], 'atr': targets.atr[selected],
-              'atr_available_ns': targets.atr_available_ns[selected],
-              'tf_bar_m5_counts': targets.tf_bar_m5_counts[selected],
-              'source_gap': targets.source_gap[selected],
-              'current_s_allowed': targets.s_allowed[selected],
-              'current_s_span_complete': targets.s_span_complete[selected],
-              'current_s_local_range': targets.s_local_range[selected]}
-    for prefix, result in (('state', state), ('future', future)):
-        for key, value in result.items():
-            if isinstance(value, np.ndarray):
-                arrays[prefix + '_' + key] = value
+              'ohlc': targets.ohlc[selected], 'source_gap': targets.source_gap[selected]}
+    arrays.update({'future_' + key: value for key, value in future.items()
+                   if isinstance(value, np.ndarray)})
+    coverage = {}
+    bar_fields = ('bar_start_ns', 'available_ns', 'open_available_ns', 'ohlc', 'previous_open',
+                  'previous_close', 'open_sign', 'close_sign', 'observed_previous',
+                  'm5_count', 'source_gap')
+    for col, tf in enumerate(TIMEFRAMES):
+        bars = targets.bars_by_timeframe[tf]
+        at = np.flatnonzero((bars.available_ns >= spec['issue_start_ns'])
+                           & (bars.available_ns < spec['cutoff_ns']))
+        need(len(at) > 0, 'EMPTY_NATIVE_BARS_' + tf)
+        arrays['bars_' + tf + '_row'] = at
+        arrays.update({'bars_' + tf + '_' + key: getattr(bars, key)[at]
+                       for key in bar_fields})
+        known = bars.observed_previous[at]
+        need(bool(known.all()), 'OBSERVED_PREDECESSOR_MISSING_' + tf)
+        open_sign, close_sign = bars.open_sign[at], bars.close_sign[at]
+        coverage[tf] = {
+            'observed_bars': len(at), 'prior_observed_bars': int(known.sum()),
+            'open_sign_counts': {str(sign): int(((open_sign == sign) & known).sum())
+                                 for sign in (-1, 0, 1)},
+            'close_sign_counts': {str(sign): int(((close_sign == sign) & known).sum())
+                                  for sign in (-1, 0, 1)},
+            'mixed_open_close_sign_bars': int(((open_sign != close_sign) & known).sum()),
+            'source_gap_bars': int(bars.source_gap[at].sum()),
+            'actual_m5_count_distribution': {str(int(count)): int(n) for count, n in zip(
+                *np.unique(bars.m5_count[at], return_counts=True))},
+            'future_target_present': int(future['target_present'][:, col].sum()),
+            'future_open_known_at_issue': int(future['open_known_at_issue'][:, col].sum()),
+            'future_prior_observed': int(future['observed_previous'][:, col].sum()),
+            'future_mature': int(future['mature'][:, col].sum()),
+            'future_eligible': int(future['eligible'][:, col].sum()),
+            'future_unique_mature_bar_rows': int(np.unique(
+                future['target_row'][future['mature'][:, col], col]).size),
+            'future_unique_eligible_bar_rows': int(np.unique(
+                future['target_row'][future['eligible'][:, col], col]).size),
+            'future_open_sign_counts': {
+                str(sign): int(((future['open_sign'][:, col] == sign)
+                               & future['eligible'][:, col]).sum())
+                for sign in (-1, 0, 1)},
+            'future_close_sign_counts': {
+                str(sign): int(((future['close_sign'][:, col] == sign)
+                               & future['eligible'][:, col]).sum())
+                for sign in (-1, 0, 1)},
+        }
     stream = io.BytesIO()
     np.savez_compressed(stream, **arrays)
-    return stream.getvalue(), {'source_rows': len(starts), 'decoded_rows': decoded,
+    return stream.getvalue(), {
+        'source_rows': len(starts), 'decoded_rows': decoded,
         'selected_issue_rows': len(issues), 'first_issue_ns': int(issues[0]),
-        'last_issue_ns': int(issues[-1]), 'array_shapes': {key: list(value.shape) for key, value in arrays.items()},
-        'state_allowed_counts': {str(bit): (state['allowed'] == bit).sum(axis=0).tolist()
-                                  for bit in (1, 2, 4, 5, 7)},
-        'future_allowed_counts': {str(bit): (future['allowed'] == bit).sum(axis=0).tolist()
-                                   for bit in (1, 2, 4, 5, 7)},
-        'source_row_axis': 'zero_based_ordinal_in_ordered_native_2009_prefix_after_cutoff_filter',
+        'last_issue_ns': int(issues[-1]), 'array_shapes': {
+            key: list(value.shape) for key, value in arrays.items()},
+        'source_row_axis': 'zero_based_ordinal_in_ordered_native_2024_prefix_after_cutoff_filter',
         'source_first_bar_ns': int(starts[0]), 'source_last_bar_ns': int(starts[-1]),
         'source_gap_count': int(targets.source_gap.sum()),
+        'source_parts': [part['path'] for part in spec['parts']],
+        'source_year_filter': [2024],
         'selected_source_gap_count': int(targets.source_gap[selected].sum()),
-        'current_s_allowed_counts': {str(bit): (targets.s_allowed[selected] == bit).sum(axis=0).tolist()
-                                    for bit in (1, 2, 4, 5, 7)},
-        'current_s_span_complete_counts': targets.s_span_complete[selected].sum(axis=0).tolist(),
-        'coverage_by_timeframe': {
-            tf: {
-                'state_mature': int(state['mature'][:, col].sum()),
-                'state_eligible': int(state['eligible'][:, col].sum()),
-                'state_known_side': int(np.isin(state['allowed'][:, col], (1, 4)).sum()),
-                'future_mature': int(future['mature'][:, col].sum()),
-                'future_eligible': int(future['eligible'][:, col].sum()),
-                'future_endpoint_present': int(future['endpoint_present'][:, col].sum()),
-                'future_gap_between': int(future['gap_between'][:, col].sum()),
-                'causal_atr_known': int(np.isfinite(targets.atr[selected, col]).sum()),
-                'last_closed_tf_m5_count_distribution': {
-                    str(int(count)): int(n) for count, n in zip(
-                        *np.unique(targets.tf_bar_m5_counts[selected, col], return_counts=True))
-                },
-            } for col, tf in enumerate(TIMEFRAMES)},
-        'timeframe_bar_m5_count_min': targets.tf_bar_m5_counts[selected].min(axis=0).tolist(),
-        'timeframe_bar_m5_count_max': targets.tf_bar_m5_counts[selected].max(axis=0).tolist()}
+        'coverage_by_timeframe': coverage,
+    }
 
 
 def publish(name, value):
@@ -318,7 +334,7 @@ def run(plan_sha):
         need(source_clean(plan) and ref(POLICY) == policy_ref and ref(PLAN) == plan_ref,
              'SOURCE_INPUT_POLICY_BOOKEND')
         tape_ref = publish('TARGETS.npz', payload)
-        result_ref = publish('RESULT.json', {'status': 'COMPLETE_NATIVE_M5_TARGET_AUDIT',
+        result_ref = publish('RESULT.json', {'status': 'COMPLETE_NATIVE_M5_BAR_DIRECTION_TARGET_AUDIT',
             'stage': STAGE, 'plan': plan_ref, 'claim': claim, 'policy_at_claim': policy_ref,
             'source_spec': plan['source_spec'], 'target_contract': plan['target_contract'],
             'source_unchanged': True, 'target_tape': tape_ref, 'report': report,

@@ -17,7 +17,7 @@ arkivfiler på disk er aldri kjøreautoritet.
 
 ## Varig prosjektmål og arbeidsmåte
 
-Siste målpresisering18.11 nedenfor styrer den aktive prognosefasen;
+Siste målpresisering19.11 nedenfor styrer den aktive prognosefasen;
 01.11-definisjonen av markedstilstand består. Eldre daterte beskrivelser
 er bakgrunn der de er avløst.
 
@@ -41,6 +41,31 @@ planlagt først. De tekniske klokkevalgene består for senere Entry: lukkede
 M5-barer med kausal M15/H1/H4/D1-kontekst, M1-avledet nåtilstand bare
 ved M5-tidspunkter, og ingen egen M1-Entry-klokke. Tettere overvåking av
 en åpen handel og Exit hører til senere faser.
+
+## Operatørpresisering19.11.2026: barretning på alle tidsrammer
+
+Fasit skal kjenne faktiske prisendringer for samtlige observerte barer
+på M5, M15, H1, H4 og D1. Åpning sammenlignes med forrige observerte
+bars åpning, og slutt med forrige observerte bars slutt. Begge fortegn
+lagres separat som lavere, lik eller høyere. Likhet er et kjent utfall.
+Ulike åpnings- og sluttfortegn beholdes som to kjente opplysninger.
+
+Disse sammenligningene har ingen ATR-, størrelses- eller intrabarport.
+Gap registreres separat og fjerner ikke kjent åpning/slutt fra en
+observert bar med kjent forgjenger. Bare faktisk manglende kilde eller
+forgjenger gir ukjent fasit. Tilstrekkelig forhistorie skal gi full
+dekning i valgt TRAIN-periode på alle fem tidsrammer.
+
+Prognoser utstedes ved lukket M5. Framtidig sluttmål peker til neste
+faktiske TF-barslutt etter utstedelsen. Bare modne, observerte utfall
+skåres. Framtidige tidsstempler, barindekser og utfallsmasker er målmetadata
+og mates aldri som modellinput. Åpningen på en høyere TF kan allerede
+være observerbar ved utstedelsen; prediksjon av sluttretning måles separat.
+
+Dette avløser den tidligere lokale S-fasiten med 0,5 ATR og krav til
+bevist intrabarretning. ATR og øvrige genuine indikatorer inngår fortsatt
+i den deklarerte M5/MTF-featurekjeden. M1-forbudet nedenfor gjelder hele
+retningsarbeidet.
 
 ## Operatørpresisering18.11.2026: aldri M1 til retning
 

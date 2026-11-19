@@ -149,3 +149,46 @@ def test_policy_rejects_before_calculation(monkeypatch, tmp_path, fault):
     with pytest.raises(ValueError, match='CLOSED_POLICY|ONE_USE_GATE'):
         audit.inspect(plan_ref['sha256'], admitted=True)
     assert not audit.ROOT.exists()
+
+
+def test_calculate_publishes_all_bar_comparisons_and_native_future_rows(monkeypatch):
+    import io
+    from gx1.contracts.market_state_native_m5_targets_v1 import TIMEFRAMES
+    starts = pd.date_range('2024-01-01', periods=900, freq='5min', tz='UTC').asi8
+    opens = 2000.0 + np.arange(len(starts)) % 4
+    closes = np.full(len(starts), 2002.0)
+    ohlc = np.column_stack((opens, np.maximum(opens, closes) + .2,
+                           np.minimum(opens, closes) - .2, closes))
+    monkeypatch.setattr(audit, 'read_source', lambda _plan: (starts, ohlc, len(starts)))
+    plan = {'source_spec': {
+        'manifest': {'path': '/synthetic/NATIVE_M5_MANIFEST.json', 'sha256': '1' * 64},
+        'issue_start_ns': int(starts[300] + audit.M5_NS),
+        'cutoff_ns': int(starts[-1] + 2 * audit.M5_NS),
+        'parts': [{'path': '/synthetic/year=2024/part-000.parquet'}]}}
+    payload, report = audit.calculate(plan)
+    with np.load(io.BytesIO(payload), allow_pickle=False) as saved:
+        assert len(saved['issue_ns']) == report['selected_issue_rows'] == 600
+        assert not any('atr' in key for key in saved.files)
+        for col, tf in enumerate(TIMEFRAMES):
+            prefix = 'bars_' + tf + '_'
+            known = saved[prefix + 'observed_previous']
+            bars = saved[prefix + 'ohlc']
+            for name, coordinate in (('open', 0), ('close', 3)):
+                expected = np.sign(bars[known, coordinate] - saved[prefix + 'previous_' + name][known])
+                np.testing.assert_array_equal(saved[prefix + name + '_sign'][known], expected)
+            assert np.all(saved[prefix + 'close_sign'][known] == 0)
+            coverage = report['coverage_by_timeframe'][tf]
+            assert coverage['observed_bars'] == len(bars)
+            assert coverage['prior_observed_bars'] == int(known.sum())
+            assert sum(coverage['open_sign_counts'].values()) == int(known.sum())
+            eligible = saved['future_eligible'][:, col]
+            positions = np.searchsorted(saved[prefix + 'row'], saved['future_target_row'][eligible, col])
+            np.testing.assert_array_equal(
+                saved['future_open_sign'][eligible, col],
+                saved[prefix + 'open_sign'][positions])
+            np.testing.assert_array_equal(
+                saved['future_open_known_at_issue'][eligible, col],
+                saved[prefix + 'open_available_ns'][positions] <= saved['issue_ns'][eligible])
+            assert coverage['future_unique_eligible_bar_rows'] == len(np.unique(
+                saved['future_target_row'][eligible, col]))
+            assert np.all(saved['future_validity_ns'][eligible, col] > saved['issue_ns'][eligible])
