@@ -127,8 +127,10 @@ består. Uavhengig leserevisjon avdekket og rettet fire kontrollhull. Den binder
 vekter, tre eval-forwards/én autogradberegning/0optimizer, og kun eksplisitt
 koordinat-diagnostikk som kontroll. Ingen ny produksjonsbinding for varianten.
 
-GC_RAW_COMPONENTS001 er PREPARED_NOT_ADMITTED. Eksakt kilde-/kvitterings-CLI
-må bestå før egen engangsadmisjon. Planen produserer varige komponenter
+GC_RAW_COMPONENTS001 er ADMITTED_ONE_USE etter bestått eksakt capped
+kilde-/kvitterings-CLI:0rådekoding,0modeller og0forbudteIO-forsøk.
+Én4worker/12G/512M/7200sjobb er innrømmet, kilde/policy fryst til terminal.
+Stabil kjøring kontrolleres omtrent hver15.–30.minutt. Planen produserer varige komponenter
 per originalfil. Først ved COMPLETE66/66 kan assembler koble kausal forrige-
 dag-kontrakt, publiserte klokkehendelser, nativeXAU-M5-basis og allefelt.
 Rollevalg bruker betrodde individuelle T-mengder minus klokkehendelser;
