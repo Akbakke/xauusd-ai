@@ -6,7 +6,7 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`BOUNDED_NATIVE_M5_SOURCE_QUALIFIED_PIPELINE003_PREPARATION`.
+`BOUNDED_NATIVE_M5_PIPELINE003_ADMITTED`.
 
 Fullhistorikk-plan003 er fullført én gang med exit0 og uendret kilde.
 1 215 514 native M5-rader er dekodet fra18kildeår2009–2026. Én bar
@@ -66,7 +66,7 @@ Den målte blokkeringen er rettet i kilden ved blokkvis finittvalidering og begr
 materialisering av modellens faktiske local-/TF-vinduer. Hele råhistorikken
 skal fortsatt gå gjennom stateful formel-eiere, og opprinnelige globale
 rad-IDer og kausalitet bevares. Ingen indikator fjernes eller minnegrense økes.
-Pipeline003 er PREPARED_NOT_ADMITTED, planhashfeeb5e6ed662c5b0d97a7354d0d383d2be88ce6c0e9f34dc6c1f4dc8041d4582.
+Pipeline003 er ADMITTED_ONE_USE etter bestått capped preflight, planhashfeeb5e6ed662c5b0d97a7354d0d383d2be88ce6c0e9f34dc6c1f4dc8041d4582.
 Den skal laste ferdige parametre uten refit og fullføre faktisk
 318/132/256/61felt, TRAIN-normalisering og én teknisk16-radersmodellbatch.
 
