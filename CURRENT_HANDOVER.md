@@ -11,7 +11,8 @@ OPP/NED/FLAT er tilfredsstillende og ærlig kvalifisert. Første bestilte steg e
 én kontrollert sammenligning av hele TRAIN-batchers rekkefølge mot den
 fullførte firepassreferansen nedenfor. Kilden er kvalifisert med 49 driver-
 og 8 nye guardtilfeller, uavhengig kilde-/schedulekontroll og positiv kontroll
-av de faktiske kvitteringene. Ingen ny modelljobb eller trening er innrømmet. GC er utsatt; M1, TEST, Entry/Exit, broker, handel,
+av de faktiske kvitteringene. Eksakt BLOCK_ORDER001 er nå innrømmet én gang;
+kilde og policy fryses til native TERMINAL. GC er utsatt; M1, TEST, Entry/Exit, broker, handel,
 spending og promotion forblir stengt.
 
 Dagens 0-klasse er nøyaktig LIK pris, ikke sideveis marked. M5-close har bare
@@ -25,7 +26,8 @@ BLOCK_ORDER001-planen er nå klargjort: samme ferske initial, norm/prior,
 1536 FIT / 512 CONTROL og 4 pass / 384 updates / 544 forwards. Bare hele
 B16-blokker flyttes etter den låste lokale PCG64-ordren. Planen binder
 kronologisk referanse og alle source-/schedule-hasher. Anslag fra samme
-modell er omtrent 10–12 minutter, hardgrense 30 minutter. Preflight gjenstår.
+modell er omtrent 10–12 minutter, hardgrense 30 minutter. Eksakt CLI-
+preflight bestod med 0 modeller/updates/featureverdier og fysisk boot667.
 
 ### Ny TA-only-funksjon og teknisk kvalifikasjon
 
