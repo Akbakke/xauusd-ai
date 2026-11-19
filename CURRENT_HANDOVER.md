@@ -96,7 +96,9 @@ er bevart. Genuin fersk baseline, gradient- og coldproof gjenstår.
 Eksakt PRIMARY_BACKBONE_MECHANICS001-plan er nå klargjort:
 2 modeller / 67 forwards / 3 updates inkludert kald child / 6 avgrensede
 autograd-prober. Norm/prior refittes ikke; gamle vekter lastes ikke.
-Metadata-preflight gjenstår før én teknisk innrømmelse.
+Eksakt metadata-/CLI-preflight bestod med 0 modeller/updates/featureverdier
+og fysisk boot667. Kun denne tekniske engangsplanen er innrømmet.
+Kilde/policy fryses til native TERMINAL; hovedrunde er ikke innrømmet.
 Ingen ny fit er innrømmet. Det vedvarende målet er fortsatt aktivt.
 
 ### Fullført kronologisk TA-referanse og grunnlag
