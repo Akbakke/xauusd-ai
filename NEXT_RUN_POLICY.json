@@ -2462,7 +2462,7 @@
   },
   "current_work": {
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Fresh native M5 source/provider/normalization/open-close model bindings qualified with 320 focused test cases. Preparing exact one-use003 whole-history facts audit, followed by separate fresh parameter and physical pipeline qualification.",
+    "current_activity": "Full-history native M5 bar-fact audit003 admitted once after capped metadata preflight. Model and training remain closed; source and policy freeze during the audit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -23277,7 +23277,7 @@
         "new_model_calls": 0
       }
     },
-    "status": "FULL_HISTORY_NATIVE_M5_SOURCE_QUALIFIED_AWAITING_FACT_AUDIT",
+    "status": "FULL_HISTORY_NATIVE_M5_FACT_AUDIT_003_ADMITTED",
     "observed_utc": "2026-11-19T06:40:59.813170+00:00",
     "current_observation_stage": "market_state_ta_current_update_observation_20261113_003",
     "current_observation_plan": {

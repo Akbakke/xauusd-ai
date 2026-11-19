@@ -20,7 +20,7 @@ Alle76 lagrede arrays samsvarte med uavhengig råberegning. Dette er
 prisfakta og ingen prognosetreffmåling. Originale002-kvitteringer består.
 
 Kildearbeid for003 dekker manifestets18år og 1 215 514 native M5-rader.
-Fullhistorikk-plan003 er kildebundet og PREPARED_NOT_ADMITTED.
+Fullhistorikk-plan003 er ADMITTED_ONE_USE etter capped preflight uten prisdekoding.
 Planhash: 6c7d1c93a30b68d609a275bccceb0c4b37d3728831ab4beefc29bb666f91026e. Ingen prisdekoding eller CLAIM ennå.
 Den nye native featurekjeden beregner alle full-TA-felt fra riktige eiere,
 med fem kausale TF, åtte familier og61 as-of-makrofelter. Den får ferske
