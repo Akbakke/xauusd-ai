@@ -15,8 +15,7 @@ Dette kvalifiserer datagrunnlag og den kontrollerte modellkoblingen.
 Full-TRAIN initial prognosebaseline, læring, senere generalisering og
 retningsedge er fortsatt ikke målt. Aktivt brukermål klargjør nå én kort
 treningsrunde. Teknisk GPU-update/kald resume er nå bestått; hovedrunden
-er ikke innrømmet. Mechanics002 er nå fullført og konsumert. Hovedplanen er klargjort;
-alle treningsporter er stengt før eksakt førkontroll/admisjon.
+er ikke innrømmet. Mechanics002 er nå fullført og konsumert. Hovedplanen er nå innrømmet én gang etter bestått eksakt førkontroll.
 
 ### Full historikkfasit
 
@@ -157,7 +156,7 @@ Initial og final model-state er identiske med001;0norm-/priorfit og ingen
 gamle vekter er lest. B64-to-batchskåringer tok12,478/12,826s; B16updates
 6,889/6,771s. Målt peakCUDA-allokering1,891GB ligger under eksisterende vakt.
 
-SHORT_FIT_20261119_001 er PREPARED_NOT_ADMITTED, plan-SHA
+SHORT_FIT_20261119_001 er ADMITTED_ONE_USE, plan-SHA
 74fa5ea3ffb3463f91f0018abae1bb58b488bb85f0401a09dee402f5bb405e28.
 Én fersk modell,256faste B16updates på4096kildefordelteTRAIN-rader,
 før/etter på alle24 175/5 789inputrader med B64 og938scoreforwards.
@@ -165,12 +164,15 @@ Totalt1194forwards/256backwards/256optimizersteg. Checkpoint hvert64steg;
 originalTRAIN-stats/prior gjenbrukes, ingen refit. Konservativ projeksjon fra
 faktisk002 er7958s (2t13m), med20prosentmargin9550s (2t39m), innen10770s
 internfrist/10800s eksisterende guard. Dette er budsjettanslag, ikke målt
-full main-runtime eller edge. Eksakt CLI-førkontroll og admisjon gjenstår.
+full main-runtime eller edge. Eksakt CLI-førkontroll er bestått med null
+modeller/updates på boot667. Bare denne hovedplanen innrømmes én gang.
+Kilde/policy fryses til terminal; stabil kjøring kontrolleres omtrent hver
+15.–30.minutt. Full INITIAL skåres før første update; samtlige valgte rader
+skåres igjen etter256. Ingen automatisk ekstra fit.
 Gamle mechanics001 gjenkjøres aldri; ferdig TRAIN-normalisering/prior gjenbrukes. Ingen redusert
 skåringspopulasjon eller omgått vakt brukes som løsning.
 
-Mechanics002 er nå fullført og konsumert. Hovedplanen er klargjort;
-alle treningsporter er stengt før eksakt førkontroll/admisjon. Ingen hovedfit er startet. Ferdige
+Mechanics002 er nå fullført og konsumert. Hovedplanen er nå innrømmet én gang etter bestått eksakt førkontroll. Ingen hovedfit er startet. Ferdige
 stats/prior/checkpoints og originalkvitteringer bevares; mechanics001
 relanseres aldri. Målet om én kort hovedrunde består. TEST, Entry/Exit,
 broker, handel, spending og promotion forblir stengt.
