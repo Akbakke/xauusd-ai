@@ -6,7 +6,7 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`NATIVE_M5_PIPELINE_002_ADMITTED_REUSING_COMPLETED_EVIDENCE`.
+`BOUNDED_NATIVE_M5_SOURCE_QUALIFIED_PIPELINE003_PREPARATION`.
 
 Fullhistorikk-plan003 er fullført én gang med exit0 og uendret kilde.
 1 215 514 native M5-rader er dekodet fra18kildeår2009–2026. Én bar
@@ -48,14 +48,32 @@ helgebøtter medNaN-priser og nullvolum. Ingen modell eller normalisering
 ble konstruert. Plan001 er konsumert og relanseres aldri.
 
 Minste rettelse er å fjerne bare faktisk tomme TF-bøtter, bevare observerte
-delbøtter og la ugyldige observerte priser feile. 22 målrettede rettelses-/gjenbrukstester bestod.
-Pipeline002 er ADMITTED_ONE_USE etter bestått capped preflight, planhashe5e0c6a42995b1193935ff5ca4bc633576c1246d613f1946c779e1c2d4ff0bd7.
-Denne skal
-hashbinde og gjenbruke ferdig historikkontroll ogM5-parametre, deretter
-fullføre fireTF-squeeze, V29, faktisk318/132/256/61felt, hele TRAIN-
-normaliseringen og én fersk teknisk16-radersmodellbatch.
-Denne fysiske kjeden er fortsatt ukvalifisert. M1, Entry, modellfit,
-TEST, broker og handel er stengt. GC/MBP-ruten er separat og beholdt.
+delbøtter og la ugyldige observerte priser feile. 22 rettelses-/gjenbrukstester bestod før pipeline002. Den nye kjøringen
+fullførte allefem squeeze-sett og V29-parametre. Squeeze-fitpopulasjonene
+er258268/86881/22099/5588/933rader; V29 bruker sin egen lukkede
+startgrense og én færre høyere-TF-bar. M5-parameterne ble gjenbrukt uendret.
+
+Pipeline002 ble deretter drept med exit137. Kjerneloggen bekrefter
+CONSTRAINT_MEMCG og12546948KiB anonymRSS mot12G-grensen. Native TERMINAL
+finnes ikke; original wrapper-/kjernelogg og separat EXTERNAL_EXIT_OBSERVATION
+er bevart og hashbundet. Ingen fullføring eller kildebookend er oppdiktet.
+SQUEEZE/manifest.json og REGISTRY_CONSTANTS.json er hele og bevares for gjenbruk.
+
+103 fokuserte tester bestod etter minne-/gjenbruksrettelsen. De beviser
+bitlike318/132/TF-/skalærverdier, likefaktiske normaliseringspopulasjoner,
+korrekteglobaleIDer, ingen skjulte bredeattr-buffere og blokkvisminnegrense.
+Den målte blokkeringen er rettet i kilden ved blokkvis finittvalidering og begrenset
+materialisering av modellens faktiske local-/TF-vinduer. Hele råhistorikken
+skal fortsatt gå gjennom stateful formel-eiere, og opprinnelige globale
+rad-IDer og kausalitet bevares. Ingen indikator fjernes eller minnegrense økes.
+Pipeline003 skal laste ferdige parametre uten refit og fullføre faktisk
+318/132/256/61felt, TRAIN-normalisering og én teknisk16-radersmodellbatch.
+
+Fysisk feature-/modellkvalifisering er fortsatt ikke fullført. M1, Entry,
+modellfit, TEST, broker og handel er stengt. GC/MBP-ruten er separat og beholdt.
+Revisjonen fant14M1-avhengige basisverdier og foreldet foreldreklokke i
+gammeltGC-register. Egen nativeM5basis, uavhengige akser og ny kildeidentitet
+kreves før alle GC-felt kan kobles til den nye retningen.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
 

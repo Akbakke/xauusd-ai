@@ -22,9 +22,9 @@ from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
 
 REPO = data.REPO
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
-STAGE = 'native_m5_pipeline_20261119_002'
-PLAN = REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_002.json'
-ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_002')
+STAGE = 'native_m5_pipeline_20261119_003'
+PLAN = REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_003.json'
+ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_003')
 FIT_START_NS = 1714521600000000000
 FIT_END_NS = 1727740800000000000
 PARAMETER_START_NS = 1243814400000000000
@@ -40,7 +40,7 @@ EXECUTION = {'class': 'producer', 'memory': '12G', 'swap': '512M',
     'optimizer_steps': 0}
 INPUT_KEYS = {'squeeze_fit_plan', 'registry_fit_plan', 'native_source_plan',
               'macro_source_plan', 'target_result', 'target_terminal', 'target_tape',
-              'history_verification', 'prefitted_squeeze_m5'}
+              'history_verification', 'prefitted_squeeze_manifest', 'prefitted_registry_constants'}
 SOURCE_PATHS = (
     'gx1/audit/qualify_market_state_native_m5_pipeline_v1.py',
     'gx1/audit/build_native_m5_direction_targets_v1.py',
@@ -206,25 +206,90 @@ def reused_history_verification(inputs):
     return saved
 
 
-def prefitted_m5_metadata(inputs):
+def parameter_artifact_metadata(inputs, geometry):
+    """Reload completed native artifacts; validate metadata without decoding prices."""
     from gx1.features.volatility_squeeze_state_v1 import (
-        load_volatility_squeeze_params, VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT,
+        load_volatility_squeeze_artifact_manifest, VOLATILITY_SQUEEZE_DIRECTION_CLOCKS,
+        volatility_squeeze_bar_grid,
     )
-    binding = inputs['prefitted_squeeze_m5']
-    need(binding['path'] == '/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_001/SQUEEZE/m5_params.json',
-         'PREFITTED_M5_PATH')
-    params = load_volatility_squeeze_params(Path(binding['path']),
-        expected_sha256=binding['sha256'], timeframe='M5',
-        expected_clock_contract=VOLATILITY_SQUEEZE_DIRECTION_CLOCK_CONTRACT)
-    provenance = params['source_provenance']
-    need(provenance['fit_plan_artifact'] == inputs['squeeze_fit_plan']['path']
-         and provenance['fit_plan_sha256'] == inputs['squeeze_fit_plan']['sha256']
-         and params['declared_train_window_start'] == pd.Timestamp(PARAMETER_START_NS, tz='UTC').isoformat()
-         and params['declared_train_window_end'] == pd.Timestamp(PARAMETER_END_NS, tz='UTC').isoformat(),
-         'PREFITTED_M5_SCOPE')
-    return {'artifact': binding, 'train_ohlcv_rows': params['train_ohlcv_rows'],
-            'train_ohlcv_sha256': params['train_ohlcv_sha256'],
-            'contract_sha256': params['contract_sha256']}
+    from gx1.features.htf_features import require_native_m5_registry_constants
+    previous = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_002')
+    squeeze_ref, registry_ref = (inputs[key] for key in (
+        'prefitted_squeeze_manifest', 'prefitted_registry_constants'))
+    need(squeeze_ref['path'] == str(previous / 'SQUEEZE/manifest.json')
+         and registry_ref['path'] == str(previous / 'REGISTRY_CONSTANTS.json'),
+         'PARAMETER_REUSE_PATH')
+    squeeze_plan, registry_plan = fit_plans(inputs)
+    manifest = read(squeeze_ref)
+    carrier = load_volatility_squeeze_artifact_manifest(Path(squeeze_ref['path']),
+        expected_sha256=squeeze_ref['sha256'], clocks=VOLATILITY_SQUEEZE_DIRECTION_CLOCKS)
+    constants = require_native_m5_registry_constants(read(registry_ref))
+    start = pd.Timestamp(PARAMETER_START_NS, tz='UTC').isoformat()
+    end = pd.Timestamp(PARAMETER_END_NS, tz='UTC').isoformat()
+    need(constants['declared_train_window_start'] == start
+         and constants['declared_train_window_end'] == end
+         and constants['declared_inner_fit_window_end'] == INNER_END
+         and constants['entry_m5']['seq_len'] == geometry['local']
+         and constants['per_tf_seq_lens'] == {tf: geometry[tf]
+             for tf in VOLATILITY_SQUEEZE_DIRECTION_CLOCKS}, 'PARAMETER_REUSE_SCOPE')
+    dependencies = {}
+    frames = {}
+    registry_sources = registry_provenance(inputs['registry_fit_plan'], registry_plan)
+    for tf in VOLATILITY_SQUEEZE_DIRECTION_CLOCKS:
+        entry = manifest['artifacts'][tf]
+        need(entry['params_artifact'] == str(previous / 'SQUEEZE' / (tf.lower() + '_params.json')),
+             'PARAMETER_REUSE_INVENTORY')
+        dependencies[entry['params_artifact']] = {
+            'path': entry['params_artifact'], 'sha256': entry['params_file_sha256']}
+        params = carrier.require_params(tf)
+        expected = {k: v for k, v in registry_sources[tf].items()
+            if k not in ('source_clock_contract', 'declared_train_window_start',
+                         'declared_train_window_end')}
+        expected.update(clock_contract=squeeze_plan['source_clock_contract'],
+            bar_grid=volatility_squeeze_bar_grid(tf),
+            fit_plan_artifact=inputs['squeeze_fit_plan']['path'],
+            fit_plan_sha256=inputs['squeeze_fit_plan']['sha256'])
+        need(params['source_provenance'] == expected
+             and params['declared_train_window_start'] == start
+             and params['declared_train_window_end'] == end
+             and params['train_ohlcv_rows'] == entry['train_ohlcv_rows']
+             and params['train_ohlcv_sha256'] == entry['train_ohlcv_sha256'],
+             'PARAMETER_REUSE_SQUEEZE_FRAME')
+        level = constants['provenance']['level_recurrence_threshold'][tf]
+        trend = constants['provenance']['trendline_band'][tf]
+        need(level['source_provenance'] == trend['source_provenance'] == registry_sources[tf]
+             and level['outer_train_rows'] == trend['outer_train_rows'] > 0
+             and level['frame_sha256'] == trend['frame_sha256'],
+             'PARAMETER_REUSE_REGISTRY_FRAME')
+        frames[tf] = {'squeeze_rows': entry['train_ohlcv_rows'],
+            'squeeze_ohlcv_sha256': entry['train_ohlcv_sha256'],
+            'registry_rows': level['outer_train_rows'],
+            'registry_frame_sha256': level['frame_sha256']}
+    entry = constants['provenance']['entry_m5_trendline_band']
+    need(entry['source_provenance'] == registry_sources['M5']
+         and entry['outer_train_rows'] == frames['M5']['registry_rows']
+         == constants['provenance']['n_train_m5_rows']
+         and entry['frame_sha256'] == frames['M5']['registry_frame_sha256'],
+         'PARAMETER_REUSE_ENTRY_FRAME')
+    old_claim_ref = ref(previous / 'CLAIM.json')
+    old_claim = read(old_claim_ref)
+    old_plan_ref = old_claim['plan']
+    old_plan = read(old_plan_ref)
+    need(old_plan_ref['path'] == str(REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_002.json')
+         and old_plan['stage'] == old_claim['stage'] == 'native_m5_pipeline_20261119_002'
+         and old_plan['parameter_source_spec'] == squeeze_plan['source_spec']
+         and all(old_plan['inputs'][key] == inputs[key]
+                 for key in ('squeeze_fit_plan', 'registry_fit_plan', 'native_source_plan'))
+         and old_plan['geometry'] == geometry, 'PARAMETER_REUSE_ORIGIN')
+    dependencies[old_plan_ref['path']] = old_plan_ref
+    dependencies[old_claim_ref['path']] = old_claim_ref
+    return {'squeeze_manifest': squeeze_ref, 'registry_artifact': registry_ref,
+        'squeeze_binding': carrier.binding(), 'registry_contract_sha256': constants['contract_sha256'],
+        'original_plan': old_plan_ref, 'original_claim': old_claim_ref,
+        'recorded_fit_frames': frames, 'parameter_dependencies': dependencies,
+        'parameter_fits': 0,
+        'identity_scope': 'recorded_owner_fit_frames_bound_to_original_raw_file_hashes_no_price_decode',
+        'frame_domains': 'owner_specific_squeeze_observed_bins_registry_closed_bins_not_equalized'}, constants
 
 
 def build_plan(*, inputs, source_base_commit=None):
@@ -253,7 +318,8 @@ def build_plan(*, inputs, source_base_commit=None):
          and target['test_data_used'] is terminal['test_data_used'] is False,
          'TARGET_CHAIN')
     history = reused_history_verification(inputs)
-    prefitted = prefitted_m5_metadata(inputs)
+    geometry = native_bar_backbone_geometry()
+    parameters, _ = parameter_artifact_metadata(inputs, geometry)
     dependencies = macro_metadata(inputs['macro_source_plan'])
     metadata = {part['path']: data.part_metadata(part) for part in spec['parts']}
     for part in spec['parts']:
@@ -268,13 +334,13 @@ def build_plan(*, inputs, source_base_commit=None):
         'inputs': inputs, 'macro_dependencies': dependencies, 'feature_source_spec': spec,
         'history_lineage': {'plan': history['plan'], 'claim': history['claim']},
         'history_reuse': 'original_001_all_76_array_proof_for_identical_003_target_bytes',
-        'prefitted_squeeze_m5': prefitted,
+        'parameter_reuse': parameters,
         'feature_source_metadata': metadata, 'parameter_source_spec': squeeze['source_spec'],
         'target_source_spec': source['source_spec'], 'target_source_metadata': source['source_metadata'],
         'fit_start_ns': FIT_START_NS, 'fit_end_ns': FIT_END_NS,
         'fit_axis': 'native_M5_issue_in_window_and_input_ready_and_any_mature_supervised_target',
         'normalization_population': 'whole_exact_consumption_union_of_selected_TRAIN_issues',
-        'geometry': native_bar_backbone_geometry(), 'architecture': ARCHITECTURE,
+        'geometry': geometry, 'architecture': ARCHITECTURE,
         'seed': SEED, 'batch_rows': BATCH, 'execution': EXECUTION,
         'feature_contract': native_m5_feature_provider_contract(),
         'target_contract': target_contract(), 'objective_contract': native_bar_objective_contract(),
@@ -300,6 +366,7 @@ def source_clean(plan):
 def checked_inputs(plan):
     bindings = (list(plan['inputs'].values()) + list(plan['macro_dependencies'].values())
                 + list(plan['history_lineage'].values()))
+    bindings.extend(plan['parameter_reuse']['parameter_dependencies'].values())
     bindings.append(plan['feature_source_spec']['manifest'])
     for spec in (plan['feature_source_spec'], plan['parameter_source_spec']):
         bindings.extend({'path': part['path'], 'sha256': part['sha256']} for part in spec['parts'])
@@ -345,47 +412,13 @@ def publish(name, value):
     return {'path': str(ROOT / name), 'sha256': hashlib.sha256(raw).hexdigest()}
 
 
-def physical_parameter_fits(plan):
-    from gx1.scripts.fit_volatility_squeeze_artifacts_v1 import native_m5_fit_frames_from_plan
-    from gx1.features.volatility_squeeze_state_v1 import (
-        VOLATILITY_SQUEEZE_DIRECTION_CLOCKS,
-        fit_volatility_squeeze_artifact_manifest,
-    )
-    from gx1.features.htf_features import (
-        fit_v29_registry_constants_from_m5, require_native_m5_registry_constants,
-    )
-    inputs = plan['inputs']
-    squeeze, registry = fit_plans(inputs)
-    frames, provenance, proof = native_m5_fit_frames_from_plan(
-        Path(inputs['squeeze_fit_plan']['path']),
-        expected_sha256=inputs['squeeze_fit_plan']['sha256'])
-    output = ROOT / 'SQUEEZE'
-    output.mkdir()
-    manifest = fit_volatility_squeeze_artifact_manifest(
-        frames, declared_train_window_start=pd.Timestamp(PARAMETER_START_NS, tz='UTC'),
-        declared_train_window_end=pd.Timestamp(PARAMETER_END_NS, tz='UTC'),
-        source_provenance_by_clock=provenance, output_dir=output,
-        clocks=VOLATILITY_SQUEEZE_DIRECTION_CLOCKS,
-        prefitted_params_by_clock={'M5': inputs['prefitted_squeeze_m5']})
-    squeeze_ref = ref(manifest)
-    saved = read(squeeze_ref)
-    for tf in VOLATILITY_SQUEEZE_DIRECTION_CLOCKS:
-        actual, expected = saved['artifacts'][tf], proof['fit_frames'][tf]
-        need(actual['train_ohlcv_rows'] == expected['rows']
-             and actual['train_ohlcv_sha256'] == expected['ohlcv_sha256'], 'PHYSICAL_SQUEEZE_IDENTITY')
-    geometry = plan['geometry']
-    constants = fit_v29_registry_constants_from_m5(
-        frames['M5'], declared_train_window_start=registry['declared_train_window_start'],
-        declared_train_window_end=registry['declared_train_window_end'],
-        declared_inner_fit_window_end=registry['declared_inner_fit_window_end'],
-        source_provenance_by_clock=registry_provenance(inputs['registry_fit_plan'], registry),
-        per_tf_seq_lens={tf: geometry[tf] for tf in VOLATILITY_SQUEEZE_DIRECTION_CLOCKS},
-        entry_m5_seq_len=geometry['local'])
-    constants = require_native_m5_registry_constants(constants)
-    registry_ref = publish('REGISTRY_CONSTANTS.json', constants)
-    return {'squeeze_manifest': squeeze_ref, 'registry_constants': constants,
-            'registry_artifact': registry_ref, 'physical_fit_proof': proof,
-            'prefitted_squeeze_m5': inputs['prefitted_squeeze_m5']}
+def load_parameters(plan):
+    metadata, constants = parameter_artifact_metadata(plan['inputs'], plan['geometry'])
+    need(metadata == plan['parameter_reuse'], 'PARAMETER_REUSE_BOOKEND')
+    proof = publish('PARAMETER_REUSE.json', metadata)
+    return {'squeeze_manifest': metadata['squeeze_manifest'],
+        'registry_artifact': metadata['registry_artifact'], 'registry_constants': constants,
+        'reuse_proof': proof, 'parameter_fits': 0}
 
 
 def read_feature_source(plan):
@@ -439,15 +472,17 @@ def target_axis(plan, provider):
     supervised = truth['eligible'].any(axis=1)
     ready = provider.input_ready[wanted]
     chosen = ready & supervised
-    rows = provider.source_row[wanted[chosen]]
+    positions = wanted[chosen]
+    rows = provider.source_row[positions]
+    fit_issues = provider.issue_ns[positions]
     need(len(rows) >= BATCH and np.all(np.diff(rows) > 0), 'INSUFFICIENT_GENUINE_FIT')
     report = {
         'window_issue_rows': len(wanted), 'input_not_ready_rows': int((~ready).sum()),
         'no_mature_supervision_rows': int((~supervised).sum()), 'fit_issue_rows': len(rows),
-        'fit_first_issue_ns': int(provider.issue_ns[rows[0]]),
-        'fit_last_issue_ns': int(provider.issue_ns[rows[-1]]),
+        'fit_first_issue_ns': int(fit_issues[0]),
+        'fit_last_issue_ns': int(fit_issues[-1]),
         'fit_source_rows_sha256': hashlib.sha256(np.ascontiguousarray(rows, dtype='<i8').tobytes()).hexdigest(),
-        'fit_issue_ns_sha256': hashlib.sha256(np.ascontiguousarray(provider.issue_ns[rows], dtype='<i8').tobytes()).hexdigest(),
+        'fit_issue_ns_sha256': hashlib.sha256(np.ascontiguousarray(fit_issues, dtype='<i8').tobytes()).hexdigest(),
         'per_tf_mature': truth['mature'][chosen].sum(axis=0).tolist(),
         'per_tf_eligible': truth['eligible'][chosen].sum(axis=0).tolist(),
     }
@@ -476,6 +511,60 @@ def normalized_batch_report(model, tensors):
     return report
 
 
+def publish_feature_snapshot(provider):
+    """Persist the bounded physical inputs, with exact array reload verification."""
+    surfaces = provider.surfaces
+    top_arrays = ('bar_start_ns', 'retained_source_rows', 'retained_issue_rows',
+                  'signal', 'ctx_cont', 'ctx_cat', 'observed')
+    arrays = {name: surfaces[name] for name in top_arrays}
+    metadata = {key: value for key, value in surfaces.items()
+                if key not in (*top_arrays, 'multi_tf_sources')}
+    timeframes = {}
+    for tf, frame in surfaces['multi_tf_sources'].items():
+        descriptors = {}
+        scalars = {}
+        for name, value in frame.attrs.items():
+            if isinstance(value, np.ndarray):
+                key = 'tf_' + tf + '_' + name
+                arrays[key] = value
+                descriptors[name] = key
+            else:
+                scalars[name] = value
+        need(set(descriptors) == {'ts_int64', 'feats_np', 'owner_row_indices',
+             'model_native_mtf_scalars_np_v4'}, 'SNAPSHOT_TF_ARRAYS')
+        need(np.array_equal(frame.index.asi8, frame.attrs['ts_int64'])
+             and np.shares_memory(frame.to_numpy(copy=False), frame.attrs['feats_np']),
+             'SNAPSHOT_TF_FRAME_IDENTITY')
+        timeframes[tf] = {'columns': list(frame.columns), 'array_attributes': descriptors,
+                          'scalar_attributes': scalars}
+    need(set(timeframes) == {'M5', 'M15', 'H1', 'H4', 'D1'}, 'SNAPSHOT_CLOCKS')
+    descriptors = {}
+    for name, value in arrays.items():
+        need(isinstance(value, np.ndarray) and value.dtype.kind in 'biuf',
+             'SNAPSHOT_ARRAY_TYPE')
+        descriptors[name] = {'dtype': value.dtype.str, 'shape': list(value.shape),
+            'sha256': hashlib.sha256(np.ascontiguousarray(value).tobytes()).hexdigest()}
+    stream = io.BytesIO()
+    np.savez_compressed(stream, **arrays)
+    archive_ref = publish('FEATURE_INPUTS.npz', stream.getvalue())
+    stream.close()
+    with np.load(archive_ref['path'], allow_pickle=False) as saved:
+        need(set(saved.files) == set(arrays), 'SNAPSHOT_ARRAY_INVENTORY')
+        for name, original in arrays.items():
+            loaded = saved[name]
+            need(loaded.dtype == original.dtype and loaded.shape == original.shape
+                 and np.array_equal(loaded, original, equal_nan=True)
+                 and hashlib.sha256(np.ascontiguousarray(loaded).tobytes()).hexdigest()
+                     == descriptors[name]['sha256'], 'SNAPSHOT_ARRAY_ROUNDTRIP')
+    return publish('FEATURE_INPUTS.json', {
+        'schema_version': 'gx1_native_m5_bounded_feature_snapshot_v1',
+        'archive': archive_ref, 'surfaces_metadata': metadata,
+        'timeframes': timeframes, 'arrays': descriptors,
+        'reload_all_arrays_dtype_shape_equal_nan_and_bytes_sha256': True,
+        'scope': 'full_native_clock_axes_and_bounded_physical_values_no_recomputed_state',
+        'raw_history_prices_stored': False, 'model_forwards': 0, 'optimizer_steps': 0})
+
+
 def qualify_physical_pipeline(plan, parameters):
     import torch
     from gx1.features import d1_macro_context_v1 as macro
@@ -498,16 +587,25 @@ def qualify_physical_pipeline(plan, parameters):
         expected_sha256=squeeze_ref['sha256'], clocks=VOLATILITY_SQUEEZE_DIRECTION_CLOCKS)
     surfaces = features.build_native_m5_feature_surfaces(
         native, source_binding=binding, v29_registry_constants=parameters['registry_constants'],
-        volatility_squeeze_artifacts=squeeze)
+        volatility_squeeze_artifacts=squeeze, issue_start_ns=FIT_START_NS, issue_end_ns=FIT_END_NS)
     provider = features.NativeM5FeatureProvider(surfaces)
+    del native, surfaces
+    feature_snapshot_ref = publish_feature_snapshot(provider)
     rows, truth, population = target_axis(plan, provider)
     window_rows = np.flatnonzero((provider.issue_ns >= FIT_START_NS) & (provider.issue_ns < FIT_END_NS))
-    readiness = provider.readiness_report(window_rows)
+    readiness = provider.readiness_report(provider.source_row[window_rows])
     support = provider.support_report(rows)
     need(all(all(count == surface['physical_rows'] for count in surface['observed_counts'])
              for surface in support['surfaces'].values())
          and len(support['families']) == 8 and len(support['macro_fields']) == 61,
          'GENUINE_CONSUMED_SUPPORT')
+    support_ref = publish('FEATURE_SUPPORT.json', {
+        'fit_population': population, 'input_readiness': readiness,
+        'consumed_support': support,
+        'feature_source_spec': plan['feature_source_spec'],
+        'parameter_reuse_proof': parameters['reuse_proof'],
+        'scope': 'bounded_exact_consumption_arrays_after_full_native_state_prefix',
+        'model_forwards': 0, 'optimizer_steps': 0})
     normalization = features.fit_native_m5_feature_normalization(
         provider, fit_source_rows=rows, cutoff_ns=FIT_END_NS)
     normal_ref = publish('NORMALIZATION.json', normalization)
@@ -551,8 +649,8 @@ def qualify_physical_pipeline(plan, parameters):
     np.savez_compressed(stream, **capture)
     capture_ref = publish('INITIAL_CAPTURE.npz', stream.getvalue())
     fields = provider.profile['physical_field_names']['signal']
-    missing = {field: int((~np.isfinite(surfaces['signal'][:, j])).sum())
-               for j, field in enumerate(fields) if not np.isfinite(surfaces['signal'][:, j]).all()}
+    missing = {field: int((~np.isfinite(provider.surfaces['signal'][:, j])).sum())
+               for j, field in enumerate(fields) if not np.isfinite(provider.surfaces['signal'][:, j]).all()}
     return {
         'status': 'TECHNICAL_INITIAL_BATCH_ONLY', 'model_constructions': 1,
         'model_forwards': 1, 'optimizer_steps': 0, 'checkpoint': checkpoint_ref,
@@ -561,8 +659,9 @@ def qualify_physical_pipeline(plan, parameters):
         'strict_load_state_sha256': initial_sha, 'forward_surfaces': normalized,
         'fit_population': population, 'normalization_population': normalization['fit_population'],
         'input_readiness': readiness, 'consumed_support': support,
+        'feature_support_artifact': support_ref, 'feature_inputs_artifact': feature_snapshot_ref,
         'routed_families': support['families'],
-        'field_lineage': surfaces['field_lineage'], 'macro_field_count': len(macro.D1_MACRO_CONTEXT_FIELDS),
+        'field_lineage': provider.surfaces['field_lineage'], 'macro_field_count': len(macro.D1_MACRO_CONTEXT_FIELDS),
         'physical_missing_value_counts': missing, 'input_ready_rows': int(provider.input_ready.sum()),
         'batch_loss': float(loss['loss']), 'score_sums': score,
         'full_TRAIN_baseline_qualified': False, 'predictive_quality_measured': False,
@@ -595,7 +694,7 @@ def run(plan_sha):
         original_history = reused_history_verification(plan['inputs'])
         history = original_history['verification']
         history_ref = plan['inputs']['history_verification']
-        parameters = physical_parameter_fits(plan)
+        parameters = load_parameters(plan)
         report = qualify_physical_pipeline(plan, parameters)
         checked_inputs(plan)
         need(source_clean(plan) and ref(POLICY) == policy_ref and ref(PLAN) == plan_ref,

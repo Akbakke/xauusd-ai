@@ -91,6 +91,7 @@ def native_m5_feature_provider_contract():
             'calendar':'gx1.scripts.materialize_canonical_v3_augment.add_cyclic_time_features'},
         'macro_contract':macro.d1_macro_context_contract(),
         'missing_values':'physical_NaN_and_explicit_observed_arrays_never_imputed',
+        'materialization':'full_causal_owner_prefix_then_declared_issue_window_and_consumed_window_unions_v1',
         'input_selection':'calibration_known_at_issue_and_observed_local_and_five_TF_windows_only_no_target_metadata',
         'gc_scope':'separate_retained_GC_owner_not_in_full_TA_profile',
     })
@@ -170,7 +171,7 @@ def bind_native_m5_feature_source(native_m5, *, native_m5_manifest, source_spec)
 
 
 def build_native_m5_feature_surfaces(native_m5, *, source_binding, v29_registry_constants,
-                                      volatility_squeeze_artifacts):
+                                      volatility_squeeze_artifacts,issue_start_ns,issue_end_ns):
     """Compute all full-TA fields from native M5 and declared as-of macro sources."""
     _sealed(source_binding,'SOURCE_BINDING_HASH')
     _need(source_binding.get('schema_version')==SOURCE_SCHEMA
@@ -194,10 +195,21 @@ def build_native_m5_feature_surfaces(native_m5, *, source_binding, v29_registry_
     parameter_available_ns=int(pd.Timestamp(registry['declared_train_window_end']).value)
     _need(parameter_available_ns<source_binding['source_spec']['cutoff_ns'],'CALIBRATION_SOURCE_CUTOFF')
     source=native_m5.copy(deep=False);source.index=source.index.as_unit('ns')
+    starts=source.index.asi8
+    issues=starts+BAR_NS
+    _need(type(issue_start_ns) is int and type(issue_end_ns) is int
+          and 0<=issue_start_ns<issue_end_ns<=source_binding['source_spec']['cutoff_ns']
+          and issue_start_ns%BAR_NS==issue_end_ns%BAR_NS==0,'CONSUMPTION_SCOPE')
+    issue_rows=np.flatnonzero((issues>=issue_start_ns)&(issues<issue_end_ns))
+    _need(len(issue_rows)>0,'CONSUMPTION_EMPTY')
+    local_rows=np.arange(max(0,int(issue_rows[0])-MODEL_NATIVE_SEQ_LEN+1),
+                         int(issue_rows[-1])+1,dtype=np.int64)
+    retained_scope={'issue_ns':issues[issue_rows],
+        'local_bar_start_ns':starts[local_rows],'window_rows':dict(WINDOWS)}
     multi_tf=htf.build_multi_tf_per_bar_features_v4(source,v29_registry_constants=registry,
-                                                  volatility_squeeze_artifacts=squeeze)
+        volatility_squeeze_artifacts=squeeze,retained_model_scope=retained_scope)
     # One exact same-clock alias owner; no copying between resolutions.
-    m5=multi_tf['M5'];_need(m5.index.equals(source.index),'LOCAL_M5_AXIS')
+    m5=multi_tf['M5'];_need(m5.index.equals(source.index[local_rows]),'LOCAL_M5_AXIS')
     values={};lineage={}
     for local,per_bar in layers.model_native_m5_local_per_bar_exact_aliases():
         values[local]=m5[per_bar].to_numpy(np.float32,copy=False)
@@ -209,10 +221,12 @@ def build_native_m5_feature_surfaces(native_m5, *, source_binding, v29_registry_
         seq_len=int(registry['entry_m5']['seq_len']),band_atr=float(registry['entry_m5']['trendline_band_atr']))
     _need(len(trend.columns)==len(layers.TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES),'LOCAL_TRENDLINE_FIELDS')
     for local,name in zip(layers.TRENDLINE_REGISTRY_M5_LAYER_FEATURE_NAMES,trend.columns):
-        values[local]=trend[name].to_numpy(np.float32);lineage[local]='local_native_M5_trendline:'+name
-    context=source.copy(deep=False)
+        values[local]=trend[name].to_numpy(copy=False)[local_rows].astype(np.float32,copy=False)
+        lineage[local]='local_native_M5_trendline:'+name
+    del trend,trend_source
+    context=source.iloc[local_rows].copy(deep=False)
     htf.attach_model_native_mtf_scalars_v4(context,multi_tf=multi_tf,decision_bar_duration=pd.Timedelta(minutes=5))
-    regime=htf.project_multi_tf_v4_scalars(multi_tf,source.index.asi8,
+    regime=htf.project_multi_tf_v4_scalars(multi_tf,context.index.asi8,
         (('trend_state_age_bars','trend_state_age_bars'),('ema_stack_aligned','ema_stack_aligned_v2')),
         tuple(tf.lower() for tf in TIMEFRAMES),decision_bar_duration=pd.Timedelta(minutes=5))
     for name,vector in regime.items():context[name]=vector
@@ -221,7 +235,7 @@ def build_native_m5_feature_surfaces(native_m5, *, source_binding, v29_registry_
     context=add_cyclic_time_features(add_session_features(context,decision_delay_seconds=300))
     macro_spec=macro.load_d1_macro_context_source_spec(Path(__file__).resolve().parents[2])
     macro_components=macro.d1_macro_context_components(macro_spec)
-    macro_frame=macro.build_d1_macro_context(source.index+pd.Timedelta(minutes=5),macro_components)
+    macro_frame=macro.build_d1_macro_context(context.index+pd.Timedelta(minutes=5),macro_components)
     for name in macro.D1_MACRO_CONTEXT_FIELDS:context[name]=macro_frame[name].to_numpy(np.float64)
     profile=owners.compile_full_ta_entry_execution_profile();fields=profile['physical_field_names']
     for name in fields['signal']:
@@ -230,7 +244,8 @@ def build_native_m5_feature_surfaces(native_m5, *, source_binding, v29_registry_
             values[name]=context[name[9:]].to_numpy(np.float32)
             lineage[name]=('asof_macro:'+name[9:] if name[9:] in macro.D1_MACRO_CONTEXT_FIELDS
                            else 'closed_context_or_session:'+name[9:])
-    signal=np.column_stack([values[n] for n in fields['signal']]).astype(np.float32)
+    signal=np.column_stack([values[n] for n in fields['signal']])
+    _need(signal.dtype==np.float32,'LOCAL_STORAGE_DTYPE')
     ctx=np.empty((len(signal),len(fields['ctx_cont'])),dtype=np.float32)
     signal_aliases=list(profile['temporal_alias_signal_indices'])
     context_aliases=list(profile['temporal_alias_ctx_cont_indices'])
@@ -239,21 +254,37 @@ def build_native_m5_feature_surfaces(native_m5, *, source_binding, v29_registry_
               for si,ci in zip(signal_aliases,context_aliases)),'CONTEXT_ALIAS_ORDER')
     cat=context.loc[:,list(fields['ctx_cat'])].to_numpy(np.int64)
     _need(not np.isinf(signal).any(),'INFINITE_FEATURE')
-    starts=source.index.asi8
     macro_binding=macro.d1_macro_context_binding(macro_spec,macro_frame)
     squeeze_binding=squeeze.binding()
-    for frame in multi_tf.values():
+    tf_retention={}
+    for tf,frame in multi_tf.items():
+        original=frame.attrs.get('owner_row_indices')
+        if original is None:original=np.arange(len(frame),dtype=np.int64)
+        original=_owned(original,np.int64)
+        frame.attrs['owner_row_indices']=original
         frame.attrs['feats_np'].flags.writeable=False
         frame.attrs['ts_int64'].flags.writeable=False
+        scalar=frame.attrs['model_native_mtf_scalars_np_v4']
+        scalar.flags.writeable=False
+        tf_retention[tf]={'rows':len(frame),'owner_row_indices_sha256':_array_sha(original,'<i8'),
+            'bar_start_ns_sha256':_array_sha(frame.attrs['ts_int64'],'<i8'),
+            'scalar_fields':list(frame.attrs['model_native_mtf_scalar_fields_v4']),
+            'scalar_values_sha256':_array_sha(scalar,'<f4')}
     axes=_seal({'source_binding_sha256':source_binding['contract_sha256'],
         'registry_contract_sha256':registry['contract_sha256'],
         'squeeze_binding_sha256':_sha(squeeze_binding),'macro_binding_sha256':macro_binding['binding_sha256'],
         'parameter_available_ns':parameter_available_ns,
+        'issue_start_ns':issue_start_ns,'issue_end_ns':issue_end_ns,
+        'retained_source_rows_sha256':_array_sha(local_rows,'<i8'),
+        'retained_issue_rows_sha256':_array_sha(issue_rows,'<i8'),
+        'retained_local_rows':len(local_rows),'retained_timeframes':tf_retention,
         'rows':len(starts),'source_row_sha256':_array_sha(np.arange(len(starts)),'<i8'),
         'bar_start_ns_sha256':_array_sha(starts,'<i8'),'issue_ns_sha256':_array_sha(starts+BAR_NS,'<i8')})
     return {'schema_version':SURFACES_SCHEMA,'source_binding':source_binding,
         'provider_contract':native_m5_feature_provider_contract(),'axes':axes,
-        'bar_start_ns':_owned(starts,np.int64),'signal':_owned(signal,np.float32),
+        'bar_start_ns':_owned(starts,np.int64),
+        'retained_source_rows':_owned(local_rows,np.int64),'retained_issue_rows':_owned(issue_rows,np.int64),
+        'signal':_owned(signal,np.float32),
         'ctx_cont':_owned(ctx,np.float32),'ctx_cat':_owned(cat,np.int64),'multi_tf_sources':multi_tf,
         'observed':_owned(np.isfinite(signal),np.bool_),
         'field_lineage':{name:lineage[name] for name in fields['signal']},
@@ -284,9 +315,20 @@ class NativeM5FeatureProvider:
               'SOURCE_AXES_VALUES')
         profile=owners.compile_full_ta_entry_execution_profile();self.profile=profile
         fields=profile['physical_field_names'];n=len(self.issue_ns)
+        self.retained_source_rows=surfaces['retained_source_rows']
+        retained=self.retained_source_rows
+        issue_rows=surfaces['retained_issue_rows']
+        _need(retained.dtype==np.int64 and retained.ndim==1 and len(retained)>0
+              and retained[0]>=0 and retained[-1]<n and np.all(np.diff(retained)==1)
+              and not retained.flags.writeable and issue_rows.dtype==np.int64
+              and issue_rows.ndim==1 and len(issue_rows)>0 and np.all(np.diff(issue_rows)>0)
+              and issue_rows[0]>=retained[0] and issue_rows[-1]<=retained[-1]
+              and surfaces['axes']['retained_source_rows_sha256']==_array_sha(retained,'<i8')
+              and surfaces['axes']['retained_issue_rows_sha256']==_array_sha(issue_rows,'<i8')
+              and surfaces['axes']['retained_local_rows']==len(retained),'RETAINED_SOURCE_AXIS')
         for key,dtype in (('signal',np.float32),('ctx_cont',np.float32),('ctx_cat',np.int64)):
             a=surfaces[key];_need(isinstance(a,np.ndarray) and a.dtype==dtype
-                and a.shape==(n,len(fields[key])) and not a.flags.writeable,'SURFACE_HEADER:'+key)
+                and a.shape==(len(retained),len(fields[key])) and not a.flags.writeable,'SURFACE_HEADER:'+key)
         _need(np.array_equal(surfaces['signal'][:,list(profile['temporal_alias_signal_indices'])],
                             surfaces['ctx_cont'][:,list(profile['temporal_alias_ctx_cont_indices'])],equal_nan=True),'CONTEXT_ALIAS_VALUES')
         _need(np.array_equal(surfaces['observed'],np.isfinite(surfaces['signal'])),'OBSERVED_VALUES')
@@ -294,35 +336,58 @@ class NativeM5FeatureProvider:
             _need(np.isin(surfaces['ctx_cat'][:,j],norm.CTX_CAT_DOMAINS[name]).all(),'CONTEXT_CATEGORY')
         observed=np.isfinite(surfaces['signal']).all(axis=1)
         bad=np.r_[0,np.cumsum(~observed,dtype=np.int64)]
-        end=np.arange(n)+1;begin=np.maximum(0,end-MODEL_NATIVE_SEQ_LEN)
-        self._readiness={'current_features_observed':_owned(observed,np.bool_),
-            'local_history':_owned(end>=MODEL_NATIVE_SEQ_LEN,np.bool_),
-            'local_window_observed':_owned(bad[end]==bad[begin],np.bool_)}
-        ready=(end>=MODEL_NATIVE_SEQ_LEN)&(bad[end]==bad[begin])
-        self.tf_tails={};self.tf_values={};self.tf_times={}
+        end=np.arange(len(retained))+1;begin=np.maximum(0,end-MODEL_NATIVE_SEQ_LEN)
+        def on_full_axis(value):
+            full=np.zeros(n,dtype=np.bool_);full[retained]=value
+            return _owned(full,np.bool_)
+        declared=np.zeros(n,dtype=np.bool_);declared[issue_rows]=True
+        history=end>=MODEL_NATIVE_SEQ_LEN;window=bad[end]==bad[begin]
+        self._readiness={'declared_issue_window':_owned(declared,np.bool_),
+            'current_features_observed':on_full_axis(observed),
+            'local_history':on_full_axis(history),'local_window_observed':on_full_axis(window)}
+        ready=np.asarray(on_full_axis(history&window)).copy()&declared
+        self.tf_tails={};self.tf_values={};self.tf_times={};self.tf_source_rows={}
         _need(set(surfaces['multi_tf_sources'])==set(TIMEFRAMES),'FIVE_TF')
         for tf in TIMEFRAMES:
             frame=surfaces['multi_tf_sources'][tf]
             _need(list(frame.columns)==list(fields['mtf']),'TF_FIELDS:'+tf)
             times=np.asarray(frame.attrs['ts_int64'],dtype=np.int64)
             matrix=np.asarray(frame.attrs['feats_np'],dtype=np.float32)
+            original=np.asarray(frame.attrs['owner_row_indices'],dtype=np.int64)
             _need(np.array_equal(frame.index.asi8,times) and matrix.shape==(len(times),len(fields['mtf']))
+                  and original.shape==times.shape and np.all(np.diff(original)>0)
                   and np.all(np.diff(times)>0) and not np.isinf(matrix).any()
-                  and not matrix.flags.writeable and not times.flags.writeable,'TF_HEADER:'+tf)
+                  and not matrix.flags.writeable and not times.flags.writeable
+                  and not original.flags.writeable,'TF_HEADER:'+tf)
+            scalar=frame.attrs['model_native_mtf_scalars_np_v4']
+            tf_proof=surfaces['axes']['retained_timeframes'][tf]
+            _need(tf_proof=={'rows':len(frame),'owner_row_indices_sha256':_array_sha(original,'<i8'),
+                'bar_start_ns_sha256':_array_sha(times,'<i8'),
+                'scalar_fields':list(frame.attrs['model_native_mtf_scalar_fields_v4']),
+                'scalar_values_sha256':_array_sha(scalar,'<f4')},'TF_RETAINED_BINDING:'+tf)
             tail=np.searchsorted(times,self.issue_ns-int(htf.MULTI_TF_SHIFT[tf].value),side='right')-1
             length=WINDOWS[tf];safe=np.clip(tail,0,len(times)-1)
             finite=np.isfinite(matrix).all(axis=1);counts=np.r_[0,np.cumsum(~finite,dtype=np.int64)]
             left=np.maximum(0,safe-length+1)
-            history=tail>=length-1;window=counts[safe+1]==counts[left]
+            history=(tail>=length-1)&(original[safe]-original[left]==length-1)
+            window=counts[safe+1]==counts[left]
             self._readiness['mtf_'+tf.lower()+'_history']=_owned(history,np.bool_)
             self._readiness['mtf_'+tf.lower()+'_window_observed']=_owned(window,np.bool_)
             ready&=history&window
             self.tf_tails[tf]=_owned(tail,np.int64);self.tf_values[tf]=matrix;self.tf_times[tf]=times
+            self.tf_source_rows[tf]=original
         parameters=self.issue_ns>=surfaces['parameter_available_ns']
         self._readiness['parameters_available']=_owned(parameters,np.bool_)
         ready&=parameters
         self.input_ready=_owned(ready,np.bool_)
         self.source_axes_sha256=surfaces['axes']['contract_sha256']
+
+    def _feature_positions(self,source_rows):
+        rows=np.asarray(source_rows,dtype=np.int64)
+        at=np.searchsorted(self.retained_source_rows,rows)
+        _need(np.all(at<len(self.retained_source_rows))
+              and np.array_equal(self.retained_source_rows[at],rows),'UNRETAINED_SOURCE_ROWS')
+        return at
 
     def gather(self,source_rows,*,max_rows):
         rows=np.asarray(source_rows)
@@ -330,14 +395,18 @@ class NativeM5FeatureProvider:
               and rows.ndim==1 and 0<len(rows)<=max_rows and np.all(rows>=0)
               and np.all(rows<len(self.issue_ns)) and len(np.unique(rows))==len(rows),'BATCH_ROWS')
         _need(self.input_ready[rows].all(),'BATCH_NOT_OBSERVED')
-        ids=rows[:,None]+np.arange(-MODEL_NATIVE_SEQ_LEN+1,1,dtype=np.int64)
+        positions=self._feature_positions(rows)
+        ids=positions[:,None]+np.arange(-MODEL_NATIVE_SEQ_LEN+1,1,dtype=np.int64)
+        _need(np.array_equal(self.retained_source_rows[ids],
+              rows[:,None]+np.arange(-MODEL_NATIVE_SEQ_LEN+1,1,dtype=np.int64)),'LOCAL_OWNER_ROW_CONTINUITY')
         out={'seq_x':np.ascontiguousarray(self.surfaces['signal'][ids]),
-             'snap_x':np.ascontiguousarray(self.surfaces['signal'][rows]),
-             'ctx_cont':np.ascontiguousarray(self.surfaces['ctx_cont'][rows]),
-             'ctx_cat':np.ascontiguousarray(self.surfaces['ctx_cat'][rows])}
+             'snap_x':np.ascontiguousarray(self.surfaces['signal'][positions]),
+             'ctx_cont':np.ascontiguousarray(self.surfaces['ctx_cont'][positions]),
+             'ctx_cat':np.ascontiguousarray(self.surfaces['ctx_cat'][positions])}
         for tf in TIMEFRAMES:
             take=self.tf_tails[tf][rows,None]+np.arange(-WINDOWS[tf]+1,1,dtype=np.int64)
-            _need(np.all(self.tf_times[tf][take]+int(htf.MULTI_TF_SHIFT[tf].value)<=self.issue_ns[rows,None]),'CAUSAL_TF:'+tf)
+            _need(np.all(self.tf_times[tf][take]+int(htf.MULTI_TF_SHIFT[tf].value)<=self.issue_ns[rows,None])
+                  and np.all(np.diff(self.tf_source_rows[tf][take],axis=1)==1),'CAUSAL_TF:'+tf)
             out['seq_'+tf.lower()]=np.ascontiguousarray(self.tf_values[tf][take])
         _need(all(np.isfinite(a).all() for a in out.values()),'BATCH_NONFINITE')
         return out
@@ -351,13 +420,18 @@ class NativeM5FeatureProvider:
         missing=[]
         names=self.profile['physical_field_names']['signal']
         observed=self.surfaces['observed']
+        positions=np.searchsorted(self.retained_source_rows,rows)
+        present=positions<len(self.retained_source_rows)
+        present[present]&=self.retained_source_rows[positions[present]]==rows[present]
+        kept_positions=positions[present]
         for j,name in enumerate(names):
-            count=int((~observed[rows,j]).sum())
+            count=int((~observed[kept_positions,j]).sum())
             if count:missing.append({'field':name,'unobserved_current_rows':count})
         return {'rows':len(rows),'input_ready':int(self.input_ready[rows].sum()),
             'input_not_ready':int((~self.input_ready[rows]).sum()),
             'failed_conditions':{name:int((~mask[rows]).sum()) for name,mask in self._readiness.items()},
             'reason_counts_overlap':True,'current_field_missingness':missing,
+            'unmaterialized_current_rows':int((~present).sum()),
             'parameter_available_ns':self.surfaces['parameter_available_ns']}
 
     def support_report(self,source_rows):
@@ -367,11 +441,12 @@ class NativeM5FeatureProvider:
               and np.all(np.diff(rows)>0) and rows[0]>=MODEL_NATIVE_SEQ_LEN-1 and rows[-1]<len(self.issue_ns),
               'SUPPORT_ROWS')
         fields=self.profile['physical_field_names']
-        ids=_window_union(rows,MODEL_NATIVE_SEQ_LEN,len(self.issue_ns))
+        ids=self._feature_positions(_window_union(rows,MODEL_NATIVE_SEQ_LEN,len(self.issue_ns)))
+        positions=self._feature_positions(rows)
         report={}
         for name,matrix,take,names in (
             ('signal',self.surfaces['signal'],ids,fields['signal']),
-            ('ctx_cont',self.surfaces['ctx_cont'],rows,fields['ctx_cont'])):
+            ('ctx_cont',self.surfaces['ctx_cont'],positions,fields['ctx_cont'])):
             counts=[int(np.isfinite(matrix[take,j]).sum()) for j in range(matrix.shape[1])]
             report[name]={'physical_rows':len(take),'field_names':list(names),'observed_counts':counts}
         for tf in TIMEFRAMES:
@@ -385,7 +460,14 @@ class NativeM5FeatureProvider:
             'surfaces':report,'families':list(self.profile['local_specialists']),
             'macro_fields':list(self.profile['macro_context_fields']),
             'field_lineage':dict(self.surfaces['field_lineage']),
-            'gc_scope':self.surfaces['provider_contract']['gc_scope']}
+            'gc_scope':self.surfaces['provider_contract']['gc_scope'],
+            'retained_scope':{'source_prefix_rows':len(self.issue_ns),
+                'issue_start_ns':self.surfaces['axes']['issue_start_ns'],
+                'issue_end_ns':self.surfaces['axes']['issue_end_ns'],
+                'local_rows':len(self.retained_source_rows),
+                'first_source_row':int(self.retained_source_rows[0]),
+                'last_source_row':int(self.retained_source_rows[-1]),
+                'timeframes':self.surfaces['axes']['retained_timeframes']}}
 
     def input_binding(self,normalization):
         contract=norm.require_native_m5_input_normalization_contract(normalization)
@@ -418,9 +500,10 @@ def fit_native_m5_feature_normalization(provider,*,fit_source_rows,cutoff_ns):
           and type(cutoff_ns) is int and 0<cutoff_ns<=norm.NATIVE_M5_TRAIN_FIT_CUTOFF_NS
           and np.all(provider.issue_ns[rows]<cutoff_ns),'FIT_POPULATION')
     fields=provider.profile['physical_field_names'];raw=provider.surfaces
-    local=_window_union(rows,MODEL_NATIVE_SEQ_LEN,len(provider.issue_ns))
+    local=provider._feature_positions(_window_union(rows,MODEL_NATIVE_SEQ_LEN,len(provider.issue_ns)))
+    positions=provider._feature_positions(rows)
     parts={'signal':norm.MatrixPopulationPart(raw['signal'],row_indices=local,source='native_M5_local'),
-           'ctx_cont':norm.MatrixPopulationPart(raw['ctx_cont'],row_indices=rows,source='native_M5_context')}
+           'ctx_cont':norm.MatrixPopulationPart(raw['ctx_cont'],row_indices=positions,source='native_M5_context')}
     aliases=[{'signal_index':int(si),'ctx_cont_index':int(ci),'signal_field':fields['signal'][si],
               'ctx_cont_field':fields['ctx_cont'][ci],
               'specialist':owners.classify_entry_specialist_feature(fields['signal'][si])} for si,ci in zip(
@@ -438,9 +521,9 @@ def fit_native_m5_feature_normalization(provider,*,fit_source_rows,cutoff_ns):
         key='mtf_'+tf.lower();part=norm.MatrixPopulationPart(provider.tf_values[tf],row_indices=ids,source=key)
         surfaces[key]=norm.fit_surface_normalization(part,surface=key,field_names=fields['mtf'],
             semantic_categorical_domains=norm.MTF_SEMANTIC_CATEGORICAL_DOMAINS)
-        tf_population[tf]={'rows':len(ids),'source_rows_sha256':_array_sha(ids,'<i8'),
+        tf_population[tf]={'rows':len(ids),'source_rows_sha256':_array_sha(provider.tf_source_rows[tf][ids],'<i8'),
                            'available_ns_sha256':_array_sha(available,'<i8')}
-    cat=norm.fit_ctx_cat_contract(norm.MatrixPopulationPart(raw['ctx_cat'],row_indices=rows,source='native_M5_categories'),
+    cat=norm.fit_ctx_cat_contract(norm.MatrixPopulationPart(raw['ctx_cat'],row_indices=positions,source='native_M5_categories'),
                                    field_names=fields['ctx_cat'])
     population={'cutoff_ns':cutoff_ns,'first_issue_ns':int(provider.issue_ns[rows[0]]),
         'last_issue_ns':int(provider.issue_ns[rows[-1]]),'issue_rows':len(rows),

@@ -3306,21 +3306,33 @@ def validate_causal_feature_matrix(
             f"[{context}] feature matrix must have non-zero shape (N, {expected_width}); "
             f"observed={arr.shape}"
         )
-    try:
-        numeric = arr.astype(np.float64, copy=False)
-    except (TypeError, ValueError) as exc:
-        raise RuntimeError(f"[{context}] feature matrix must be numeric") from exc
-    if np.isinf(numeric).any():
-        raise RuntimeError(f"[{context}] feature matrix contains infinity")
-    complete = np.isfinite(numeric).all(axis=1)
-    if not complete.any():
-        return int(len(numeric))
-    first_complete = int(np.argmax(complete))
-    if not complete[first_complete:].all():
+    first_complete = None
+    incomplete_after_start = False
+    for left in range(0, len(arr), 4096):
+        raw = arr[left:left + 4096]
+        try:
+            # Native float32/64 finiteness needs no full-history float64 copy.
+            # Other legacy inputs retain their numeric conversion, per block.
+            numeric = (raw if raw.dtype in (np.dtype(np.float32), np.dtype(np.float64))
+                       else raw.astype(np.float64, copy=False))
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(f"[{context}] feature matrix must be numeric") from exc
+        if np.isinf(numeric).any():
+            raise RuntimeError(f"[{context}] feature matrix contains infinity")
+        complete = np.isfinite(numeric).all(axis=1)
+        if first_complete is None:
+            if not complete.any():
+                continue
+            first = int(np.argmax(complete))
+            first_complete = left + first
+            incomplete_after_start = not complete[first:].all()
+        elif not complete.all():
+            incomplete_after_start = True
+    if incomplete_after_start:
         raise RuntimeError(
             f"[{context}] non-finite feature rows are not one causal warmup prefix"
         )
-    return first_complete
+    return int(len(arr)) if first_complete is None else first_complete
 
 
 def _require_native_quote_frame_v4(frame: pd.DataFrame) -> None:
@@ -4013,11 +4025,64 @@ def _attach_model_native_mtf_scalar_frame_v4(
     )
 
 
+
+def _retain_model_native_feature_frame_v4(frame, *, timeframe, scope):
+    """Retain consumption rows only after the complete causal owner ran.
+
+    The output row IDs continue to address the original complete TF owner
+    axis. Closed scalar context for the local sequence prefix is retained in
+    addition to the model's own TF-window union.
+    """
+    if scope is None:
+        return frame
+    if not isinstance(scope, Mapping) or set(scope) != {"issue_ns", "local_bar_start_ns", "window_rows"}:
+        raise RuntimeError("HTF_V4_RETAINED_SCOPE_INVALID")
+    issues, local = scope["issue_ns"], scope["local_bar_start_ns"]
+    for clock in (issues, local):
+        if (not isinstance(clock, np.ndarray) or clock.dtype != np.int64 or clock.ndim != 1
+                or not len(clock) or np.any(np.diff(clock) <= 0)):
+            raise RuntimeError("HTF_V4_RETAINED_CLOCK_INVALID")
+    windows = require_multi_tf_resolution_pyramid(dict(scope["window_rows"]))["per_tf_seq_lens"]
+    times = np.asarray(frame.attrs["ts_int64"], dtype=np.int64)
+    duration = int(MULTI_TF_SHIFT[timeframe].value)
+    tails = np.searchsorted(times, issues - duration, side="right") - 1
+    tails = tails[tails >= 0]
+    delta = np.zeros(len(times) + 1, dtype=np.int64)
+    np.add.at(delta, np.maximum(0, tails - int(windows[timeframe]) + 1), 1)
+    np.add.at(delta, tails + 1, -1)
+    selected = np.cumsum(delta[:-1]) > 0
+    context = np.searchsorted(times, local + int(pd.Timedelta(minutes=5).value) - duration,
+                              side="right") - 1
+    selected[context[context >= 0]] = True
+    ids = np.flatnonzero(selected)
+    if not len(ids):
+        raise RuntimeError("HTF_V4_RETAINED_CONTEXT_EMPTY:" + timeframe)
+    original = np.asarray(frame.attrs.get("owner_row_indices", np.arange(len(times))), dtype=np.int64)
+    if original.shape != times.shape or np.any(np.diff(original) <= 0):
+        raise RuntimeError("HTF_V4_RETAINED_OWNER_AXIS_INVALID")
+    values = np.array(frame.attrs["feats_np"][ids], dtype=np.float32, order="C", copy=True)
+    kept_times = np.array(times[ids], dtype=np.int64, copy=True)
+    kept_original = np.array(original[ids], dtype=np.int64, copy=True)
+    scalar_fields = tuple(frame.attrs["model_native_mtf_scalar_fields_v4"])
+    scalars = np.array(frame.attrs["model_native_mtf_scalars_np_v4"][ids],
+                       dtype=np.float32, order="C", copy=True)
+    result = pd.DataFrame(values, index=frame.index[ids], columns=frame.columns, copy=False)
+    result.attrs = dict(frame.attrs)
+    result.attrs.update(ts_int64=kept_times, feats_np=values, owner_row_indices=kept_original,
+        causal_warmup_rows=validate_causal_feature_matrix(values, expected_width=MULTI_TF_FEATURE_COUNT_V4,
+                                                       context="HTF_V4_RETAINED_" + timeframe),
+        model_native_mtf_scalars_np_v4=scalars,
+        model_native_mtf_scalar_warmup_rows_v4=validate_causal_feature_matrix(
+            scalars, expected_width=len(scalar_fields), context="HTF_V4_RETAINED_SCALAR_" + timeframe))
+    return result
+
+
 def build_multi_tf_per_bar_features_v4(
     m5_df: pd.DataFrame,
     *,
     v29_registry_constants,
     volatility_squeeze_artifacts: VolatilitySqueezeArtifactSet,
+    retained_model_scope: Mapping | None = None,
 ) -> dict:
     """Build all eight causal specialist families from native M5 only.
 
@@ -4035,6 +4100,20 @@ def build_multi_tf_per_bar_features_v4(
     )
     source = m5_df.copy(deep=False)
     source.index = source.index.as_unit("ns")
+    if retained_model_scope is not None:
+        if (not isinstance(retained_model_scope, Mapping)
+                or set(retained_model_scope) != {"issue_ns", "local_bar_start_ns", "window_rows"}):
+            raise RuntimeError("HTF_V4_RETAINED_SCOPE_INVALID")
+        for key, shift in (("issue_ns", int(base_bar_duration.value)), ("local_bar_start_ns", 0)):
+            values = retained_model_scope[key]
+            if (not isinstance(values, np.ndarray) or values.dtype != np.int64
+                    or values.ndim != 1 or not len(values) or np.any(np.diff(values) <= 0)):
+                raise RuntimeError("HTF_V4_RETAINED_CLOCK_INVALID")
+            requested = values - shift
+            positions = np.searchsorted(source.index.asi8, requested)
+            if (np.any(positions >= len(source))
+                    or not np.array_equal(source.index.asi8[positions], requested)):
+                raise RuntimeError("HTF_V4_RETAINED_NOT_NATIVE_M5")
     expected_indices = build_multi_tf_v4_closed_timestamp_indices(
         source.index,
     )
@@ -4096,7 +4175,11 @@ def build_multi_tf_per_bar_features_v4(
             scalar_frame,
             timeframe=tf_name,
         )
-        result[tf_name] = feats
+        result[tf_name] = _retain_model_native_feature_frame_v4(
+            feats, timeframe=tf_name, scope=retained_model_scope)
+        # No full-history computed frame/array may survive into the next TF
+        # when the caller retained only a bounded consumption footprint.
+        del computed, feats_np, feats, scalar_frame, resampled
     return result
 
 

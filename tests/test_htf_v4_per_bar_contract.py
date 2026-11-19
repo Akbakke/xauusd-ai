@@ -2137,3 +2137,90 @@ def test_native_five_htf_consumer_rejects_legacy_registry_before_any_nested_read
     with pytest.raises(RuntimeError,match='NATIVE_M5_REGISTRY_PROVENANCE'):
         htf.build_multi_tf_per_bar_features_v4(pd.DataFrame(),v29_registry_constants={},
                                               volatility_squeeze_artifacts=artifact)
+
+
+def test_causal_matrix_validation_bounds_memory_and_preserves_cross_block_availability():
+    import tracemalloc
+
+    matrix = np.ones((8193, 256), dtype=np.float32)
+    matrix[:4097] = np.nan
+    tracemalloc.start()
+    try:
+        baseline, _ = tracemalloc.get_traced_memory()
+        warmup = htf.validate_causal_feature_matrix(
+            matrix, expected_width=256, context='BOUNDED_VALIDATION')
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert warmup == 4097
+    # Input is 8MiB; a whole float64 conversion alone would add 16MiB.
+    assert peak - baseline < 3 * 1024**2
+    assert matrix.dtype == np.float32
+    assert np.isnan(matrix[:4097]).all() and np.isfinite(matrix[4097:]).all()
+    matrix[8192, 17] = np.nan
+    with pytest.raises(RuntimeError, match='not one causal warmup prefix'):
+        htf.validate_causal_feature_matrix(
+            matrix, expected_width=256, context='CROSS_BLOCK_HOLE')
+    matrix[4096, 0] = np.inf
+    with pytest.raises(RuntimeError, match='contains infinity'):
+        htf.validate_causal_feature_matrix(
+            matrix, expected_width=256, context='CROSS_BLOCK_INFINITY')
+    assert htf.validate_causal_feature_matrix(
+        np.array([['nan'], ['1.5'], ['2.0']]), expected_width=1,
+        context='LEGACY_NUMERIC_STRING') == 1
+    with pytest.raises(RuntimeError, match='must be numeric'):
+        htf.validate_causal_feature_matrix(
+            np.array([['invalid']]), expected_width=1, context='LEGACY_NONNUMERIC')
+
+
+def test_retained_feature_frame_copies_only_consumption_rows_and_all_scalar_attrs():
+    tf='M5';n=700
+    times=pd.date_range('2024-01-01',periods=n,freq='5min',tz='UTC')
+    values=np.arange(n*htf.MULTI_TF_FEATURE_COUNT_V4,dtype=np.float32).reshape(n,-1)
+    values[:20]=np.nan
+    scalar_fields=htf.MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[tf]
+    scalars=np.arange(n*len(scalar_fields),dtype=np.float32).reshape(n,-1)
+    scalars[:30]=np.nan
+    frame=pd.DataFrame(values,index=times,columns=htf.MULTI_TF_PER_BAR_FEATURES_V4,copy=False)
+    frame.attrs.update(ts_int64=times.asi8,feats_np=values,causal_warmup_rows=20,
+        htf_feature_contract=htf.HTF_V4_MATRIX_CONTRACT,
+        model_native_mtf_scalar_fields_v4=scalar_fields,model_native_mtf_scalars_np_v4=scalars,
+        model_native_mtf_scalar_warmup_rows_v4=30,model_native_mtf_scalar_contract_v4=htf.MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4)
+    scope={'issue_ns':times.asi8[100:120]+int(pd.Timedelta(minutes=5).value),
+           'local_bar_start_ns':times.asi8[5:120],
+           'window_rows':{'M5':16,'M15':64,'H1':96,'H4':96,'D1':252}}
+    result=htf._retain_model_native_feature_frame_v4(frame,timeframe=tf,scope=scope)
+    ids=result.attrs['owner_row_indices']
+    np.testing.assert_array_equal(ids,np.arange(5,120))
+    np.testing.assert_array_equal(result.attrs['feats_np'],values[ids])
+    np.testing.assert_array_equal(result.attrs['ts_int64'],times.asi8[ids])
+    np.testing.assert_array_equal(result.attrs['model_native_mtf_scalars_np_v4'],scalars[ids])
+    assert result.attrs['causal_warmup_rows']==15
+    assert result.attrs['model_native_mtf_scalar_warmup_rows_v4']==25
+    assert np.shares_memory(result.to_numpy(copy=False),result.attrs['feats_np'])
+    assert not np.shares_memory(result.attrs['feats_np'],values)
+    assert not np.shares_memory(result.attrs['model_native_mtf_scalars_np_v4'],scalars)
+    assert result.attrs['feats_np'].nbytes==115*htf.MULTI_TF_FEATURE_COUNT_V4*4
+    assert htf._retain_model_native_feature_frame_v4(frame,timeframe=tf,scope=None) is frame
+
+
+def test_per_clock_retention_releases_complete_owner_arrays_before_next_clock(monkeypatch):
+    import weakref
+    bars=_bars(600,seed=20261119)
+    released=[]
+    def compute(source,**kwargs):
+        assert all(reference() is None for reference in released)
+        matrix=np.full((len(source),htf.MULTI_TF_FEATURE_COUNT_V4),1.,dtype=np.float32)
+        frame=pd.DataFrame(matrix,index=source.index,columns=htf.MULTI_TF_PER_BAR_FEATURES_V4,copy=False)
+        released.extend((weakref.ref(frame),weakref.ref(matrix)))
+        return frame
+    monkeypatch.setattr(htf,'_require_feature_squeeze_and_registry',lambda *args:(object(),{}))
+    monkeypatch.setattr(htf,'compute_per_bar_features_v4',compute)
+    scope={'issue_ns':bars.index.asi8[570:]+int(pd.Timedelta(minutes=5).value),
+        'local_bar_start_ns':bars.index.asi8[475:],
+        'window_rows':{'M5':16,'M15':64,'H1':96,'H4':96,'D1':252}}
+    result=htf.build_multi_tf_per_bar_features_v4(bars,v29_registry_constants={},
+        volatility_squeeze_artifacts=object(),retained_model_scope=scope)
+    assert all(reference() is None for reference in released)
+    assert len(result['M5'])==125
+    np.testing.assert_array_equal(result['M5'].attrs['owner_row_indices'],np.arange(475,600))

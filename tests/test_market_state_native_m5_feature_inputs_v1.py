@@ -41,9 +41,23 @@ def _fixture(tmp_path,monkeypatch,*,missing_macro_row=None,wrong_calibration_sou
             if name in owner.norm.MTF_SEMANTIC_BINARY_FIELDS:values[:,j]=(np.arange(len(clock))%2).astype(np.float32)
             if name in owner.norm.MTF_SEMANTIC_CATEGORICAL_DOMAINS:values[:,j]=np.arange(len(clock))%5
         frame=pd.DataFrame(values,index=clock,columns=fields['mtf'])
-        frame.attrs.update(ts_int64=clock.asi8.copy(),feats_np=values,causal_warmup_rows=0)
+        scalar_fields=owner.htf.MODEL_NATIVE_MTF_SCALAR_FIELDS_BY_TIMEFRAME_V4[tf]
+        scalars=(np.arange(len(clock),dtype=np.float32)[:,None]+np.arange(len(scalar_fields),dtype=np.float32)[None,:])
+        import torch
+        from tests.test_entry_v10_ctx_model_shapes import _valid_range_observation_input
+        values=_valid_range_observation_input(torch.from_numpy(values),fields['mtf']).numpy()
+        frame=pd.DataFrame(values,index=clock,columns=fields['mtf'],copy=False)
+        frame.attrs.update(ts_int64=clock.asi8.copy(),feats_np=values,causal_warmup_rows=0,
+            htf_feature_contract=owner.htf.HTF_V4_MATRIX_CONTRACT,
+            model_native_mtf_scalar_fields_v4=scalar_fields,model_native_mtf_scalars_np_v4=scalars,
+            model_native_mtf_scalar_warmup_rows_v4=0,
+            model_native_mtf_scalar_contract_v4=owner.htf.MODEL_NATIVE_MTF_SCALAR_CONTRACT_V4)
         frames[tf]=frame
-    monkeypatch.setattr(owner.htf,'build_multi_tf_per_bar_features_v4',lambda *a,**k:frames)
+    def build(*args,**kwargs):
+        scope=kwargs.get('retained_model_scope')
+        return {tf:owner.htf._retain_model_native_feature_frame_v4(frame,timeframe=tf,scope=scope)
+                for tf,frame in frames.items()}
+    monkeypatch.setattr(owner.htf,'build_multi_tf_per_bar_features_v4',build)
     native_ref=({**ref,'sha256':'f'*64} if wrong_calibration_source else ref)
     provenance={'native_m5_manifest_artifact':native_ref['path'],'native_m5_manifest_sha256':native_ref['sha256']}
     registry={'contract_sha256':'b'*64,'entry_m5':{'seq_len':96,'trendline_band_atr':.3},
@@ -61,7 +75,7 @@ def _fixture(tmp_path,monkeypatch,*,missing_macro_row=None,wrong_calibration_sou
     def attach(frame,**kwargs):
         for j,name in enumerate(fields['ctx_cont']):
             if name not in owner.macro.D1_MACRO_CONTEXT_FIELDS:
-                frame[name]=np.cos(np.arange(len(frame))*.03+j*.17).astype(np.float32)
+                frame[name]=np.cos(raw.index.get_indexer(frame.index)*.03+j*.17).astype(np.float32)
     monkeypatch.setattr(owner.htf,'attach_model_native_mtf_scalars_v4',attach)
     monkeypatch.setattr(owner.htf,'project_multi_tf_v4_scalars',lambda *a,**k:{})
     from gx1.features import trendline_registry_v1 as trend
@@ -70,19 +84,22 @@ def _fixture(tmp_path,monkeypatch,*,missing_macro_row=None,wrong_calibration_sou
         return pd.DataFrame(values,index=source.index,columns=trend.TRENDLINE_REGISTRY_FEATURE_NAMES_V1),None
     monkeypatch.setattr(trend,'compute_trendline_registry_features_v1',local)
     def macro(times,components):
-        frame=pd.DataFrame({name:np.sin(np.arange(len(times))*.07+j*.13)
+        positions=raw.index.get_indexer(pd.DatetimeIndex(times)-pd.Timedelta(minutes=5))
+        frame=pd.DataFrame({name:np.sin(positions*.07+j*.13)
                             for j,name in enumerate(owner.macro.D1_MACRO_CONTEXT_FIELDS)})
-        if missing_macro_row is not None:frame.loc[missing_macro_row,owner.macro.D1_MACRO_CONTEXT_FIELDS[0]]=np.nan
+        if missing_macro_row is not None:frame.loc[positions==missing_macro_row,owner.macro.D1_MACRO_CONTEXT_FIELDS[0]]=np.nan
         frame.insert(0,'decision_time',times);return frame
     monkeypatch.setattr(owner.macro,'build_d1_macro_context',macro)
     monkeypatch.setattr(owner.macro,'d1_macro_context_components',lambda spec:{'test_fixture':True})
     return raw,source,registry,artifacts,frames
 
 
-def _build(fixture):
+def _build(fixture,**kwargs):
     raw,source,registry,artifacts,_=fixture
+    scope={'issue_start_ns':int(raw.index[0].value)+owner.BAR_NS,
+           'issue_end_ns':source['source_spec']['cutoff_ns'],**kwargs}
     return owner.build_native_m5_feature_surfaces(raw,source_binding=source,v29_registry_constants=registry,
-        volatility_squeeze_artifacts=artifacts)
+        volatility_squeeze_artifacts=artifacts,**scope)
 
 
 def test_raw_provider_routes_every_canonical_field_and_all_nine_forward_keys(tmp_path,monkeypatch):
@@ -138,7 +155,8 @@ def test_legacy_six_clock_artifacts_rejected_before_nested_squeeze_reads(tmp_pat
     monkeypatch.setattr(owner,'require_volatility_squeeze_artifact_set',lambda *a,**k:pytest.fail('M1 artifact read'))
     with pytest.raises(RuntimeError,match='NATIVE_FIVE_SQUEEZE_REQUIRED'):
         owner.build_native_m5_feature_surfaces(raw,source_binding=source,v29_registry_constants=registry,
-            volatility_squeeze_artifacts=artifacts)
+            volatility_squeeze_artifacts=artifacts,issue_start_ns=int(raw.index[0].value)+owner.BAR_NS,
+            issue_end_ns=source['source_spec']['cutoff_ns'])
 
 
 def test_raw_source_cutoff_and_bytes_cannot_be_relabelled(tmp_path,monkeypatch):
@@ -146,7 +164,8 @@ def test_raw_source_cutoff_and_bytes_cannot_be_relabelled(tmp_path,monkeypatch):
     changed=raw.copy();changed.iloc[-1,0]+=.01
     with pytest.raises(RuntimeError,match='RAW_SOURCE_REBIND'):
         owner.build_native_m5_feature_surfaces(changed,source_binding=source,v29_registry_constants=registry,
-            volatility_squeeze_artifacts=artifacts)
+            volatility_squeeze_artifacts=artifacts,issue_start_ns=int(raw.index[0].value)+owner.BAR_NS,
+            issue_end_ns=source['source_spec']['cutoff_ns'])
     spec=source['source_spec'];spec={**spec,'cutoff_ns':int(raw.index[-1].value)+owner.BAR_NS}
     with pytest.raises(RuntimeError,match='SOURCE_EXCLUSIVE_CLOSE_CUTOFF'):
         owner.bind_native_m5_feature_source(raw,native_m5_manifest=source['native_m5_manifest'],source_spec=spec)
@@ -256,3 +275,71 @@ def test_real_provider_normalization_fit_alias_share_and_contract_boundary(tmp_p
         assert np.isfinite(transformed).all() and transformed.shape==array.shape
     binding=provider.input_binding(normalization)
     assert binding['input_normalization_sha256']==normalization['contract_sha256']
+
+
+def test_bounded_materialization_preserves_full_state_values_global_ids_and_real_statistics(tmp_path,monkeypatch):
+    fixture=_fixture(tmp_path,monkeypatch)
+    from gx1.features import trendline_registry_v1 as trend
+    owner_calls=[];original_build=owner.htf.build_multi_tf_per_bar_features_v4
+    original_trend=trend.compute_trendline_registry_features_v1
+    def full_history_build(source,**kwargs):
+        owner_calls.append(('mtf',len(source)))
+        return original_build(source,**kwargs)
+    def full_history_trend(source,**kwargs):
+        owner_calls.append(('local_trend',len(source)))
+        return original_trend(source,**kwargs)
+    monkeypatch.setattr(owner.htf,'build_multi_tf_per_bar_features_v4',full_history_build)
+    monkeypatch.setattr(trend,'compute_trendline_registry_features_v1',full_history_trend)
+    full=owner.NativeM5FeatureProvider(_build(fixture))
+    bounded_surfaces=_build(fixture,issue_start_ns=int(full.issue_ns[200]),issue_end_ns=int(full.issue_ns[300]))
+    bounded=owner.NativeM5FeatureProvider(bounded_surfaces)
+    assert owner_calls==[('mtf',400),('local_trend',400),('mtf',400),('local_trend',400)]
+    np.testing.assert_array_equal(bounded.issue_ns,full.issue_ns)
+    np.testing.assert_array_equal(bounded.source_row,full.source_row)
+    np.testing.assert_array_equal(bounded.retained_source_rows,np.arange(105,300))
+    np.testing.assert_array_equal(bounded_surfaces['retained_issue_rows'],np.arange(200,300))
+    assert not bounded.input_ready[:200].any() and not bounded.input_ready[300:].any()
+    assert bounded.input_ready[200:300].all()
+    for key in ('signal','ctx_cont','ctx_cat','observed'):
+        np.testing.assert_array_equal(bounded_surfaces[key],full.surfaces[key][105:300])
+        assert not np.shares_memory(bounded_surfaces[key],full.surfaces[key])
+    for tf in owner.TIMEFRAMES:
+        frame=bounded_surfaces['multi_tf_sources'][tf]
+        original_ids=frame.attrs['owner_row_indices']
+        positions=np.searchsorted(full.tf_source_rows[tf],original_ids)
+        np.testing.assert_array_equal(full.tf_source_rows[tf][positions],original_ids)
+        np.testing.assert_array_equal(frame.attrs['feats_np'],full.tf_values[tf][positions])
+        np.testing.assert_array_equal(frame.attrs['ts_int64'],full.tf_times[tf][positions])
+        np.testing.assert_array_equal(frame.attrs['model_native_mtf_scalars_np_v4'],
+            full.surfaces['multi_tf_sources'][tf].attrs['model_native_mtf_scalars_np_v4'][positions])
+        assert np.shares_memory(frame.to_numpy(copy=False),frame.attrs['feats_np'])
+        assert not np.shares_memory(frame.attrs['feats_np'],full.tf_values[tf])
+    chosen=np.array([200,299],np.int64)
+    for key,values in bounded.gather(chosen,max_rows=2).items():
+        np.testing.assert_array_equal(values,full.gather(chosen,max_rows=2)[key])
+    selected=np.arange(200,300,dtype=np.int64);cutoff=int(full.issue_ns[300])
+    full_norm=owner.fit_native_m5_feature_normalization(full,fit_source_rows=selected,cutoff_ns=cutoff)
+    bounded_norm=owner.fit_native_m5_feature_normalization(bounded,fit_source_rows=selected,cutoff_ns=cutoff)
+    assert full_norm['surfaces']==bounded_norm['surfaces']
+    assert full_norm['ctx_cat']==bounded_norm['ctx_cat']
+    assert full_norm['fit_population']==bounded_norm['fit_population']
+    assert full_norm['source_axes_sha256']!=bounded_norm['source_axes_sha256']
+    assert bounded.support_report(selected)['retained_scope']['local_rows']==195
+
+
+def test_bounded_local_matrix_allocations_follow_consumption_not_complete_source(tmp_path,monkeypatch):
+    fixture=_fixture(tmp_path,monkeypatch)
+    raw=fixture[0];stack=owner.np.column_stack;allocations=[]
+    def bounded_stack(arrays):
+        arrays=list(arrays)
+        if len(arrays)==318:allocations.append((len(arrays[0]),318))
+        return stack(arrays)
+    monkeypatch.setattr(owner.np,'column_stack',bounded_stack)
+    surfaces=_build(fixture,issue_start_ns=int(raw.index[200].value)+owner.BAR_NS,
+                    issue_end_ns=int(raw.index[300].value)+owner.BAR_NS)
+    assert allocations==[(195,318)]
+    assert surfaces['signal'].nbytes==195*318*4
+    assert surfaces['ctx_cont'].nbytes==195*132*4
+    assert surfaces['observed'].nbytes==195*318
+    assert surfaces['bar_start_ns'].shape==(400,)
+    assert surfaces['source_binding']['rows']==400

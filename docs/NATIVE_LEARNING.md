@@ -61,6 +61,19 @@ bruker hele unionen av faktiske TRAIN-vinduer, aldri samplet batchstatistikk.
 Manglende observasjoner og warmup beholdes; ingen gammel M1-akse eller
 normalisering brukes som snarvei.
 
+Hele råforhistorikken går gjennom de stateful formel-eierne før utvalg.
+Fysisk lagring kan deretter begrenses til de forhåndsdeklarerte prognoseradene,
+95 tidligere lokale barer og unionen av faktisk konsumerte TF-/kontekstvinduer.
+Opprinnelige globale M5-/TF-rad-IDer, kildeakser, verdier og hasher bevares.
+Utvalget bruker kjente inputklokker og planlagt TRAIN-grense; framtidig fasit
+eller målmasker velger aldri modellens inputvinduer.
+
+Validering av lange matriser skjer i begrensede blokker. En full float32-flate
+utvides ikke til float64 bare for finittkontroll. Prefixklassifisering og
+feil på infinity eller senere observasjonshull skal være uendret over
+blokkgrenser. Ferdige parameterfiler og fysiske inputartefakter gjenbrukes
+bare under deres opprinnelige kilde-, parameter- og populasjonsidentitet.
+
 Hver TF har separate treklassehoder for åpning og slutt i
 NativeM5BarDirectionModel. Klasser er -1/0/+1 og blandede fortegn beholdes.
 Tap og skår bruker samme modne, observerte celler. Allerede kjent åpning
