@@ -20,6 +20,13 @@ batchtesten beholder all eksisterende prisfasit uendret. Ingen klassekvote eller
 ny flatterskel er innført. Et teknisk PASS eller én kort test avslutter ikke
 dette vedvarende målet. NEXT_RUN_POLICY eier akseptgrenser og neste steg.
 
+
+BLOCK_ORDER001-planen er nå klargjort: samme ferske initial, norm/prior,
+1536 FIT / 512 CONTROL og 4 pass / 384 updates / 544 forwards. Bare hele
+B16-blokker flyttes etter den låste lokale PCG64-ordren. Planen binder
+kronologisk referanse og alle source-/schedule-hasher. Anslag fra samme
+modell er omtrent 10–12 minutter, hardgrense 30 minutter. Preflight gjenstår.
+
 ### Ny TA-only-funksjon og teknisk kvalifikasjon
 
 Optional priorvalg gir null sluttvekter og eksakt FP32 log av den frosne
