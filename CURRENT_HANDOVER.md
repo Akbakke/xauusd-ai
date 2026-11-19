@@ -91,9 +91,10 @@ ble gjenbrukt fra egen bestått kontroll. Syntaks/diffkontroll består.
 
 ### Ikke gjort / neste steg
 
-Pipeline005 er PREPARED_NOT_ADMITTED med egen kildebundet plan. Kjør først
-eksakt capped førkontroll av11klokkearrays/0featurematriser. Egen policyadmisjon
-kreves før27bevarte arrays kvalifiseres med fersk normalisering/én CPU-batch.
+Pipeline005 er ADMITTED_ONE_USE etter bestått eksakt capped førkontroll:
+11klokkearrays,0feature-/råprisdekoding,0modell og0forbudteIO-forsøk.
+Én kvalifisering av27bevarte arrays med fersk normalisering/CPU-batch er
+innrømmet. Kilde og policy holdes fryst til terminal.
 Ingen full råindikatorberegning eller parameterfit skal gjentas.
 
 Deretter kan én separat kildebundet råGC-jobb produsere varige komponenter
