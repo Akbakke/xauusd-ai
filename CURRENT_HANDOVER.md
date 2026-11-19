@@ -132,7 +132,8 @@ GC_RAW_COMPONENTS001 er COMPLETE_CONSUMED_RAW_COMPONENTS_ONLY. Alle66filer og
 uendret kilde/råhashbookends og mengde-/stige-konservering i hver fil.
 0M1/049-IO,0modeller og0optimizer. Varige komponent-/stige-/kvitteringsfiler
 for alle66 er hashbundet fra original RESULT/TERMINAL i policy. Ingen råreplay.
-Assemblerens eksakte metadata-CLI/admisjon gjenstår før alle TF-felt kobles.
+GC_ASSEMBLY001 er PREPARED_NOT_ADMITTED, bundet til alle66COMPLETE-filer
+og18nativeXAU-M5-årsfiler. Eksakt metadata-CLI og egen admisjon gjenstår.
 Først ved COMPLETE66/66 kan assembler koble kausal forrige-
 dag-kontrakt, publiserte klokkehendelser, nativeXAU-M5-basis og allefelt.
 Rollevalg bruker betrodde individuelle T-mengder minus klokkehendelser;
