@@ -38,7 +38,8 @@ med320 distinkte fokuserte testtilfeller. Fabrikkens tuple/list-grense er rettet
 Syntaks, diffkontroll og commit-vakter består. Seks livssyklustester er
 gjentatt etter varig publisering av den uavhengige historikkontrollen.
 
-Neste er én egen pipeline001-plan: uavhengig råberegning av alle76arrays,
+Pipeline001 er PREPARED_NOT_ADMITTED, planhash54db8f5d6490eb1a06307614b57509f69513bd7d7a1b7c1d7bafb08ffbf2013a.
+Omfang: uavhengig råberegning av alle76arrays,
 ferske native5-squeeze-/V29-parametre,318signaler/132kontekst/256felt perTF,
 61as-of-makrofelter, hele faktisk konsumerte TRAIN-normaliseringspopulasjonen
 og én fersk teknisk CPU-batch på16rader med privat initialcheckpoint.
