@@ -16,8 +16,10 @@ Ingen GC, M1 eller TEST inngår.
 
 Én ny læringskurve er klargjort med 4 faste pass / 384 updates / 544 forwards,
 samme lille utvalg og faste skåringer etter hvert pass. Målt throughput gir
-omtrent 11–13 minutter, hardgrense 30 minutter. Hovedrunden er ennå ikke
-innrømmet; preflight gjenstår. Teknisk PASS er ikke retningsedge.
+omtrent 11–13 minutter, hardgrense 30 minutter. Eksakt hovedrunde er nå innrømmet etter metadata-preflight og
+uavhengig NumPy-kontroll: alle INITIAL/FINAL-summer og tellinger ble
+gjenskapt med avvik 0, og alle initiallogits var priorlike.
+Kilde/policy fryses til native TERMINAL. Teknisk PASS er ikke retningsedge.
 
 ### Sist fullførte runde, opprinnelig full-GC-omfang
 
