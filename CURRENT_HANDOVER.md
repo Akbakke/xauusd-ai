@@ -108,7 +108,9 @@ originale005-kvitteringer. Nativeenhetsrettelsen er nå implementert for akkurat
 TRAIN-median0, kildefast full-rangeenhet1, null spredningsestimat og støttebevis
 for én avvikende observasjon. Kontinuerlige0/.2/.59/1 og produksjons-Torch-
 transform er testet; feltet blir ikke binært.165berørte capped-regresjonsfall
-består. Pipeline006 er PREPARED_NOT_ADMITTED med15hashbundne inputroller og sju-flaters domeneobservasjon. Eksakt capped førkontroll og egen policyadmisjon gjenstår.
+består. Pipeline006 er ADMITTED_ONE_USE etter bestått capped førkontroll:15roller,
+sju-flaters domeneobservasjon,11klokkearrays/0featurematriser/0modell/0forbudteIO.
+Kilde/policy fryses til terminal for én fersk normalisering/CPU-initialbatch.
 
 Ingen full råindikatorberegning eller parameterfit skal gjentas.
 
