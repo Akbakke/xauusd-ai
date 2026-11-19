@@ -148,8 +148,9 @@ ferske vekter med samme initialSHA. Ingen stats refittes eller kopieres.
 Scoring deklareres B64, trening beholder B16. Alle 24 175/5 789 inputrader
 beholdes: 378/91 batcher per hel skåring, siste haler47/29, totalt938 forwards
 for før/etter. Ny002port har8fokuserte tilfeller PASS; driveren27 PASS.
-Normaliseringsløkken har egen negativ-/kompleksitetstest PASS. Ingen
-hovedfit eller ny teknisk GPU-jobb er innrømmet ennå.
+Normaliseringsløkken har egen negativ-/kompleksitetstest PASS. Mechanics002 er nå PREPARED_NOT_ADMITTED med plan-SHA
+79cb674b0dc62e3071b2a9f175fedb121774b3277de07a788aac6195a503439e.
+Ingen hovedfit eller ny teknisk GPU-jobb er innrømmet ennå.
 Gamle mechanics001 gjenkjøres aldri; ferdig TRAIN-normalisering/prior gjenbrukes. Ingen redusert
 skåringspopulasjon eller omgått vakt brukes som løsning.
 
