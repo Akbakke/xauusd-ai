@@ -1262,3 +1262,51 @@ def test_native_m5_single_apex_uses_named_continuous_unit_without_legacy_metadat
     bad=copy.deepcopy(fitted);bad.pop('native_bounded_unit_dispersion_estimates')
     with pytest.raises(RuntimeError,match='NATIVE_M5_BOUNDED_UNIT_PROOF'):
         owner.require_surface_normalization(bad,surface=surface,field_names=[field])
+
+
+def test_native_gc_validation_catalog_work_is_bounded_and_guards_revalidate(monkeypatch):
+    from gx1.features.gc_native_m5_features_v1 import native_m5_field_catalog
+    owner=normalization_contract
+    fields=[field for field in native_m5_field_catalog()['fields']
+        if field['timeframe']=='D1' and not field['binary_value'] and not field['structural_mask_value']
+        and field['transform']is None and field['availability_field']==field['name']+'_observed']
+    assert len(fields)>48
+    cases=[]
+    for unknown_count in (1,48):
+        selected=fields[:unknown_count]+[fields[48]]
+        names=[name for field in selected for name in (field['name'],field['availability_field'])]
+        values=np.zeros((8,len(names)),np.float32)
+        values[:,-2:]=[3.,1.];values[0,-2]=2.
+        fitted=owner.fit_native_m5_gc_surface_normalization(values,surface='gc_mtf_d1',
+            field_names=names,semantic_categorical_domains={})
+        assert len(fitted['native_gc_unfitted_estimates'])==unknown_count
+        assert fitted['scale_source'][-2]==owner.NATIVE_GC_RARE_UNIT_SOURCE
+        cases.append((fitted,names))
+    original=owner._native_gc_specs;calls=[];changed_unit=[False]
+    def counted_specs():
+        calls.append(1);specs=original()
+        if changed_unit[0]:
+            specs=copy.deepcopy(specs);specs[fields[0]['name']]['unit_scale']=2.
+        return specs
+    monkeypatch.setattr(owner,'_native_gc_specs',counted_specs)
+    work=[]
+    for fitted,names in cases:
+        before=copy.deepcopy(fitted);calls.clear()
+        assert owner.require_surface_normalization(fitted,surface='gc_mtf_d1',field_names=names)==before
+        assert fitted==before
+        work.append(len(calls))
+    # Validation work must not grow with the number of unavailable fields.
+    assert work[0]==work[1] and 0<work[1]<=4
+    fitted,names=cases[-1]
+    bad=copy.deepcopy(fitted);bad['scale'][0]=2.
+    with pytest.raises(RuntimeError,match='NATIVE_GC_DECLARED_UNIT_CONTRACT'):
+        owner.require_surface_normalization(bad,surface='gc_mtf_d1',field_names=names)
+    bad=copy.deepcopy(fitted);bad['observed_fit_counts'][0]=1
+    with pytest.raises(RuntimeError,match='NATIVE_GC_UNFITTED_ESTIMATES'):
+        owner.require_surface_normalization(bad,surface='gc_mtf_d1',field_names=names)
+    # A later invocation still reads and validates the current declared units.
+    changed_unit[0]=True
+    with pytest.raises(RuntimeError,match='NATIVE_GC_DECLARED_UNIT_CONTRACT'):
+        owner.require_surface_normalization(fitted,surface='gc_mtf_d1',field_names=names)
+    changed_unit[0]=False
+    owner.require_surface_normalization(fitted,surface='gc_mtf_d1',field_names=names)

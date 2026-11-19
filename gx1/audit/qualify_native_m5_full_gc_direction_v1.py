@@ -487,9 +487,9 @@ FIT_START_NS=1714521600000000000
 FIT_END_NS=1725148800000000000
 CONTROL_END_NS=1727740800000000000
 FIT_SCOPES={
-    'mechanics':('native_m5_full_gc_fit_mechanics_20261119_001',
-        REPO/'configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001.json',
-        Path('/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001')),
+    'mechanics':('native_m5_full_gc_fit_mechanics_20261119_002',
+        REPO/'configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_002.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_002')),
     'main':('native_m5_full_gc_short_fit_20261119_001',
         REPO/'configs/research/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_001.json',
         Path('/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_001'))}
@@ -498,16 +498,17 @@ ADAMW_RECIPE={'lr':1e-4,'betas':[.9,.999],'eps':1e-8,'weight_decay':1e-4,
     'differentiable':False,'fused':None}
 FIT_SOURCE_PATHS=tuple(dict.fromkeys((*SOURCE_PATHS,
     'gx1/contracts/market_state_ta_fold2_m5_fit_v1.py',
-    'tests/test_gx1_capped_run_contract.py','tests/test_market_state_ta_integrated_objective_v1.py')))
+    'tests/test_gx1_capped_run_contract.py','tests/test_market_state_ta_integrated_objective_v1.py','tests/test_entry_model_native_input_normalization.py')))
 
 
 def fit_recipe(value,mode):
-    fields={'optimizer','gradient_clip_norm','scheduler','seed','batch_rows','fit_batches',
+    fields={'optimizer','gradient_clip_norm','scheduler','seed','batch_rows','score_batch_rows','fit_batches',
         'score_batches_per_split','checkpoint_every_updates','outer_seconds','internal_seconds',
         'required_windows_boot_id_greater_than'}
     need(type(value)is dict and set(value)==fields,'FIT_RECIPE_FIELDS')
     need(value['optimizer']==ADAMW_RECIPE and value['gradient_clip_norm']==1.
         and value['scheduler']is None and value['seed']==20260911 and value['batch_rows']==16
+        and type(value['score_batch_rows'])is int and value['score_batch_rows']==64
         and type(value['required_windows_boot_id_greater_than'])is int
         and value['required_windows_boot_id_greater_than']==666,'FIT_NUMERIC_RECIPE')
     for key in ('fit_batches','checkpoint_every_updates','outer_seconds','internal_seconds'):
@@ -523,7 +524,7 @@ def fit_recipe(value,mode):
 
 def fit_metadata(inputs,mode):
     from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
-    fields={'joint_result','joint_terminal'}|({'mechanics_result','mechanics_terminal'}if mode=='main'else set())
+    fields={'joint_result','joint_terminal'}|({'mechanics_result','mechanics_terminal'}if mode=='main'else {'stats_result','stats_terminal'})
     need(type(inputs)is dict and set(inputs)==fields,'FIT_INPUT_ROLES')
     need(inputs['joint_result']=={'path':str(ROOT/'RESULT.json'),
         'sha256':'55fd0cdb2ff308984b72764abc090c5751f54aada7831583b898d9909f698aff'}
@@ -539,43 +540,66 @@ def fit_metadata(inputs,mode):
     metadata={**metadata,'dependencies':dependencies,'fit_start_ns':FIT_START_NS,
         'fit_end_ns':FIT_END_NS,'control_end_ns':CONTROL_END_NS,
         'prior_contract':objective.native_bar_train_prior_contract()}
-    if mode=='main':
-        done,terminal=read(inputs['mechanics_result']),read(inputs['mechanics_terminal'])
-        mechanics_plan,mechanics_claim=read(done['plan']),read(done['claim'])
-        need(done['status']=='COMPLETE_NATIVE_M5_FULL_GC_FIT_MECHANICS'
-            and done['stage']==terminal['stage']==mechanics_plan['stage']==mechanics_claim['stage']==FIT_SCOPES['mechanics'][0]
-            and terminal['status']=='COMPLETE'and terminal['exit_code']==0
-            and terminal['result']==inputs['mechanics_result']and terminal['plan']==done['plan']==mechanics_claim['plan']
-            and terminal['claim']==done['claim']and done['source_unchanged']is True
-            and done['test_data_used']is terminal['test_data_used']is False
-            and done['report']['cold_resume']['bitexact']is True,'FIT_COMPLETED_MECHANICS')
-        need(mechanics_plan['metadata']['fit_start_ns']==FIT_START_NS
-            and mechanics_plan['metadata']['fit_end_ns']==FIT_END_NS
-            and mechanics_plan['metadata']['control_end_ns']==CONTROL_END_NS
-            and mechanics_plan['metadata']['native_gc_source_binding']==metadata['native_gc_source_binding']
-            and mechanics_plan['metadata']['target_contract']==metadata['target_contract']
-            and mechanics_plan['metadata']['prior_contract']==metadata['prior_contract']
-            and mechanics_plan['metadata']['architecture']==metadata['architecture']
-            and all(mechanics_plan['inputs'][key]==inputs[key]for key in ('joint_result','joint_terminal')),'FIT_MECHANICS_DOMAINS')
-        need(set(mechanics_plan['source_owners'])==set(FIT_SOURCE_PATHS)
-            and all(sha(REPO/name)==value for name,value in mechanics_plan['source_owners'].items()),
-            'FIT_MECHANICS_SOURCE_FUNCTION')
-        report=done['report']
-        metadata['mechanics']={'normalization':report['normalization'],'prior':report['prior'],
-            'axis':report['axis'],'normalization_population':report['normalization_population'],
-            'initial_state_sha256':report['initial_state_sha256'],
-            'physical_windows_boot_id':done['physical_windows_boot_id'],
-            'source_base_commit':mechanics_plan['source_base_commit']}
-        dependencies.update({'mechanics_plan':done['plan'],'mechanics_claim':done['claim'],
-            'train_normalization':report['normalization'],'train_prior':report['prior']})
+    parent_role='mechanics'if mode=='main'else'statistics_parent'
+    parent=_fit_statistics_parent(inputs,metadata,mode)
+    metadata[parent_role]=parent
+    dependencies.update({parent_role+'_plan':parent['plan'],parent_role+'_claim':parent['claim'],
+        'train_normalization':parent['normalization'],'train_prior':parent['prior']})
     return metadata
+
+
+def _fit_statistics_parent(inputs,metadata,mode):
+    role='mechanics'if mode=='main'else'stats'
+    result_ref,terminal_ref=inputs[role+'_result'],inputs[role+'_terminal']
+    if mode=='mechanics':
+        root=Path('/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001')
+        need(result_ref=={'path':str(root/'RESULT.json'),
+            'sha256':'1a5a3a0ec76400d552df59d2346154bf7442adfa7dba61154a54af6d2d6ebafe'}
+            and terminal_ref=={'path':str(root/'TERMINAL.json'),
+            'sha256':'24454ce94896ecc4ccbcf9331a5cba499bf637ef59b43b4ca99479fd5dd533bc'},'FIT_EXACT_STATISTICS_PARENT')
+        expected_stage='native_m5_full_gc_fit_mechanics_20261119_001'
+    else:
+        expected_stage,_,root=FIT_SCOPES['mechanics']
+        need(result_ref['path']==str(root/'RESULT.json')and terminal_ref['path']==str(root/'TERMINAL.json'),
+            'FIT_EXACT_MECHANICS_PARENT')
+    done,terminal=read(result_ref),read(terminal_ref)
+    parent_plan,parent_claim=read(done['plan']),read(done['claim'])
+    need(done['status']=='COMPLETE_NATIVE_M5_FULL_GC_FIT_MECHANICS'
+        and done['stage']==terminal['stage']==parent_plan['stage']==parent_claim['stage']==expected_stage
+        and terminal['status']=='COMPLETE'and terminal['exit_code']==0
+        and terminal['result']==result_ref and terminal['plan']==done['plan']==parent_claim['plan']
+        and terminal['claim']==done['claim']and done['source_unchanged']is True
+        and done['test_data_used']is terminal['test_data_used']is False
+        and done['report']['cold_resume']['bitexact']is True,'FIT_COMPLETED_MECHANICS')
+    need(parent_plan['metadata']['fit_start_ns']==FIT_START_NS
+        and parent_plan['metadata']['fit_end_ns']==FIT_END_NS
+        and parent_plan['metadata']['control_end_ns']==CONTROL_END_NS
+        and parent_plan['metadata']['native_gc_source_binding']==metadata['native_gc_source_binding']
+        and parent_plan['metadata']['target_contract']==metadata['target_contract']
+        and parent_plan['metadata']['prior_contract']==metadata['prior_contract']
+        and parent_plan['metadata']['architecture']==metadata['architecture']
+        and all(parent_plan['inputs'][key]==inputs[key]for key in ('joint_result','joint_terminal')),'FIT_MECHANICS_DOMAINS')
+    if mode=='main':
+        # The new B64/GPU qualification, not its statistics-only predecessor,
+        # must cover every exact main-fit source owner.
+        need(set(parent_plan['source_owners'])==set(FIT_SOURCE_PATHS)
+            and all(sha(REPO/name)==value for name,value in parent_plan['source_owners'].items()),
+            'FIT_MECHANICS_SOURCE_FUNCTION')
+    report=done['report']
+    return {'role':'frozen_TRAIN_statistics_only_no_weights','result':result_ref,'terminal':terminal_ref,
+        'plan':done['plan'],'claim':done['claim'],
+        'normalization':report['normalization'],'prior':report['prior'],
+        'axis':report['axis'],'normalization_population':report['normalization_population'],
+        'initial_state_sha256':report['initial_state_sha256'],
+        'physical_windows_boot_id':done['physical_windows_boot_id'],
+        'source_base_commit':parent_plan['source_base_commit']}
 
 
 def fit_limits(recipe,mode,metadata=None):
     updates=3 if mode=='mechanics'else recipe['fit_batches']
     return {'model_constructions':2 if mode=='mechanics'else 1,
         'model_forwards':updates+(4*recipe['score_batches_per_split']if mode=='mechanics'else
-            2*sum((metadata['mechanics']['axis'][name]['input_ready_rows']+recipe['batch_rows']-1)//recipe['batch_rows']
+            2*sum((metadata['mechanics']['axis'][name]['input_ready_rows']+recipe['score_batch_rows']-1)//recipe['score_batch_rows']
                 for name in ('TRAIN','CONTROL'))),
         'backward_calls':updates,'optimizer_steps':updates}
 
@@ -609,7 +633,7 @@ def fit_source_clean(plan):
 
 def checked_fit_inputs(plan):
     checked_inputs(plan)
-    for value in plan['metadata'].get('mechanics',{}).values():
+    for value in plan['metadata'].get('mechanics',plan['metadata'].get('statistics_parent',{})).values():
         if type(value)is dict and set(value)=={'path','sha256'}:need(ref(value['path'])==value,'FIT_MECHANICS_ARTIFACT')
 
 
@@ -777,29 +801,18 @@ def prepare_native_fit(plan,root,*,reload_normalization=None,reload_prior=None):
     provider=gc.NativeM5GCFeatureProvider(ta,packet,meta['native_gc_source_binding'])
     need(np.array_equal(provider.input_ready,ta.input_ready),'FIT_GC_ROW_FILTER')
     cohorts,axis=fit_axes(provider,meta['dependencies']['target_tape'])
-    if reload_normalization is not None:
-        normalization=read(reload_normalization);normalization_ref=reload_normalization
-    elif plan['mode']=='main':
-        normalization_ref=meta['mechanics']['normalization'];normalization=read(normalization_ref)
-        need(axis==meta['mechanics']['axis'],'FIT_MECHANICS_AXIS')
-    else:
-        normalization=gc.fit_native_m5_gc_feature_normalization(provider,
-            fit_source_rows=cohorts['TRAIN']['fit_rows'],cutoff_ns=FIT_END_NS)
-        normalization_ref=publish(root/'NORMALIZATION.json',normalization)
+    parent=meta['mechanics']if plan['mode']=='main'else meta['statistics_parent']
+    need(axis==parent['axis'],'FIT_MECHANICS_AXIS')
+    normalization_ref=parent['normalization'];prior_ref=parent['prior']
+    need(reload_normalization in(None,normalization_ref)and reload_prior in(None,prior_ref),
+        'FIT_EXACT_REUSED_STATISTICS')
+    normalization=read(normalization_ref)
     provider.input_binding(normalization)
     need(normalization['fit_population']['cutoff_ns']==FIT_END_NS
         and normalization['fit_population']['issue_rows']==len(cohorts['TRAIN']['fit_rows'])
-        and normalization['fit_population']['selected_source_rows_sha256']==digest(cohorts['TRAIN']['fit_rows']),
-        'FIT_TRAIN_ONLY_NORMALIZATION')
-    if plan['mode']=='main':
-        need(normalization['fit_population']==meta['mechanics']['normalization_population'],'FIT_REUSED_NORM_POPULATION')
-        prior_ref=meta['mechanics']['prior'];prior=objective.require_native_bar_train_prior(read(prior_ref))
-    elif reload_prior is not None:
-        prior_ref=reload_prior;prior=objective.require_native_bar_train_prior(read(prior_ref))
-    else:
-        prior=objective.fit_native_bar_train_prior(truth=cohorts['TRAIN']['fit_truth'],
-            fold_upper_ns=FIT_END_NS,target_contract_sha256=meta['target_contract']['contract_sha256'])
-        prior_ref=publish(root/'TRAIN_PRIOR.json',prior)
+        and normalization['fit_population']['selected_source_rows_sha256']==digest(cohorts['TRAIN']['fit_rows'])
+        and normalization['fit_population']==parent['normalization_population'],'FIT_TRAIN_ONLY_NORMALIZATION')
+    prior=objective.require_native_bar_train_prior(read(prior_ref))
     return {'provider':provider,'cohorts':cohorts,'axis':axis,'normalization':normalization,
         'normalization_ref':normalization_ref,'prior':prior,'prior_ref':prior_ref}
 
@@ -837,7 +850,7 @@ def fit_score(model,context,panels,plan):
             for name,batches in panels.items():
                 outputs={'open_logits':[],'close_logits':[]};rows=np.concatenate(batches)
                 for batch in batches:
-                    raw=context['provider'].gather(batch,max_rows=plan['recipe']['batch_rows'])
+                    raw=context['provider'].gather(batch,max_rows=plan['recipe']['score_batch_rows'])
                     output=model({key:torch.from_numpy(value).to(next(model.parameters()).device)for key,value in raw.items()})
                     for key,value in output.items():outputs[key].append(value.detach().cpu().numpy().copy())
                 outputs={key:np.concatenate(value)for key,value in outputs.items()}
@@ -922,12 +935,13 @@ def fit_physical(plan,plan_ref,root):
     normalization_body=state_sha(context['normalization'])
     source_body=state_sha(provider.source_binding)
     batches=selected_batches(context['cohorts']['TRAIN']['fit_rows'],recipe['fit_batches'])
-    panels={name:(selected_batches(cohort['rows'],recipe['score_batches_per_split'])if plan['mode']=='mechanics'
-        else all_score_batches(cohort['rows'],recipe['batch_rows']))
+    panels={name:(selected_batches(cohort['rows'],recipe['score_batches_per_split'],recipe['score_batch_rows'])if plan['mode']=='mechanics'
+        else all_score_batches(cohort['rows'],recipe['score_batch_rows']))
         for name,cohort in context['cohorts'].items()}
     model,optimizer=fresh_fit_model(provider,context['normalization'],plan)
     initial_sha=canonical_model_state_sha256(model.state_dict())
-    if plan['mode']=='main':need(initial_sha==plan['metadata']['mechanics']['initial_state_sha256'],'FIT_FRESH_MAIN_INITIAL')
+    statistics_parent=plan['metadata']['mechanics']if plan['mode']=='main'else plan['metadata']['statistics_parent']
+    need(initial_sha==statistics_parent['initial_state_sha256'],'FIT_FRESH_MAIN_INITIAL')
     score_started=time.monotonic();initial,capture_initial=fit_score(model,context,panels,plan)
     torch.cuda.synchronize();initial_score_seconds=time.monotonic()-score_started
     initial_score_ref=publish(root/'INITIAL_SCORE.json',{'axis':context['axis'],'scores':initial,
@@ -958,6 +972,8 @@ def fit_physical(plan,plan_ref,root):
     capture_final_ref=publish(root/'FINAL_CAPTURE.npz',stream.getvalue());stream.close()
     report={'axis':context['axis'],'normalization':context['normalization_ref'],
         'normalization_population':context['normalization']['fit_population'],'prior':context['prior_ref'],
+        'normalization_fits':0,'prior_fits':0,'statistics_parent':statistics_parent['result'],
+        'train_batch_rows':recipe['batch_rows'],'score_batch_rows':recipe['score_batch_rows'],
         'initial_state_sha256':initial_sha,'final_state_sha256':final_sha,'initial':initial,'final':final,
         'initial_checkpoint':initial_checkpoint,'final_checkpoint':final_checkpoint,'checkpoints':checkpoint_refs,
         'initial_score_artifact':initial_score_ref,'captures':{'INITIAL':capture_initial_ref,'FINAL':capture_final_ref},

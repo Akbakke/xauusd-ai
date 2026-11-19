@@ -1323,6 +1323,14 @@ def require_surface_normalization(
     native_domain = data.get('native_domain_contract_sha256')
     native_gc_sha = data.get('native_gc_domain_contract_sha256')
     native_gc_domain = native_gc_sha is not None
+    native_gc_specs = None
+
+    def validation_gc_specs():
+        nonlocal native_gc_specs
+        if native_gc_specs is None:
+            native_gc_specs = _native_gc_specs()
+        return native_gc_specs
+
     if native_gc_domain and (unobserved_units_profile is not None or native_gc_sha != native_m5_gc_domain_contract()['contract_sha256']):
         raise RuntimeError('NATIVE_GC_SURFACE_DOMAIN_POLICY')
     if native_domain is not None and native_domain != native_m5_input_domain_contract()['contract_sha256']:
@@ -1518,13 +1526,13 @@ def require_surface_normalization(
                 raise RuntimeError('NATIVE_M5_BOUNDED_UNIT_CONTRACT')
         if scale_source[index] == NATIVE_GC_UNOBSERVED_UNIT_SOURCE:
             if (not native_gc_domain or observed_fit_counts[index] != 0 or is_binary or is_categorical
-                or center[index] != 0. or scale[index] != np.float32(_native_gc_declared_unit(_native_gc_specs()[names[index].removeprefix('ctx_cont.')]))
+                or center[index] != 0. or scale[index] != np.float32(_native_gc_declared_unit(validation_gc_specs()[names[index].removeprefix('ctx_cont.')]))
                 or transformed_min[index] != 0. or transformed_max[index] != 0.
                 or names[index] not in data['native_gc_unfitted_estimates']):
                 raise RuntimeError('NATIVE_GC_DECLARED_UNIT_CONTRACT')
             continue
         if scale_source[index] == NATIVE_GC_RARE_UNIT_SOURCE:
-            spec=_native_gc_specs().get(names[index].removeprefix('ctx_cont.')) if native_gc_domain else None
+            spec=validation_gc_specs().get(names[index].removeprefix('ctx_cont.')) if native_gc_domain else None
             proof=data.get('native_gc_unfitted_dispersion_estimates',{}).get(names[index])
             if (spec is None or is_binary or is_categorical
                 or scale[index] != np.float32(_native_gc_declared_unit(spec))

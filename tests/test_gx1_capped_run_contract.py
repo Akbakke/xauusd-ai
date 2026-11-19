@@ -1383,6 +1383,7 @@ def test_alternate_xdg_cannot_start_a_second_top_level_job(tmp_path: Path) -> No
 
 @pytest.mark.parametrize("basename", [
     "NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001",
+    "NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_002",
     "NATIVE_M5_FULL_GC_SHORT_FIT_20261119_001",
 ])
 @pytest.mark.parametrize("variant", [

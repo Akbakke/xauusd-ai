@@ -134,8 +134,23 @@ Dette er teknisk kvalifikasjon, ikke full prognosebaseline eller læring.
 En konkret ny runtimeblokkering er målt: to B16-skåringer tok35,912/36,605s,
 og hvert treningssteg18,886/18,944s. Hele før-/ettermålingen trenger3746
 forwards før treningssteg; dette er ikke kvalifisert innen10800s-vakten.
-Avgrenset kilderevisjon/måling skal skille engangskostnad fra gjentatt
-kontrakt-/batcharbeid og rette bare påvist årsak. Ingen redusert
+Ren CPU4G-metadataprofil er nå fullført med null modeller/forwards/fit:
+full normaliseringskontroll tok9,436s under cProfile;218 kall til
+_native_gc_specs brukte8,130s og464 katalogbygginger8,037s.
+Den eksisterende validatorløkken rettes til lokal gjenbruk innen samme kall,
+med alle kontroller og verdier bevart. Ingen persistent cache innføres.
+Ny negativ-/kompleksitetstest består. Samme metadata-etterprofil002 har
+fullnorm2,417s, history0,752s, provider2,062s og profilecompile1,211s;
+original TRAIN-normalisering er uendret og null M1/modeller/updates er brukt.
+Faktisk ny GPU-throughput og minne skal kvalifiseres i egen mechanics002.
+Den gjenbruker bare original001 TRAIN-normalisering/prior/akse og starter
+ferske vekter med samme initialSHA. Ingen stats refittes eller kopieres.
+Scoring deklareres B64, trening beholder B16. Alle 24 175/5 789 inputrader
+beholdes: 378/91 batcher per hel skåring, siste haler47/29, totalt938 forwards
+for før/etter. Ny002port har8fokuserte tilfeller PASS; driveren27 PASS.
+Normaliseringsløkken har egen negativ-/kompleksitetstest PASS. Ingen
+hovedfit eller ny teknisk GPU-jobb er innrømmet ennå.
+Gamle mechanics001 gjenkjøres aldri; ferdig TRAIN-normalisering/prior gjenbrukes. Ingen redusert
 skåringspopulasjon eller omgått vakt brukes som løsning.
 
 Alle treningsporter er stengt igjen. Ingen hovedfit er startet. Ferdige

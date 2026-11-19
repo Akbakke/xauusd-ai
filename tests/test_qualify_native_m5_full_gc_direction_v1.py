@@ -230,14 +230,14 @@ def test_joint_driver_three_genuine_lanes_and_counterfactual_without_old_weights
 
 def _fit_recipe(mode='mechanics'):
     return {'optimizer':copy.deepcopy(owner.ADAMW_RECIPE),'gradient_clip_norm':1.,'scheduler':None,
-        'seed':20260911,'batch_rows':16,'fit_batches':2 if mode=='mechanics'else 8,
+        'seed':20260911,'batch_rows':16,'score_batch_rows':64,'fit_batches':2 if mode=='mechanics'else 8,
         'score_batches_per_split':1 if mode=='mechanics'else None,
         'checkpoint_every_updates':1,'outer_seconds':1800,'internal_seconds':1770,
         'required_windows_boot_id_greater_than':666}
 
 
 @pytest.mark.parametrize('change',[{'scheduler':{'kind':'cosine'}},{'gradient_clip_norm':2.},
-    {'seed':7},{'optimizer':{'lr':.1}},{'internal_seconds':1700}])
+    {'seed':7},{'optimizer':{'lr':.1}},{'internal_seconds':1700},{'score_batch_rows':16}])
 def test_native_fit_recipe_rejects_unbound_numeric_changes(change):
     recipe=_fit_recipe();recipe.update(change)
     with pytest.raises(ValueError):owner.fit_recipe(recipe,'mechanics')
@@ -247,10 +247,12 @@ def test_native_main_scores_all_input_rows_with_short_and_unknown_tail():
     recipe=_fit_recipe('main');metadata={'mechanics':{'axis':{
         'TRAIN':{'input_ready_rows':24175},'CONTROL':{'input_ready_rows':5789}}}}
     assert owner.fit_recipe(recipe,'main')==recipe
-    assert owner.fit_limits(recipe,'main',metadata)['model_forwards']==8+3746
-    rows=np.arange(5789,dtype=np.int64);batches=owner.all_score_batches(rows,16)
+    assert owner.fit_limits(recipe,'main',metadata)['model_forwards']==8+938
+    rows=np.arange(5789,dtype=np.int64);batches=owner.all_score_batches(rows,64)
     np.testing.assert_array_equal(np.concatenate(batches),rows)
-    assert len(batches[-1])==13 and batches[-1][-1]==5788
+    assert len(batches[-1])==29 and batches[-1][-1]==5788
+    train=owner.all_score_batches(np.arange(24175,dtype=np.int64),64)
+    assert len(train[-1])==47 and len(train)==378 and len(batches)==91
     recipe['score_batches_per_split']=1
     with pytest.raises(ValueError,match='FIT_SCORE_SCOPE'):owner.fit_recipe(recipe,'main')
 
@@ -395,3 +397,92 @@ def test_cold_resume_proof_requires_child_zero_forbidden_io():
         bad={**proof,'clean_process_io_firewall':firewall}
         with pytest.raises(ValueError,match='FIT_COLD_PROOF'):
             owner.require_cold_resume_proof(bad,parent_pid=123)
+
+
+def test_consumed_mechanics001_cli_is_rejected_before_any_receipt_read(monkeypatch):
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('consumed plan receipt read'))
+    args=SimpleNamespace(plan=str(owner.REPO/'configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001.json'),
+        plan_sha256='0'*64,device='cuda',out_dir='/unused',preflight=False)
+    with pytest.raises(ValueError,match='FIT_CLI_SCOPE'):owner.fit_cli(args)
+
+
+def test_mechanics002_parent_admits_only_original001_statistics_and_no_weights(monkeypatch):
+    root='/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001'
+    rr={'path':root+'/RESULT.json','sha256':'1a5a3a0ec76400d552df59d2346154bf7442adfa7dba61154a54af6d2d6ebafe'}
+    tr={'path':root+'/TERMINAL.json','sha256':'24454ce94896ecc4ccbcf9331a5cba499bf637ef59b43b4ca99479fd5dd533bc'}
+    pr={'path':'old_plan','sha256':'1'*64};cr={'path':'old_claim','sha256':'2'*64}
+    inputs={'joint_result':{'path':'joint_result','sha256':'3'*64},
+        'joint_terminal':{'path':'joint_terminal','sha256':'4'*64},'stats_result':rr,'stats_terminal':tr}
+    metadata={'fit_start_ns':owner.FIT_START_NS,'fit_end_ns':owner.FIT_END_NS,
+        'control_end_ns':owner.CONTROL_END_NS,'native_gc_source_binding':{'synthetic':True},
+        'target_contract':target_contract(),'prior_contract':{'synthetic':True},'architecture':{'synthetic':True}}
+    stage='native_m5_full_gc_fit_mechanics_20261119_001'
+    report={'cold_resume':{'bitexact':True},'normalization':{'path':root+'/NORMALIZATION.json','sha256':'5'*64},
+        'prior':{'path':root+'/TRAIN_PRIOR.json','sha256':'6'*64},'axis':{'synthetic':True},
+        'normalization_population':{'synthetic':True},'initial_state_sha256':'7'*64,
+        'initial_checkpoint':{'path':root+'/NEVER_READ.pt','sha256':'8'*64}}
+    result={'stage':stage,'status':'COMPLETE_NATIVE_M5_FULL_GC_FIT_MECHANICS',
+        'plan':pr,'claim':cr,'source_unchanged':True,'test_data_used':False,
+        'physical_windows_boot_id':667,'report':report}
+    terminal={'stage':stage,'status':'COMPLETE','exit_code':0,'result':rr,'plan':pr,'claim':cr,'test_data_used':False}
+    plan={'stage':stage,'metadata':metadata,'inputs':{k:inputs[k]for k in ('joint_result','joint_terminal')},
+        'source_base_commit':'9'*40}
+    values={rr['path']:result,tr['path']:terminal,pr['path']:plan,cr['path']:{'stage':stage,'plan':pr}}
+    seen=[]
+    def read(ref):
+        assert not ref['path'].endswith('.pt')
+        seen.append(ref['path']);return values[ref['path']]
+    monkeypatch.setattr(owner,'read',read)
+    parent=owner._fit_statistics_parent(inputs,metadata,'mechanics')
+    assert parent['role']=='frozen_TRAIN_statistics_only_no_weights'
+    assert parent['normalization']==report['normalization'] and parent['prior']==report['prior']
+    assert 'checkpoint'not in json.dumps(parent).lower()
+    assert seen==[rr['path'],tr['path'],pr['path'],cr['path']]
+    bad={**inputs,'stats_result':{**rr,'sha256':'0'*64}}
+    with pytest.raises(ValueError,match='FIT_EXACT_STATISTICS_PARENT'):
+        owner._fit_statistics_parent(bad,metadata,'mechanics')
+
+
+def test_main_rejects_old001_as_active_gpu_qualification_before_read(monkeypatch):
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('wrong qualification read'))
+    inputs={'mechanics_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001/RESULT.json'},
+        'mechanics_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001/TERMINAL.json'}}
+    with pytest.raises(ValueError,match='FIT_EXACT_MECHANICS_PARENT'):
+        owner._fit_statistics_parent(inputs,{},'main')
+
+
+def test_mechanics002_reuses_norm_and_prior_without_fitter_copy_or_weight_io(tmp_path,monkeypatch):
+    from gx1.contracts import market_state_native_m5_gc_feature_inputs_v1 as gc
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    rows=np.arange(16,dtype=np.int64);axis={'TRAIN':{'input_ready_rows':16},'CONTROL':{'input_ready_rows':16}}
+    population={'cutoff_ns':owner.FIT_END_NS,'issue_rows':16,'selected_source_rows_sha256':owner.digest(rows)}
+    norm_ref={'path':'original001/NORMALIZATION.json','sha256':'1'*64}
+    prior_ref={'path':'original001/TRAIN_PRIOR.json','sha256':'2'*64}
+    norm={'fit_population':population};prior={'synthetic_prior':True}
+    base=SimpleNamespace(input_ready=np.ones(32,bool))
+    provider=SimpleNamespace(input_ready=base.input_ready.copy(),input_binding=lambda value:{'synthetic':True})
+    parent={'axis':axis,'normalization':norm_ref,'prior':prior_ref,'normalization_population':population}
+    plan={'mode':'mechanics','metadata':{'ta_plan':{},'native_gc_source_binding':{},
+        'dependencies':{'target_tape':{'path':'synthetic_targets','sha256':'3'*64}},
+        'statistics_parent':parent}}
+    monkeypatch.setattr(owner.ta_audit,'load_candidate_provider',lambda plan:(base,{}))
+    monkeypatch.setattr(gc,'load_native_m5_gc_feature_packet',lambda binding:{'synthetic':True})
+    monkeypatch.setattr(gc,'NativeM5GCFeatureProvider',lambda *args:provider)
+    monkeypatch.setattr(owner,'fit_axes',lambda *args:({'TRAIN':{'fit_rows':rows}},axis))
+    monkeypatch.setattr(gc,'fit_native_m5_gc_feature_normalization',lambda *a,**kw:pytest.fail('norm refit'))
+    monkeypatch.setattr(objective,'fit_native_bar_train_prior',lambda *a,**kw:pytest.fail('prior refit'))
+    monkeypatch.setattr(objective,'require_native_bar_train_prior',lambda value:value)
+    monkeypatch.setattr(owner,'publish',lambda *args:pytest.fail('stats copy/new artifact'))
+    seen=[]
+    def read(ref):
+        seen.append(ref)
+        if ref==norm_ref:return norm
+        if ref==prior_ref:return prior
+        pytest.fail('unexpected/weight IO')
+    monkeypatch.setattr(owner,'read',read)
+    context=owner.prepare_native_fit(plan,tmp_path)
+    assert context['normalization_ref']==norm_ref and context['prior_ref']==prior_ref
+    assert context['normalization']is norm and context['prior']is prior
+    assert seen==[norm_ref,prior_ref]
+    with pytest.raises(ValueError,match='FIT_EXACT_REUSED_STATISTICS'):
+        owner.prepare_native_fit(plan,tmp_path,reload_normalization={'path':'copied_norm','sha256':'4'*64})
