@@ -57,8 +57,10 @@ CONTROL-mål, uten at de brukes i utvalg/loss/gradient. Eksisterende
 12G/512M/1tråd/64tasks CPU-producervakter og intern SIGALRM870s beholdes.
 Kilden er kvalifisert med 7 nye syntetiske tilfeller og uavhengig revisjon:
 hele tidligere driver-AST og 18 numeriske identiteter er uendret, bortsett
-fra ny eksakt CPU-dispatch. Eksakt SHARED_GRADIENT001-plan er klargjort; metadata-/checkpoint-
-preflight gjenstår. Ingen diagnosejobb er ennå innrømmet.
+fra ny eksakt CPU-dispatch. Eksakt SHARED_GRADIENT001-metadata-/checkpoint-preflight bestod med
+0 modeller/updates/dekodede checkpoints/featureverdier. Bare denne ene
+CPU-diagnosen er innrømmet; alle treningsporter er fortsatt stengt.
+Kilde og policy fryses til native TERMINAL.
 
 ### Fullført kronologisk TA-referanse og grunnlag
 
