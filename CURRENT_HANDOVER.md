@@ -15,7 +15,8 @@ Dette kvalifiserer datagrunnlag og den kontrollerte modellkoblingen.
 Full-TRAIN initial prognosebaseline, læring, senere generalisering og
 retningsedge er fortsatt ikke målt. Aktivt brukermål klargjør nå én kort
 treningsrunde. Teknisk GPU-update/kald resume er nå bestått; hovedrunden
-er ikke innrømmet. Bare den navngitte mechanics002-porten er innrømmet; hovedtrening er stengt.
+er ikke innrømmet. Mechanics002 er nå fullført og konsumert. Hovedplanen er klargjort;
+alle treningsporter er stengt før eksakt førkontroll/admisjon.
 
 ### Full historikkfasit
 
@@ -148,14 +149,28 @@ ferske vekter med samme initialSHA. Ingen stats refittes eller kopieres.
 Scoring deklareres B64, trening beholder B16. Alle 24 175/5 789 inputrader
 beholdes: 378/91 batcher per hel skåring, siste haler47/29, totalt938 forwards
 for før/etter. Ny002port har8fokuserte tilfeller PASS; driveren27 PASS.
-Normaliseringsløkken har egen negativ-/kompleksitetstest PASS. Mechanics002 er nå ADMITTED_ONE_USE med plan-SHA
+Normaliseringsløkken har egen negativ-/kompleksitetstest PASS. Mechanics002 er nå COMPLETE_CONSUMED med opprinnelig plan-SHA
 79cb674b0dc62e3071b2a9f175fedb121774b3277de07a788aac6195a503439e.
-Eksakt metadata-CLI består på boot667 med null modeller/updates. Bare
-mechanics002 innrømmes nå; kilde/policy fryses til terminal. Ingen hovedfit.
+Ekte GPU-kjøring fullførte179,343s/exit0/uendret kilde,2modeller/7forwards/
+3updates. Kald resume er bit-identisk og begge prosesser har0M1/049-IO.
+Initial og final model-state er identiske med001;0norm-/priorfit og ingen
+gamle vekter er lest. B64-to-batchskåringer tok12,478/12,826s; B16updates
+6,889/6,771s. Målt peakCUDA-allokering1,891GB ligger under eksisterende vakt.
+
+SHORT_FIT_20261119_001 er PREPARED_NOT_ADMITTED, plan-SHA
+74fa5ea3ffb3463f91f0018abae1bb58b488bb85f0401a09dee402f5bb405e28.
+Én fersk modell,256faste B16updates på4096kildefordelteTRAIN-rader,
+før/etter på alle24 175/5 789inputrader med B64 og938scoreforwards.
+Totalt1194forwards/256backwards/256optimizersteg. Checkpoint hvert64steg;
+originalTRAIN-stats/prior gjenbrukes, ingen refit. Konservativ projeksjon fra
+faktisk002 er7958s (2t13m), med20prosentmargin9550s (2t39m), innen10770s
+internfrist/10800s eksisterende guard. Dette er budsjettanslag, ikke målt
+full main-runtime eller edge. Eksakt CLI-førkontroll og admisjon gjenstår.
 Gamle mechanics001 gjenkjøres aldri; ferdig TRAIN-normalisering/prior gjenbrukes. Ingen redusert
 skåringspopulasjon eller omgått vakt brukes som løsning.
 
-Bare den navngitte mechanics002-porten er innrømmet; hovedtrening er stengt. Ingen hovedfit er startet. Ferdige
+Mechanics002 er nå fullført og konsumert. Hovedplanen er klargjort;
+alle treningsporter er stengt før eksakt førkontroll/admisjon. Ingen hovedfit er startet. Ferdige
 stats/prior/checkpoints og originalkvitteringer bevares; mechanics001
 relanseres aldri. Målet om én kort hovedrunde består. TEST, Entry/Exit,
 broker, handel, spending og promotion forblir stengt.
