@@ -91,7 +91,8 @@ ble gjenbrukt fra egen bestått kontroll. Syntaks/diffkontroll består.
 
 ### Ikke gjort / neste steg
 
-Kildebind ny005 og kjør først eksakt capped førkontroll. Egen policyadmisjon
+Pipeline005 er PREPARED_NOT_ADMITTED med egen kildebundet plan. Kjør først
+eksakt capped førkontroll av11klokkearrays/0featurematriser. Egen policyadmisjon
 kreves før27bevarte arrays kvalifiseres med fersk normalisering/én CPU-batch.
 Ingen full råindikatorberegning eller parameterfit skal gjentas.
 
