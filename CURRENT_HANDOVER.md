@@ -66,7 +66,8 @@ Den målte blokkeringen er rettet i kilden ved blokkvis finittvalidering og begr
 materialisering av modellens faktiske local-/TF-vinduer. Hele råhistorikken
 skal fortsatt gå gjennom stateful formel-eiere, og opprinnelige globale
 rad-IDer og kausalitet bevares. Ingen indikator fjernes eller minnegrense økes.
-Pipeline003 skal laste ferdige parametre uten refit og fullføre faktisk
+Pipeline003 er PREPARED_NOT_ADMITTED, planhashfeeb5e6ed662c5b0d97a7354d0d383d2be88ce6c0e9f34dc6c1f4dc8041d4582.
+Den skal laste ferdige parametre uten refit og fullføre faktisk
 318/132/256/61felt, TRAIN-normalisering og én teknisk16-radersmodellbatch.
 
 Fysisk feature-/modellkvalifisering er fortsatt ikke fullført. M1, Entry,
