@@ -539,3 +539,183 @@ def fit_native_m5_gc_feature_normalization(provider,*,fit_source_rows,cutoff_ns)
         feature_provider_contract_sha256=contract['contract_sha256'],source_axes_sha256=provider.source_axes_sha256,
         fit_population=fit,surfaces=surfaces,ctx_cat=category,temporal_aliases=aliases,gc_mtf_history=history,
         native_gc_source_binding_sha256=provider.source_binding['contract_sha256'])
+
+
+def _diagnostic_scalar_bounds(field):
+    """Only scalar source domains, not a reconstruction of a market path."""
+    unit,column=field['unit'],field['column']
+    fractions={'known_aggressor_fraction','observed_known_aggressor_fraction',
+        'observed_coverage_fraction','observed_signed_minute_fraction',
+        'observed_known_cumulative_unknown_fraction','observed_profile_source_coverage_fraction',
+        'observed_book_flow_coverage_fraction','observed_book_coverage_fraction',
+        'observed_order_coverage_fraction','observed_event_coverage_fraction'}
+    imbalances={'tw_imbalance','observed_book_tw_imbalance',
+        'tw_order_count_imbalance','observed_order_tw_order_count_imbalance'}
+    if unit=='ratio':
+        if column in fractions:return {'lower':0.,'upper':1.,'lower_inclusive':True}
+        if column in imbalances:return {'lower':-1.,'upper':1.,'lower_inclusive':True}
+        raise RuntimeError('NATIVE_M5_GC_DIAGNOSTIC_UNDECLARED_BOUNDS:' + field['name'])
+    if unit in ('USD','price_tick'):
+        return {'lower':0.,'upper':None,'lower_inclusive':False}
+    if unit=='basis_point':return {'lower':-10_000.,'upper':None,'lower_inclusive':False}
+    if unit in ('event','trade','order','price_level','minute','bar','interval','event_per_second','contract_per_order'):
+        return {'lower':0.,'upper':None,'lower_inclusive':True}
+    if unit in ('contract','tick','nanosecond'):
+        return {'lower':None,'upper':None,'lower_inclusive':False}
+    raise RuntimeError('NATIVE_M5_GC_DIAGNOSTIC_UNDECLARED_BOUNDS:' + field['name'])
+
+
+def _diagnostic_packet_gather(provider,packet,rows,*,max_rows):
+    """Use the production source/query owner without creating a new binding."""
+    result=provider.ta.gather(rows,max_rows=max_rows)
+    positions=provider.ta._feature_positions(rows)
+    local=positions[:,None]+np.arange(-ta.MODEL_NATIVE_SEQ_LEN+1,1,dtype=np.int64)
+    decisions=provider.issue_ns[provider.retained_source_rows[local.reshape(-1)]]
+    context=np.zeros((len(decisions),len(provider.gc_context_names)),np.float32)
+    for j,field in enumerate(provider.base_fields):
+        value,observed=_field_values(field,_table(packet,field),decisions)
+        context[:,2*j]=value;context[:,2*j+1]=observed
+    sequence=context.reshape(len(rows),ta.MODEL_NATIVE_SEQ_LEN,-1)
+    result['seq_x']=np.concatenate((result['seq_x'],sequence),axis=-1)
+    result['snap_x']=np.concatenate((result['snap_x'],sequence[:,-1]),axis=-1)
+    result['ctx_cont']=np.concatenate((result['ctx_cont'],sequence[:,-1]),axis=-1)
+    for tf in TIMEFRAMES:
+        take=provider.ta.tf_tails[tf][rows,None]+np.arange(-ta.WINDOWS[tf]+1,1,dtype=np.int64)
+        available=provider.gc_surfaces[tf]['available_ns'][take].reshape(-1)
+        names=provider.layout['field_names'][tf];at={name:i for i,name in enumerate(names)}
+        features=np.zeros((len(available),len(names)),np.float32)
+        for field in (f for f in provider.fields if f['timeframe']==tf):
+            value,observed=_field_values(field,_table(packet,field),available,exact=True)
+            features[:,at[field['name']]]=value
+            if field['availability_field']==field['name']+'_observed':
+                features[:,at[field['availability_field']]]=observed
+        result['gc_seq_'+tf.lower()]=features.reshape(len(rows),ta.WINDOWS[tf],len(names))
+    _need(all(np.isfinite(a).all() for a in result.values()),'DIAGNOSTIC_BATCH_NONFINITE')
+    return result
+
+
+def diagnostic_regather_native_m5_gc_primitive(provider,*,source_packet,input_normalization,
+        field_name,source_available_ns,delta,source_rows,max_rows):
+    """Return a view-consistent input counterfactual, never a source admission.
+
+    Exactly one numeric packet cell changes. Its same-column views are queried
+    again through the production field owner. Sibling indicators remain fixed;
+    this does not reconstruct trades, a new market path or economic outcomes.
+    No perturbed provider, production binding or COMPLETE receipt is created.
+    """
+    _need(type(provider) is NativeM5GCFeatureProvider,'DIAGNOSTIC_PROVIDER')
+    _need(type(max_rows) is int and 0<max_rows<=16,'DIAGNOSTIC_BATCH_LIMIT')
+    fields={field['name']:field for field in provider.fields}
+    _need(field_name in fields,'DIAGNOSTIC_FIELD')
+    field=fields[field_name]
+    _need(not field['binary_value'] and not field['structural_mask_value']
+        and field['transform'] is None and field['role']!='structural_observation_mask',
+        'DIAGNOSTIC_NONMARKET_FIELD')
+    _need(type(source_available_ns) is int and type(delta) in (int,float)
+        and np.isfinite(delta) and float(delta)==field['unit_scale'],'DIAGNOSTIC_ONE_SOURCE_UNIT')
+    arrays,layout,axes=_packet_layout(source_packet)
+    _need(_sha(layout)==provider.source_binding['packet_array_contract_sha256']
+        and axes==provider.source_binding['packet_axes']
+        and source_packet['source_clock']==provider.source_binding['source_clock'],'DIAGNOSTIC_ORIGINAL_SOURCE')
+    table=_table(source_packet,field);clock=np.asarray(table['available_ns'])
+    selected=np.flatnonzero(clock==source_available_ns)
+    _need(len(selected)==1,'DIAGNOSTIC_SOURCE_CLOCK')
+    index=int(selected[0]);original_value,observed=_field_values(field,table,np.array([source_available_ns],np.int64),exact=True)
+    _need(bool(observed[0]),'DIAGNOSTIC_UNOBSERVED_SOURCE')
+    raw=np.asarray(table[field['column']]);old=float(raw[index]);new=old+float(delta)
+    bounds=_diagnostic_scalar_bounds(field)
+    for value in (old,new):
+        _need(np.isfinite(value),'DIAGNOSTIC_NONFINITE_PRIMITIVE')
+        if bounds['lower'] is not None:
+            _need(value>=bounds['lower'] if bounds['lower_inclusive'] else value>bounds['lower'],
+                  'DIAGNOSTIC_SOURCE_BOUNDS')
+        if bounds['upper'] is not None:_need(value<=bounds['upper'],'DIAGNOSTIC_SOURCE_BOUNDS')
+    rows=np.asarray(source_rows)
+    before=provider.gather(rows,max_rows=max_rows)
+    _need(source_available_ns<=int(provider.issue_ns[rows].max()),'DIAGNOSTIC_FUTURE_SOURCE')
+    input_binding=provider.input_binding(input_normalization)
+    norm_before=_sha(input_normalization);binding_before=_sha(provider.source_binding)
+    proof=dict(provider.source_binding['assembly_proof']);_file_ref(proof)
+    rebuilt=_diagnostic_packet_gather(provider,source_packet,rows,max_rows=max_rows)
+    _need(all(np.array_equal(before[k].view(np.uint8),rebuilt[k].view(np.uint8)) for k in before),
+          'DIAGNOSTIC_ORIGINAL_REGATHER')
+    changed_column=raw.copy();changed_column[index]=new
+    _need(float(changed_column[index])==new and float(changed_column[index])!=old,'DIAGNOSTIC_SOURCE_PRECISION')
+    variant=dict(source_packet)
+    if field['packet_group']=='timeframes':
+        variant['timeframes']=dict(source_packet['timeframes'])
+        variant['timeframes'][field['timeframe']]=dict(table)
+        variant['timeframes'][field['timeframe']][field['column']]=changed_column
+    else:
+        variant['m5_book_features']=dict(table);variant['m5_book_features'][field['column']]=changed_column
+    after=_diagnostic_packet_gather(provider,variant,rows,max_rows=max_rows)
+    primitive=(field['packet_group'],field['timeframe'],field['column'])
+    affected=[item for item in provider.fields if (item['packet_group'],item['timeframe'],item['column'])==primitive]
+    positions=provider.ta._feature_positions(rows)
+    local=positions[:,None]+np.arange(-ta.MODEL_NATIVE_SEQ_LEN+1,1,dtype=np.int64)
+    local_clock=provider.issue_ns[provider.retained_source_rows[local]]
+    def selected_at(decisions,exact=False):
+        at=np.searchsorted(clock,decisions,side='right')-1
+        chosen=at==index
+        if exact:chosen&=np.where(at>=0,clock[np.maximum(at,0)],-1)==decisions
+        return chosen
+    local_selected=selected_at(local_clock)
+    current_selected=local_selected[:,-1]
+    base_positions={item['name']:i for i,item in enumerate(provider.base_fields)}
+    changed_counts={};changed_coordinates={};batch_hashes={'before':{},'after':{}}
+    for key in before:
+        original,modified=before[key],after[key]
+        _need(original.shape==modified.shape and original.dtype==modified.dtype,'DIAGNOSTIC_BATCH_HEADER')
+        allowed=np.zeros(original.shape,bool)
+        for item in affected:
+            if item['name'] in base_positions:
+                column=2*base_positions[item['name']]
+                if key=='seq_x':allowed[:,:,provider.ta.surfaces['signal'].shape[1]+column]|=local_selected
+                elif key=='snap_x':allowed[:,provider.ta.surfaces['signal'].shape[1]+column]|=current_selected
+                elif key=='ctx_cont':allowed[:,provider.ta.surfaces['ctx_cont'].shape[1]+column]|=current_selected
+            if key=='gc_seq_'+item['timeframe'].lower():
+                tf=item['timeframe']
+                take=provider.ta.tf_tails[tf][rows,None]+np.arange(-ta.WINDOWS[tf]+1,1,dtype=np.int64)
+                decision=provider.gc_surfaces[tf]['available_ns'][take]
+                column=provider.layout['field_names'][tf].index(item['name'])
+                allowed[:,:,column]|=selected_at(decision,exact=True)
+        difference=np.any(original.view(np.uint8).reshape(*original.shape,original.dtype.itemsize)
+            !=modified.view(np.uint8).reshape(*modified.shape,modified.dtype.itemsize),axis=-1)
+        _need(not np.any(difference&~allowed),'DIAGNOSTIC_UNRELATED_COORDINATE:'+key)
+        changed_counts[key]=int(difference.sum())
+        changed_coordinates[key]=np.argwhere(difference).tolist()
+        batch_hashes['before'][key]=_array_sha(original);batch_hashes['after'][key]=_array_sha(modified)
+    _need(sum(changed_counts.values())>0,'DIAGNOSTIC_SOURCE_NOT_CONSUMED')
+    width=len(provider.gc_context_names)
+    _need(np.array_equal(after['seq_x'][:,-1],after['snap_x'])
+        and np.array_equal(after['snap_x'][:,-width:],after['ctx_cont'][:,-width:]),'DIAGNOSTIC_LOCAL_ALIASES')
+    # Every matched own-TF view reads precisely the same changed packet scalar.
+    for item in affected:
+        if item['name'] not in base_positions:continue
+        tf=item['timeframe'];column=provider.layout['field_names'][tf].index(item['name'])
+        take=provider.ta.tf_tails[tf][rows,None]+np.arange(-ta.WINDOWS[tf]+1,1,dtype=np.int64)
+        chosen=selected_at(provider.gc_surfaces[tf]['available_ns'][take],exact=True)
+        if chosen.any():_need(np.all(after['gc_seq_'+tf.lower()][:,:,column][chosen]==np.float32(new)),
+                             'DIAGNOSTIC_OWN_TF_ALIAS')
+    _,final_layout,final_axes=_packet_layout(source_packet)
+    _need(final_layout==layout and final_axes==axes and _sha(input_normalization)==norm_before
+        and _sha(provider.source_binding)==binding_before,'DIAGNOSTIC_ORIGINAL_MUTATED')
+    _file_ref(proof)
+    receipt=_seal({'schema_version':'gx1_native_m5_gc_input_primitive_diagnostic_v1',
+        'purpose':'DIAGNOSTIC_INPUT_PRIMITIVE_COUNTERFACTUAL','source_admission':False,
+        'market_path_reconstructed':False,'sibling_indicator_formulas_recomputed':False,
+        'production_binding_created':False,'model_weights_modified':False,
+        'original_source_binding_sha256':provider.source_binding['contract_sha256'],
+        'original_source_axes_sha256':provider.source_axes_sha256,'original_assembly_proof':proof,
+        'input_normalization_sha256':input_binding['input_normalization_sha256'],
+        'original_source_arrays_unchanged':True,'original_proof_bytes_unchanged':True,
+        'original_normalization_bytes_unchanged':True,
+        'primitive':{'field_name':field_name,'packet_group':primitive[0],'timeframe':primitive[1],
+            'column':primitive[2],'source_index':index,'source_row_available_ns':source_available_ns,
+            'field_source_available_ns':int(np.asarray(table[field['source_clock_column']])[index]),
+            'before':old,'after':new,'delta':float(delta),'unit':field['unit'],
+            'unit_scale':field['unit_scale'],'unit_owner':field['unit_owner'],'scalar_bounds':bounds},
+        'affected_fields':[item['name'] for item in affected],
+        'source_rows':[int(row) for row in rows],'changed_coordinate_counts':changed_counts,
+        'changed_coordinates':changed_coordinates,'batch_sha256':batch_hashes})
+    return {'before':before,'after':after,'diagnostic':receipt}

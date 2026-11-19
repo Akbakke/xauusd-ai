@@ -45,7 +45,7 @@ konstantfelt får ingen generell skalaoverstyring. Ren feltkatalog er skilt
 fra eldre kilder. En prosessvakt avviser M1-artefakter og gammelt049-register.
 
 Ferdige nativeM5-squeezeparametre for allefem TF og V29 gjenbrukes uten refit.
-Tidligere pipeline001/002/003/004 er konsumert og relanseres aldri.002 ble
+Tidligere pipeline001/002/003/004/005 er konsumert og relanseres aldri.002 ble
 memcg-drept uten nativeTERMINAL; originale wrapper-/kjernelogg og ekstern
 observasjon består.003 bevarte27inputarrays før D1-normaliseringsfeil.
 004 stoppet før stats/modell på en feilaktig felles D1-radnummerantagelse.
@@ -87,14 +87,29 @@ M1/049-IO-forsøk, ikke oppvarmet legacycache. Observerte GC-markedsverdier/
 projeksjoner får gradient, observed0-markedsverdier får null gradient;
 D1-ukjent rad beholdes. Ny checkpoint-/dimensjonskontroll avviser før kopiering.
 222 berørte regresjonsfall bestod under capped4G/512M; fersk fullGC-wrapper
-ble gjenbrukt fra egen bestått kontroll. Syntaks/diffkontroll består.
+ble gjenbrukt fra egen bestått kontroll. Syntaks/diffkontroll består. Den kontrollerte diagnostikk-ruten er dessuten
+uavhengig revidert og7capped-testfall består: én kildekolonne regatheres på
+tvers av ruter uten ny produksjonsbinding/COMPLETE-bevis. Originalpakke,
+normalisering og kvitteringer bevares; dette er ikke en ny markedsbane.
 
 ### Ikke gjort / neste steg
 
-Pipeline005 er ADMITTED_ONE_USE etter bestått eksakt capped førkontroll:
-11klokkearrays,0feature-/råprisdekoding,0modell og0forbudteIO-forsøk.
-Én kvalifisering av27bevarte arrays med fersk normalisering/CPU-batch er
-innrømmet. Kilde og policy holdes fryst til terminal.
+Pipeline005 er FAILED_CONSUMED. Originalt FEATURE_INPUTS_REQUALIFICATION
+beviser alle27arrays, opprinnelige klokker/ID-er, ruter og støtte; M1/049-vakten
+hadde0forbudteforsøk. Deretter stoppet normalisering på M5-feltet
+geomchan_apex_proximity uten støttet spredning. Formel-eieren begrenser[0,1],
+men tidligere særregel var knyttet til avløst M1-enhetsplan. Ingen normalisering,
+modell eller checkpoint er publisert. Alle7 faktiske konsumpopulasjoner er nå
+kontrollert samlet: nøyaktig ett problem, dette M5-feltet med29 977nuller og
+én0,5902256. Domener/akser i de andre seks flatene består.29 964inputrader
+er klare; normaksen har29 963fordi én rad mangler modne framtidshoder.
+Ekstern read-only-observasjon er varig bevart og hashbundet uten å endre
+originale005-kvitteringer. Nativeenhetsrettelsen er nå implementert for akkurat dette M5-feltet:
+TRAIN-median0, kildefast full-rangeenhet1, null spredningsestimat og støttebevis
+for én avvikende observasjon. Kontinuerlige0/.2/.59/1 og produksjons-Torch-
+transform er testet; feltet blir ikke binært.165berørte capped-regresjonsfall
+består. Fysisk006-baseline gjenstår.
+
 Ingen full råindikatorberegning eller parameterfit skal gjentas.
 
 Deretter kan én separat kildebundet råGC-jobb produsere varige komponenter

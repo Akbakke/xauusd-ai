@@ -123,23 +123,43 @@ def test_actual_source_binding_roundtrip_and_joint_gather_preserve_all_global_ax
     assert provider.support_report(rows)['unknown_gc_rows_removed']==0
 
 
-def test_one_packet_column_perturb_regathers_every_corresponding_route(tmp_path,monkeypatch):
-    provider,packet,_,xau=_joint(tmp_path,monkeypatch)
-    row=200;rows=np.array([row],np.int64);before=provider.gather(rows,max_rows=1)
-    changed=copy.deepcopy(packet)
-    changed['timeframes']['M5']['observed_volume'][row]+=7
-    changed_binding=_source_binding(changed,tmp_path/'counterfactual_unit',xau)
-    after_provider=owner.NativeM5GCFeatureProvider(provider.ta,changed,changed_binding)
-    after=after_provider.gather(rows,max_rows=1)
+def test_one_packet_column_diagnostic_regathers_views_without_new_genuine_binding(tmp_path,monkeypatch):
+    provider,packet,binding,_=_joint(tmp_path,monkeypatch)
+    fit_rows=np.arange(150,390,dtype=np.int64)
+    normalization=owner.fit_native_m5_gc_feature_normalization(provider,fit_source_rows=fit_rows,
+        cutoff_ns=int(provider.issue_ns[399])+INTERVAL)
+    row=200;rows=np.array([row],np.int64)
+    original_layout=owner._packet_layout(packet)[1]
+    original_proof=Path(binding['assembly_proof']['path']).read_bytes()
+    original_norm=owner._sha(normalization)
+    files=sorted(str(p) for p in tmp_path.rglob('*') if p.is_file())
+    result=owner.diagnostic_regather_native_m5_gc_primitive(provider,source_packet=packet,
+        input_normalization=normalization,field_name='gc_m5_observed_volume',
+        source_available_ns=int(packet['timeframes']['M5']['available_ns'][row]),delta=1.,
+        source_rows=rows,max_rows=1)
+    before,after,receipt=result['before'],result['after'],result['diagnostic']
     field='gc_m5_observed_volume';local=provider.gc_context_names.index(field)
     side=provider.layout['field_names']['M5'].index(field)
     signal=318+local;context=132+local
-    assert after['seq_x'][0,-1,signal]-before['seq_x'][0,-1,signal]==7
-    assert after['snap_x'][0,signal]-before['snap_x'][0,signal]==7
-    assert after['ctx_cont'][0,context]-before['ctx_cont'][0,context]==7
-    assert after['gc_seq_m5'][0,-1,side]-before['gc_seq_m5'][0,-1,side]==7
-    for tf in ('M15','H1','H4','D1'):np.testing.assert_array_equal(after['gc_seq_'+tf.lower()],before['gc_seq_'+tf.lower()])
-    np.testing.assert_array_equal(after_provider.source_row,provider.source_row)
+    assert after['seq_x'][0,-1,signal]-before['seq_x'][0,-1,signal]==1
+    assert after['snap_x'][0,signal]-before['snap_x'][0,signal]==1
+    assert after['ctx_cont'][0,context]-before['ctx_cont'][0,context]==1
+    assert after['gc_seq_m5'][0,-1,side]-before['gc_seq_m5'][0,-1,side]==1
+    for tf in ('M15','H1','H4','D1'):
+        np.testing.assert_array_equal(after['gc_seq_'+tf.lower()],before['gc_seq_'+tf.lower()])
+    assert set(result)=={'before','after','diagnostic'}
+    assert receipt['purpose']=='DIAGNOSTIC_INPUT_PRIMITIVE_COUNTERFACTUAL'
+    assert receipt['source_admission'] is receipt['production_binding_created'] is False
+    assert receipt['market_path_reconstructed'] is receipt['sibling_indicator_formulas_recomputed'] is False
+    assert receipt['original_source_binding_sha256']==binding['contract_sha256']
+    assert receipt['original_source_arrays_unchanged'] and receipt['original_proof_bytes_unchanged']
+    assert receipt['original_normalization_bytes_unchanged']
+    assert receipt['changed_coordinate_counts']['seq_x']==1
+    assert receipt['changed_coordinate_counts']['gc_seq_m5']==1
+    assert owner._packet_layout(packet)[1]==original_layout
+    assert Path(binding['assembly_proof']['path']).read_bytes()==original_proof
+    assert owner._sha(normalization)==original_norm
+    assert sorted(str(p) for p in tmp_path.rglob('*') if p.is_file())==files
 
 
 def test_current_gc_hour_and_ta_history_clock_remain_distinct_across_missing_ta_hour(tmp_path,monkeypatch):
@@ -183,3 +203,31 @@ def test_legacy_source_binding_rejected_before_nested_artifact_reads(monkeypatch
     monkeypatch.setattr(Path,'open',lambda *a,**k:pytest.fail('opened legacy metadata'))
     with pytest.raises(RuntimeError,match='SOURCE_SCHEMA'):
         owner.require_native_m5_gc_source_binding({'schema_version':'legacy','packet_artifacts':{'path':'/XAU_M1/old.json'}})
+
+
+@pytest.mark.parametrize('field,index,delta,error', [
+    ('gc_book_ofi_valid',200,1.,'DIAGNOSTIC_NONMARKET_FIELD'),
+    ('gc_m5_observed_sell_max_executed_trade_contracts',0,1.,'DIAGNOSTIC_UNOBSERVED_SOURCE'),
+    ('gc_m5_observed_known_aggressor_fraction',200,1.,'DIAGNOSTIC_SOURCE_BOUNDS'),
+    ('gc_m5_observed_volume',500,1.,'DIAGNOSTIC_FUTURE_SOURCE'),
+    ('gc_m5_observed_volume',200,2.,'DIAGNOSTIC_ONE_SOURCE_UNIT'),
+])
+def test_diagnostic_rejects_nonmarket_unknown_bounds_future_and_wrong_unit_before_proof_reads(
+        tmp_path,monkeypatch,field,index,delta,error):
+    provider,packet,_,_=_joint(tmp_path,monkeypatch)
+    monkeypatch.setattr(owner,'_file_ref',lambda *a:pytest.fail('read a proof for inadmissible diagnostic'))
+    with pytest.raises(RuntimeError,match=error):
+        owner.diagnostic_regather_native_m5_gc_primitive(provider,source_packet=packet,
+            input_normalization={},field_name=field,
+            source_available_ns=int(packet['timeframes']['M5']['available_ns'][index]),delta=delta,
+            source_rows=np.array([200],np.int64),max_rows=1)
+
+
+def test_diagnostic_rejects_legacy_packet_before_any_nested_metadata_read(tmp_path,monkeypatch):
+    provider,_,_,_=_joint(tmp_path,monkeypatch)
+    monkeypatch.setattr(owner,'_file_ref',lambda *a:pytest.fail('followed legacy metadata'))
+    with pytest.raises(RuntimeError,match='PACKET_IDENTITY'):
+        owner.diagnostic_regather_native_m5_gc_primitive(provider,
+            source_packet={'schema_version':'legacy','nested':{'path':'/XAU_M1/archive.json'}},
+            input_normalization={},field_name='gc_m5_observed_volume',source_available_ns=ORIGIN+INTERVAL,
+            delta=1.,source_rows=np.array([200],np.int64),max_rows=1)

@@ -51,6 +51,7 @@ from gx1.contracts.entry_model_native_input_normalization_v1 import (
     EXPECTED_SURFACES as INPUT_NORMALIZATION_SURFACES,
     require_input_normalization_contract, NATIVE_M5_NORMALIZATION_SCHEMA,
     SIGNED_TERNARY_UNIT_SCALE_SOURCE, NATIVE_M5_FULL_GC_NORMALIZATION_SCHEMA, mask_native_gc_torch,
+    NATIVE_M5_BOUNDED_UNIT_SOURCE, native_m5_bounded_unit_contract,
 )
 from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     JOINT_TASK_NAMES,
@@ -2160,6 +2161,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 values = raw_float[..., index]
                 if bool(((values != -1.) & (values != 0.) & (values != 1.)).any()):
                     raise RuntimeError('ENTRY_INPUT_NORMALIZATION_SIGNED_TERNARY_DOMAIN_INVALID:' + field_names[index])
+            if source == NATIVE_M5_BOUNDED_UNIT_SOURCE:
+                spec=native_m5_bounded_unit_contract()['fields_by_surface'][surface][field_names[index]]
+                values=raw_float[...,index]
+                if bool(((values<spec['lower'])|(values>spec['upper'])).any()):
+                    raise RuntimeError('NATIVE_M5_BOUNDED_UNIT_DOMAIN:'+field_names[index])
         if bool(binary_mask.any().item()):
             binary_values = raw_float[..., binary_mask]
             if bool(

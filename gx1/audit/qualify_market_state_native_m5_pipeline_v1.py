@@ -28,9 +28,9 @@ from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
 
 REPO = data.REPO
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
-STAGE = 'native_m5_pipeline_20261119_005'
-PLAN = REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_005.json'
-ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_005')
+STAGE = 'native_m5_pipeline_20261119_006'
+PLAN = REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_006.json'
+ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_006')
 FIT_START_NS = 1714521600000000000
 FIT_END_NS = 1727740800000000000
 PARAMETER_START_NS = 1243814400000000000
@@ -270,13 +270,77 @@ def candidate_metadata(inputs, feature_contract):
         'fresh_normalization_semantic_domains': native_m5_input_domain_contract(),
         'permitted_changed_domains': ['explicit_provider_v1_to_v2_semantic_contract',
                                       'independent_static_field_catalog_and_profile_identity',
-                                      'fresh_native_binary_and_signed_ternary_normalization_domain_policy'],
+                                      'fresh_native_source_declared_normalization_domain_policy'],
         'unchanged_provider_contract_domains': sorted(strip(before)),
         'numeric_owner_ast_sha256': numeric_owner_identities(old_plan),
         'excluded_non_raw_functions': ['native_m5_feature_provider_contract',
                                        'fit_native_m5_feature_normalization'],
         'original_full_process_M1_free': False,
         'new_admission_requires_clean_process_and_exact_physical_array_checks': True}
+
+
+NORMALIZATION_DOMAIN_OBSERVATION = {
+    'path': '/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_005/EXTERNAL_NORMALIZATION_DOMAIN_OBSERVATION.json',
+    'sha256': 'ddab096245311040570290d8f84d54cfa194259821bfaa9c63a0a0dd89bc7a4d'}
+INPUT_KEYS.add('normalization_domain_observation')
+
+
+def normalization_diagnosis(inputs):
+    from gx1.contracts.entry_model_native_input_normalization_v1 import (
+        native_m5_bounded_unit_contract, native_m5_input_domain_contract,
+    )
+    need(inputs['normalization_domain_observation'] == NORMALIZATION_DOMAIN_OBSERVATION,
+         'NORMALIZATION_DIAGNOSIS_REF')
+    observation = read(inputs['normalization_domain_observation'])
+    previous = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_005')
+    terminal_ref = observation['original_terminal']
+    support_ref = ref(previous / 'FEATURE_SUPPORT.json')
+    terminal, support = read(terminal_ref), read(support_ref)
+    old_plan, old_claim = read(terminal['plan']), read(terminal['claim'])
+    report = observation['report']
+    need(observation['schema_version'] == 'gx1_external_native_normalization_domain_observation_v1'
+         and observation['role'] == 'read_only_domain_diagnosis_not_native_job_terminal_or_normalization'
+         and terminal_ref['path'] == str(previous / 'TERMINAL.json')
+         and terminal['stage'] == old_plan['stage'] == 'native_m5_pipeline_20261119_005'
+         and terminal['status'] == 'FAILED_CONSUMED' and terminal['result'] is None
+         and 'surface=mtf_m5 field=geomchan_apex_proximity' in terminal['error']
+         and old_claim['plan'] == terminal['plan']
+         and old_plan['inputs']['candidate_archive'] == report['archive'] == inputs['candidate_archive']
+         and old_plan['inputs']['target_tape'] == inputs['target_tape']
+         and report['plan'] == str(previous)
+         and report['fit_population'] == support['fit_population']
+         and report['forbidden_io_attempts'] == report['model_forwards'] == 0
+         and report['normalization_fitted'] is report['raw_data_rebuilt'] is False,
+         'NORMALIZATION_DIAGNOSIS_LINEAGE')
+    surfaces = support['consumed_support']['surfaces']
+    need(set(report['surfaces']) == set(surfaces)
+         == {'signal','ctx_cont','mtf_m5','mtf_m15','mtf_h1','mtf_h4','mtf_d1'}
+         and all(item['rows'] == surfaces[name]['physical_rows']
+                 and item['width'] == len(surfaces[name]['field_names'])
+                 and item['unsupported_fields'] == (1 if name == 'mtf_m5' else 0)
+                 for name, item in report['surfaces'].items()),
+         'NORMALIZATION_DIAGNOSIS_ALL_SEVEN')
+    need(len(report['unsupported']) == 1, 'NORMALIZATION_DIAGNOSIS_REMAINING_FIELDS')
+    field = report['unsupported'][0]
+    bounded = native_m5_bounded_unit_contract()
+    spec = bounded['fields_by_surface'].get(field['surface'], {}).get(field['field'])
+    need(field['surface'] == 'mtf_m5' and field['field'] == 'geomchan_apex_proximity'
+         and spec is not None and spec['lower'] == 0. and spec['upper'] == spec['unit_scale'] == 1.
+         and spec['formula_owner'] == 'gx1.features.trendline_registry_v1._channel_block'
+         and field['observation_gated'] is False and field['positive_deviations'] == 1
+         and field['observed_rows'] == field['physical_rows'] == report['surfaces']['mtf_m5']['rows']
+         and spec['lower'] <= field['min'] <= field['median'] <= field['max'] <= spec['upper']
+         and sum(count for value, count in field['unique_counts']) == field['physical_rows']
+         and native_m5_input_domain_contract()['named_bounded_dispersion_units'] == bounded,
+         'NORMALIZATION_DIAGNOSIS_EXACT_TYPED_REMEDY')
+    return {'observation': inputs['normalization_domain_observation'],
+        'original_terminal': terminal_ref, 'qualified_input_support': support_ref,
+        'candidate_archive': report['archive'], 'fit_population': report['fit_population'],
+        'all_seven_consumption_domains_diagnosed': True,
+        'only_unsupported_case': {'surface': field['surface'], 'field': field['field']},
+        'explicit_typed_remedy': bounded, 'normalization_fitted_by_diagnosis': False,
+        'diagnosis_dependencies': {'terminal': terminal_ref, 'support': support_ref,
+                                  'original_plan': terminal['plan'], 'original_claim': terminal['claim']}}
 
 
 def need(ok, reason):
@@ -538,6 +602,7 @@ def build_plan(*, inputs, source_base_commit=None):
                  for key in ('time', *RAW_COLUMNS)), 'RAW_FEATURE_COLUMNS')
     feature_contract = native_m5_feature_provider_contract()
     candidate = candidate_metadata(inputs, feature_contract)
+    diagnosis = normalization_diagnosis(inputs)
     old_plan = read(candidate['original_plan'])
     need(old_plan['feature_source_spec'] == spec
          and old_plan['macro_dependencies'] == dependencies
@@ -552,6 +617,7 @@ def build_plan(*, inputs, source_base_commit=None):
         'history_lineage': {'plan': history['plan'], 'claim': history['claim']},
         'history_reuse': 'original_001_all_76_array_proof_for_identical_003_target_bytes',
         'parameter_reuse': parameters, 'candidate_requalification': candidate,
+        'normalization_diagnosis': diagnosis,
         'feature_source_metadata': metadata, 'parameter_source_spec': squeeze['source_spec'],
         'target_source_spec': source['source_spec'], 'target_source_metadata': source['source_metadata'],
         'fit_start_ns': FIT_START_NS, 'fit_end_ns': FIT_END_NS,
@@ -586,6 +652,7 @@ def checked_inputs(plan):
                 + list(plan['history_lineage'].values()))
     bindings.extend(plan['parameter_reuse']['parameter_dependencies'].values())
     bindings.extend(plan['candidate_requalification']['candidate_dependencies'].values())
+    bindings.extend(plan['normalization_diagnosis']['diagnosis_dependencies'].values())
     bindings.append(plan['feature_source_spec']['manifest'])
     for spec in (plan['feature_source_spec'], plan['parameter_source_spec']):
         bindings.extend({'path': part['path'], 'sha256': part['sha256']} for part in spec['parts'])

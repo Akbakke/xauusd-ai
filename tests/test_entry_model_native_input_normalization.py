@@ -1217,3 +1217,48 @@ def test_native_source_binary_flags_keep_opposite_future_state(surface, field, c
     forged = dict(fitted, native_domain_contract_sha256='0'*64)
     with pytest.raises(RuntimeError, match='SURFACE_DOMAIN_POLICY'):
         owner.require_surface_normalization(forged, surface=surface, field_names=[field])
+
+
+def test_native_m5_single_apex_uses_named_continuous_unit_without_legacy_metadata():
+    from types import SimpleNamespace
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
+    owner=normalization_contract;field='geomchan_apex_proximity';surface='mtf_m5'
+    train=np.zeros((29978,1),np.float32);train[123,0]=np.float32(.5902255773544312)
+    fitted=owner.fit_native_m5_surface_normalization(train,surface=surface,field_names=[field])
+    assert fitted['center']==[0.] and fitted['scale']==[1.]
+    assert fitted['binary_mask']==fitted['categorical_mask']==[0]
+    assert fitted['scale_source']==[owner.NATIVE_M5_BOUNDED_UNIT_SOURCE]
+    assert fitted['native_bounded_unit_dispersion_estimates']=={field:{
+        'dispersion_estimate':None,'positive_deviations':1,'observed_rows':29978}}
+    owner.require_surface_normalization(fitted,surface=surface,field_names=[field])
+    later=np.array([[0.],[.2],[.59],[1.]],np.float32)
+    result=owner.apply_surface_normalization(later,fitted)
+    assert np.all(np.diff(result[:,0])>0.)
+    np.testing.assert_allclose(owner.invert_surface_normalization(result,fitted),later,atol=1e-7)
+    runtime=SimpleNamespace(**{
+        'input_norm_mtf_m5_center':torch.tensor(fitted['center']),
+        'input_norm_mtf_m5_scale':torch.tensor(fitted['scale']),
+        'input_norm_mtf_m5_binary_mask':torch.tensor(fitted['binary_mask'],dtype=torch.bool),
+        'input_norm_mtf_m5_categorical_mask':torch.tensor(fitted['categorical_mask'],dtype=torch.bool),
+        '_input_normalization_field_names':{surface:[field]},
+        '_input_normalization_contract':{'surfaces':{surface:fitted}},'gc_mtf_history':None})
+    raw=torch.tensor(later,requires_grad=True)
+    actual=EntryV10CtxHybridTransformer._normalize_input_surface(runtime,raw,surface=surface)
+    np.testing.assert_allclose(actual.detach().numpy(),result,atol=1e-7)
+    actual.sum().backward();assert torch.all(raw.grad>0.)
+    for invalid in (-.01,1.01):
+        with pytest.raises(RuntimeError,match='NATIVE_M5_BOUNDED_UNIT_DOMAIN'):
+            owner.apply_surface_normalization(np.array([[invalid]],np.float32),fitted)
+        with pytest.raises(RuntimeError,match='NATIVE_M5_BOUNDED_UNIT_DOMAIN'):
+            EntryV10CtxHybridTransformer._normalize_input_surface(runtime,torch.tensor([[invalid]]),surface=surface)
+    for fit,surf,name in ((owner.fit_surface_normalization,surface,field),
+        (owner.fit_native_m5_surface_normalization,surface,'ordinary_unmasked'),
+        (owner.fit_native_m5_surface_normalization,'mtf_m15',field)):
+        with pytest.raises(RuntimeError,match='UNSCALEABLE'):
+            fit(train,surface=surf,field_names=[name])
+    bad=copy.deepcopy(fitted);bad['native_bounded_unit_dispersion_estimates'][field]['positive_deviations']=2
+    with pytest.raises(RuntimeError,match='NATIVE_M5_BOUNDED_UNIT_CONTRACT'):
+        owner.require_surface_normalization(bad,surface=surface,field_names=[field])
+    bad=copy.deepcopy(fitted);bad.pop('native_bounded_unit_dispersion_estimates')
+    with pytest.raises(RuntimeError,match='NATIVE_M5_BOUNDED_UNIT_PROOF'):
+        owner.require_surface_normalization(bad,surface=surface,field_names=[field])

@@ -560,3 +560,62 @@ def test_preclaim_clock_proof_never_decodes_cached_feature_values(monkeypatch, t
                                        'target_tape': audit.ref(target)}, saved)
     assert proof['cached_clock_arrays_decoded'] == 11
     assert proof['cached_feature_value_arrays_decoded'] == proof['raw_price_values_decoded'] == 0
+
+
+def diagnosis_fixture(monkeypatch):
+    import copy
+    prior='/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_005'
+    binding=lambda path:{'path':path,'sha256':'a'*64}
+    inputs={'normalization_domain_observation':dict(audit.NORMALIZATION_DOMAIN_OBSERVATION),
+        'candidate_archive':binding('/candidate/FEATURE_INPUTS.npz'),'target_tape':binding('/native/TARGETS.npz')}
+    terminal_ref=binding(prior+'/TERMINAL.json')
+    support_ref=binding(prior+'/FEATURE_SUPPORT.json')
+    plan_ref=binding(str(audit.REPO/'configs/research/NATIVE_M5_PIPELINE_20261119_005.json'))
+    claim_ref=binding(prior+'/CLAIM.json')
+    population={'fit_issue_rows':29963,'fit_source_rows_sha256':'b'*64,'fit_issue_ns_sha256':'c'*64}
+    shapes={'signal':(30058,318),'ctx_cont':(29963,132),'mtf_m5':(29978,256),
+        'mtf_m15':(10051,256),'mtf_h1':(2594,256),'mtf_h4':(750,256),'mtf_d1':(361,256)}
+    report={'archive':dict(inputs['candidate_archive']),'fit_population':copy.deepcopy(population),
+        'plan':prior,'forbidden_io_attempts':0,'model_forwards':0,
+        'normalization_fitted':False,'raw_data_rebuilt':False,
+        'surfaces':{name:{'rows':n,'width':w,'unsupported_fields':int(name=='mtf_m5')}
+                    for name,(n,w)in shapes.items()},
+        'unsupported':[{'surface':'mtf_m5','field':'geomchan_apex_proximity','min':0.,
+            'median':0.,'max':.59,'observation_gated':False,'positive_deviations':1,
+            'observed_rows':29978,'physical_rows':29978,'unique_counts':[[0.,29977],[.59,1]]}]}
+    observation={'schema_version':'gx1_external_native_normalization_domain_observation_v1',
+        'role':'read_only_domain_diagnosis_not_native_job_terminal_or_normalization',
+        'original_terminal':terminal_ref,'report':report}
+    terminal={'stage':'native_m5_pipeline_20261119_005','status':'FAILED_CONSUMED',
+        'result':None,'error':'RuntimeError:surface=mtf_m5 field=geomchan_apex_proximity',
+        'plan':plan_ref,'claim':claim_ref}
+    support={'fit_population':population,'consumed_support':{'surfaces':{
+        name:{'physical_rows':n,'field_names':list(range(w))}for name,(n,w)in shapes.items()}}}
+    records={inputs['normalization_domain_observation']['path']:observation,
+        terminal_ref['path']:terminal,support_ref['path']:support,
+        plan_ref['path']:{'stage':terminal['stage'],'inputs':inputs},
+        claim_ref['path']:{'plan':plan_ref}}
+    monkeypatch.setattr(audit,'read',lambda ref:records[ref['path']])
+    monkeypatch.setattr(audit,'ref',lambda path:support_ref)
+    return inputs,report
+
+
+def test_006_requires_all7_diagnosis_and_exact_continuous_bounded_remedy(monkeypatch):
+    inputs,report=diagnosis_fixture(monkeypatch)
+    proof=audit.normalization_diagnosis(inputs)
+    assert proof['all_seven_consumption_domains_diagnosed']is True
+    assert proof['fit_population']==report['fit_population']
+    assert proof['only_unsupported_case']=={'surface':'mtf_m5','field':'geomchan_apex_proximity'}
+    assert proof['normalization_fitted_by_diagnosis']is False
+
+
+@pytest.mark.parametrize('fault',('archive','fit_axis','extra_case','outside_bound','refitted'))
+def test_006_diagnosis_gate_rejects_changed_archive_axis_or_uncovered_case(monkeypatch,fault):
+    inputs,report=diagnosis_fixture(monkeypatch)
+    if fault=='archive':report['archive']['sha256']='f'*64
+    elif fault=='fit_axis':report['fit_population']['fit_issue_rows']-=1
+    elif fault=='extra_case':report['surfaces']['mtf_h1']['unsupported_fields']=1
+    elif fault=='outside_bound':report['unsupported'][0]['max']=2.
+    else:report['normalization_fitted']=True
+    with pytest.raises(ValueError,match='NORMALIZATION_DIAGNOSIS_'):
+        audit.normalization_diagnosis(inputs)
