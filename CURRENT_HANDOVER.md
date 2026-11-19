@@ -122,10 +122,10 @@ alle 24 175 TRAIN- og 5 789 CONTROL-inputrader før/etter, med korte haler og
 ukjent siste kontrollrad. De to apex-formlene er separat observert på de
 faktiske TRAIN-unionene; eksisterende normaliseringskode kan gjenbrukes.
 
-FIT_MECHANICS_20261119_001 er PREPARED_NOT_ADMITTED med plan-SHA
+FIT_MECHANICS_20261119_001 er ADMITTED_ONE_USE med plan-SHA
 bc29782055b6d0c6720fa687d504930b6a1fd8db1b087b10af58794e8f979275.
-Neste steg er eksakt metadata-førkontroll, trygg ny fysisk boot etter666
-og deretter én teknisk GPU-kontroll med to kanoniske updates og én kald
+Eksakt metadata-førkontroll består før og etter trygg Windows-boot666→667.
+Nå innrømmes én teknisk GPU-kontroll med to kanoniske updates og én kald
 repetisjon av neste steg i ny prosess. Rammen er 20G/512M/1800s med alle
 eksisterende trainer-/sensorvakter; 2 modeller/7 forwards/3 faktiske updates.
 Dette skal bevise faktisk modell-/AdamW-/RNG-/cursor-paritet og egen
@@ -134,7 +134,9 @@ GPU-kjøringen er utført. Integrator eier plan, trygg fysisk omstart,
 maskinvarevakter, policyadmisjon og launch. Hovedrunden får ferske vekter;
 bare ny TRAIN-normalisering og prior gjenbrukes.
 
-Ingen ny kjøring er innrømmet. Ingen Entry/Exit, TEST, live/paper, broker,
+Bare den navngitte tekniske engangsplanen er innrømmet; hovedrunden er
+fortsatt stengt. Kilde/policy fryses til terminal. Ingen Entry/Exit, TEST,
+live/paper, broker,
 handel, spending eller promotion er åpnet. En bestått kort fit skal skilles
 fra senere generalisering og økonomisk edge. Én hovedrunde, ingen automatisk
 ekstra trening. Samtlige konsumerte engangsplaner forblir stengt.
