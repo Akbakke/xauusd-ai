@@ -10,7 +10,7 @@ Det vedvarende OPP/NED/FLAT-målet er aktivt, ikke oppnådd.
 PRIMARY_BACKBONE_FIT001 er fullført og uavhengig vurdert, exit0 på578,831s
 (9m39):1fersk modell/4fastepass/384updates/544forwards/0autograd-prober.
 Kilde/policy var uendret. Alle trenings-/kjøringsporter er stengt; alle
-tidligere engangsplaner er konsumert. Ingen aktiv modelljobb eller ny fit.
+tidligere engangsplaner er konsumert. Ingen aktiv modelljobb eller ny fit. Én cache-only CPU-produksjon er innrømmet.
 Siste målte GPU-idle etter terminal: P8,24,72W,37C,78MiB,0prosentutnyttelse.
 
 Aldri M1 til retning: verken input, fasit, metadataforelder, rader, prior,
@@ -82,7 +82,10 @@ fra eksisterende native reader/builder/snapshot. Ny308linjers adapter og gjenbru
 tester under audit4G og uavhengig statiskreview består. Første ordinære pytest
 importerteTorch via eksisterende autouse-conftest; renCLI+--noconftest består,
 og produksjonsvakten er beholdt. Eksakt seksårsplan er nå klargjort med41kildeeiere og107bindingsrefs;
-metadata-/CLI-preflight gjenstår. Ingen produksjon er innrømmet. CPU12G/512M,
+metadata-/CLI-preflight bestod med0decode/fit/modell og ingenCLAIM.
+Uavhengig metadatareview verifiserte41kildehasher/23JSONavhengigheter/107refs.
+Bare denne cacheproduksjonen er nå innrømmet én gang; alle treningsporter
+forblir stengt. Kilde/policy fryses gjennom native TERMINAL. CPU12G/512M,
 1tråd/64tasks og internSIGALRM3570s beholdes; ingen eksternwallcap eller
 seksårs kjøretid/minne er påstått. Rapportert primary_matrix_bytes er
 delvolum; total27-arrayvolum må beregnes fra descriptorene.
