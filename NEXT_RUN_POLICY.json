@@ -89529,5 +89529,46 @@
     "test_authorized": false,
     "test_data_used": false,
     "training_authorized": false
+  },
+  "native_m5_pipeline_20261119_002": {
+    "broker_access_allowed": false,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution": {
+      "class": "producer",
+      "internal_seconds": 3570,
+      "kill_after_seconds": 10,
+      "memory": "12G",
+      "model_constructions": 1,
+      "model_forwards": 1,
+      "numerical_threads": 1,
+      "optimizer_steps": 0,
+      "outer_seconds": 3600,
+      "swap": "512M"
+    },
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "model_constructions": 1,
+    "model_forwards": 1,
+    "optimizer_steps": 0,
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_002",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_PIPELINE_20261119_002.json",
+      "sha256": "e5e0c6a42995b1193935ff5ca4bc633576c1246d613f1946c779e1c2d4ff0bd7"
+    },
+    "relaunch_allowed": false,
+    "remaining_invocations": 0,
+    "reused_history_verification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_001/HISTORY_VERIFICATION.json",
+      "sha256": "fb04ef6a5956d15809a7aa4bb2ea9ca3c7af1d2d3a86ed0474e93d4a2a7cc3e7"
+    },
+    "reused_squeeze_m5": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_001/SQUEEZE/m5_params.json",
+      "sha256": "04f9be34569791240a05d0fd481f48dd477d9992b1916d497f260dd03e472250"
+    },
+    "status": "PREPARED_NOT_ADMITTED",
+    "test_authorized": false,
+    "test_data_used": false,
+    "training_authorized": false
   }
 }

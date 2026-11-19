@@ -48,7 +48,9 @@ helgebøtter medNaN-priser og nullvolum. Ingen modell eller normalisering
 ble konstruert. Plan001 er konsumert og relanseres aldri.
 
 Minste rettelse er å fjerne bare faktisk tomme TF-bøtter, bevare observerte
-delbøtter og la ugyldige observerte priser feile. Ny pipeline002 skal
+delbøtter og la ugyldige observerte priser feile. 22 målrettede rettelses-/gjenbrukstester bestod.
+Pipeline002 er PREPARED_NOT_ADMITTED, planhashe5e0c6a42995b1193935ff5ca4bc633576c1246d613f1946c779e1c2d4ff0bd7.
+Denne skal
 hashbinde og gjenbruke ferdig historikkontroll ogM5-parametre, deretter
 fullføre fireTF-squeeze, V29, faktisk318/132/256/61felt, hele TRAIN-
 normaliseringen og én fersk teknisk16-radersmodellbatch.
