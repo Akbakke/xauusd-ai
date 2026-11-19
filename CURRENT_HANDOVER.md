@@ -12,7 +12,10 @@ tekniske portene består. Kilden er kvalifisert i eksisterende modell-/drivereie
 43 ulike driver-/modelltilfeller og 16 nye eksakte guardtilfeller består.
 Uavhengig leserevisjon avdekket og fikk rettet foldbinding før head-konstruksjon
 og eksakt priorreferanse før CLAIM. Dette er kilde-/syntetisk evidens; ekte
-TA-only-baseline og kald replay gjenstår. Ingen kjøring er ennå innrømmet.
+TA-only-baseline og kald replay gjenstår. Eksakt mechanics001-plan er nå
+klargjort: 67 forwards / 3 optimizersteg inkludert kald child / 2 ferske modeller,
+hele 1536 FIT og 512 CONTROL før/etter. Preflight gjenstår; ingen kjøring er
+ennå innrømmet.
 GC er utsatt, M1-forbudet og TEST-forseglingen består.
 TA006-normaliseringen inkluderer septemberCONTROL og gjenbrukes ikke;
 ferdige TA-verdier/native parametre beholdes, med fersk tidligere-TRAIN-statistikk.
