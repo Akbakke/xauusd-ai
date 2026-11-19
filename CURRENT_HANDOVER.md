@@ -6,24 +6,22 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-Brukeren har endret første hovedrunde til et mindre datasett og omtrent
-30minutters kjøretid. Oppfølging er hver30.minutt (avløser timeønsket).
-Den lange SHORT_FIT001 er stoppet under INITIAL-skåring før første update.
-Original CLAIM/TERMINAL og separat OPERATOR_STOP_REQUEST/OBSERVATION er bevart.
-Native TimeoutError skyldes vårt styrte stoppsignal, ikke utløpt3timersfrist.
-Ingen INITIAL_SCORE/INITIAL_STATE finnes; kildebundet kontrollflyt beviser
-0optimizersteg. Ingen ferdig prognosebaseline eller mainresultat foreligger.
+Den brukerbestilte mindre retningsrunden er fullført og uavhengig vurdert:
+SHORT_FIT002,18min23s,exit0,uendretkilde,96AdamW-steg/160forwards/énfersk
+modell. Alle trenings-/kjøringsporter er stengt. Ingen aktiv modelljobb,
+ekstra fit, Entry/Exit, TEST, broker, handel, spending eller promotion.
 
-Bare den navngitte SHORT_FIT002 er nå innrømmet én gang for et mindre,
-omtrent30minutters forsøk. Main001 er konsumert og relanseres aldri. Ferdige
-native data, stats og genuine modell-/coldresume-kontroller gjenbrukes.
-M1 er aldri retningsgrunnlag. TEST, Entry/Exit, broker og handel er stengt.
+Teknisk kjede og læring på valgt FIT er påvist. M5-prognosen for framtidig
+sluttretning er fortsatt svakere enn matchetprior på senereCONTROL.
+Dette er ikke kvalifisert M5-retningsedge eller dokumentert økonomi.
+NEXT_RUN_POLICY eier status og eksakte hashreferanser.
 
-### Full historikkfasit
+### Ferdig datagrunnlag og avgrensning
 
-18 originale M5-årsfiler fra 2009–2026 ga 1 215 514 råbarer. Baren som
-slutter nøyaktig på TEST-grensen 01.07.2026 er utelatt; faktatapen har
-1 215 513 M5-barer. Ingen forseglet TEST-periode er brukt.
+Hele tilgjengelige nativeM5-historikken2009–2026 før TEST er faktamerket.
+Én råbar som slutter nøyaktig01.07.2026 er utelatt. Åpning/slutt sammenlignes
+separat mot forrige observerte bar som lavere/lik/høyere; likhet er kjent.
+Gap annoteres uten å fjerne kjent fasit. Første bar uten forgjenger er ukjent.
 
 | TF | Observerte barer | Første uten forgjenger |
 |---|---:|---:|
@@ -33,154 +31,93 @@ slutter nøyaktig på TEST-grensen 01.07.2026 er utelatt; faktatapen har
 | H4 | 26 427 | 1 |
 | D1 | 4 417 | 1 |
 
-Åpning mot forrige observerte åpning og slutt mot forrige observerte slutt
-har separate fortegn -1/0/+1. Likhet og blandede fortegn er kjente fakta.
-Hver TF har 17 bevarte årsskifter. De 5 558 M5-kildegapene annoteres uten å
-fjerne kjente fakta; ingen tomme barer fabrikkeres. Bare første bar mangler
-forgjenger. Framtidsmål har separate modningsmasker, og allerede kjent
-åpning gis ingen prognosekreditt.
+Alle76fasitarrays er tidligere uavhengig gjenskapt fra råkilden.
+26månedersGC-korpus er direkte300s-redusert fra66filer/892100712hendelser
+og femTF-pakken er bevart. Ingen ny råproduksjon eller parameterfit er gjort.
+TA-parametre og cachedinputs fra den kvalifiserte nativekjeden gjenbrukes.
+Alleåtte spesialistfamilier og61D1/makrofelt er beholdt; fulljointmodell har
+14inputflater,2748signal-/2562kontekstfelt og egen GC-historikk perTF.
+Tidligere felt-/klokke-/domene-/normaliseringsrettelser bevares i koden/Git.
+M1 er ALDRI input, fasit, klargjøring, maske, prior, normalisering eller
+metadataforelder til retning; bare senere oppfølging av en åpnet handel.
 
-Juni 2026 har 6 024 utviklings-VAL-rader til faktakontroll, ingen fitting.
-Historikk003 fullførte med exit 0 og uendret kilde på 334,87 sekunder.
-Uavhengig råaggregering gjenskapte alle 76 arrays eksakt.
+### Fullført liten hovedrunde
 
-### Indikatorer og konkrete rettelser
+TRAIN-pool01.05.–01.09.2024 har24175rader; senere septemberpool har5789.
+Brukeren reduserte kjøretiden til omtrent30minutter og oppfølginghver30min.
+Storemain001 ble derfor operatørstoppet underINITIAL,førførsteupdate;
+original CLAIM/TERMINAL og OPERATOR_STOP_REQUEST/OBSERVATION er bevart.
+Dens TimeoutError kom fra vårt styrte stoppsignal, ikke utløpt3timersfrist.
+Den planen er konsumert og relanseres aldri.
 
-M1 er aldri retningsgrunnlag: heller ikke via klargjøring, akser, mål,
-masker, priorer, normalisering, metadata eller warmstart. En kald prosessvakt
-avviser M1-artefakter og det gamle 049-registeret før kilde-/modellimport.
-M1 tilhører bare senere oppfølging av en allerede åpnet handel.
+Small002 frøs1536FIT-rader som96ikkeoverlappendeB16blokker og512CONTROL
+som8B64blokker fordelt på kilde-ranker før labels/prognoser. Første/siste
+poolrad og ukjent sisteCONTROL er med. Alle valgte rader er skåret før/etter,
+samme fasit og masker er bit-identiske. Primær Laplace1-prior er fittet på
+nøyaktig1536FIT-rader, ikke CONTROL. Inputnormen fra hele tidligereTRAIN-pool
+gjenbrukes:0normfit/1priorfit. Dette er ikke fullpool24175/5789-baseline.
 
-Native TA har 318 signalfelt, 132 kontekstfelt, 256 felt per TF og 61
-D1/makrofelt. Alle åtte spesialistfamilier beholdes. Native squeezeparametre
-for fem TF og V29 gjenbrukes uten refit. Feil i tomme helgebarers aggregering,
-binære/signed feltdomener, normaliseringsenheter og koblingen mellom
-feature-ID og fasittid er rettet. Opprinnelige ID-er og kildegap beholdes.
+Fersk initialSHA matcher mekanikk002. Originale kvalifikasjonsvekter er ikke
+lastet. Mekanikk002s faktiske AdamW-/RNG-/cursor-/checkpoint-kaldresume
+gjenbrukes med uendret numerisk fullmodul-AST/andre kildeeiere; bare eksakt
+kohort-/prior-/planorkestrering er endret. Alle aktuelle kilde-/plan-/policy-
+bookends består. M1/049-IO0,TEST0. CUDA peakallokering1,891GB.
+Initial/finalcapturer, INITIAL_SCORE, matchedprior og checkpoints32/64/96/
+FINAL_STATE er bevart og fysisk hashkontrollert. Checkpoint96 ogFINAL har
+sammepayloadhash. Ingen vekter/rådata er pushet; bare kode og aggregerte bevis.
 
-Pipeline006 kvalifiserte alle 27 eksisterende inputarrays uten ny
-råindikatorberegning. De sju faktiske konsumpopulasjonene fikk fersk
-normalisering; én fersk 16-raders CPU-initialbatch og identisk strict reload
-bestod. M5-apexfeltets målte mangel på estimerbar spredning har en avgrenset,
-kildebegrunnet enhetsregel. Ingen generell konstant-/skalafallback er åpnet.
-Originale feilkvitteringer fra 001–005 bevares og planene relanseres aldri.
+Ren valideringsflaskehals ble målt og minst mulig rettet: lokalt gjenbruk av
+GC-feltkatalog innen ett valideringskall, uten persistentcache/endredechecks.
+Metadatafullnorm gikk9,436→2,417s. EkteB16-steg gikk≈18,9→6,8s og B64-
+skåring ble kvalifisert. Ingen indikatorer eller modellmatematikk ble fjernet.
+32drivertester/11nye-berørteguardtilfeller og uavhengig kilderevisjon består;
+tidligere beståtte kontroller og ekte mekanikk er gjenbrukt.
 
-GC går direkte fra rå MBP-hendelser til 300-sekunders grunnlag og videre til
-M5/M15/H1/H4/D1. Ingen M1-reduksjon brukes. Alle 66 originalfiler,
-892 100 712 hendelser, 23 definisjoner og 15 kontrakter er behandlet.
-Råhashbookends og mengde-/stige-konservering består per fil.
-RAW_COMPONENTS001 fullførte på 935,924 sekunder uten modell eller råreplay.
+### Målt læring og senere utviklingskvalitet
 
-ASSEMBLY001 gjenbrukte alle komponentene og fullførte på 537,195 sekunder.
-Den fysiske pakken har 1 215 baseverdikonsepter og fem støttefelt.
-Ti genuine kjøps-/salgs-maksfelt manglet tidligere i registeret og er nå
-koblet inn. De 210 boolske verdidomenene er eksplisitte, inkludert 59 som
-tidligere manglet. Invers kontroll fanger uregistrerte primitiveier-felt.
+Alle9hoder med prediktive FIT-tapsceller forbedret både logloss og treklasse-
+Brier fraINITIAL. D1-åpning har0prediktiveFIT-/CONTROL-celler, og får ingen
+lærings-/prognosekreditt. Allerede kjent åpning er separat diagnostikk.
 
-Pakken har 227 808 kalenderbøtter, 152 999 volume-admitterte og 23 430 helt
-signerte. De 288 første-dagsbøttene uten kausalt kontraktsvalg beholdes ukjente.
-Kjent delvis B/S/N-flow bevares separat. Dokumenterte klokkehendelser,
-manglende historikk og svak observasjonsdekning har eksplisitte masker.
-At alle kildekolonner finnes betyr ikke at alle verdier er observerte.
+Vektet prediktiv logloss:
+- FIT1,16144→0,65236; matchetprior0,69832.
+- CONTROL1,14999→0,70416; matchetprior0,70698.
+Det samlede senere tallet blander oppgaver/TF og kvalifiserer ikke M5-close.
 
-### Bestått samlet kontroll på ekte data
+SenereCONTROL, framtidig sluttretning; lavere logloss/Brier er bedre:
 
-JOINT_QUALIFICATION001 er COMPLETE_CONSUMED_GENUINE_JOINT_TECHNICAL_ONLY:
-exit 0, uendret kilde, 235,244 sekunder. Ingen ny råreduksjon eller parameterfit.
+| TF | Celler / unike målbarer | Logloss INITIAL→FINAL | Logloss prior | Brier FINAL / prior |
+|---|---:|---:|---:|---:|
+| M5 | 511 / 511 | 0,901→0,763 | 0,717 | 0,539 / 0,505 |
+| M15 | 509 / 175 | 1,198→0,722 | 0,727 | 0,501 / 0,506 |
+| H1 | 500 / 48 | 1,133→0,794 | 0,697 | 0,575 / 0,503 |
+| H4 | 489 / 18 | 1,122→0,770 | 0,696 | 0,551 / 0,502 |
+| D1 | 489 / 12 | 1,294→0,638 | 0,690 | 0,440 / 0,496 |
 
-- Alle 29 964 opprinnelige M5-utstedelser er inputklare. Ingen fjernes fordi
-  GC mangler. Normalisering bruker alle 29 963 issues med modne framtidsmål.
-- Tolv ferske normaliseringsflater og ferske vekter; ingen gamle statistikker
-  eller vekter lastet. Den faktiske modellen mottar 14 inputflater:
-  signalbredde 2 748, kontekstbredde 2 562, TA-historikk og egne GC-historikker.
-- Åtte spesialistfamilier, 61 makrofelt og ti åpning-/slutthoder er koblet.
-  Alle 25 GC-familie/TF-ruter har målte gradienter gjennom observerte
-  kontinuerlige markedsverdier og projeksjonsvekter.
-- Den kildevalgte kontrollgruppen har 16 rader. Åtte hoder har kvalifiserte
-  tapsceller og gradient; to åpninghoder har ingen slike celler på akkurat
-  disse radene og korrekt null gradient. Ukjente markedsverdier har null gradient.
-- Tre forwards og én autogradberegning, null optimizersteg. Én kontrollert
-  endring av en kildekoordinat gir målbar logitendring gjennom produksjonsruten.
-  Kontrollvarianten er bare DIAGNOSTIC; originalpakke, binding og normalisering
-  er uendret. Strict reload gir identisk initial model-state.
-- Null forbudte M1/049-IO-forsøk. Ingen TEST, broker, ordre eller spending.
+M5-close valgte OPP501/511ganger mot faktiskOPP243/511: klar måltUP-bias
+på dette utvalget. M15/D1-close slo prior, men høyereTF har få unike og
+overlappende mål; dette er gjenbrukte utviklingsdata, ikke urørtbekreftelse.
+Prediktiv åpning slo prior på begge mål forM5/M15; H1/H4 er blandet og har
+41/6CONTROL-celler. Ingen prediktivD1-open måling.
 
-Fokuserte regresjoner, faktisk kald fullmodell/backward og uavhengig
-agentrevisjon er gjennomført. Sluttartefaktenes hasher er kontrollert mot
-RESULT/TERMINAL og bundet i policy. Ingen bestått suite eller modelljobb skal
-gjentas uten et konkret nytt behov.
+Uavhengig NumPy-kontroll gjenskapte alle rapporterte summer, klassecounts,
+priorer, masker og globale unikeTF-mål fra små INITIAL/FINAL-capturer.
+MATCHED_RESULT_REVIEW.json og INDEPENDENT_NUMPY_SCORE_REVIEW.json er
+hashbundet i policy, sammen med fullført result/terminal og checkpoints.
 
-### Gjenstår / aktivt mål
+### Gjort / ikke gjort / neste steg
 
-Brukeren har opprettet mål om å kvalifisere og gjennomføre én kort offline
-retnings-fit. TRAIN låses til 01.05.–01.09.2024 og senere CONTROL til
-01.09.–01.10.2024, begge fra den eksisterende kvalifiserte inputpakken.
-Dette krever fersk TRAIN-only normalisering: gammel mai–september-statistikk
-har sett CONTROL og kan ikke brukes. Rådata, TA-arrays, squeeze/V29-parametre,
-historikkmål og fysisk GC-pakke gjenbrukes uten ny produksjon.
+Den ene ønskede korte runden med ærlig resultatvurdering er ferdig.
+Modell-/optimizer-/checkpointkjeden er teknisk kvalifisert, og FIT-læring
+er målt. M5-sluttretning slo ikke prior på senereCONTROL. Ingen selvstendig
+generalisering, Entry-kvalitet, handelsøkonomi eller edge er dokumentert.
+FullTRAIN-poolbaseline/stortrening er ikke gjort av denne lille testen.
 
-Tre avgrensede agentoppgaver er integrert: eksisterende driver har ny
-eksakt fit-/resume-rute, fast Laplace1-treklasse-TRAIN-prior og separate
-populasjoner. 45 fokuserte capped4G-testfall består. Hovedrunden skal skåre
-alle 24 175 TRAIN- og 5 789 CONTROL-inputrader før/etter, med korte haler og
-ukjent siste kontrollrad. De to apex-formlene er separat observert på de
-faktiske TRAIN-unionene; eksisterende normaliseringskode kan gjenbrukes.
-
-FIT_MECHANICS_20261119_001 er COMPLETE_CONSUMED, exit0/uendret kilde,
-450,045s etter trygg fysisk Windows-boot666→667. Ekte CUDA-kjøring ga
-2 modeller, 7 forwards og 3 AdamW-steg (to kanoniske, ett kaldt repetert).
-Ny prosess gjenskapte neste modell-/optimizer-/RNG-/cursor-/logitstate
-bit-identisk. Begge prosesser har null M1/049-IO. Fersk TRAIN-only
-12-flate-normalisering og Laplace1-prior er lagret; ingen gamle vekter lastet.
-Dette er teknisk kvalifikasjon, ikke full prognosebaseline eller læring.
-
-En konkret ny runtimeblokkering er målt: to B16-skåringer tok35,912/36,605s,
-og hvert treningssteg18,886/18,944s. Hele før-/ettermålingen trenger3746
-forwards før treningssteg; dette er ikke kvalifisert innen10800s-vakten.
-Ren CPU4G-metadataprofil er nå fullført med null modeller/forwards/fit:
-full normaliseringskontroll tok9,436s under cProfile;218 kall til
-_native_gc_specs brukte8,130s og464 katalogbygginger8,037s.
-Den eksisterende validatorløkken rettes til lokal gjenbruk innen samme kall,
-med alle kontroller og verdier bevart. Ingen persistent cache innføres.
-Ny negativ-/kompleksitetstest består. Samme metadata-etterprofil002 har
-fullnorm2,417s, history0,752s, provider2,062s og profilecompile1,211s;
-original TRAIN-normalisering er uendret og null M1/modeller/updates er brukt.
-Faktisk ny GPU-throughput og minne skal kvalifiseres i egen mechanics002.
-Den gjenbruker bare original001 TRAIN-normalisering/prior/akse og starter
-ferske vekter med samme initialSHA. Ingen stats refittes eller kopieres.
-Scoring deklareres B64, trening beholder B16. Alle 24 175/5 789 inputrader
-beholdes: 378/91 batcher per hel skåring, siste haler47/29, totalt938 forwards
-for før/etter. Ny002port har8fokuserte tilfeller PASS; driveren27 PASS.
-Normaliseringsløkken har egen negativ-/kompleksitetstest PASS. Mechanics002 er nå COMPLETE_CONSUMED med opprinnelig plan-SHA
-79cb674b0dc62e3071b2a9f175fedb121774b3277de07a788aac6195a503439e.
-Ekte GPU-kjøring fullførte179,343s/exit0/uendret kilde,2modeller/7forwards/
-3updates. Kald resume er bit-identisk og begge prosesser har0M1/049-IO.
-Initial og final model-state er identiske med001;0norm-/priorfit og ingen
-gamle vekter er lest. B64-to-batchskåringer tok12,478/12,826s; B16updates
-6,889/6,771s. Målt peakCUDA-allokering1,891GB ligger under eksisterende vakt.
-
-SHORT_FIT001 er OPERATOR_ABORTED_CONSUMED_BEFORE_FIRST_UPDATE.
-Den tidligere store24 175/5 789-før-/ettermålingen er avløst av brukerens
-nye mindre scope, ikke fullført. Native0updates og kvitteringer bevares.
-Nytt scope er1536FIT-rader (96spredte B16blokker) og512senereCONTROL
-(8spredteB64blokker). Begge inkluderer første/siste poolrad, også ukjent
-sisteCONTROL. Pool/rank-hasher fryses før labels/prognoser. Originalnormen
-fra24175TRAIN-poolrader gjenbrukes, mens matchet Laplace1-prior fittes én
-gang på nøyaktig1536FIT-rader.96updates+64scoreforwards=160forwards.
-Konservativ20prosentprojeksjon er1502s≈25min innen1770/1800s.
-32driver- og11nye/berørte guardtilfeller består capped4G. Ingen modelljobb.
-
-Den kvalifiserte mekanikk002 gjenbrukes via verifisert Gitblob/fullmodul-AST
-for uendret modellmatematikk, optimizer, RNG og checkpoint. Bare navngitt
-kohort-/prior-/planorkestrering og fire eksplisitt hashbundne filer kan
-avvike; alle andre kildeeiere må være eksakt uendret. Nye små kohorter
-krever ingen ny GPU-mekanikkrunde. SHORT_FIT002 er ADMITTED_ONE_USE med plan-SHA
-bb841bfced12176a16bd9a0d12c2777427f9475871cbab6f305dbd7553891daf.
-32drivertester,11nye/berørte guardtilfeller, AST/diff og uavhengig
-kilderevisjon består. Eksakt faktisk CLI-førkontroll består på boot667
-med null modeller/updates. Bare denne planen innrømmes; kilde/policy fryses
-til terminal. Maskinvaktene kjører kontinuerlig, operatøroppfølging30min.
-Ingen andre fits eller handlinger åpnes. Ingen
-utfallsstyrt seleksjon, ny råproduksjon eller relansering av konsumerte planer.
+Ingen ny fit innrømmes. Eventuell videre årsaksanalyse skal først bruke
+lagrede prognoser, forvekslingsmatriser og task-/TF-tall til å undersøke
+UP-bias; resultatet beviser ikke hvorfor den oppstod. En kort runde er
+ingen generell kapasitetsdom eller grunn til å kassere genuine indikatorer.
+Alle ferdige inputs, parametre og originalkvitteringer skal gjenbrukes.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
 
