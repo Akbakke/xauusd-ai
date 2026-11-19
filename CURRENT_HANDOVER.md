@@ -127,11 +127,13 @@ består. Uavhengig leserevisjon avdekket og rettet fire kontrollhull. Den binder
 vekter, tre eval-forwards/én autogradberegning/0optimizer, og kun eksplisitt
 koordinat-diagnostikk som kontroll. Ingen ny produksjonsbinding for varianten.
 
-GC_RAW_COMPONENTS001 er ADMITTED_ONE_USE etter bestått eksakt capped
-kilde-/kvitterings-CLI:0rådekoding,0modeller og0forbudteIO-forsøk.
-Én4worker/12G/512M/7200sjobb er innrømmet, kilde/policy fryst til terminal.
-Stabil kjøring kontrolleres omtrent hver15.–30.minutt. Planen produserer varige komponenter
-per originalfil. Først ved COMPLETE66/66 kan assembler koble kausal forrige-
+GC_RAW_COMPONENTS001 er COMPLETE_CONSUMED_RAW_COMPONENTS_ONLY. Alle66filer og
+892 100 712originale hendelser er direkte300s-redusert på935,924s, med
+uendret kilde/råhashbookends og mengde-/stige-konservering i hver fil.
+0M1/049-IO,0modeller og0optimizer. Varige komponent-/stige-/kvitteringsfiler
+for alle66 er hashbundet fra original RESULT/TERMINAL i policy. Ingen råreplay.
+Assemblerens eksakte metadata-CLI/admisjon gjenstår før alle TF-felt kobles.
+Først ved COMPLETE66/66 kan assembler koble kausal forrige-
 dag-kontrakt, publiserte klokkehendelser, nativeXAU-M5-basis og allefelt.
 Rollevalg bruker betrodde individuelle T-mengder minus klokkehendelser;
 hele-feature-bøtter har separat strengere kvalitetsmaske. Ukjent første
