@@ -43,7 +43,10 @@ Omfang: uavhengig råberegning av alle76arrays,
 ferske native5-squeeze-/V29-parametre,318signaler/132kontekst/256felt perTF,
 61as-of-makrofelter, hele faktisk konsumerte TRAIN-normaliseringspopulasjonen
 og én fersk teknisk CPU-batch på16rader med privat initialcheckpoint.
-Dette er ennå ikke fysisk utført. GC/MBP-ruten er separat og beholdt.
+Dette er ennå ikke fysisk utført.
+Første preflight ble avvist før oppstart fordi audit tillater høyst4G.
+Pipeline bruker derfor eksisterende CPU-research-producer med12G/512M.
+Ingen CLAIM eller prislesing ble gjort; klargjort plan må bindes på nytt før admisjon. GC/MBP-ruten er separat og beholdt.
 M1, Entry, modellfit, TEST, broker og handel forblir stengt.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)

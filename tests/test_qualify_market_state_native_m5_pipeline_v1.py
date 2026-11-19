@@ -15,7 +15,7 @@ def lifecycle(monkeypatch, tmp_path):
     policy_ref = {'path': str(tmp_path / 'POLICY.json'), 'sha256': '2' * 64}
     plan = {'execution': dict(audit.EXECUTION), 'target_source_spec': {},
             'inputs': {'target_tape': {}}}
-    monkeypatch.setattr(audit, 'require_capped_cpu_audit_execution', lambda: {
+    monkeypatch.setattr(audit, 'require_capped_cpu_research_producer_execution', lambda: {
         'memory_max': 12 * 1024**3, 'memory_high': 12 * 1024**3,
         'swap': 512 * 1024**2, 'numerical_threads': 1,
         'cgroup_path': '/sys/fs/cgroup/synthetic'})

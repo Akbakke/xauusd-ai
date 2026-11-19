@@ -16,7 +16,7 @@ import pyarrow.parquet as pq
 
 from gx1.audit import build_native_m5_direction_targets_v1 as data
 from gx1.contracts.gx1_capped_execution_v1 import (
-    require_capped_cpu_audit_execution, require_capped_lock_ancestry,
+    require_capped_cpu_research_producer_execution, require_capped_lock_ancestry,
 )
 from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
 
@@ -34,7 +34,7 @@ SEED, BATCH = 20260911, 16
 ARCHITECTURE = {'dropout': .05, 'multi_tf_num_layers': 2, 'multi_tf_scale': .5,
     'specialist_num_layers': 1, 'specialist_fusion_scale': .25,
     'cross_family_fusion_scale': .25}
-EXECUTION = {'class': 'audit', 'memory': '12G', 'swap': '512M',
+EXECUTION = {'class': 'producer', 'memory': '12G', 'swap': '512M',
     'outer_seconds': 3600, 'internal_seconds': 3570, 'kill_after_seconds': 10,
     'numerical_threads': 1, 'model_constructions': 1, 'model_forwards': 1,
     'optimizer_steps': 0}
@@ -709,7 +709,7 @@ def verify_native_m5_bar_facts_003(*, source_spec, archive_ref):
 
 def run(plan_sha):
     started = time.monotonic()
-    cap = require_capped_cpu_audit_execution()
+    cap = require_capped_cpu_research_producer_execution()
     lock = require_capped_lock_ancestry()
     need(cap['memory_max'] == cap['memory_high'] == 12 * 1024**3
          and cap['swap'] == 512 * 1024**2 and cap['numerical_threads'] == 1
