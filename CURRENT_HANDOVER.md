@@ -6,7 +6,7 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`FULL_HISTORY_RAW_VERIFIED_NATIVE_PIPELINE_EMPTY_BIN_REPAIR`.
+`NATIVE_M5_PIPELINE_002_ADMITTED_REUSING_COMPLETED_EVIDENCE`.
 
 Fullhistorikk-plan003 er fullført én gang med exit0 og uendret kilde.
 1 215 514 native M5-rader er dekodet fra18kildeår2009–2026. Én bar
@@ -49,7 +49,7 @@ ble konstruert. Plan001 er konsumert og relanseres aldri.
 
 Minste rettelse er å fjerne bare faktisk tomme TF-bøtter, bevare observerte
 delbøtter og la ugyldige observerte priser feile. 22 målrettede rettelses-/gjenbrukstester bestod.
-Pipeline002 er PREPARED_NOT_ADMITTED, planhashe5e0c6a42995b1193935ff5ca4bc633576c1246d613f1946c779e1c2d4ff0bd7.
+Pipeline002 er ADMITTED_ONE_USE etter bestått capped preflight, planhashe5e0c6a42995b1193935ff5ca4bc633576c1246d613f1946c779e1c2d4ff0bd7.
 Denne skal
 hashbinde og gjenbruke ferdig historikkontroll ogM5-parametre, deretter
 fullføre fireTF-squeeze, V29, faktisk318/132/256/61felt, hele TRAIN-
