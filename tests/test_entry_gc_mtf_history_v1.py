@@ -467,3 +467,109 @@ def test_first_retouch_identity_rejects_stale_055_continuous_metadata():
     sparse_stats = fit_surface_normalization(sparse, surface="ctx_cont", field_names=names)
     assert sparse_stats["binary_mask"] == [1, 1]
     assert sparse_stats["scale_source"][0] == "semantic_binary_identity"
+
+
+def native_synthetic_history(*,unknown_d1=True):
+    """In-memory source-domain algebra; dummy seals grant no physical authority."""
+    from gx1.contracts import entry_model_native_input_normalization_v1 as norm
+    layout = history.native_gc_mtf_history_layout()
+    surfaces, stats, unions = {}, {}, {}
+    rows = np.arange(32,dtype=np.int64)
+    epoch = int(pd.Timestamp('2024-05-01T00:00:00Z').value)
+    for tf in history.TIMEFRAMES:
+        names = layout['field_names'][tf]
+        values = (np.arange(32)[:,None]*.2 + np.arange(len(names))[None,:]*.001 + 1.).astype(np.float32)
+        for j,name in enumerate(names):
+            if name in layout['binary_fields'][tf]:values[:,j]=np.arange(32)%2
+        for vi,mi in layout['value_mask_pairs'][tf]:
+            if names[mi].endswith('_observed'):values[:,mi]=1.
+        if tf=='D1' and unknown_d1:values[:]=0.
+        else:
+            vi,mi=next((v,m) for v,m in layout['value_mask_pairs'][tf] if names[v] not in layout['binary_fields'][tf])
+            values[0,vi]=values[0,mi]=0.
+        for vi,mi in layout['value_mask_pairs'][tf]:
+            values[values[:,mi]==0.,vi]=0.
+        duration = history.TIMEFRAME_MINUTES[tf]*MINUTE
+        offset = {'M5':0,'M15':0,'H1':0,'H4':120*MINUTE,'D1':1320*MINUTE}[tf]
+        first = (epoch-offset)//duration*duration+offset+duration
+        available = first+rows*duration
+        surface='gc_mtf_'+tf.lower()
+        stats[surface] = norm.fit_native_m5_gc_surface_normalization(values,surface=surface,
+            field_names=names,semantic_categorical_domains={})
+        unions[tf]={'rows':len(rows),'native_row_indices_sha256':history._array_sha(rows),
+                    'available_ns_sha256':history._array_sha(available)}
+        surfaces[tf]={'native_row_indices':rows.copy(),'available_ns':available,
+                      'features':values,'field_names':names}
+    payload={'schema_version':history.NATIVE_M5_NORMALIZATION_SCHEMA,
+        'layout_sha256':layout['contract_sha256'],'source_binding_sha256':'9'*64,
+        'source_axes_sha256':'7'*64,'surfaces':stats,
+        'provenance':{'train_start_ns':epoch,'train_end_ns':int(pd.Timestamp('2024-10-01T00:00:00Z').value),
+                      'row_union':unions}}
+    normalized={**payload,'contract_sha256':history._sha(payload)}
+    bound={'layout':layout,'normalization':normalized}
+    assert history.require_gc_mtf_history(bound)==bound
+    return bound,surfaces
+
+
+def test_native_gc_layout_and_unknown_prefix_use_explicit_source_units():
+    from gx1.contracts import entry_model_native_input_normalization_v1 as norm
+    from gx1.features.gc_native_m5_features_v1 import native_m5_field_catalog
+    bound,surfaces=native_synthetic_history();layout=bound['layout']
+    catalog=native_m5_field_catalog()
+    assert sum(layout['widths'].values())==len(catalog['field_names'])
+    for tf in history.TIMEFRAMES:
+        assert sorted(i for ids in layout['family_indices'][tf].values() for i in ids)==list(range(layout['widths'][tf]))
+    names=layout['field_names']['D1'];fitted=bound['normalization']['surfaces']['gc_mtf_d1']
+    value,mask=next((vi,mi) for vi,mi in layout['value_mask_pairs']['D1'] if names[vi] not in layout['binary_fields']['D1'])
+    assert fitted['observed_fit_counts'][value]==0
+    assert fitted['native_gc_unfitted_estimates'][names[value]] is None
+    assert fitted['scale_source'][value]==norm.NATIVE_GC_UNOBSERVED_UNIT_SOURCE
+    assert fitted['center'][value]==0. and fitted['scale'][value]==1.
+    future=np.zeros((1,len(names)),np.float32);future[0,value]=7.;future[0,mask]=1.
+    actual=norm.apply_surface_normalization(future,fitted)
+    assert actual[0,value]==np.float32(np.arcsinh(7.))
+    future[0,mask]=0.
+    with pytest.raises(RuntimeError,match='MASKED_STORAGE'):
+        norm.apply_surface_normalization(future,fitted)
+    bad_domain=deepcopy(bound)
+    bad_domain['normalization']['surfaces']['gc_mtf_d1'].pop('native_gc_domain_contract_sha256')
+    with pytest.raises(RuntimeError,match='NATIVE_SURFACE_DOMAIN:D1'):
+        history.require_gc_mtf_history(bad_domain)
+    bad=deepcopy(bound);bad['normalization']['source_binding_sha256']='old-source'
+    with pytest.raises(RuntimeError,match='NATIVE_NORMALIZATION_IDENTITY'):
+        history.require_gc_mtf_history(bad)
+
+
+def test_native_gc_rare_physical_unit_preserves_values_without_inventing_dispersion():
+    from gx1.contracts import entry_model_native_input_normalization_v1 as norm
+    from gx1.features.gc_native_m5_features_v1 import native_m5_field_catalog
+    import torch
+    field='gc_m15_observed_book_quote_updates'
+    spec=next(item for item in native_m5_field_catalog()['fields'] if item['name']==field)
+    names=[field,spec['availability_field']]
+    values=np.zeros((144,2),np.float32)
+    values[14:]=[3.,1.];values[14,0]=2.
+    fitted=norm.fit_native_m5_gc_surface_normalization(values,surface='gc_mtf_m15',
+        field_names=names,semantic_categorical_domains={})
+    assert fitted['observed_fit_counts']==[130,144]
+    assert fitted['center'][0]==3. and fitted['scale'][0]==spec['unit_scale']
+    assert fitted['scale_source'][0]==norm.NATIVE_GC_RARE_UNIT_SOURCE
+    assert fitted['native_gc_unfitted_estimates']=={}
+    assert fitted['native_gc_unfitted_dispersion_estimates']=={field:{
+        'dispersion_estimate':None,'positive_deviations':1,'observed_rows':130}}
+    norm.require_surface_normalization(fitted,surface='gc_mtf_m15',field_names=names)
+    later=np.array([[2.,1.],[3.,1.],[4.,1.],[7.,1.],[0.,0.]],np.float32)
+    transformed=norm.apply_surface_normalization(later,fitted)
+    assert np.all(np.diff(transformed[:4,0])>0.) and transformed[-1,0]==0.
+    np.testing.assert_allclose(norm.invert_surface_normalization(transformed,fitted),later,atol=1e-6)
+    raw=torch.tensor(later,requires_grad=True)
+    normalized=torch.asinh((raw-torch.tensor(fitted['center']))/torch.tensor(fitted['scale']))
+    norm.mask_native_gc_torch(raw,normalized,names)[:,0].sum().backward()
+    assert raw.grad[-1,0]==0. and torch.all(raw.grad[:4,0]>0.)
+    bad=deepcopy(fitted)
+    bad['native_gc_unfitted_dispersion_estimates'][field]['positive_deviations']=2
+    with pytest.raises(RuntimeError,match='NATIVE_GC_RARE_SOURCE_UNIT_CONTRACT'):
+        norm.require_surface_normalization(bad,surface='gc_mtf_m15',field_names=names)
+    for fit in (norm.fit_native_m5_surface_normalization,norm.fit_native_m5_gc_surface_normalization):
+        with pytest.raises(RuntimeError,match='UNSCALEABLE'):
+            fit(values[14:,:1],surface='signal',field_names=['ordinary_unmasked_continuous'],semantic_categorical_domains={})

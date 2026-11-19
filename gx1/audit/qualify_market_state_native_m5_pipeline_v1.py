@@ -28,9 +28,9 @@ from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
 
 REPO = data.REPO
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
-STAGE = 'native_m5_pipeline_20261119_004'
-PLAN = REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_004.json'
-ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_004')
+STAGE = 'native_m5_pipeline_20261119_005'
+PLAN = REPO / 'configs/research/NATIVE_M5_PIPELINE_20261119_005.json'
+ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_005')
 FIT_START_NS = 1714521600000000000
 FIT_END_NS = 1727740800000000000
 PARAMETER_START_NS = 1243814400000000000
@@ -144,6 +144,80 @@ def firewall_state():
     return json.loads(json.dumps(_IO_FIREWALL))
 
 
+def validate_candidate_clock_domains(starts, tf_clocks, truth):
+    """Prove feature-owner IDs and target IDs in their separate native domains."""
+    from gx1.features import htf_features as htf
+    issues, source = truth['issue_ns'], truth['source_row']
+    n = len(starts)
+    need(starts.dtype == np.int64 and starts.ndim == 1 and n > 0
+         and np.all(np.diff(starts) > 0) and len(issues) >= n
+         and np.array_equal(source[:n], np.arange(n, dtype=np.int64))
+         and np.array_equal(starts + data.M5_NS, issues[:n])
+         and np.all(starts + data.M5_NS < FIT_END_NS), 'CANDIDATE_NATIVE_SOURCE_AXIS')
+    # Feature geometry excludes an initial bin opening before source start.
+    # Observed bar facts intentionally retain that partial first bin. Their row
+    # numbers therefore cannot be used interchangeably, even on identical bars.
+    owner_axes = htf.build_multi_tf_v4_closed_timestamp_indices(pd.to_datetime(starts, utc=True))
+    report = {}
+    digest = lambda a: hashlib.sha256(np.ascontiguousarray(a, dtype='<i8').tobytes()).hexdigest()
+    need(set(tf_clocks) == set(owner_axes), 'CANDIDATE_FIVE_CLOCK_DOMAINS')
+    for tf, clock in tf_clocks.items():
+        ids, times = clock['owner_row_indices'], clock['ts_int64']
+        owner = owner_axes[tf].asi8
+        need(ids.dtype == times.dtype == np.int64 and ids.ndim == times.ndim == 1
+             and len(ids) == len(times) > 0 and ids[0] >= 0 and ids[-1] < len(owner)
+             and np.all(np.diff(ids) > 0) and np.all(np.diff(times) > 0)
+             and np.array_equal(owner[ids], times), 'CANDIDATE_FEATURE_OWNER_AXIS:' + tf)
+        target = truth['bars_' + tf + '_bar_start_ns']
+        available = truth['bars_' + tf + '_available_ns']
+        need(target.dtype == available.dtype == np.int64 and target.ndim == 1
+             and available.shape == target.shape and np.all(np.diff(target) > 0)
+             and np.all(np.diff(available) > 0), 'CANDIDATE_TARGET_CLOCK:' + tf)
+        joined = np.searchsorted(target, times)
+        need(np.all(joined < len(target)) and np.array_equal(target[joined], times)
+             and len(np.unique(joined)) == len(times), 'CANDIDATE_TARGET_TIME_JOIN:' + tf)
+        expected_available = times + int(htf.MULTI_TF_SHIFT[tf].value)
+        need(np.array_equal(available[joined], expected_available),
+             'CANDIDATE_TARGET_AVAILABILITY_JOIN:' + tf)
+        offsets, counts = np.unique(joined - ids, return_counts=True)
+        report[tf] = {'feature_owner_axis_rows': len(owner), 'retained_rows': len(ids),
+            'feature_owner_axis_sha256': digest(owner),
+            'retained_feature_owner_ids_sha256': digest(ids), 'target_joined_rows_sha256': digest(joined),
+            'bar_start_ns_sha256': digest(times), 'available_ns_sha256': digest(expected_available),
+            'target_minus_feature_owner_id_counts': {str(int(k)): int(v) for k, v in zip(offsets, counts)},
+            'target_rows_before_feature_axis_start': int(np.searchsorted(target, owner[0])),
+            'feature_owner_ids_preserved': True, 'exact_bijective_retained_time_and_availability_join': True}
+    return {'schema_version': 'gx1_native_feature_and_bar_fact_clock_domain_join_v1',
+        'native_M5_prefix_rows': n, 'native_M5_prefix_exact': True,
+        'per_timeframe': report, 'feature_and_target_row_domains_kept_separate': True}
+
+
+def candidate_clock_proof(inputs, saved):
+    """Preclaim clock-only decode; no cached feature matrix or raw price read."""
+    need(ref(inputs['candidate_archive']['path']) == inputs['candidate_archive']
+         and ref(inputs['target_tape']['path']) == inputs['target_tape'], 'CANDIDATE_CLOCK_ARCHIVE_IDENTITY')
+    names = ['bar_start_ns']
+    for tf in ('M5', 'M15', 'H1', 'H4', 'D1'):
+        names += ['tf_' + tf + '_ts_int64', 'tf_' + tf + '_owner_row_indices']
+    clocks = {}
+    with np.load(inputs['candidate_archive']['path'], allow_pickle=False) as archive:
+        for name in names:
+            value = archive[name]
+            header = saved['arrays'][name]
+            need(value.dtype == np.int64 and value.ndim == 1 and value.dtype.str == header['dtype']
+                 and list(value.shape) == header['shape']
+                 and hashlib.sha256(np.ascontiguousarray(value).tobytes()).hexdigest() == header['sha256'],
+                 'CANDIDATE_CLOCK_BYTES:' + name)
+            clocks[name] = value
+    tf_clocks = {tf: {key: clocks['tf_' + tf + '_' + key]
+                     for key in ('ts_int64', 'owner_row_indices')}
+                 for tf in ('M5', 'M15', 'H1', 'H4', 'D1')}
+    with np.load(inputs['target_tape']['path'], allow_pickle=False) as truth:
+        proof = validate_candidate_clock_domains(clocks['bar_start_ns'], tf_clocks, truth)
+    return {**proof, 'cached_clock_arrays_decoded': len(names),
+            'cached_feature_value_arrays_decoded': 0, 'raw_price_values_decoded': 0}
+
+
 def candidate_metadata(inputs, feature_contract):
     from gx1.contracts.entry_model_native_input_normalization_v1 import native_m5_input_domain_contract
     paths = {'candidate_snapshot': 'FEATURE_INPUTS.json', 'candidate_archive': 'FEATURE_INPUTS.npz',
@@ -186,6 +260,7 @@ def candidate_metadata(inputs, feature_contract):
          'CANDIDATE_PROVIDER_NUMERIC_CONTRACT')
     return {'original_plan': old_plan_ref, 'original_claim': old_claim_ref,
         'candidate_dependencies': {'plan': old_plan_ref, 'claim': old_claim_ref},
+        'cached_clock_admission': candidate_clock_proof(inputs, saved),
         'original_provider_contract_sha256': before['contract_sha256'],
         'admitted_provider_contract_sha256': feature_contract['contract_sha256'],
         'original_execution_profile': before['execution_profile'],
@@ -487,7 +562,7 @@ def build_plan(*, inputs, source_base_commit=None):
         'io_firewall': firewall_contract(),
         'feature_contract': feature_contract,
         'target_contract': target_contract(), 'objective_contract': native_bar_objective_contract(),
-        'metadata_scope': 'genuine_source_macro_and_target_receipts_no_price_decode',
+        'metadata_scope': 'genuine_receipts_and_11_cached_clock_arrays_no_feature_or_raw_price_decode',
         'model_forwards': 1, 'model_constructions': 1, 'optimizer_steps': 0,
         'training_authorized': False, 'test_data_used': False, 'economic_edge_proven': False,
     }
@@ -779,22 +854,16 @@ def load_candidate_provider(plan):
     # The old receipt remains unchanged. Only this new in-memory representation
     # uses the clean catalogue identity, after contract and byte equivalence.
     surfaces['provider_contract'] = plan['feature_contract']
+    need(len(surfaces['bar_start_ns']) == surfaces['source_binding']['rows'],
+         'CANDIDATE_NATIVE_SOURCE_ROWS')
     with np.load(plan['inputs']['target_tape']['path'], allow_pickle=False) as truth:
-        issues = truth['issue_ns']
-        source = truth['source_row']
-        starts = surfaces['bar_start_ns']
-        n = len(starts)
-        need(starts.ndim == 1 and n == surfaces['source_binding']['rows'] and len(issues) >= n
-             and np.array_equal(source[:n], np.arange(n, dtype=np.int64))
-             and np.array_equal(starts + data.M5_NS, issues[:n])
-             and np.all(starts + data.M5_NS < FIT_END_NS), 'CANDIDATE_NATIVE_SOURCE_AXIS')
-        for tf, frame in multi_tf.items():
-            ids, times = frame.attrs['owner_row_indices'], frame.attrs['ts_int64']
-            canonical_times = truth['bars_' + tf + '_bar_start_ns']
-            need(ids.dtype == np.int64 and ids.ndim == 1 and len(ids) > 0
-                 and ids[0] >= 0 and ids[-1] < len(canonical_times)
-                 and np.all(np.diff(ids) > 0) and np.array_equal(canonical_times[ids], times),
-                 'CANDIDATE_GLOBAL_TF_AXIS:' + tf)
+        domain_proof = validate_candidate_clock_domains(surfaces['bar_start_ns'],
+            {tf: {key: frame.attrs[key] for key in ('ts_int64', 'owner_row_indices')}
+             for tf, frame in multi_tf.items()}, truth)
+    expected_proof = plan['candidate_requalification'].get('cached_clock_admission')
+    need(expected_proof is not None and domain_proof == {key: value for key, value in expected_proof.items()
+         if key not in ('cached_clock_arrays_decoded', 'cached_feature_value_arrays_decoded',
+                        'raw_price_values_decoded')}, 'CANDIDATE_CLOCK_ADMISSION_PARITY')
     provider = features.NativeM5FeatureProvider(surfaces)
     aliases = dict(plan['feature_contract']['local_value_owners']['same_M5_exact_aliases'])
     from gx1.features import entry_model_native_feature_layers_v1 as layers
@@ -816,7 +885,7 @@ def load_candidate_provider(plan):
         'candidate_snapshot': plan['inputs']['candidate_snapshot'],
         'candidate_archive': plan['inputs']['candidate_archive'],
         'array_count': len(arrays), 'all_array_bytes_dtype_shape_exact': True,
-        'global_M5_and_TF_axes_equal_independently_verified_native_target_axes': True,
+        'native_M5_axis_and_separate_TF_owner_domains_exactly_joined_to_verified_targets': True,
         'ordered_fields_aliases_and_formula_lineage_equal': True,
         'source_axes_sha256_unchanged': surfaces['axes']['contract_sha256'],
         'raw_numeric_values_recomputed': False, 'old_statistics_or_weights_loaded': False}
@@ -994,9 +1063,10 @@ def main():
     need(args.plan == str(PLAN) and args.out_dir == str(ROOT), 'CLI_SCOPE')
     if args.preflight:
         plan, plan_ref, policy_ref = inspect(args.plan_sha256, admitted=False)
-        print(json.dumps({'status': 'PREFLIGHT_PASS_GENUINE_METADATA_ONLY', 'plan': plan_ref,
+        print(json.dumps({'status': 'PREFLIGHT_PASS_GENUINE_METADATA_AND_CACHED_CLOCKS', 'plan': plan_ref,
             'policy': policy_ref, 'claim_created': False, 'output_root_absent': True,
-            'parquet_values_decoded': 0, 'model_constructions': 0,
+            'parquet_values_decoded': 0, 'cached_clock_arrays_decoded': 11,
+            'cached_feature_value_arrays_decoded': 0, 'model_constructions': 0,
             'model_forwards': 0, 'clean_process_io_firewall': firewall_state(),
             'test_data_used': False}))
     else:

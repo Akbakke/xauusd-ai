@@ -383,6 +383,7 @@ def candidate_fixture(monkeypatch):
         plan_ref['path']: old_plan, claim_ref['path']: {'stage': old_plan['stage'], 'plan': plan_ref}}
     monkeypatch.setattr(audit, 'read', lambda ref: records[ref['path']])
     monkeypatch.setattr(audit, 'numeric_owner_identities', lambda plan: {'numeric_owner': '6' * 64})
+    monkeypatch.setattr(audit, 'candidate_clock_proof', lambda *args: {'synthetic_clock_proof': True})
     return inputs, before, after, saved, terminal
 
 
@@ -429,6 +430,7 @@ def cached_physical_fixture(monkeypatch, tmp_path):
     target = {'issue_ns': provider.issue_ns, 'source_row': provider.source_row}
     for tf, frame in fixture[-1].items():
         target['bars_' + tf + '_bar_start_ns'] = frame.index.asi8
+        target['bars_' + tf + '_available_ns'] = frame.index.asi8 + int(owner.htf.MULTI_TF_SHIFT[tf].value)
     np.savez(target_path, **target)
     plan = {'inputs': {'candidate_snapshot': snapshot, 'candidate_archive': saved['archive'],
                       'target_tape': {'path': str(target_path)}},
@@ -436,7 +438,18 @@ def cached_physical_fixture(monkeypatch, tmp_path):
         'feature_source_spec': surfaces['source_binding']['source_spec'],
         'parameter_reuse': {'registry_contract_sha256': surfaces['registry_contract_sha256'],
                             'squeeze_binding': surfaces['squeeze_binding']}}
-    monkeypatch.setattr(audit, 'candidate_metadata', lambda *args: {})
+    # The existing wiring fixture deliberately fabricates HTF prehistory.
+    # Its declared owner axes are injected here; real native geometry is checked
+    # independently below, including initial partial bins and source gaps.
+    monkeypatch.setattr(owner.htf, 'build_multi_tf_v4_closed_timestamp_indices',
+                        lambda index: {tf: frame.index for tf, frame in fixture[-1].items()})
+    clocks = {tf: {key: frame.attrs[key] for key in ('owner_row_indices', 'ts_int64')}
+              for tf, frame in surfaces['multi_tf_sources'].items()}
+    clock_proof = audit.validate_candidate_clock_domains(surfaces['bar_start_ns'], clocks, target)
+    plan['candidate_requalification'] = {'cached_clock_admission': {
+        **clock_proof, 'cached_clock_arrays_decoded': 11,
+        'cached_feature_value_arrays_decoded': 0, 'raw_price_values_decoded': 0}}
+    monkeypatch.setattr(audit, 'candidate_metadata', lambda *args: plan['candidate_requalification'])
     return plan, saved, provider
 
 
@@ -475,3 +488,75 @@ def test_cached_physical_requalification_rejects_mismatches(monkeypatch, tmp_pat
     monkeypatch.setattr(audit, 'read', lambda ref: saved)
     with pytest.raises((ValueError, RuntimeError), match='(CANDIDATE_|CONTEXT_ALIAS_VALUES)'):
         audit.load_candidate_provider(plan)
+
+
+def real_clock_geometry(first='2009-06-01T00:00:00Z'):
+    import pandas as pd
+    from gx1.features import htf_features as htf
+    index = pd.date_range(first, '2009-06-17T23:50:00Z', freq='5min')
+    index = index[index.dayofweek < 5]  # observed source gaps stay in both domains
+    starts = index.asi8
+    owner = htf.build_multi_tf_v4_closed_timestamp_indices(index)
+    truth = {'issue_ns': starts + audit.data.M5_NS, 'source_row': np.arange(len(starts), dtype=np.int64)}
+    clocks = {}
+    for tf, axis in owner.items():
+        observed = htf.multi_tf_bar_label(index, tf).drop_duplicates()
+        duration = int(htf.MULTI_TF_SHIFT[tf].value)
+        observed = observed[observed.asi8 + duration <= starts[-1] + audit.data.M5_NS]
+        truth['bars_' + tf + '_bar_start_ns'] = observed.asi8
+        truth['bars_' + tf + '_available_ns'] = observed.asi8 + duration
+        ids = np.arange(max(0, len(axis)-5), len(axis), dtype=np.int64)
+        clocks[tf] = {'owner_row_indices': ids, 'ts_int64': axis.asi8[ids]}
+    return starts, clocks, truth
+
+
+@pytest.mark.parametrize('tf', ('H4', 'D1'))
+def test_real_first_partial_facts_and_feature_ids_have_separate_exact_domains(tf):
+    starts, clocks, truth = real_clock_geometry()
+    original_ids = clocks[tf]['owner_row_indices'].copy()
+    proof = audit.validate_candidate_clock_domains(starts, clocks, truth)
+    domain = proof['per_timeframe'][tf]
+    assert domain['target_rows_before_feature_axis_start'] == 1
+    assert domain['target_minus_feature_owner_id_counts'] == {'1': len(original_ids)}
+    assert domain['exact_bijective_retained_time_and_availability_join'] is True
+    np.testing.assert_array_equal(clocks[tf]['owner_row_indices'], original_ids)
+
+
+def test_asymmetric_native_start_changes_affected_domains_without_date_or_offset_special_case():
+    starts, clocks, truth = real_clock_geometry('2009-06-01T09:35:00Z')
+    proof = audit.validate_candidate_clock_domains(starts, clocks, truth)
+    assert proof['per_timeframe']['M5']['target_rows_before_feature_axis_start'] == 0
+    for tf in ('M15', 'H1', 'H4', 'D1'):
+        assert proof['per_timeframe'][tf]['target_rows_before_feature_axis_start'] == 1
+        assert proof['per_timeframe'][tf]['target_minus_feature_owner_id_counts'] == {'1': 5}
+
+
+@pytest.mark.parametrize('fault', ('owner_id', 'target_time', 'availability'))
+def test_separate_clock_domain_proof_rejects_wrong_ids_or_nonexact_target_join(fault):
+    starts, clocks, truth = real_clock_geometry()
+    if fault == 'owner_id':
+        clocks['D1']['owner_row_indices'] = clocks['D1']['owner_row_indices'] + 1
+    else:
+        key = 'bars_D1_' + ('bar_start_ns' if fault == 'target_time' else 'available_ns')
+        truth[key] = truth[key].copy()
+        truth[key][-1] += audit.data.M5_NS
+    with pytest.raises(ValueError, match='CANDIDATE_(FEATURE_OWNER_AXIS|TARGET_TIME_JOIN|TARGET_AVAILABILITY_JOIN)'):
+        audit.validate_candidate_clock_domains(starts, clocks, truth)
+
+
+def test_preclaim_clock_proof_never_decodes_cached_feature_values(monkeypatch, tmp_path):
+    starts, clocks, truth = real_clock_geometry()
+    arrays = {'bar_start_ns': starts}
+    for tf, clock in clocks.items():
+        arrays.update({'tf_' + tf + '_' + key: value for key, value in clock.items()})
+    candidate = tmp_path / 'FEATURES.npz'
+    target = tmp_path / 'TARGETS.npz'
+    # Accessing either object array with allow_pickle=False would fail.
+    np.savez(candidate, **arrays, signal=np.array([object()], dtype=object))
+    np.savez(target, **truth, bars_D1_ohlc=np.array([object()], dtype=object))
+    saved = {'arrays': {key: {'dtype': value.dtype.str, 'shape': list(value.shape),
+        'sha256': audit.hashlib.sha256(value.tobytes()).hexdigest()} for key, value in arrays.items()}}
+    proof = audit.candidate_clock_proof({'candidate_archive': audit.ref(candidate),
+                                       'target_tape': audit.ref(target)}, saved)
+    assert proof['cached_clock_arrays_decoded'] == 11
+    assert proof['cached_feature_value_arrays_decoded'] == proof['raw_price_values_decoded'] == 0

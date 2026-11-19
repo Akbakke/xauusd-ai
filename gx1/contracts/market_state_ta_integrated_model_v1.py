@@ -148,8 +148,18 @@ def _seal_native(value):
 
 
 def require_native_bar_input_binding(value):
+    if isinstance(value,Mapping) and value.get('schema_version')=='gx1_native_m5_full_gc_bar_direction_inputs_v1':
+        from gx1.contracts.market_state_native_m5_gc_feature_inputs_v1 import require_native_m5_gc_input_binding
+        return require_native_m5_gc_input_binding(value)
     from gx1.contracts.market_state_native_m5_feature_inputs_v1 import require_native_m5_input_binding
     return require_native_m5_input_binding(value)
+
+
+def _native_bar_feature_keys(binding):
+    if binding['schema_version']=='gx1_native_m5_full_gc_bar_direction_inputs_v1':
+        from gx1.features.entry_specialist_feature_groups_v1 import NATIVE_M5_FULL_GC_FEATURE_KEYS
+        return NATIVE_M5_FULL_GC_FEATURE_KEYS
+    return FULL_TA_ENTRY_FEATURE_KEYS
 
 
 def native_bar_model_contract(input_binding):
@@ -163,7 +173,7 @@ def native_bar_model_contract(input_binding):
         'comparisons': ['open_vs_previous_observed_open', 'close_vs_previous_observed_close'],
         'backbone': 'one_existing_native_eight_family_macro_five_post_cross_TF_encode',
         'heads': 'independent_fresh_Linear_hidden_to_3_per_comparison_and_timeframe',
-        'forward_inputs': sorted(FULL_TA_ENTRY_FEATURE_KEYS),
+        'forward_inputs': sorted(_native_bar_feature_keys(binding)),
         'target_metadata_as_forward_input': False,
         'initialization': 'fresh_random_no_checkpoint',
     })
@@ -193,12 +203,12 @@ class NativeM5BarDirectionModel(nn.Module):
     def _require_binding(self):
         binding = require_native_bar_input_binding(self.input_binding)
         _need(self.backbone.entry_execution_profile == binding['execution_profile']
-              and self.backbone.gc_mtf_history is None
+              and self._gc_binding_matches(binding)
               and self.backbone._native_bar_direction_only is True
               and self.backbone.cfg.dynamic_m5_query_minutes is None
               and not hasattr(self.backbone, 'dynamic_m5_query_horizons')
               and self.backbone._input_normalization_contract.get('schema_version')
-                  == 'gx1_native_m5_input_normalization_v2'
+                  == ('gx1_native_m5_full_gc_input_normalization_v1' if len(_native_bar_feature_keys(binding))==14 else 'gx1_native_m5_input_normalization_v2')
               and self.backbone._input_normalization_contract.get('source_axes_sha256')
                   == binding['source_axes_sha256']
               and self.backbone._input_normalization_contract.get('feature_provider_contract_sha256')
@@ -220,9 +230,27 @@ class NativeM5BarDirectionModel(nn.Module):
                               and bool(torch.isfinite(p).all()) for p in head.parameters()),
                       'NATIVE_HEAD_BINDING')
 
+    def _gc_binding_matches(self,binding):
+        history = self.backbone.gc_mtf_history
+        if len(_native_bar_feature_keys(binding))==9:
+            return history is None
+        if not isinstance(history,Mapping):
+            return False
+        from gx1.contracts.market_state_native_m5_gc_feature_inputs_v1 import native_m5_gc_feature_provider_contract
+        provider = native_m5_gc_feature_provider_contract(history)
+        return (provider['contract_sha256']==binding['feature_provider_contract_sha256']
+            and history['layout']['schema_version']=='gx1_native_m5_gc_mtf_history_layout_v1'
+            and history['layout']['contract_sha256']==binding['gc_layout_sha256']
+            and history['normalization']['contract_sha256']==binding['gc_normalization_sha256']
+            and history['normalization']['source_binding_sha256']==binding['native_gc_source_binding_sha256']
+            and history==self.backbone._input_normalization_contract.get('gc_mtf_history'))
+
     def load_state_dict(self, state_dict, strict=True, assign=False):
         _need(strict is True, 'NATIVE_STRICT_CHECKPOINT_REQUIRED')
-        for name in ('native_bar_objective_sha256', 'backbone.input_norm_contract_sha256'):
+        names = ['native_bar_objective_sha256','backbone.input_norm_contract_sha256']
+        if len(_native_bar_feature_keys(self.input_binding))==14:
+            names += ['backbone.gc_mtf_layout_sha256','backbone.gc_mtf_normalization_sha256','backbone.entry_execution_profile_contract_sha256']
+        for name in names:
             expected = self.state_dict()[name]
             actual = state_dict.get(name)
             _need(isinstance(actual, torch.Tensor)
@@ -234,7 +262,7 @@ class NativeM5BarDirectionModel(nn.Module):
 
     def forward(self, features):
         self._require_binding()
-        _need(isinstance(features, Mapping) and set(features) == FULL_TA_ENTRY_FEATURE_KEYS,
+        _need(isinstance(features, Mapping) and set(features) == _native_bar_feature_keys(self.input_binding),
               'NATIVE_FEATURE_KEYS')
         _need(all(isinstance(value, torch.Tensor) for value in features.values()),
               'NATIVE_FEATURE_TENSORS')
@@ -259,12 +287,17 @@ def native_bar_backbone_geometry():
     return {'local': ENTRY_FEATURE_SEQUENCE_BARS, **dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS)}
 
 
-def build_native_bar_direction_model(*, input_normalization, input_binding, architecture, device):
+def build_native_bar_direction_model(*, input_normalization, input_binding, architecture, device, gc_mtf_history=None):
     """Build fresh native parameters from explicit architecture and native statistics."""
     from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     from gx1.features import entry_specialist_feature_groups_v1 as owners
     binding = require_native_bar_input_binding(input_binding)
-    profile = owners.compile_full_ta_entry_execution_profile()
+    if len(_native_bar_feature_keys(binding))==14:
+        _need(gc_mtf_history is not None and input_normalization.get('gc_mtf_history')==gc_mtf_history,'NATIVE_GC_FACTORY_HISTORY')
+        profile = owners.compile_native_m5_full_gc_entry_execution_profile(gc_mtf_history)
+    else:
+        _need(gc_mtf_history is None,'NATIVE_TA_GC_FACTORY_FORBIDDEN')
+        profile = owners.compile_full_ta_entry_execution_profile()
     expected = {'dropout', 'multi_tf_num_layers', 'multi_tf_scale',
                 'specialist_num_layers', 'specialist_fusion_scale', 'cross_family_fusion_scale'}
     _need(type(architecture) is dict and set(architecture) == expected, 'NATIVE_ARCHITECTURE')
@@ -275,10 +308,16 @@ def build_native_bar_direction_model(*, input_normalization, input_binding, arch
             _need(type(value) in (int, float) and math.isfinite(value)
                   and (0 <= value < 1 if key == 'dropout' else value > 0), 'NATIVE_ARCHITECTURE')
     context = owners.model_native_context_specialist_routing_contract()
-    mapping = {old: new for new, old in enumerate(profile['source_ctx_cont_indices'])}
-    context = {key: {family: [mapping[i] for i in indices if i in mapping]
-                     for family, indices in context[key].items()}
-               for key in ('ctx_cont_indices', 'ctx_cont_nominal_indices')}
+    if gc_mtf_history is None:
+        mapping = {old:new for new,old in enumerate(profile['source_ctx_cont_indices'])}
+        context = {key:{family:[mapping[i] for i in indices if i in mapping]
+                   for family,indices in context[key].items()} for key in ('ctx_cont_indices','ctx_cont_nominal_indices')}
+    else:
+        from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_CTX_CONT_FIELDS
+        lookup = {name:i for i,name in enumerate(profile['physical_field_names']['ctx_cont'])}
+        context = {'ctx_cont_indices':{family:list(indices) for family,indices in profile['ctx_cont_indices_by_specialist'].items()},
+            'ctx_cont_nominal_indices':{family:[lookup[MODEL_NATIVE_CTX_CONT_FIELDS[i]] for i in indices if MODEL_NATIVE_CTX_CONT_FIELDS[i] in lookup]
+                for family,indices in context['ctx_cont_nominal_indices'].items()}}
     cat_context = owners.model_native_context_specialist_routing_contract()['ctx_cat_indices']
     widths, geometry = profile['physical_widths'], native_bar_backbone_geometry()
     alias_pairs = sorted(zip(profile['temporal_alias_signal_indices'],
@@ -297,7 +336,7 @@ def build_native_bar_direction_model(*, input_normalization, input_binding, arch
         temporal_alias_signal_indices=[signal for signal, _ in alias_pairs],
         temporal_alias_ctx_cont_indices=[context for _, context in alias_pairs],
         input_normalization=input_normalization,
-        entry_execution_profile=binding['execution_profile'], gc_mtf_history=None,
+        entry_execution_profile=binding['execution_profile'], gc_mtf_history=gc_mtf_history,
         entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
         dynamic_m5_query_minutes=None)
     for tf in TIMEFRAMES:

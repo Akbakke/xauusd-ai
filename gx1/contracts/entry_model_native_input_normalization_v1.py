@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -40,6 +41,9 @@ from gx1.features.basic_v1 import session_native_binary_event_fields
 
 SCHEMA_VERSION = "entry_model_native_input_normalization_v11"
 NATIVE_M5_NORMALIZATION_SCHEMA = 'gx1_native_m5_input_normalization_v2'
+NATIVE_M5_FULL_GC_NORMALIZATION_SCHEMA = 'gx1_native_m5_full_gc_input_normalization_v1'
+NATIVE_GC_UNOBSERVED_UNIT_SOURCE = 'native_gc_unobserved_declared_source_unit'
+NATIVE_GC_RARE_UNIT_SOURCE = 'native_gc_unestimable_dispersion_declared_source_unit'
 NATIVE_M5_TRAIN_FIT_CUTOFF_NS = 1780272000000000000  # 2026-06-01T00:00:00Z, exclusive TRAIN ceiling
 TRANSFORM = "shared_entry_exit_train_only_median_raw_iqr_asinh_v7"
 FIT_POPULATION = "unique_physical_train_rows_entry_exit_union_v2"
@@ -425,6 +429,9 @@ def _require_aliases(
                 "[ENTRY_INPUT_NORMALIZATION_ALIAS_STATS_NOT_SHARED] "
                 f"signal={alias['signal_field']} ctx={alias['ctx_cont_field']}"
             )
+        if (signal.get('native_gc_unfitted_dispersion_estimates',{}).get(alias['signal_field'])
+            != ctx_cont.get('native_gc_unfitted_dispersion_estimates',{}).get(alias['ctx_cont_field'])):
+            raise RuntimeError('NATIVE_GC_ALIAS_DISPERSION_PROOF_NOT_SHARED')
         seen_signal.add(signal_index)
         seen_ctx.add(ctx_index)
         normalized.append(alias)
@@ -462,7 +469,9 @@ def _stats_sha256(
     zero_support_profile_sha256: str | None = None,
     unobserved_units_profile_sha256: str | None = None,
     observed_fit_counts: Sequence[int] | None = None,
+    native_gc_domain_contract_sha256: str | None = None,
     scale_source: Sequence[str] | None = None,
+    native_gc_dispersion_estimates: Mapping[str, Any] | None = None,
 ) -> str:
     digest = hashlib.sha256()
     digest.update(b"entry_model_native_input_normalization_surface_v3_asinh\0")
@@ -508,6 +517,11 @@ def _stats_sha256(
             raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_COUNTS")
         digest.update(b"research_unobserved_units\0" + bytes.fromhex(unobserved_units_profile_sha256))
         digest.update(np.ascontiguousarray(observed_fit_counts, dtype="<i8").tobytes())
+    if native_gc_domain_contract_sha256 is not None:
+        digest.update(b'native_gc_units\0' + bytes.fromhex(native_gc_domain_contract_sha256))
+        digest.update(np.ascontiguousarray(observed_fit_counts,dtype='<i8').tobytes())
+        digest.update(json.dumps({'scale_source':list(scale_source),
+            'unfitted_dispersion_estimates':native_gc_dispersion_estimates},sort_keys=True,separators=(',',':'),allow_nan=False).encode())
     return digest.hexdigest()
 
 
@@ -758,6 +772,7 @@ def _population_transformed_extrema(
     binary_mask: np.ndarray,
     categorical_mask: np.ndarray,
     column_chunk: int,
+    native_gc_domain: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Measure exact TRAIN output support, including source-owned hard masks."""
 
@@ -803,7 +818,7 @@ def _population_transformed_extrema(
                 transformed.max(axis=0),
             )
     observation_pairs = dict((
-        *_gc_context.masking_pairs(field_names),
+        *(native_gc_masking_pairs(field_names) if native_gc_domain else _gc_context.masking_pairs(field_names)),
         *_micro_context.range_observation_masking_pairs(field_names),
     ))
     population_rows = sum(
@@ -846,6 +861,7 @@ def fit_surface_normalization(
     semantic_categorical_domains: Mapping[str, Sequence[int]] | None = None,
     semantic_binary_fields: Sequence[str] | None = None,
     semantic_signed_ternary_units: bool = False,
+    native_gc_domain: bool = False,
     allow_constant_train_fields: bool = False,
     allow_unobserved_train_fields: bool = False,
     zero_support_profile: Mapping[str, Any] | None = None,
@@ -865,6 +881,11 @@ def fit_surface_normalization(
         values,
         surface=surface,
     )
+    if type(native_gc_domain) is not bool or (native_gc_domain and any((zero_support_profile,unobserved_units_profile,allow_constant_train_fields,allow_unobserved_train_fields))):
+        raise RuntimeError('NATIVE_GC_NORMALIZATION_POLICY_CONFLICT')
+    native_specs = _native_gc_specs() if native_gc_domain else {}
+    native_unfitted = {}
+    native_dispersion = {}
     names = [str(name) for name in field_names]
     if (
         not names
@@ -921,7 +942,7 @@ def fit_surface_normalization(
     if type(allow_unobserved_train_fields) is not bool:
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_UNOBSERVED_POLICY_INVALID]")
     observed_fit_counts = ([int(population_rows)] * width
-                           if allow_unobserved_train_fields or units_profile_sha is not None else None)
+                           if allow_unobserved_train_fields or units_profile_sha is not None or native_gc_domain else None)
     categorical_domains = {
         str(name): tuple(int(value) for value in domain)
         for name, domain in (semantic_categorical_domains or {}).items()
@@ -969,7 +990,7 @@ def fit_surface_normalization(
     if type(semantic_signed_ternary_units) is not bool:
         raise RuntimeError('ENTRY_INPUT_NORMALIZATION_SIGNED_UNIT_POLICY_INVALID')
     signed_fields = set(signed_ternary_unit_fields(surface)) if semantic_signed_ternary_units else set()
-    observation_pairs = dict((*_gc_context.masking_pairs(names), *_micro_context.range_observation_masking_pairs(names)))
+    observation_pairs = dict((*(native_gc_masking_pairs(names) if native_gc_domain else _gc_context.masking_pairs(names)), *_micro_context.range_observation_masking_pairs(names)))
     for index, entry in unit_columns.items():
         if (observation_pairs.get(index) != entry["mask_index"]
                 or (names[index] in binary_fields) != entry["binary"]
@@ -1031,6 +1052,15 @@ def fit_surface_normalization(
                                            else units.UNIT_SCALE_SOURCE)
                     continue
                 if len(column) == 0:
+                    if native_gc_domain:
+                        spec = native_specs.get(names[index].removeprefix('ctx_cont.'))
+                        if spec is None:
+                            raise RuntimeError('NATIVE_GC_UNKNOWN_WITHOUT_SOURCE_UNIT:' + names[index])
+                        center[index],scale[index] = 0.,_native_gc_declared_unit(spec)
+                        binary_mask[index] = int(names[index] in binary_fields)
+                        scale_source[index] = ('semantic_binary_identity' if binary_mask[index] else NATIVE_GC_UNOBSERVED_UNIT_SOURCE)
+                        native_unfitted[names[index]] = None
+                        continue
                     if not allow_unobserved_train_fields:
                         raise RuntimeError('ENTRY_INPUT_NO_PHYSICAL_TRAIN_OBSERVATIONS:' + names[index])
                     # Prefix-only opt-in: these are declared units/domains, not
@@ -1153,6 +1183,13 @@ def fit_surface_normalization(
                     raise RuntimeError("ENTRY_INPUT_SOURCE_BOUNDED_UNIT_DOMAIN_INVALID")
                 field_center, field_scale = np.float32(0.0), np.float32(1.0)
                 source = "source_bounded_unit_scale"
+            if (not np.isfinite(field_scale) or field_scale <= np.float32(0.0)) and native_gc_domain and index in observation_pairs and positive.size < 2:
+                spec = native_specs.get(names[index].removeprefix('ctx_cont.'))
+                if spec is not None:
+                    field_scale = np.float32(_native_gc_declared_unit(spec))
+                    source = NATIVE_GC_RARE_UNIT_SOURCE
+                    native_dispersion[names[index]] = {'dispersion_estimate':None,
+                        'positive_deviations':int(positive.size),'observed_rows':int(len(column))}
             if not np.isfinite(field_scale) or field_scale <= np.float32(0.0):
                 raise RuntimeError(
                     "[ENTRY_INPUT_NORMALIZATION_UNSCALEABLE] "
@@ -1179,7 +1216,7 @@ def fit_surface_normalization(
         scale=scale,
         binary_mask=binary_mask,
         categorical_mask=categorical_mask,
-        column_chunk=effective_column_chunk,
+        column_chunk=effective_column_chunk, native_gc_domain=native_gc_domain,
     )
 
     stats_hash = _stats_sha256(
@@ -1193,8 +1230,10 @@ def fit_surface_normalization(
         train_transformed_max=transformed_max,
         zero_support_profile_sha256=profile_sha,
         unobserved_units_profile_sha256=units_profile_sha,
-        observed_fit_counts=observed_fit_counts if units_profile_sha is not None else None,
+        observed_fit_counts=observed_fit_counts if units_profile_sha is not None or native_gc_domain else None,
+        native_gc_domain_contract_sha256=native_m5_gc_domain_contract()['contract_sha256'] if native_gc_domain else None,
         scale_source=scale_source,
+        native_gc_dispersion_estimates=native_dispersion if native_gc_domain else None,
     )
     result = {
         "surface": str(surface),
@@ -1227,6 +1266,11 @@ def fit_surface_normalization(
         result["unobserved_units_profile_sha256"] = units_profile_sha
         result["unfitted_estimates"] = {entry["field"]: None for entry in unit_columns.values()}
         result["observed_fit_counts"] = observed_fit_counts
+    if native_gc_domain:
+        result['native_gc_domain_contract_sha256'] = native_m5_gc_domain_contract()['contract_sha256']
+        result['observed_fit_counts'] = observed_fit_counts
+        result['native_gc_unfitted_estimates'] = native_unfitted
+        result['native_gc_unfitted_dispersion_estimates'] = native_dispersion
     return result
 
 
@@ -1243,6 +1287,10 @@ def require_surface_normalization(
         )
     data = dict(value)
     native_domain = data.get('native_domain_contract_sha256')
+    native_gc_sha = data.get('native_gc_domain_contract_sha256')
+    native_gc_domain = native_gc_sha is not None
+    if native_gc_domain and (unobserved_units_profile is not None or native_gc_sha != native_m5_gc_domain_contract()['contract_sha256']):
+        raise RuntimeError('NATIVE_GC_SURFACE_DOMAIN_POLICY')
     if native_domain is not None and native_domain != native_m5_input_domain_contract()['contract_sha256']:
         raise RuntimeError('NATIVE_M5_NORMALIZATION_SURFACE_DOMAIN_POLICY')
     expected_keys = {
@@ -1266,6 +1314,12 @@ def require_surface_normalization(
     }
     if native_domain is not None:
         expected_keys.add('native_domain_contract_sha256')
+    if native_gc_domain:
+        expected_keys.update(('native_gc_domain_contract_sha256','observed_fit_counts','native_gc_unfitted_estimates','native_gc_unfitted_dispersion_estimates'))
+        if 'native_gc_statistics_source' in data:
+            if surface != 'ctx_cont' or data['native_gc_statistics_source'] != 'signal_alias':
+                raise RuntimeError('NATIVE_GC_STATISTICS_SOURCE')
+            expected_keys.add('native_gc_statistics_source')
     structural = {}
     profile_sha = data.get("zero_support_profile_sha256")
     if profile_sha is not None:
@@ -1375,6 +1429,8 @@ def require_surface_normalization(
         expected_binary_fields |= _gc_context.mtf_history_binary_fields(names)
     if native_domain is not None:
         expected_binary_fields = native_m5_binary_fields(surface, names)
+    if native_gc_domain:
+        expected_binary_fields = native_gc_binary_fields(surface,names)
     observed_binary_fields = {
         names[index] for index in np.flatnonzero(binary_mask)
     }
@@ -1385,9 +1441,43 @@ def require_surface_normalization(
             f"expected={sorted(expected_binary_fields)} "
             f"observed={sorted(observed_binary_fields)}"
         )
+    if native_gc_domain:
+        observed_fit_counts = data['observed_fit_counts']
+        if (not isinstance(observed_fit_counts,list) or len(observed_fit_counts)!=len(names)
+            or any(type(n) is not int or n<0 or n>data['fit_row_count'] for n in observed_fit_counts)):
+            raise RuntimeError('NATIVE_GC_OBSERVED_FIT_COUNTS')
+        pairs = native_gc_masking_pairs(names)
+        expected_unfitted = {names[vi]:None for vi,mi in pairs if observed_fit_counts[vi]==0
+            and (scale_source[vi]==NATIVE_GC_UNOBSERVED_UNIT_SOURCE or binary_mask[vi])}
+        if data['native_gc_unfitted_estimates'] != expected_unfitted:
+            raise RuntimeError('NATIVE_GC_UNFITTED_ESTIMATES')
+        dispersion=data['native_gc_unfitted_dispersion_estimates']
+        rare={name for name,source in zip(names,scale_source) if source==NATIVE_GC_RARE_UNIT_SOURCE}
+        if not isinstance(dispersion,Mapping) or set(dispersion)!=rare:
+            raise RuntimeError('NATIVE_GC_DISPERSION_ESTIMATES')
+        pair_values = {vi for vi,mi in (*pairs,*_micro_context.range_observation_masking_pairs(names))}
+        if any(count != data['fit_row_count'] for i,count in enumerate(observed_fit_counts) if i not in pair_values):
+            raise RuntimeError('NATIVE_GC_UNMASKED_COUNTS')
     for index in range(len(names)):
         is_binary = bool(binary_mask[index])
         is_categorical = bool(categorical_mask[index])
+        if scale_source[index] == NATIVE_GC_UNOBSERVED_UNIT_SOURCE:
+            if (not native_gc_domain or observed_fit_counts[index] != 0 or is_binary or is_categorical
+                or center[index] != 0. or scale[index] != np.float32(_native_gc_declared_unit(_native_gc_specs()[names[index].removeprefix('ctx_cont.')]))
+                or transformed_min[index] != 0. or transformed_max[index] != 0.
+                or names[index] not in data['native_gc_unfitted_estimates']):
+                raise RuntimeError('NATIVE_GC_DECLARED_UNIT_CONTRACT')
+            continue
+        if scale_source[index] == NATIVE_GC_RARE_UNIT_SOURCE:
+            spec=_native_gc_specs().get(names[index].removeprefix('ctx_cont.')) if native_gc_domain else None
+            proof=data.get('native_gc_unfitted_dispersion_estimates',{}).get(names[index])
+            if (spec is None or is_binary or is_categorical
+                or scale[index] != np.float32(_native_gc_declared_unit(spec))
+                or not isinstance(proof,Mapping) or set(proof)!={'dispersion_estimate','positive_deviations','observed_rows'}
+                or proof['dispersion_estimate'] is not None or type(proof['positive_deviations']) is not int
+                or proof['positive_deviations']!=1 or type(proof['observed_rows']) is not int or proof['observed_rows']<2
+                or (data.get('native_gc_statistics_source')!='signal_alias' and proof['observed_rows']!=observed_fit_counts[index])):
+                raise RuntimeError('NATIVE_GC_RARE_SOURCE_UNIT_CONTRACT')
         if index in unit_columns:
             entry = unit_columns[index]
             mask = entry["mask_index"]
@@ -1475,6 +1565,7 @@ def require_surface_normalization(
             "median_positive_abs_deviation",
             "constant_train_unit_scale",
             "source_bounded_unit_scale",
+            NATIVE_GC_RARE_UNIT_SOURCE,
             SIGNED_TERNARY_UNIT_SCALE_SOURCE,
         }:
             raise RuntimeError(
@@ -1486,6 +1577,7 @@ def require_surface_normalization(
             and not is_categorical
             and not constant_unit
             and not signed_unit
+            and not (native_gc_domain and data.get('native_gc_statistics_source')=='signal_alias')
             and transformed_min[index] >= transformed_max[index]
         ):
             raise RuntimeError(
@@ -1503,8 +1595,10 @@ def require_surface_normalization(
         train_transformed_max=transformed_max,
         zero_support_profile_sha256=profile_sha,
         unobserved_units_profile_sha256=units_profile_sha,
-        observed_fit_counts=observed_fit_counts if units_profile_sha is not None else None,
+        observed_fit_counts=observed_fit_counts if units_profile_sha is not None or native_gc_domain else None,
+        native_gc_domain_contract_sha256=native_gc_sha,
         scale_source=scale_source,
+        native_gc_dispersion_estimates=data.get('native_gc_unfitted_dispersion_estimates'),
     )
     if data["stats_sha256"] != expected_hash:
         raise RuntimeError(
@@ -1608,6 +1702,7 @@ def share_temporal_alias_stats_from_signal(
         binary_mask=binary,
         categorical_mask=categorical,
         column_chunk=min(FIT_COLUMN_CHUNK, max_columns_by_budget),
+        native_gc_domain='native_gc_domain_contract_sha256' in ctx_cont,
     )
     ctx_cont.update(
         {
@@ -1627,6 +1722,16 @@ def share_temporal_alias_stats_from_signal(
             ],
         }
     )
+    if 'native_gc_domain_contract_sha256' in ctx_cont:
+        ctx_cont['native_gc_statistics_source'] = 'signal_alias'
+        ctx_cont['native_gc_unfitted_dispersion_estimates'] = {}
+        for alias in temporal_aliases:
+            proof=signal.get('native_gc_unfitted_dispersion_estimates',{}).get(alias['signal_field'])
+            if proof is not None:
+                ctx_cont['native_gc_unfitted_dispersion_estimates'][alias['ctx_cont_field']]=dict(proof)
+        ctx_cont['native_gc_unfitted_estimates'] = {ctx_names[vi]:None
+            for vi,mi in native_gc_masking_pairs(ctx_names) if ctx_cont['observed_fit_counts'][vi]==0
+            and (scale_source[vi]==NATIVE_GC_UNOBSERVED_UNIT_SOURCE or binary[vi])}
     ctx_cont["stats_sha256"] = _stats_sha256(
         field_names=ctx_names,
         center=center,
@@ -1638,7 +1743,10 @@ def share_temporal_alias_stats_from_signal(
         train_transformed_max=transformed_max,
         zero_support_profile_sha256=ctx_cont.get("zero_support_profile_sha256"),
         unobserved_units_profile_sha256=ctx_cont.get("unobserved_units_profile_sha256"),
-        observed_fit_counts=ctx_cont.get("observed_fit_counts") if units_marked else None,
+        observed_fit_counts=ctx_cont.get('observed_fit_counts') if units_marked or 'native_gc_domain_contract_sha256' in ctx_cont else None,
+        native_gc_domain_contract_sha256=ctx_cont.get('native_gc_domain_contract_sha256'),
+        native_gc_dispersion_estimates=ctx_cont.get('native_gc_unfitted_dispersion_estimates'),
+        scale_source=scale_source if 'native_gc_domain_contract_sha256' in ctx_cont else None,
     )
     if units_marked:
         require_surface_normalization(ctx_cont, surface="ctx_cont", field_names=ctx_names,
@@ -1886,6 +1994,11 @@ def require_input_normalization_contract(
 ) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CONTRACT_MISSING]")
+    if value.get('schema_version') == NATIVE_M5_FULL_GC_NORMALIZATION_SCHEMA:
+        if unobserved_units_profile is not None:
+            raise RuntimeError('NATIVE_GC_LEGACY_UNIT_PROFILE_FORBIDDEN')
+        return require_native_m5_full_gc_input_normalization_contract(value,expected_field_names=expected_field_names,
+            expected_ctx_cat_names=expected_ctx_cat_names,expected_entry_training_phase=expected_entry_training_phase)
     if value.get("schema_version") == NATIVE_M5_NORMALIZATION_SCHEMA:
         if unobserved_units_profile is not None:
             raise RuntimeError("NATIVE_M5_NORMALIZATION_LEGACY_UNITS_PROFILE")
@@ -2077,7 +2190,8 @@ def apply_surface_normalization(
     normalized[..., identity] = matrix[..., identity].astype(np.float64)
     if not np.isfinite(normalized).all():
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_OUTPUT_NONFINITE]")
-    result = _gc_context.mask_normalized_numpy(matrix, np.asarray(normalized, dtype=np.float32), field_names)
+    mask_owner = mask_native_gc_numpy if 'native_gc_domain_contract_sha256' in surface_contract else _gc_context.mask_normalized_numpy
+    result = mask_owner(matrix, np.asarray(normalized, dtype=np.float32), field_names)
     result = _micro_context.mask_normalized_range_numpy(matrix, result, field_names)
     if "zero_support_profile_sha256" in surface_contract:
         from gx1.contracts import entry_native_direction_prefix_normalization_v1 as prefix
@@ -2121,7 +2235,8 @@ def invert_surface_normalization(
     )
     if not np.isfinite(restored).all():
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_INVERSE_OUTPUT_NONFINITE]")
-    result = _gc_context.mask_normalized_numpy(normalized, np.asarray(restored, dtype=np.float32),
+    mask_owner = mask_native_gc_numpy if 'native_gc_domain_contract_sha256' in surface_contract else _gc_context.mask_normalized_numpy
+    result = mask_owner(normalized, np.asarray(restored, dtype=np.float32),
         surface_contract["field_names"])
     return _micro_context.mask_normalized_range_numpy(normalized, result, surface_contract["field_names"])
 
@@ -2145,20 +2260,25 @@ def _native_m5_need(ok, reason):
 
 def require_native_m5_input_normalization_contract(
     value, *, expected_field_names=None, expected_ctx_cat_names=None,
-    expected_entry_training_phase=None,
+    expected_entry_training_phase=None, _native_gc_history=None,
 ):
     """Validate fresh native M5 statistics without historical Entry/Exit lineage."""
     from gx1.features.entry_specialist_feature_groups_v1 import compile_full_ta_entry_execution_profile
-    profile = compile_full_ta_entry_execution_profile()
+    if _native_gc_history is None:
+        profile = compile_full_ta_entry_execution_profile()
+    else:
+        from gx1.features.entry_specialist_feature_groups_v1 import compile_native_m5_full_gc_entry_execution_profile
+        profile = compile_native_m5_full_gc_entry_execution_profile(_native_gc_history)
     names = profile['physical_field_names']
     canonical = {'signal': list(names['signal']), 'ctx_cont': list(names['ctx_cont']),
                  **{'mtf_' + tf.lower(): list(names['mtf']) for tf in EXPECTED_TFS}}
-    _native_m5_need(type(value) is dict and set(value) == _NATIVE_M5_NORMALIZATION_KEYS,
-                    'KEYS')
+    keys = _NATIVE_M5_NORMALIZATION_KEYS | ({'gc_mtf_history','native_gc_source_binding_sha256','native_gc_domain_contract_sha256'} if _native_gc_history is not None else set())
+    _native_m5_need(type(value) is dict and set(value) == keys, 'KEYS')
     data = dict(value)
     _native_m5_need(data['semantic_domain_contract_sha256'] == native_m5_input_domain_contract()['contract_sha256'], 'DOMAIN_POLICY')
     reference = data['native_m5_manifest']
-    _native_m5_need(data['schema_version'] == NATIVE_M5_NORMALIZATION_SCHEMA
+    expected_schema = NATIVE_M5_NORMALIZATION_SCHEMA if _native_gc_history is None else NATIVE_M5_FULL_GC_NORMALIZATION_SCHEMA
+    _native_m5_need(data['schema_version'] == expected_schema
         and data['source_clock_contract'] == 'native_m5_and_closed_higher_no_m1_v1'
         and expected_entry_training_phase in (None, ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
         and (expected_field_names is None or {
@@ -2209,6 +2329,18 @@ def require_native_m5_input_normalization_contract(
         for index, name in enumerate(canonical[surface]):
             if name in signed_ternary_unit_fields(surface):
                 _native_m5_need(surfaces[surface]['scale_source'][index] == SIGNED_TERNARY_UNIT_SCALE_SOURCE, 'SIGNED_DOMAIN_POLICY')
+    if _native_gc_history is not None:
+        history = _native_gc_history
+        _native_m5_need(data['native_gc_domain_contract_sha256']==native_m5_gc_domain_contract()['contract_sha256']
+            and data['native_gc_source_binding_sha256']==history['normalization']['source_binding_sha256']
+            and data['source_axes_sha256']==history['normalization']['source_axes_sha256'], 'GC_SOURCE_JOIN')
+        for surface in ('signal','ctx_cont'):
+            _native_m5_need(surfaces[surface].get('native_gc_domain_contract_sha256')==data['native_gc_domain_contract_sha256'], 'GC_SURFACE_DOMAIN')
+        for tf in EXPECTED_TFS:
+            row = population['per_tf'][tf]
+            actual = history['normalization']['provenance']['row_union'][tf]
+            _native_m5_need(actual=={'rows':row['rows'],'native_row_indices_sha256':row['source_rows_sha256'],
+                'available_ns_sha256':row['available_ns_sha256']}, 'GC_TF_POPULATION:'+tf)
     ctx_cat = require_ctx_cat_contract(data['ctx_cat'], field_names=list(CTX_CAT_DOMAINS))
     _native_m5_need(ctx_cat['fit_row_count'] == population['context_rows'], 'CTX_ROWS')
     aliases = _require_aliases(data['temporal_aliases'],
@@ -2246,3 +2378,118 @@ def fit_native_m5_surface_normalization(values, **kwargs):
         semantic_binary_fields=native_m5_binary_fields(kwargs['surface'], kwargs['field_names']), **kwargs)
     result['native_domain_contract_sha256'] = native_m5_input_domain_contract()['contract_sha256']
     return result
+
+
+
+
+def _native_gc_declared_unit(spec):
+    value=spec.get('unit_scale')
+    if (type(value) not in (int,float) or not math.isfinite(value) or value<=0
+        or not isinstance(spec.get('unit'),str) or not spec['unit']
+        or not isinstance(spec.get('unit_owner'),str) or not spec['unit_owner']):
+        raise RuntimeError('NATIVE_GC_SOURCE_UNIT_NOT_DECLARED:'+str(spec.get('name')))
+    return float(value)
+
+
+def native_m5_gc_domain_contract():
+    from gx1.features.gc_native_m5_features_v1 import native_m5_field_catalog
+    catalog = native_m5_field_catalog()
+    for item in catalog['fields']:
+        _native_gc_declared_unit(item)
+    value = {'schema_version':'native_m5_gc_source_domains_v2',
+        'native_field_catalog_sha256':catalog['contract_sha256'],
+        'unit_policy_sha256':catalog['unit_policy_sha256'],
+        'ta_domain_contract_sha256':native_m5_input_domain_contract()['contract_sha256'],
+        'unobserved':'declared_unit_only_unfitted_estimate_null_masked_zero',
+        'observed_constant':'existing_masked_value_constant_train_unit_scale',
+        'observed_insufficient_dispersion':'IQR_MAD_failed_less_than_two_positive_deviations_use_declared_physical_unit_with_TRAIN_median_and_null_dispersion_estimate',
+        'statistics_owner':'signal_for_exact_context_alias_parameters'}
+    return {**value,'contract_sha256':_canonical_sha256(value)}
+
+
+def _native_gc_specs():
+    from gx1.features.gc_native_m5_features_v1 import native_m5_field_catalog
+    native_m5_gc_domain_contract()
+    return {item['name']:item for item in native_m5_field_catalog()['fields']}
+
+
+def native_gc_masking_pairs(names):
+    positions = {name:i for i,name in enumerate(names)}
+    pairs = []
+    for field,item in _native_gc_specs().items():
+        for prefix in ('','ctx_cont.'):
+            if prefix+field in positions:
+                mask = prefix+item['availability_field']
+                if mask not in positions:
+                    raise RuntimeError('NATIVE_GC_OBSERVATION_FIELD_MISSING:' + field)
+                pairs.append((positions[prefix+field],positions[mask]))
+    return tuple(pairs)
+
+
+def native_gc_binary_fields(surface,names):
+    fields = set(native_m5_binary_fields(surface,names))
+    declared = set()
+    for name,item in _native_gc_specs().items():
+        declared.add(item['availability_field'])
+        if item['binary_value'] or item['structural_mask_value']:
+            declared.add(name)
+    return fields | {name for name in names if name.removeprefix('ctx_cont.') in declared}
+
+
+def mask_native_gc_numpy(raw,normalized,names):
+    for value,observed in native_gc_masking_pairs(names):
+        mask = raw[...,observed]
+        if not np.isin(mask,(0.,1.)).all() or np.any(raw[...,value][mask==0.] != 0.):
+            raise RuntimeError('NATIVE_GC_MASKED_STORAGE_INVALID')
+        normalized[...,value] = np.where(mask==1.,normalized[...,value],0.)
+    return normalized
+
+
+def mask_native_gc_torch(raw,normalized,names):
+    import torch
+    pairs = native_gc_masking_pairs(names)
+    if not pairs:
+        return normalized
+    vi = torch.tensor([v for v,m in pairs],device=raw.device)
+    mi = torch.tensor([m for v,m in pairs],device=raw.device)
+    mask,value = raw.index_select(-1,mi),raw.index_select(-1,vi)
+    if bool((((mask!=0.)&(mask!=1.))|((mask==0.)&(value!=0.))).any()):
+        raise RuntimeError('NATIVE_GC_MASKED_STORAGE_INVALID')
+    result = normalized.clone()
+    result.index_copy_(-1,vi,torch.where(mask==1.,normalized.index_select(-1,vi),0.))
+    return result
+
+
+def fit_native_m5_gc_surface_normalization(values,**kwargs):
+    if any(key in kwargs for key in ('native_gc_domain','semantic_binary_fields','semantic_signed_ternary_units','allow_unobserved_train_fields','unobserved_units_profile','zero_support_profile','allow_constant_train_fields')):
+        raise RuntimeError('NATIVE_GC_NORMALIZATION_POLICY_OVERRIDE')
+    names,surface = kwargs['field_names'],kwargs['surface']
+    result = fit_surface_normalization(values,native_gc_domain=True,
+        semantic_binary_fields=native_gc_binary_fields(surface,names),
+        semantic_signed_ternary_units=True,**kwargs)
+    result['native_domain_contract_sha256'] = native_m5_input_domain_contract()['contract_sha256']
+    return result
+
+
+def require_native_m5_full_gc_input_normalization_contract(value,**kwargs):
+    from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history,NATIVE_M5_LAYOUT_SCHEMA
+    if not isinstance(value,dict) or not isinstance(value.get('gc_mtf_history'),dict):
+        raise RuntimeError('NATIVE_GC_INPUT_NORMALIZATION_HISTORY')
+    history = require_gc_mtf_history(value['gc_mtf_history'])
+    if history['layout']['schema_version']!=NATIVE_M5_LAYOUT_SCHEMA:
+        raise RuntimeError('NATIVE_GC_INPUT_NORMALIZATION_LEGACY_HISTORY')
+    return require_native_m5_input_normalization_contract(value,_native_gc_history=history,**kwargs)
+
+
+def build_native_m5_full_gc_input_normalization_contract(*,native_m5_manifest,
+        feature_provider_contract_sha256,source_axes_sha256,fit_population,surfaces,ctx_cat,
+        temporal_aliases,gc_mtf_history,native_gc_source_binding_sha256):
+    payload = {'schema_version':NATIVE_M5_FULL_GC_NORMALIZATION_SCHEMA,
+        'source_clock_contract':'native_m5_and_closed_higher_no_m1_v1',
+        'native_m5_manifest':native_m5_manifest,'feature_provider_contract_sha256':feature_provider_contract_sha256,
+        'source_axes_sha256':source_axes_sha256,'fit_population':fit_population,'surfaces':surfaces,
+        'ctx_cat':ctx_cat,'temporal_aliases':temporal_aliases,
+        'semantic_domain_contract_sha256':native_m5_input_domain_contract()['contract_sha256'],
+        'gc_mtf_history':gc_mtf_history,'native_gc_source_binding_sha256':native_gc_source_binding_sha256,
+        'native_gc_domain_contract_sha256':native_m5_gc_domain_contract()['contract_sha256']}
+    return require_native_m5_full_gc_input_normalization_contract({**payload,'contract_sha256':_canonical_sha256(payload)})

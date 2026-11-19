@@ -101,6 +101,9 @@ def gc_mtf_history_layout():
 
 
 def require_gc_mtf_history_layout(value):
+    if isinstance(value, Mapping) and value.get('schema_version') == NATIVE_M5_LAYOUT_SCHEMA:
+        _require(dict(value) == native_gc_mtf_history_layout(), 'NATIVE_LAYOUT_CONTRACT')
+        return dict(value)
     _require(isinstance(value, Mapping) and dict(value) == gc_mtf_history_layout(), 'LAYOUT_CONTRACT')
     _require(value['contract_sha256'] == _sha({k: v for k, v in value.items()
         if k != 'contract_sha256'}), 'LAYOUT_CANONICAL_HASH')
@@ -183,6 +186,10 @@ def require_gc_mtf_history_surfaces(value, *, layout):
             and isinstance(features, np.ndarray) and features.dtype == np.float32
             and features.shape == (len(rows), layout['widths'][tf])
             and surface['field_names'] == layout['field_names'][tf], 'SURFACE_SHAPE_CLOCK_FIELDS:' + tf)
+        if layout['schema_version']==NATIVE_M5_LAYOUT_SCHEMA:
+            duration = TIMEFRAME_MINUTES[tf]*MINUTE_NS
+            offset = {'M5':0,'M15':0,'H1':0,'H4':120*MINUTE_NS,'D1':1320*MINUTE_NS}[tf]
+            _require(np.all((available-offset)%duration==0) and available[-1]<TEST_BOUNDARY_NS,'NATIVE_SURFACE_TF_CLOCK:'+tf)
         result[tf] = {'field_names': list(surface['field_names'])}
         for key in ('native_row_indices', 'available_ns', 'features'):
             readonly = surface[key].view()
@@ -239,6 +246,9 @@ def _normalization_provenance(value, layout, surfaces):
 def require_gc_mtf_history_normalization(value, *, layout, unobserved_units_profile=None):
     from gx1.contracts.entry_model_native_input_normalization_v1 import require_surface_normalization
     layout = require_gc_mtf_history_layout(layout)
+    if layout['schema_version'] == NATIVE_M5_LAYOUT_SCHEMA:
+        _require(unobserved_units_profile is None, 'NATIVE_LEGACY_UNIT_PROFILE_FORBIDDEN')
+        return require_native_m5_gc_history_normalization(value, layout=layout)
     _require(isinstance(value, Mapping), 'NORMALIZATION_KEYS')
     relative = 'relative_price' in value
     keys = {'schema_version', 'layout_sha256', 'surfaces', 'provenance', 'contract_sha256'}
@@ -631,3 +641,100 @@ def load_gc_mtf_history_raw_artifact(binding):
         'binary_fields': json.loads(json.dumps(layout['binary_fields']))}
     transition['contract_sha256'] = _sha(transition)
     return {**result, 'transition': transition, 'surfaces': surfaces}
+
+
+NATIVE_M5_LAYOUT_SCHEMA = 'gx1_native_m5_gc_mtf_history_layout_v1'
+NATIVE_M5_NORMALIZATION_SCHEMA = 'gx1_native_m5_gc_mtf_history_normalization_v1'
+
+
+def native_gc_mtf_history_layout():
+    """Code-owned direct-native GC inventory; never opens the legacy registry."""
+    from gx1.features.gc_native_m5_features_v1 import native_m5_field_catalog
+    from gx1.features.entry_specialist_feature_groups_v1 import MODEL_NATIVE_TRAINING_SPECIALISTS
+    catalog = native_m5_field_catalog()
+    names = {tf: [] for tf in TIMEFRAMES}
+    owners = {tf: {family: [] for family in MODEL_NATIVE_TRAINING_SPECIALISTS} for tf in TIMEFRAMES}
+    binary = {tf: [] for tf in TIMEFRAMES}
+    pairs = {tf: [] for tf in TIMEFRAMES}
+    for item in catalog['fields']:
+        tf, name, mask = item['timeframe'], item['name'], item['availability_field']
+        at = len(names[tf]); names[tf].append(name)
+        owners[tf][item['owner']].append(at)
+        if item['binary_value'] or item['structural_mask_value']:
+            binary[tf].append(name)
+        if mask not in names[tf]:
+            names[tf].append(mask); owners[tf][item['owner']].append(at + 1)
+            binary[tf].append(mask)
+        pairs[tf].append([at, names[tf].index(mask)])
+    payload = {'schema_version': NATIVE_M5_LAYOUT_SCHEMA, 'timeframes': list(TIMEFRAMES),
+        'source_clock_contract': 'native_m5_and_closed_higher_no_m1_v1',
+        'native_field_catalog_sha256': catalog['contract_sha256'],
+        'families': list(MODEL_NATIVE_TRAINING_SPECIALISTS), 'field_names': names,
+        'family_indices': owners, 'widths': {tf: len(names[tf]) for tf in TIMEFRAMES},
+        'window_rows': dict(WINDOW_ROWS), 'value_mask_pairs': pairs,
+        'binary_fields': binary, 'categorical_domains': {tf: {} for tf in TIMEFRAMES}}
+    return {**payload, 'contract_sha256': _sha(payload)}
+
+
+def require_native_m5_gc_history_normalization(value, *, layout):
+    from gx1.contracts.entry_model_native_input_normalization_v1 import (
+        require_surface_normalization, NATIVE_M5_TRAIN_FIT_CUTOFF_NS, native_m5_gc_domain_contract)
+    keys = {'schema_version', 'layout_sha256', 'source_binding_sha256', 'source_axes_sha256',
+            'surfaces', 'provenance', 'contract_sha256'}
+    _require(isinstance(value, Mapping) and set(value) == keys
+        and value['schema_version'] == NATIVE_M5_NORMALIZATION_SCHEMA
+        and value['layout_sha256'] == layout['contract_sha256']
+        and _hash(value['source_binding_sha256']) and _hash(value['source_axes_sha256']), 'NATIVE_NORMALIZATION_IDENTITY')
+    p = value['provenance']
+    _require(isinstance(p, Mapping) and set(p) == {'train_start_ns','train_end_ns','row_union'}
+        and type(p['train_start_ns']) is int and type(p['train_end_ns']) is int
+        and 0 <= p['train_start_ns'] < p['train_end_ns'] <= NATIVE_M5_TRAIN_FIT_CUTOFF_NS
+        and set(p['row_union']) == set(TIMEFRAMES), 'NATIVE_TRAIN_PROVENANCE')
+    _require(set(value['surfaces']) == {'gc_mtf_'+tf.lower() for tf in TIMEFRAMES}, 'NATIVE_SURFACE_KEYS')
+    for tf in TIMEFRAMES:
+        stats = value['surfaces']['gc_mtf_'+tf.lower()]
+        _require(stats.get('native_gc_domain_contract_sha256') == native_m5_gc_domain_contract()['contract_sha256'],
+                 'NATIVE_SURFACE_DOMAIN:'+tf)
+        require_surface_normalization(stats, surface='gc_mtf_'+tf.lower(), field_names=layout['field_names'][tf])
+        row = p['row_union'][tf]
+        _require(set(row) == {'rows','native_row_indices_sha256','available_ns_sha256'}
+            and row['rows'] == stats['fit_row_count'] and row['rows'] >= 2
+            and _hash(row['native_row_indices_sha256']) and _hash(row['available_ns_sha256']), 'NATIVE_ROW_UNION:'+tf)
+    _require(value['contract_sha256'] == _sha({k:v for k,v in value.items() if k!='contract_sha256'}), 'NATIVE_NORMALIZATION_HASH')
+    return dict(value)
+
+
+def fit_native_m5_gc_history_normalization(surfaces, train_row_indices_by_tf, *,
+        train_start_ns, train_end_ns, source_binding, source_axes_sha256, layout=None):
+    from gx1.contracts.entry_model_native_input_normalization_v1 import (
+        fit_native_m5_gc_surface_normalization, MatrixPopulationPart, NATIVE_M5_TRAIN_FIT_CUTOFF_NS)
+    from gx1.contracts.market_state_native_m5_gc_feature_inputs_v1 import require_native_m5_gc_source_binding
+    source = require_native_m5_gc_source_binding(source_binding)
+    layout = native_gc_mtf_history_layout() if layout is None else require_gc_mtf_history_layout(layout)
+    _require(layout['schema_version']==NATIVE_M5_LAYOUT_SCHEMA
+        and source['native_field_catalog_sha256']==layout['native_field_catalog_sha256']
+        and _hash(source_axes_sha256), 'NATIVE_FIT_SOURCE')
+    _require(type(train_start_ns) is int and type(train_end_ns) is int
+        and 0<=train_start_ns<train_end_ns<=NATIVE_M5_TRAIN_FIT_CUTOFF_NS, 'NATIVE_FIT_CUTOFF')
+    surfaces = require_gc_mtf_history_surfaces(surfaces,layout=layout)
+    _require(set(train_row_indices_by_tf)==set(TIMEFRAMES),'NATIVE_FIT_TFS')
+    stats,unions = {},{}
+    for tf in TIMEFRAMES:
+        rows = _axis(train_row_indices_by_tf[tf],'NATIVE_FIT_ROWS:'+tf,nonnegative=True)
+        surface = surfaces[tf]
+        at = np.searchsorted(surface['native_row_indices'],rows)
+        _require(len(rows)>=2 and np.all(at<len(surface['native_row_indices']))
+            and np.array_equal(surface['native_row_indices'][at],rows),'NATIVE_FIT_ROW_JOIN:'+tf)
+        available = surface['available_ns'][at]
+        _require(np.all(available<train_end_ns),'NATIVE_FIT_LATER_FORBIDDEN:'+tf)
+        name = 'gc_mtf_'+tf.lower()
+        stats[name] = fit_native_m5_gc_surface_normalization(
+            MatrixPopulationPart(surface['features'],row_indices=at,source=name),
+            surface=name,field_names=layout['field_names'][tf],semantic_categorical_domains={})
+        unions[tf] = {'rows':len(rows),'native_row_indices_sha256':_array_sha(rows),
+                      'available_ns_sha256':_array_sha(available)}
+    payload = {'schema_version':NATIVE_M5_NORMALIZATION_SCHEMA,
+        'layout_sha256':layout['contract_sha256'],'source_binding_sha256':source['contract_sha256'],
+        'source_axes_sha256':source_axes_sha256,'surfaces':stats,
+        'provenance':{'train_start_ns':train_start_ns,'train_end_ns':train_end_ns,'row_union':unions}}
+    return require_gc_mtf_history_normalization({**payload,'contract_sha256':_sha(payload)},layout=layout)

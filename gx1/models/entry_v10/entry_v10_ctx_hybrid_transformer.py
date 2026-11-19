@@ -50,7 +50,7 @@ from gx1.contracts.entry_model_native_tf_input_scale_v1 import (
 from gx1.contracts.entry_model_native_input_normalization_v1 import (
     EXPECTED_SURFACES as INPUT_NORMALIZATION_SURFACES,
     require_input_normalization_contract, NATIVE_M5_NORMALIZATION_SCHEMA,
-    SIGNED_TERNARY_UNIT_SCALE_SOURCE,
+    SIGNED_TERNARY_UNIT_SCALE_SOURCE, NATIVE_M5_FULL_GC_NORMALIZATION_SCHEMA, mask_native_gc_torch,
 )
 from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
     JOINT_TASK_NAMES,
@@ -86,6 +86,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     compile_gc_mtf_geometry_entry_execution_profile, GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME,
     compile_full_gc_mtf_entry_execution_profile, FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME,
     compile_full_ta_entry_execution_profile, FULL_TA_ENTRY_EXECUTION_PROFILE_NAME,
+    compile_native_m5_full_gc_entry_execution_profile, NATIVE_M5_FULL_GC_ENTRY_EXECUTION_PROFILE_NAME,
 )
 from gx1.features.entry_direction_momentum_profile_v1 import (
     MOMENTUM_FAMILY as PRICE_MOMENTUM_FAMILY,
@@ -548,6 +549,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if profile_reference is not None and profile_reference["name"] in PRICE_MOMENTUM_PROFILE_NAMES else None
         )
         compiled_profile = (
+            compile_native_m5_full_gc_entry_execution_profile(gc_mtf_history)
+            if profile_reference is not None and profile_reference['name']==NATIVE_M5_FULL_GC_ENTRY_EXECUTION_PROFILE_NAME else
             compile_full_ta_entry_execution_profile()
             if profile_reference is not None and profile_reference["name"] == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME else
             compile_full_gc_mtf_entry_execution_profile(
@@ -633,7 +636,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 gc_mtf_history=gc_mtf_history,
                 unobserved_units_profile=research_unobserved_units_profile,
                 native_m5_normalization=(isinstance(input_normalization, Mapping)
-                    and input_normalization.get("schema_version") == NATIVE_M5_NORMALIZATION_SCHEMA),
+                    and input_normalization.get("schema_version") in (NATIVE_M5_NORMALIZATION_SCHEMA,NATIVE_M5_FULL_GC_NORMALIZATION_SCHEMA)),
             )
         super().__init__()
         self.entry_training_phase = require_entry_training_phase(
@@ -657,7 +660,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if profile_reference is not None else None
         )
         self._native_bar_direction_only = (isinstance(input_normalization, Mapping)
-            and input_normalization.get("schema_version") == NATIVE_M5_NORMALIZATION_SCHEMA)
+            and input_normalization.get("schema_version") in (NATIVE_M5_NORMALIZATION_SCHEMA,NATIVE_M5_FULL_GC_NORMALIZATION_SCHEMA))
         dynamic_phase = (self.entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
                          and not self._native_bar_direction_only)
         if dynamic_phase:
@@ -691,7 +694,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         expected_ctx_cont_dim = (
             compiled_profile["physical_widths"]["ctx_cont"]
             if profile_reference is not None
-            and profile_reference["name"] == FULL_TA_ENTRY_EXECUTION_PROFILE_NAME
+            and profile_reference["name"] in (FULL_TA_ENTRY_EXECUTION_PROFILE_NAME,
+                                               NATIVE_M5_FULL_GC_ENTRY_EXECUTION_PROFILE_NAME)
             else MODEL_NATIVE_CTX_CONT_DIM)
         if (
             int(ctx_cont_dim) != expected_ctx_cont_dim
@@ -832,6 +836,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if ta_only != (isinstance(input_normalization, Mapping)
                        and ("ta_projection" in input_normalization or native_m5_norm)):
             raise RuntimeError("TA_INPUT_NORMALIZATION_PROFILE_BINDING")
+        native_gc_norm = (isinstance(input_normalization,Mapping) and input_normalization.get('schema_version')==NATIVE_M5_FULL_GC_NORMALIZATION_SCHEMA)
+        if native_gc_norm and (gc_mtf_history is None or profile_reference['name']!=NATIVE_M5_FULL_GC_ENTRY_EXECUTION_PROFILE_NAME
+                or entry_training_phase!=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+            raise RuntimeError('NATIVE_GC_INPUT_NORMALIZATION_MODEL_SCOPE')
         if native_m5_norm and (
                 gc_mtf_history is not None
                 or entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
@@ -900,6 +908,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if (profile_reference is None or profile_reference["name"] != FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
                     or entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
                 raise RuntimeError("NATIVE_RESEARCH_ZERO_SUPPORT_SCOPE")
+        if native_gc_norm and normalized_input_contract['gc_mtf_history']!=gc_mtf_history:
+            raise RuntimeError('NATIVE_GC_INPUT_NORMALIZATION_HISTORY_JOIN')
         self._input_normalization_contract = normalized_input_contract
         self._input_normalization_field_names = normalization_field_names
         self._input_norm_categorical_domains = {
@@ -1917,12 +1927,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     for key in INPUT_NORMALIZATION_SURFACES},
                 expected_ctx_cat_names=MODEL_NATIVE_CTX_CAT_FIELDS,
                 expected_entry_training_phase=self.entry_training_phase)
+        if self.entry_execution_profile is not None and self.entry_execution_profile['name']==NATIVE_M5_FULL_GC_ENTRY_EXECUTION_PROFILE_NAME:
+            contract = require_input_normalization_contract(contract,expected_field_names={key:self._input_normalization_field_names[key] for key in INPUT_NORMALIZATION_SURFACES},
+                expected_ctx_cat_names=MODEL_NATIVE_CTX_CAT_FIELDS,expected_entry_training_phase=self.entry_training_phase)
+            if contract['gc_mtf_history']!=self.gc_mtf_history:
+                raise RuntimeError('NATIVE_GC_NORMALIZATION_STATE_HISTORY_JOIN')
         units_profile = getattr(self, "_research_unobserved_units_profile", None)
         units_buffer = getattr(self, "research_unobserved_units_profile_sha256", None)
         research_stats = list(contract["surfaces"].values())
         if self.gc_mtf_history is not None:
             research_stats.extend(self.gc_mtf_history["normalization"]["surfaces"].values())
-        units_marked = any("unobserved_units_profile_sha256" in stats or "observed_fit_counts" in stats
+        units_marked = any('unobserved_units_profile_sha256' in stats or ('observed_fit_counts' in stats and 'native_gc_domain_contract_sha256' not in stats)
                            for stats in research_stats)
         if units_profile is not None or units_marked or units_buffer is not None:
             if units_profile is None:
@@ -2191,7 +2206,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
             torch.asinh(affine),
         ).to(dtype=raw_float.dtype)
         _assert_finite(f"normalized.{surface}", normalized)
-        result = _gc_context.mask_normalized_torch(raw_float, normalized, field_names)
+        stats = self._input_normalization_contract['surfaces'].get(surface)
+        if stats is None and self.gc_mtf_history is not None:
+            stats = self.gc_mtf_history['normalization']['surfaces'].get(surface)
+        mask_owner = mask_native_gc_torch if stats and 'native_gc_domain_contract_sha256' in stats else _gc_context.mask_normalized_torch
+        result = mask_owner(raw_float, normalized, field_names)
         result = mask_normalized_range_torch(raw_float, result, field_names)
         # Physical storage and domains were checked above, before any research-only projection.
         cols = getattr(self, "_research_zero_columns", {}).get(surface)
@@ -4386,7 +4405,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if (type(research_timeframe_representations) is not bool
                 or (research_timeframe_representations and (
                     not research_representation_only
-                    or self._gc_mtf_history_identity is not None))):
+                    or (self._gc_mtf_history_identity is not None and self._input_normalization_contract.get('schema_version')!=NATIVE_M5_FULL_GC_NORMALIZATION_SCHEMA)))):
             raise RuntimeError("ENTRY_RESEARCH_TIMEFRAME_MODE_INVALID")
         z_v3, specialist_gate, global_context_h = self._encode_shared_feature_base(
             seq_x=seq_x,

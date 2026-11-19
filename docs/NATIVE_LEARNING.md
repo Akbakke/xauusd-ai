@@ -74,6 +74,28 @@ feil på infinity eller senere observasjonshull skal være uendret over
 blokkgrenser. Ferdige parameterfiler og fysiske inputartefakter gjenbrukes
 bare under deres opprinnelige kilde-, parameter- og populasjonsidentitet.
 
+
+Fasit og indikatorer kan ha forskjellige globale TF-radnumre: fasiten
+beholder første observerte delbar, mens feature-eieren kan kreve at label
+ikke ligger før råkildens første M5-start. Valider hver eiers komplette
+akse mot egne rad-ID-er; koble deretter på eksakt start-/tilgjengelighetstid.
+Et likt radnummer er ikke bevis for samme bar. Ingen hardkodet indeksforskyvning.
+
+Feltdomener følger formel-eierne, aldri bare verdiene i et tidsutvalg.
+Binære felt bevarer0/1; signed EMA-stack bevarer-1/0/+1 med eksplisitt
+semantisk enhetsskala. Binære og signerte aliaser har samme domenebehandling
+på tvers av signal/kontekst/TF. Statistikkdeling følger eksplisitt aliasbinding
+og faktisk TRAIN-populasjon. En konstant TRAIN-periode gjør ikke et
+signed felt binært og gir ingen generell tillatelse til å omgå nullskala.
+
+GC reduseres direkte fra originale MBP-hendelser til300s-bøtter og egne
+høyere TF. Ingen minuttmellomlag eller tidligere GC-kilderegister innrømmes.
+Mengder, prisstiger, integral-summer, observerte varigheter og hendelses-
+klokker bevares; normalisering beregner ikke gjennomsnitt av gjennomsnitt.
+GC/XAU-basis bruker samme native M5-slutt, med hendelsesalder separat fra
+intervallalder. Manglende GC-/D1-forhistorikk har verdi0 bak observed0,
+aldri en oppdiktet markedsverdi eller grunn til å fjerne en kjent M5-rad.
+
 Hver TF har separate treklassehoder for åpning og slutt i
 NativeM5BarDirectionModel. Klasser er -1/0/+1 og blandede fortegn beholdes.
 Tap og skår bruker samme modne, observerte celler. Allerede kjent åpning

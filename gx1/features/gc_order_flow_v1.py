@@ -1235,3 +1235,163 @@ def full_gc_minute_selection_v2(minutes,roll_schedule):
     pos=np.searchsorted(dates,stamps,side='right')-1
     out=ci[np.maximum(pos,0)].copy();out[pos<0]=-1
     return out
+
+
+# Explicit specialist ownership for the strictly registered primitive columns.
+# Formula field groups below come from their existing numeric owners.
+_STRICT_NATIVE_COLUMN_OWNERS = {
+    ('m5_book_features', 'anchored_segment_poc_distance_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'anchored_segment_poc_prior_level_response_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'anchored_segment_poc_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'anchored_segment_vah_distance_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'anchored_segment_vah_prior_level_response_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'anchored_segment_vah_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'anchored_segment_val_distance_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'anchored_segment_val_prior_level_response_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'anchored_segment_val_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'anchored_segment_valid'): 'session_regime_encoder',
+    ('m5_book_features', 'anchored_segment_volume_contracts'): 'momentum_flow_encoder',
+    ('m5_book_features', 'anchored_segment_vwap_distance_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'anchored_segment_vwap_prior_level_response_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'anchored_segment_vwap_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'ask_depletion_contracts'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'ask_refill_contracts'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'bbo_valid'): 'momentum_flow_encoder',
+    ('m5_book_features', 'bid_depletion_contracts'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'bid_refill_contracts'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'close_usd'): 'price_action_candle_encoder',
+    ('m5_book_features', 'mid_response_ticks'): 'momentum_flow_encoder',
+    ('m5_book_features', 'ofi_contracts'): 'momentum_flow_encoder',
+    ('m5_book_features', 'ofi_valid'): 'momentum_flow_encoder',
+    ('m5_book_features', 'order_count_valid'): 'momentum_flow_encoder',
+    ('m5_book_features', 'quote_updates'): 'momentum_flow_encoder',
+    ('m5_book_features', 'rolling15_poc_distance_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling15_poc_prior_level_response_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling15_poc_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling15_vah_distance_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling15_vah_prior_level_response_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling15_vah_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling15_val_distance_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling15_val_prior_level_response_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling15_val_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling15_valid'): 'momentum_flow_encoder',
+    ('m5_book_features', 'rolling15_volume_contracts'): 'momentum_flow_encoder',
+    ('m5_book_features', 'rolling15_vwap_distance_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling15_vwap_prior_level_response_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling15_vwap_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling60_poc_distance_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling60_poc_prior_level_response_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling60_poc_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling60_vah_distance_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling60_vah_prior_level_response_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling60_vah_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling60_val_distance_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling60_val_prior_level_response_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling60_val_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling60_valid'): 'momentum_flow_encoder',
+    ('m5_book_features', 'rolling60_volume_contracts'): 'momentum_flow_encoder',
+    ('m5_book_features', 'rolling60_vwap_distance_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling60_vwap_prior_level_response_ticks'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'rolling60_vwap_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'session_accepted_minutes'): 'session_regime_encoder',
+    ('m5_book_features', 'session_complete_valid'): 'session_regime_encoder',
+    ('m5_book_features', 'session_expected_minutes'): 'session_regime_encoder',
+    ('m5_book_features', 'session_observed_poc_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'session_observed_vah_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'session_observed_val_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'session_observed_valid'): 'session_regime_encoder',
+    ('m5_book_features', 'session_observed_volume_contracts'): 'momentum_flow_encoder',
+    ('m5_book_features', 'session_observed_vwap_usd'): 'smc_liquidity_encoder',
+    ('m5_book_features', 'tw_ask_contracts'): 'momentum_flow_encoder',
+    ('m5_book_features', 'tw_ask_contracts_per_order'): 'momentum_flow_encoder',
+    ('m5_book_features', 'tw_ask_orders'): 'momentum_flow_encoder',
+    ('m5_book_features', 'tw_bid_contracts'): 'momentum_flow_encoder',
+    ('m5_book_features', 'tw_bid_contracts_per_order'): 'momentum_flow_encoder',
+    ('m5_book_features', 'tw_bid_orders'): 'momentum_flow_encoder',
+    ('m5_book_features', 'tw_imbalance'): 'momentum_flow_encoder',
+    ('m5_book_features', 'tw_microprice_offset_ticks'): 'momentum_flow_encoder',
+    ('m5_book_features', 'tw_order_count_imbalance'): 'momentum_flow_encoder',
+    ('m5_book_features', 'tw_spread_ticks'): 'vol_compression_encoder',
+    ('timeframes', 'bos_down'): 'smc_liquidity_encoder',
+    ('timeframes', 'bos_up'): 'smc_liquidity_encoder',
+    ('timeframes', 'buy'): 'momentum_flow_encoder',
+    ('timeframes', 'buy_poc_usd'): 'smc_liquidity_encoder',
+    ('timeframes', 'close_usd'): 'price_action_candle_encoder',
+    ('timeframes', 'cvd_segment_delta_contracts'): 'momentum_flow_encoder',
+    ('timeframes', 'cvd_segment_minutes'): 'momentum_flow_encoder',
+    ('timeframes', 'cvd_segment_volume_contracts'): 'momentum_flow_encoder',
+    ('timeframes', 'delta_contracts'): 'momentum_flow_encoder',
+    ('timeframes', 'high_usd'): 'price_action_candle_encoder',
+    ('timeframes', 'known_aggressor_fraction'): 'momentum_flow_encoder',
+    ('timeframes', 'low_usd'): 'price_action_candle_encoder',
+    ('timeframes', 'max_level_delta_contracts'): 'momentum_flow_encoder',
+    ('timeframes', 'median_usd'): 'smc_liquidity_encoder',
+    ('timeframes', 'min_level_delta_contracts'): 'momentum_flow_encoder',
+    ('timeframes', 'ob_bear_active'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bear_age_bars'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bear_created'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bear_first_retouch'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bear_high'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bear_input_valid'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bear_low'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bear_origin_volume_contracts'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bull_active'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bull_age_bars'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bull_created'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bull_first_retouch'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bull_high'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bull_input_valid'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bull_low'): 'smc_liquidity_encoder',
+    ('timeframes', 'ob_bull_origin_volume_contracts'): 'smc_liquidity_encoder',
+    ('timeframes', 'open_usd'): 'price_action_candle_encoder',
+    ('timeframes', 'poc_usd'): 'smc_liquidity_encoder',
+    ('timeframes', 'price_levels'): 'smc_liquidity_encoder',
+    ('timeframes', 'q25_usd'): 'smc_liquidity_encoder',
+    ('timeframes', 'q75_usd'): 'smc_liquidity_encoder',
+    ('timeframes', 'sell'): 'momentum_flow_encoder',
+    ('timeframes', 'sell_poc_usd'): 'smc_liquidity_encoder',
+    ('timeframes', 'signed_valid'): 'momentum_flow_encoder',
+    ('timeframes', 'spot_basis_bps'): 'momentum_flow_encoder',
+    ('timeframes', 'structure_available'): 'smc_liquidity_encoder',
+    ('timeframes', 'sweep_down_event'): 'smc_liquidity_encoder',
+    ('timeframes', 'sweep_up_event'): 'smc_liquidity_encoder',
+    ('timeframes', 'trades'): 'momentum_flow_encoder',
+    ('timeframes', 'unknown'): 'momentum_flow_encoder',
+    ('timeframes', 'volume'): 'momentum_flow_encoder',
+    ('timeframes', 'volume_valid'): 'momentum_flow_encoder',
+    ('timeframes', 'vwap_usd'): 'smc_liquidity_encoder',
+}
+
+
+def strict_native_m5_candidates_v1():
+    """The strict source registrations, independently declared by formula owner.
+
+    Observed five-TF candidates have their separate complete inventory above.
+    No TRAIN support, artifact registry or fitted field selection is consulted.
+    """
+    base = ('volume_valid','signed_valid','volume','buy','sell','unknown','trades',
+        'open_usd','high_usd','low_usd','close_usd') + PROFILE_FIELDS + FOOTPRINT_FIELDS + CVD_FIELDS + (
+        'delta_contracts','known_aggressor_fraction')
+    unsigned = ('volume_valid','volume','unknown','trades','open_usd','high_usd','low_usd','close_usd') + PROFILE_FIELDS + (
+        'known_aggressor_fraction',)
+    tf_columns={'M5':base+VOLUME_ORDER_BLOCK_PROXY_FIELDS_V1,
+        'M15':base+tuple(c for c in VOLUME_ORDER_BLOCK_PROXY_FIELDS_V1 if c!='structure_available'),
+        'H1':base,'H4':unsigned}
+    records=[]
+    def add(name,group,tf,column,gate=None,role='market_value'):
+        key=(group,column)
+        if key not in _STRICT_NATIVE_COLUMN_OWNERS:
+            raise RuntimeError('GC_STRICT_NATIVE_SOURCE_OWNER_UNDECLARED:' + name)
+        records.append({'name':name,'packet_group':group,'timeframe':tf,'column':column,
+            'owner':_STRICT_NATIVE_COLUMN_OWNERS[key],'validity_column':gate,
+            'source_clock_column':'available_ns','transform':None,'role':role})
+    book=('ofi_valid','bbo_valid','order_count_valid') + tuple(dynamic_profile_arrays_v2(np.array([0],np.int64))) + L1_FIELDS_V2 + L1_ORDER_COUNT_FIELDS_V1 + ('close_usd',)
+    for column in book:add('gc_book_'+column,'m5_book_features','M5',column)
+    for tf,columns in tf_columns.items():
+        for column in columns:add('gc_'+tf.lower()+'_'+column,'timeframes',tf,column)
+    for tf in ('M5','M15','H1','H4'):
+        add('gc_'+tf.lower()+'_spot_basis_bps','timeframes',tf,'spot_basis_bps',
+            'spot_basis_valid','same_closed_native_m5_cross_venue_basis')
+    if len({r['name'] for r in records})!=len(records):
+        raise RuntimeError('GC_STRICT_NATIVE_SOURCE_DUPLICATE')
+    return {'schema_version':'gx1_gc_strict_native_m5_candidates_v1','fields':records}

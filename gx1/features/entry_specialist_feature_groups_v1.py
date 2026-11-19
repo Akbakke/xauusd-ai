@@ -1881,6 +1881,10 @@ def require_compact_entry_execution_profile_reference(
         if gc_mtf_history is not None or unobserved_units_profile is not None:
             raise RuntimeError(f"{context}_TA_GC_HISTORY_FORBIDDEN")
         compiled = compile_full_ta_entry_execution_profile()
+    elif value['name'] == NATIVE_M5_FULL_GC_ENTRY_EXECUTION_PROFILE_NAME:
+        if unobserved_units_profile is not None:
+            raise RuntimeError(context + '_NATIVE_GC_LEGACY_UNITS_FORBIDDEN')
+        compiled = compile_native_m5_full_gc_entry_execution_profile(gc_mtf_history)
     elif value["name"] == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME:
         compiled = compile_full_gc_mtf_entry_execution_profile(gc_mtf_history, **units_kwargs)
     elif value["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME:
@@ -1895,3 +1899,59 @@ def require_compact_entry_execution_profile_reference(
     if any(type(value[key]) is not str or value[key] != expected[key] for key in expected):
         raise RuntimeError(f"{context}_COMPACT_ENTRY_EXECUTION_PROFILE_REFERENCE_MISMATCH")
     return expected
+
+
+NATIVE_M5_FULL_GC_ENTRY_EXECUTION_PROFILE_NAME = 'native_m5_full_xau_gc_mtf_bar_direction_v1'
+NATIVE_M5_FULL_GC_FEATURE_KEYS = FULL_TA_ENTRY_FEATURE_KEYS | frozenset(
+    'gc_seq_' + tf for tf in ('m5','m15','h1','h4','d1'))
+
+
+def compile_native_m5_full_gc_entry_execution_profile(gc_mtf_history):
+    """Append every fresh native GC value/mask to the canonical TA surfaces."""
+    from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history, NATIVE_M5_LAYOUT_SCHEMA
+    from gx1.features.gc_native_m5_features_v1 import native_m5_field_catalog
+    history = require_gc_mtf_history(gc_mtf_history)
+    if history['layout']['schema_version'] != NATIVE_M5_LAYOUT_SCHEMA:
+        raise RuntimeError('NATIVE_M5_FULL_GC_LEGACY_HISTORY_FORBIDDEN')
+    catalog, ta = native_m5_field_catalog(), compile_full_ta_entry_execution_profile()
+    base_fields = [item for item in catalog['fields']
+                   if item['availability_field'] == item['name'] + '_observed']
+    gc_names = tuple(name for item in base_fields for name in (item['name'],item['availability_field']))
+    gc_owners = {name:item['owner'] for item in base_fields
+                 for name in (item['name'],item['availability_field'])}
+    fields = dict(ta['physical_field_names'])
+    fields['signal'] = tuple(fields['signal']) + tuple('ctx_cont.'+name for name in gc_names)
+    fields['ctx_cont'] = tuple(fields['ctx_cont']) + gc_names
+    families = tuple(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    def owner(name):
+        plain = name.removeprefix('ctx_cont.')
+        return gc_owners[plain] if plain in gc_owners else classify_entry_specialist_feature(name)
+    local = {family:tuple(i for i,name in enumerate(fields['signal']) if owner(name)==family) for family in families}
+    context = {family:tuple(i for i,name in enumerate(fields['ctx_cont']) if owner('ctx_cont.'+name)==family) for family in families}
+    lookup = {name:i for i,name in enumerate(fields['ctx_cont'])}
+    aliases = [(i,lookup[name[9:]]) for i,name in enumerate(fields['signal']) if name.startswith('ctx_cont.')]
+    payload = {'schema_version':'gx1_native_m5_full_gc_bar_direction_profile_v1',
+        'name':NATIVE_M5_FULL_GC_ENTRY_EXECUTION_PROFILE_NAME,
+        'source_clock_contract':'native_m5_and_closed_higher_no_m1_v1',
+        'native_field_catalog_sha256':catalog['contract_sha256'],
+        'gather_stage':'native_TA_then_native_GC_on_identical_closed_source_axes',
+        'physical_field_names':fields,'active_field_names':dict(fields),
+        'physical_widths':{key:len(names) for key,names in fields.items()},
+        'timeframes':tuple(history['layout']['timeframes']),
+        'feature_keys':tuple(sorted(NATIVE_M5_FULL_GC_FEATURE_KEYS)),
+        'signal_indices':tuple(range(len(fields['signal']))),
+        'ctx_cont_indices':tuple(range(len(fields['ctx_cont']))),
+        'mtf_indices':tuple(range(len(fields['mtf']))),
+        'generic_snap_signal_indices':tuple(i for i in range(len(fields['signal'])) if i not in {a for a,b in aliases}),
+        'temporal_alias_signal_indices':tuple(a for a,b in aliases),
+        'temporal_alias_ctx_cont_indices':tuple(b for a,b in aliases),
+        'local_specialists':families,'mtf_specialists':families,'base_mtf_specialists':families,
+        'local_signal_indices_by_specialist':local,'ctx_cont_indices_by_specialist':context,
+        'mtf_indices_by_specialist':ta['mtf_indices_by_specialist'],
+        'gc_context_fields':gc_names,'macro_context_fields':ta['macro_context_fields'],
+        'gc_mtf_history':{'layout_sha256':history['layout']['contract_sha256'],
+                          'normalization_sha256':history['normalization']['contract_sha256']},
+        'gc_mtf_field_names':history['layout']['field_names'],
+        'gc_mtf_family_indices':history['layout']['family_indices'],
+        'gc_mtf_widths':history['layout']['widths'],'gc_mtf_window_rows':history['layout']['window_rows']}
+    return {**payload,'contract_sha256':_canonical_sha256(payload)}

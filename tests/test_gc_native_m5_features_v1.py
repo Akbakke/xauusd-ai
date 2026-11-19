@@ -169,7 +169,7 @@ def test_raw_native_callbacks_to_all_five_tf_formula_families_without_legacy_rea
     assert 'same_closed_m1_cross_venue_basis' not in repr(packet['candidate_map'])
     np.testing.assert_array_equal(callbacks['trades'].last_trade_recv_ns,starts+INTERVAL//2)
     coverage=native.source_coverage_report(packet)
-    assert len(coverage['fields'])==1210
+    assert len(coverage['fields'])==1220
     assert coverage['all_declared_source_columns_present']
     assert coverage['source_boolean_fields_without_binary_declaration']==[]
     assert coverage['fields']['gc_m5_observed_profile_rolling60_vwap_usd']['unknown']>0
@@ -191,7 +191,16 @@ def test_native_source_catalog_preserves_all_genuine_names_owners_and_boolean_do
     assert all(field['binary_value'] for field in fields
         if field['column'] in native.NATIVE_BOOLEAN_SOURCE_COLUMNS)
     assert catalog['field_names'][:2410]==list(pure.CONTEXT_FIELDS)
-    assert len(catalog['fields'])==1210 and len(catalog['field_names'])==2415
+    assert len(catalog['fields'])==1220 and len(catalog['field_names'])==2435
+    assert catalog['base_value_fields']==1215
+    fresh=catalog['fields'][1205:1215]
+    assert len(fresh)==10 and all(f['unit']=='contract' for f in fresh)
+    expected={x['name'] for x in f.completion_native_candidates_v1(input_interval_ns=INTERVAL)['fields']}
+    actual={x['name'] for x in catalog['fields'] if x['column'].startswith('observed_') and x['packet_group']=='timeframes'
+            and x['transform']!='native_m5_trailing_support_gap_minutes'}
+    assert actual==expected
+    assert sum(x['binary_value'] for x in catalog['fields'])==210
+    assert sum(x['binary_value'] and not x['structural_mask_value'] for x in catalog['fields'])==135
     assert not any(value in repr(catalog) for value in ('NATIVE_GC_CONTEXT_FIELDS','retained::','same_closed_m1','_minute_ns','GX1_RUNS'))
 
     assert native.require_native_m5_field_catalog(catalog)==catalog
@@ -208,3 +217,58 @@ def test_native_feature_glue_never_publishes_source_available_at_or_after_test_s
     for table in (*packet['timeframes'].values(),packet['m5_book_features']):
         assert np.all(table['available_ns']<seal)
     assert callbacks['trades'].last_trusted_trade_recv_ns[-1]<seal
+
+
+@pytest.mark.parametrize('owner', ['completion_native_candidates_v1','strict_native_m5_candidates_v1'])
+def test_new_genuine_formula_cannot_disappear_from_native_catalog(monkeypatch,owner):
+    original=getattr(f,owner)
+    def changed(*args,**kwargs):
+        result=original(*args,**kwargs);field=dict(result['fields'][0])
+        field.update(name='gc_m5_new_genuine_formula',column='new_genuine_formula')
+        return {**result,'fields':[*result['fields'],field]}
+    monkeypatch.setattr(f,owner,changed)
+    with pytest.raises(RuntimeError,match='FORMULA_CATALOG_UNMAPPED:gc_m5_new_genuine_formula'):
+        native.native_m5_field_catalog()
+
+
+@pytest.mark.parametrize('key,value', [('column','different_column'),('validity_column','different_gate'),
+    ('source_clock_column','different_clock'),('role','different_role')])
+def test_declared_formula_column_gate_clock_or_role_change_requires_catalog_change(monkeypatch,key,value):
+    original=f.completion_native_candidates_v1
+    def changed(*args,**kwargs):
+        result=original(*args,**kwargs);fields=[dict(x) for x in result['fields']]
+        fields[0][key]=value
+        return {**result,'fields':fields}
+    monkeypatch.setattr(f,'completion_native_candidates_v1',changed)
+    with pytest.raises(RuntimeError,match='FORMULA_CATALOG_MISMATCH:.*:'+key):native.native_m5_field_catalog()
+
+
+def test_side_specific_trade_maxima_are_distinct_genuine_source_columns():
+    starts=ORIGIN+np.arange(2,dtype=np.int64)*INTERVAL;selected=np.zeros(2,np.int64)
+    metrics={'trades':np.array([2,2],np.uint64),'volume':np.array([7,7],np.uint64),
+        'buy':np.array([2,5],np.uint64),'sell':np.array([5,2],np.uint64),'unknown':np.zeros(2,np.uint64)}
+    stats={name:np.zeros(2,np.uint64) for name in f.TRUSTED_TRADE_SIZE_FIELDS_V1}
+    for name,values in {'buy_trade_records':[1,1],'sell_trade_records':[1,1],
+        'size_sum_contracts':[7,7],'size_sum_squared_contracts2':[29,29],
+        'size_min_contracts':[2,2],'size_max_contracts':[5,5],
+        'buy_size_max_contracts':[2,5],'sell_size_max_contracts':[5,2]}.items():stats[name][:]=values
+    out=f.aggregate_observed_trade_size_v1(starts,selected,metrics,{'volume':np.ones(2,bool)},stats,'M5',input_interval_ns=INTERVAL)
+    np.testing.assert_array_equal(out['observed_buy_max_executed_trade_contracts'],[2,5])
+    np.testing.assert_array_equal(out['observed_sell_max_executed_trade_contracts'],[5,2])
+    np.testing.assert_array_equal(out['observed_executed_trade_size_max_contracts'],[5,5])
+
+
+def test_all_source_units_are_explicit_and_owner_declared_not_fitted_from_values():
+    catalog=native.native_m5_field_catalog();policy=native.native_m5_source_unit_policy()
+    assert catalog['unit_policy_sha256']==policy['contract_sha256']
+    assert len(policy['source_columns'])==321
+    for field in catalog['fields']:
+        assert field['unit'] and field['unit_scale']==1.
+        assert field['unit_owner'].startswith('gx1.features.')
+        assert field['unit']=='Boolean' if field['binary_value'] else field['unit']!='Boolean'
+    by_name={x['name']:x for x in catalog['fields']}
+    assert by_name['gc_m5_observed_spot_basis_bps']['unit']=='basis_point'
+    assert by_name['gc_m5_observed_book_tw_bid_contracts']['unit']=='contract'
+    assert by_name['gc_d1_observed_event_matching_clock_mean_ns']['unit']=='nanosecond'
+    assert by_name['gc_h4_observed_profile_rolling60_vwap_usd']['unit']=='USD'
+    assert by_name['gc_m15_observed_proxy_boundary_gap_minutes']['unit']=='minute'

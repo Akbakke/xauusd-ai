@@ -1430,6 +1430,16 @@ NATIVE_FIELD_SOURCES = (
     ('gc_d1_observed_buy_trade_size_valid', 'timeframes', 'D1', 'observed_buy_trade_size_valid', 'session_regime_encoder', None, 'available_ns', None, True, False),
     ('gc_d1_observed_sell_trade_size_valid', 'timeframes', 'D1', 'observed_sell_trade_size_valid', 'session_regime_encoder', None, 'available_ns', None, True, False),
     ('gc_d1_observed_unknown_trade_size_valid', 'timeframes', 'D1', 'observed_unknown_trade_size_valid', 'session_regime_encoder', None, 'available_ns', None, True, False),
+    ('gc_m5_observed_buy_max_executed_trade_contracts', 'timeframes', 'M5', 'observed_buy_max_executed_trade_contracts', 'momentum_flow_encoder', 'observed_buy_trade_size_valid', 'available_ns', None, False, False),
+    ('gc_m5_observed_sell_max_executed_trade_contracts', 'timeframes', 'M5', 'observed_sell_max_executed_trade_contracts', 'momentum_flow_encoder', 'observed_sell_trade_size_valid', 'available_ns', None, False, False),
+    ('gc_m15_observed_buy_max_executed_trade_contracts', 'timeframes', 'M15', 'observed_buy_max_executed_trade_contracts', 'momentum_flow_encoder', 'observed_buy_trade_size_valid', 'available_ns', None, False, False),
+    ('gc_m15_observed_sell_max_executed_trade_contracts', 'timeframes', 'M15', 'observed_sell_max_executed_trade_contracts', 'momentum_flow_encoder', 'observed_sell_trade_size_valid', 'available_ns', None, False, False),
+    ('gc_h1_observed_buy_max_executed_trade_contracts', 'timeframes', 'H1', 'observed_buy_max_executed_trade_contracts', 'momentum_flow_encoder', 'observed_buy_trade_size_valid', 'available_ns', None, False, False),
+    ('gc_h1_observed_sell_max_executed_trade_contracts', 'timeframes', 'H1', 'observed_sell_max_executed_trade_contracts', 'momentum_flow_encoder', 'observed_sell_trade_size_valid', 'available_ns', None, False, False),
+    ('gc_h4_observed_buy_max_executed_trade_contracts', 'timeframes', 'H4', 'observed_buy_max_executed_trade_contracts', 'momentum_flow_encoder', 'observed_buy_trade_size_valid', 'available_ns', None, False, False),
+    ('gc_h4_observed_sell_max_executed_trade_contracts', 'timeframes', 'H4', 'observed_sell_max_executed_trade_contracts', 'momentum_flow_encoder', 'observed_sell_trade_size_valid', 'available_ns', None, False, False),
+    ('gc_d1_observed_buy_max_executed_trade_contracts', 'timeframes', 'D1', 'observed_buy_max_executed_trade_contracts', 'momentum_flow_encoder', 'observed_buy_trade_size_valid', 'available_ns', None, False, False),
+    ('gc_d1_observed_sell_max_executed_trade_contracts', 'timeframes', 'D1', 'observed_sell_max_executed_trade_contracts', 'momentum_flow_encoder', 'observed_sell_trade_size_valid', 'available_ns', None, False, False),
 )
 
 
@@ -1448,15 +1458,164 @@ NATIVE_BOOLEAN_SOURCE_COLUMNS = frozenset((
 ))
 
 
+def native_m5_source_unit_policy():
+    """Physical units declared by the actual primitive formula owners.
+
+    Unit scale is one source unit, never an empirical estimate or a statement
+    that a continuous/averaged value lies on a one-unit measurement grid.
+    """
+    units = {}
+    def add(unit, columns, owner):
+        for column in columns:
+            if column in units and units[column]['unit'] != unit:
+                raise RuntimeError('GC_NATIVE_M5_SOURCE_UNIT_CONFLICT:' + column)
+            units[column] = {'unit':unit, 'unit_scale':1.0,
+                'unit_owner':(owner if owner.startswith('gx1.') else 'gx1.features.gc_order_flow_v1.' + owner)}
+    add('Boolean', {column for _,_,_,column,_,_,_,_,structural,binary in NATIVE_FIELD_SOURCES
+                    if structural or binary} | NATIVE_BOOLEAN_SOURCE_COLUMNS, 'timeframe_skeleton')
+    add('USD', ('open_usd','high_usd','low_usd','close_usd','vwap_usd','poc_usd',
+        'q25_usd','median_usd','q75_usd','buy_poc_usd','sell_poc_usd','val_usd','vah_usd'), 'histogram_features')
+    add('USD', ('open_usd','high_usd','low_usd','close_usd'), 'timeframe_skeleton')
+    add('USD', ('val_usd','vah_usd'), 'value_area_v2')
+    add('contract', ('volume','buy','sell','unknown','delta_contracts',
+        'max_level_delta_contracts','min_level_delta_contracts','cvd_segment_delta_contracts',
+        'cvd_segment_volume_contracts'), 'histogram_features')
+    add('trade', ('trades',), 'timeframe_skeleton')
+    add('price_level', ('price_levels',), 'histogram_features')
+    add('ratio', ('known_aggressor_fraction',), 'timeframe_skeleton')
+    add('minute', ('cvd_segment_minutes',), 'relative_cvd')
+    add('basis_point', ('spot_basis_bps','observed_spot_basis_bps'),
+        'gx1.features.gc_native_m5_features_v1.add_native_m5_basis')
+    for column in ('open_usd','high_usd','low_usd','close_usd') + formulas.PROFILE_FIELDS + ('val_usd','vah_usd'):
+        add(units[column]['unit'], ('observed_'+column,), 'timeframe_skeleton')
+    for original, alias in formulas.OBSERVED_FOOTPRINT_FIELDS.items():
+        add(units[original]['unit'], (alias,), 'histogram_features')
+    add('contract', ('observed_volume','observed_buy_known','observed_sell_known','observed_unknown',
+        'observed_known_delta_contracts','observed_avg_executed_trade_contracts'), 'timeframe_skeleton')
+    add('trade', ('observed_trades',), 'timeframe_skeleton')
+    add('ratio', ('observed_known_aggressor_fraction','observed_coverage_fraction',
+        'observed_signed_minute_fraction'), 'timeframe_skeleton')
+    add('minute', ('observed_accepted_minutes','observed_signed_minutes',
+        'observed_spot_basis_age_minutes'), 'timeframe_skeleton')
+    add('minute', ('observed_spot_basis_age_minutes',),
+        'gx1.features.gc_native_m5_features_v1.add_native_m5_basis')
+    add('Boolean', ('structure_available','bos_up','bos_down','sweep_up_event','sweep_down_event'),
+        'gx1.features.smc_v1.replay_volume_order_block_proxies_v1')
+    for side in ('bull','bear'):
+        add('Boolean', tuple('ob_'+side+'_'+column for column in
+            ('active','created','first_retouch','input_valid')),
+            'gx1.features.smc_v1.replay_volume_order_block_proxies_v1')
+        add('USD', ('ob_'+side+'_low','ob_'+side+'_high'), 'add_observed_structure')
+        add('bar', ('ob_'+side+'_age_bars',), 'add_observed_structure')
+        add('contract', ('ob_'+side+'_origin_volume_contracts',), 'add_observed_structure')
+    for column in formulas.VOLUME_ORDER_BLOCK_PROXY_FIELDS_V1:
+        add(units[column]['unit'], ('observed_proxy_'+column,), 'add_observed_structure')
+    add('minute', ('observed_proxy_boundary_gap_minutes','observed_proxy_elapsed_minutes'), 'add_observed_structure')
+    add('bar', ('observed_proxy_skipped_candles',), 'add_observed_structure')
+    add('contract', tuple('observed_known_cumulative_'+column for column in
+        ('buy_contracts','sell_contracts','unknown_contracts','volume_contracts','known_delta_contracts')),
+        'known_cumulative_contributions_v1')
+    add('ratio', ('observed_known_cumulative_unknown_fraction',), 'known_cumulative_contributions_v1')
+    add('minute', ('observed_known_cumulative_observed_minutes',), 'known_cumulative_contributions_v1')
+    for family in formulas.DYNAMIC_PROFILE_FAMILIES_V2:
+        add('USD', tuple(family+'_'+level+'_usd' for level in ('vwap','poc','val','vah')), 'profile_values_v2')
+        add('contract', (family+'_volume_contracts',), 'profile_values_v2')
+        add('Boolean', (family+'_valid',), 'dynamic_profile_arrays_v2')
+    add('minute', ('session_accepted_minutes','session_expected_minutes'), 'dynamic_profile_arrays_v2')
+    for family in ('rolling15','rolling60','anchored_segment'):
+        add('tick', tuple(family+'_'+level+'_'+suffix for level in ('vwap','poc','val','vah')
+            for suffix in ('distance_ticks','prior_level_response_ticks')), 'DynamicProfileStateV2')
+    for column in formulas.dynamic_profile_arrays_v2(np.array([0],np.int64)):
+        add(units[column]['unit'], ('observed_profile_'+column,), 'add_projected_m5_profiles_v2')
+    add('minute', ('observed_profile_snapshot_age_minutes',), 'add_projected_m5_profiles_v2')
+    add('ratio', ('observed_profile_source_coverage_fraction',), 'add_projected_m5_profiles_v2')
+    book_units = ('contract','contract','contract','contract','contract','event',
+                  'ratio','tick','contract','contract','tick','tick')
+    order_units = ('order','order','ratio','contract_per_order','contract_per_order')
+    if len(book_units)!=len(formulas.L1_FIELDS_V2) or len(order_units)!=len(formulas.L1_ORDER_COUNT_FIELDS_V1):
+        raise RuntimeError('GC_NATIVE_M5_BOOK_UNIT_OWNER_WIDTH')
+    for column, unit in zip(formulas.L1_FIELDS_V2,book_units):
+        add(unit, (column,'observed_book_'+column), 'L1FeatureCollectorV2')
+    for column, unit in zip(formulas.L1_ORDER_COUNT_FIELDS_V1,order_units):
+        add(unit, (column,'observed_order_'+column), 'L1FeatureCollectorV2')
+    add('Boolean', ('ofi_valid','bbo_valid','order_count_valid'), 'L1FeatureCollectorV2')
+    add('Boolean', ('observed_book_contract_valid','observed_book_flow_valid','observed_book_valid',
+        'observed_order_valid','observed_book_response_contiguous'), 'aggregate_observed_book_v1')
+    add('price_tick', ('observed_book_opening_mid_tick','observed_book_closing_mid_tick'), 'aggregate_observed_book_v1')
+    add('minute', ('observed_book_flow_accepted_minutes','observed_book_accepted_minutes',
+        'observed_order_accepted_minutes','observed_book_response_span_minutes',
+        'observed_book_trailing_support_gap_minutes'), 'aggregate_observed_book_v1')
+    add('ratio', ('observed_book_flow_coverage_fraction','observed_book_coverage_fraction',
+        'observed_order_coverage_fraction'), 'aggregate_observed_book_v1')
+    add('Boolean', tuple('observed_'+side+'_trade_size_valid' for side in ('buy','sell','unknown')),
+        'aggregate_observed_trade_size_v1')
+    add('trade', tuple('observed_'+side+'_trade_records' for side in ('buy','sell','unknown')),
+        'aggregate_observed_trade_size_v1')
+    add('contract', tuple('observed_'+column for column in formulas.TRADE_SIZE_NATIVE_FIELDS_V1
+        if column not in ('buy_trade_records','sell_trade_records','unknown_trade_records')),
+        'aggregate_observed_trade_size_v1')
+    add('event', tuple('observed_event_'+column for column in (
+        'qualified_final_event_count','spread_change_count','spread_expansion_count','spread_contraction_count',
+        'ts_in_delta_clamped_low_count','ts_in_delta_clamped_high_count','undefined_event_clock_count',
+        'negative_send_to_capture_count','negative_matching_clock_count')), 'aggregate_observed_event_diagnostics_v1')
+    add('tick', tuple('observed_event_'+column for column in ('spread_state_min_ticks','spread_state_max_ticks',
+        'spread_expansion_sum_ticks','spread_contraction_sum_ticks','spread_max_expansion_ticks',
+        'spread_max_contraction_ticks')), 'aggregate_observed_event_diagnostics_v1')
+    for domain in ('receive_interval',) + formulas.EVENT_LATENCY_DOMAINS_V1:
+        add('Boolean', ('observed_event_'+domain+'_valid',), 'aggregate_observed_event_diagnostics_v1')
+        add('interval' if domain=='receive_interval' else 'event', ('observed_event_'+domain+'_count',), 'aggregate_observed_event_diagnostics_v1')
+        add('nanosecond', tuple('observed_event_'+domain+'_'+stat+'_ns' for stat in ('min','max','mean')),
+            'aggregate_observed_event_diagnostics_v1')
+    add('Boolean', ('observed_event_valid',), 'aggregate_observed_event_diagnostics_v1')
+    add('event_per_second', ('observed_event_qualified_events_per_observed_second',), 'aggregate_observed_event_diagnostics_v1')
+    add('minute', ('observed_event_accepted_minutes',), 'aggregate_observed_event_diagnostics_v1')
+    add('ratio', ('observed_event_coverage_fraction',), 'aggregate_observed_event_diagnostics_v1')
+    expected = {row[3] for row in NATIVE_FIELD_SOURCES}
+    missing = expected - set(units)
+    if missing:raise RuntimeError('GC_NATIVE_M5_SOURCE_UNIT_MISSING:' + ','.join(sorted(missing)))
+    payload={'schema_version':'gx1_gc_native_m5_source_unit_policy_v1',
+        'unit_scale_semantics':'one_declared_source_unit_not_empirical_or_minimum_measurement_quantum',
+        'source_columns':{name:units[name] for name in sorted(expected | {'observed_book_trailing_support_gap_minutes'})}}
+    return {**payload,'contract_sha256':hashlib.sha256(json.dumps(payload,sort_keys=True,
+        separators=(',',':'),allow_nan=False).encode()).hexdigest()}
+
+
+def _require_native_formula_catalog_coverage(fields):
+    """Inverse owner-to-catalog check: new genuine formulas cannot disappear."""
+    declared=[]
+    for original in formulas.completion_native_candidates_v1(input_interval_ns=INTERVAL_NS)['fields']:
+        item=dict(original);item['packet_group']='timeframes'
+        item['timeframe']=item['table'].removeprefix('TRADE_FEATURES_').removesuffix('.parquet')
+        item.setdefault('transform', 'decision_age_minutes' if item['column'] in (
+            'observed_profile_snapshot_age_minutes','observed_spot_basis_age_minutes') else None)
+        declared.append(item)
+    declared+=formulas.strict_native_m5_candidates_v1()['fields']
+    expected={item['name']:item for item in declared}
+    actual={item['name']:item for item in fields}
+    missing=set(expected)-set(actual);orphaned=set(actual)-set(expected)
+    if missing or orphaned:
+        raise RuntimeError('GC_NATIVE_M5_FORMULA_CATALOG_UNMAPPED:' + ','.join(sorted(missing|orphaned)))
+    for name,item in expected.items():
+        for key in ('packet_group','timeframe','column','owner','validity_column','source_clock_column','transform','role'):
+            if actual[name][key]!=item[key]:
+                raise RuntimeError('GC_NATIVE_M5_FORMULA_CATALOG_MISMATCH:' + name + ':' + key)
+
+
 def native_m5_field_catalog():
     """Independent ordered model/source/domain map for the native5 producer."""
+    units = native_m5_source_unit_policy()
     fields = []
     for name, group, tf, column, owner, gate, clock, transform, structural, binary in NATIVE_FIELD_SOURCES:
         fields.append({'name': name, 'availability_field': name + '_observed',
             'packet_group': group, 'timeframe': tf, 'column': column, 'owner': owner,
             'validity_column': gate, 'source_clock_column': clock, 'transform': transform,
+            **units['source_columns'][column],
+            'role':('structural_observation_mask' if structural else 'closed_m5_clock_context'
+                if clock=='observed_profile_snapshot_available_ns' else 'same_closed_native_m5_cross_venue_basis'
+                if column in ('spot_basis_bps','observed_spot_basis_bps','observed_spot_basis_age_minutes') else 'market_value'),
             'structural_mask_value': structural,
             'binary_value': structural or binary or column in NATIVE_BOOLEAN_SOURCE_COLUMNS})
+    _require_native_formula_catalog_coverage(fields)
     # Five historical support concepts have new native bucket endpoints. Their
     # gates are the existing structural BBO-valid values, without padding masks.
     for tf in TIMEFRAMES:
@@ -1466,16 +1625,19 @@ def native_m5_field_catalog():
             'column': 'observed_book_last_bucket_start_ns',
             'owner': 'momentum_flow_encoder', 'validity_column': 'observed_book_valid',
             'source_clock_column': 'available_ns', 'transform': 'native_m5_trailing_support_gap_minutes',
+            **units['source_columns']['observed_book_trailing_support_gap_minutes'],
+            'role':'native_m5_book_trailing_support_duration',
             'structural_mask_value': False, 'binary_value': False})
-    names = [name for field in fields[:1205] for name in (field['name'], field['availability_field'])]
-    names += [field['name'] for field in fields[1205:]]
-    if len(set(names)) != len(names) or len(names) != 2415:
+    base_count = len(NATIVE_FIELD_SOURCES)
+    names = [name for field in fields[:base_count] for name in (field['name'], field['availability_field'])]
+    names += [field['name'] for field in fields[base_count:]]
+    if len(set(names)) != len(names) or len(names) != 2 * base_count + 5:
         raise RuntimeError('GC_NATIVE_M5_FIELD_INVENTORY')
     payload = {'schema_version': 'gx1_gc_native_m5_field_catalog_v1',
         'source_clock_contract': 'native_m5_and_closed_higher_no_m1_v1',
         'timeframes': list(TIMEFRAMES), 'fields': fields, 'field_names': names,
-        'base_value_fields': 1205, 'additional_native_support_values': 5,
-        'source_interval_ns': INTERVAL_NS,
+        'base_value_fields': base_count, 'additional_native_support_values': 5,
+        'source_interval_ns': INTERVAL_NS, 'unit_policy_sha256': units['contract_sha256'],
         'source_timestamp_storage': 'int64_with_explicit_validity_and_null_on_publish'}
     return {**payload, 'contract_sha256': hashlib.sha256(json.dumps(payload,
         sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()}
@@ -1527,7 +1689,7 @@ def source_coverage_report(packet):
             'packet_group':field['packet_group'], 'timeframe':field['timeframe']}
     return {'schema_version':'gx1_gc_native_m5_field_source_coverage_v1',
         'catalog_contract_sha256':native_m5_field_catalog()['contract_sha256'],
-        'base_value_fields':1205,'native_support_values':5,'fields':report,
+        'base_value_fields':len(NATIVE_FIELD_SOURCES),'native_support_values':5,'fields':report,
         'source_boolean_fields_without_binary_declaration':undeclared_booleans,
         'all_declared_source_columns_present':True,
         'physical_support_proven':False,'model_consumption_proven':False}

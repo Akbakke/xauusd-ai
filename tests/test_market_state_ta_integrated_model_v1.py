@@ -279,3 +279,192 @@ def test_native_ta_fresh_process_firewall_covers_import_fit_factory_and_forward(
     result = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.strip().endswith('NATIVE_FIREWALL_PASS')
+
+
+def native_gc_model_fixture():
+    """Fresh synthetic full-GC domains; never a physical source qualification."""
+    import numpy as np
+    from gx1.contracts import entry_model_native_input_normalization_v1 as norm
+    from gx1.features import entry_specialist_feature_groups_v1 as groups
+    from gx1.features.gc_native_m5_features_v1 import native_m5_field_catalog
+    from gx1.contracts.market_state_native_m5_gc_feature_inputs_v1 import native_m5_gc_feature_provider_contract
+    from gx1.contracts.market_state_ta_integrated_model_v1 import _seal_native
+    from tests.test_entry_model_native_input_normalization import native_m5_normalization_fixture
+    from tests.test_entry_gc_mtf_history_v1 import native_synthetic_history
+    ta,raw,cats=native_m5_normalization_fixture()
+    gc_history,gc_surfaces=native_synthetic_history(unknown_d1=False)
+    profile=groups.compile_native_m5_full_gc_entry_execution_profile(gc_history)
+    catalog=native_m5_field_catalog();fields=profile['physical_field_names']
+    base=[item for item in catalog['fields'] if item['availability_field']==item['name']+'_observed']
+    columns=[]
+    for item in base:
+        tf=item['timeframe'];surface=gc_surfaces[tf];names=surface['field_names']
+        columns.extend([surface['features'][:,names.index(item['name'])],
+                        surface['features'][:,names.index(item['availability_field'])]])
+    local=np.column_stack(columns).astype(np.float32)
+    raw['signal']=np.column_stack((raw['signal'],local)).astype(np.float32)
+    raw['ctx_cont']=np.column_stack((raw['ctx_cont'],local)).astype(np.float32)
+    surfaces=dict(ta['surfaces'])
+    for key in ('signal','ctx_cont'):
+        surfaces[key]=norm.fit_native_m5_gc_surface_normalization(raw[key],surface=key,
+            field_names=fields[key],semantic_categorical_domains=(norm.SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS if key=='signal' else {}))
+    aliases=[{'signal_index':si,'ctx_cont_index':ci,'signal_field':fields['signal'][si],
+        'ctx_cont_field':fields['ctx_cont'][ci],'specialist':next(f for f,ids in profile['ctx_cont_indices_by_specialist'].items() if ci in ids)}
+        for si,ci in zip(profile['temporal_alias_signal_indices'],profile['temporal_alias_ctx_cont_indices'])]
+    surfaces['ctx_cont']=norm.share_temporal_alias_stats_from_signal(surfaces['ctx_cont'],surfaces['signal'],
+        temporal_aliases=aliases,ctx_cont_values=raw['ctx_cont'])
+    population=dict(ta['fit_population'])
+    population['first_issue_ns']=1719792000000000000
+    population['last_issue_ns']=1719801300000000000
+    population['per_tf']={tf:{'rows':item['rows'],'source_rows_sha256':item['native_row_indices_sha256'],
+        'available_ns_sha256':item['available_ns_sha256']}
+        for tf,item in gc_history['normalization']['provenance']['row_union'].items()}
+    provider=native_m5_gc_feature_provider_contract(gc_history)
+    fitted=norm.build_native_m5_full_gc_input_normalization_contract(native_m5_manifest=ta['native_m5_manifest'],
+        feature_provider_contract_sha256=provider['contract_sha256'],source_axes_sha256='7'*64,
+        fit_population=population,surfaces=surfaces,ctx_cat=ta['ctx_cat'],temporal_aliases=aliases,
+        gc_mtf_history=gc_history,native_gc_source_binding_sha256='9'*64)
+    binding=_native_model_binding(fitted)
+    binding.update(schema_version='gx1_native_m5_full_gc_bar_direction_inputs_v1',
+        execution_profile={key:profile[key] for key in ('name','contract_sha256')},
+        native_gc_source_binding_sha256='9'*64,gc_layout_sha256=gc_history['layout']['contract_sha256'],
+        gc_normalization_sha256=gc_history['normalization']['contract_sha256'])
+    binding=_seal_native({k:v for k,v in binding.items() if k!='contract_sha256'})
+    return fitted,binding,gc_history,raw,cats,gc_surfaces
+
+
+def _assert_native_full_gc_family_projection_bar_heads_and_unknown_d1(monkeypatch):
+    import numpy as np
+    from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_bar_direction_model
+    from gx1.features import entry_specialist_feature_groups_v1 as groups
+    fitted,binding,history,raw,cats,gc_surfaces=native_gc_model_fixture()
+    architecture={'dropout':.05,'multi_tf_num_layers':2,'multi_tf_scale':.5,
+        'specialist_num_layers':1,'specialist_fusion_scale':.25,'cross_family_fusion_scale':.25}
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(23)
+        model=build_native_bar_direction_model(input_normalization=fitted,input_binding=binding,
+            gc_mtf_history=history,architecture=architecture,device=torch.device('cpu')).eval()
+    assert not hasattr(model.backbone,'dynamic_m5_query_horizons')
+    assert len(model.research_objective['forward_inputs'])==14
+    profile=groups.compile_native_m5_full_gc_entry_execution_profile(history)
+    assert len(profile['local_specialists'])==len(profile['mtf_specialists'])==8
+    assert len(profile['macro_context_fields'])==61
+    for tf in history['layout']['timeframes']:
+        ids=[i for values in history['layout']['family_indices'][tf].values() for i in values]
+        assert sorted(ids)==list(range(history['layout']['widths'][tf]))
+        for family,indices in history['layout']['family_indices'][tf].items():
+            if indices:
+                layer=model.backbone.gc_mtf_family_proj[tf.lower()+'__'+family]
+                assert layer.in_features==len(indices)
+                assert getattr(model.backbone,'gc_mtf_specialist_idx_'+tf.lower()+'__'+family).tolist()==indices
+        for side in ('buy','sell'):
+            name='gc_'+tf.lower()+'_observed_'+side+'_max_executed_trade_contracts'
+            index=history['layout']['field_names'][tf].index(name)
+            assert index in history['layout']['family_indices'][tf]['momentum_flow_encoder']
+    sequence=raw['signal'][np.arange(96)%32]
+    batch={'seq_x':torch.from_numpy(sequence[None]),'snap_x':torch.from_numpy(sequence[-1:]),
+        'ctx_cont':torch.from_numpy(raw['ctx_cont'][-1:]),'ctx_cat':torch.from_numpy(cats[-1:])}
+    lengths={'m5':16,'m15':64,'h1':96,'h4':96,'d1':252}
+    for tf,length in lengths.items():
+        batch['seq_'+tf]=torch.from_numpy(raw['mtf_'+tf][np.arange(length)%32][None])
+        batch['gc_seq_'+tf]=torch.from_numpy(gc_surfaces[tf.upper()]['features'][np.arange(length)%32][None]).requires_grad_()
+    output=model(batch)
+    assert all(value.shape==(1,5,3) and torch.isfinite(value).all() for value in output.values())
+    loss=sum(torch.nn.functional.cross_entropy(value.reshape(-1,3),torch.ones(5,dtype=torch.int64)) for value in output.values())
+    loss.backward()
+    for route,layer in model.backbone.gc_mtf_family_proj.items():
+        assert layer.weight.grad is not None and bool((layer.weight.grad!=0.).any()),route
+    for tf in history['layout']['timeframes']:
+        tensor=batch['gc_seq_'+tf.lower()];names=history['layout']['field_names'][tf]
+        known_market_gradient=0.
+        for vi,mi in history['layout']['value_mask_pairs'][tf]:
+            missing=tensor[...,mi]==0.
+            assert torch.count_nonzero(tensor.grad[...,vi][missing])==0
+            if names[vi] not in history['layout']['binary_fields'][tf]:
+                known_market_gradient+=float(tensor.grad[...,vi][~missing].abs().sum())
+        assert known_market_gradient>0.,tf
+        for family,indices in history['layout']['family_indices'][tf].items():
+            market=[vi for vi,mi in history['layout']['value_mask_pairs'][tf]
+                    if vi in indices and names[vi] not in history['layout']['binary_fields'][tf]]
+            if market:
+                assert float(tensor.grad[...,market].abs().sum())>0.,(tf,family)
+    assert all(head.weight.grad is not None for heads in (model.open_heads,model.close_heads) for head in heads.values())
+    missing={key:value.detach().clone() for key,value in batch.items()}
+    missing['gc_seq_d1'].zero_()
+    d1fields=set(history['layout']['field_names']['D1'])
+    for j,name in enumerate(profile['physical_field_names']['signal']):
+        if name.removeprefix('ctx_cont.') in d1fields:
+            missing['seq_x'][...,j]=0.;missing['snap_x'][...,j]=0.
+    for j,name in enumerate(profile['physical_field_names']['ctx_cont']):
+        if name in d1fields:missing['ctx_cont'][...,j]=0.
+    with torch.inference_mode():
+        assert all(value.shape==(1,5,3) and torch.isfinite(value).all() for value in model(missing).values())
+    corrupted=dict(model.state_dict());corrupted['backbone.gc_mtf_layout_sha256']=torch.zeros(32,dtype=torch.uint8)
+    before=model.open_heads['M5'].weight.detach().clone()
+    with pytest.raises(ValueError,match='NATIVE_CHECKPOINT_IDENTITY'):
+        model.load_state_dict(corrupted)
+    assert torch.equal(before,model.open_heads['M5'].weight)
+    with pytest.raises(ValueError,match='NATIVE_FEATURE_KEYS'):
+        model({key:value for key,value in batch.items() if key!='gc_seq_d1'})
+    from gx1.contracts import market_state_ta_integrated_model_v1 as factory_owner
+    constructor=factory_owner.EntryV10CtxHybridTransformer
+    def wrong_context_width(**kwargs):
+        kwargs['ctx_cont_dim']=len(profile['physical_field_names']['ctx_cont'])-1
+        return constructor(**kwargs)
+    with monkeypatch.context() as patch:
+        patch.setattr(factory_owner,'EntryV10CtxHybridTransformer',wrong_context_width)
+        with pytest.raises(RuntimeError,match='ARCHITECTURE_MISMATCH.*shared_surface.ctx_cont_dim'):
+            factory_owner.build_native_bar_direction_model(input_normalization=fitted,input_binding=binding,
+                gc_mtf_history=history,architecture=architecture,device=torch.device('cpu'))
+
+
+@pytest.fixture
+def native_gc_single_thread():
+    previous=torch.get_num_threads()
+    torch.set_num_threads(1)
+    try:
+        yield
+    finally:
+        torch.set_num_threads(previous)
+
+
+def test_native_gc_counts_preserve_existing_ta_observation_masks(native_gc_single_thread):
+    from copy import deepcopy
+    from gx1.contracts import entry_model_native_input_normalization_v1 as norm
+    fitted,_,_,_,_,_=native_gc_model_fixture()
+    stats=fitted['surfaces']['signal'];names=stats['field_names']
+    value=names.index('ctx_cont.close_distance_below_high_range_fraction')
+    assert stats['fit_row_count']==32 and stats['observed_fit_counts'][value]==16
+    norm.require_surface_normalization(stats,surface='signal',field_names=names)
+    observed_values={vi for vi,mi in (*norm.native_gc_masking_pairs(names),
+        *norm._micro_context.range_observation_masking_pairs(names))}
+    unmasked=next(i for i in range(len(names)) if i not in observed_values)
+    bad=deepcopy(stats);bad['observed_fit_counts'][unmasked]=16
+    with pytest.raises(RuntimeError,match='NATIVE_GC_UNMASKED_COUNTS'):
+        norm.require_surface_normalization(bad,surface='signal',field_names=names)
+
+
+def test_native_full_gc_uses_existing_family_projection_and_bar_heads_with_unknown_d1():
+    """A warmed legacy registry must never conceal native source access."""
+    import subprocess
+    import sys
+    from pathlib import Path
+    code = r"""
+import importlib.util
+spec=importlib.util.spec_from_file_location('native_direction_guard','gx1/contracts/native_m5_direction_io_firewall_v1.py')
+guard=importlib.util.module_from_spec(spec);spec.loader.exec_module(guard)
+state=guard.install_native_m5_direction_io_firewall()
+import pytest,torch
+from tests.test_market_state_ta_integrated_model_v1 import _assert_native_full_gc_family_projection_bar_heads_and_unknown_d1
+previous=torch.get_num_threads();torch.set_num_threads(1);patch=pytest.MonkeyPatch()
+try:
+    _assert_native_full_gc_family_projection_bar_heads_and_unknown_d1(patch)
+finally:
+    patch.undo();torch.set_num_threads(previous)
+assert state['denied_attempts']==0,state
+print('FRESH_GC_FULL_FORWARD_BACKWARD_PASS 0 {}')
+"""
+    result=subprocess.run([sys.executable,'-c',code],cwd=Path(__file__).resolve().parents[1],
+        capture_output=True,text=True,timeout=120)
+    assert result.returncode==0,(result.stdout+result.stderr)[-12000:]
+    assert result.stdout.strip().endswith('FRESH_GC_FULL_FORWARD_BACKWARD_PASS 0 {}')
