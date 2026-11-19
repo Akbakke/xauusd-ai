@@ -6,6 +6,17 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
+Brukeren har bestilt mål og gjennomføring av TRAIN-priorinitialisering,
+fersk TA-only-baseline og deretter én avgrenset læringskurve dersom de
+tekniske portene består. Kilden er kvalifisert i eksisterende modell-/drivereiere:
+43 ulike driver-/modelltilfeller og 16 nye eksakte guardtilfeller består.
+Uavhengig leserevisjon avdekket og fikk rettet foldbinding før head-konstruksjon
+og eksakt priorreferanse før CLAIM. Dette er kilde-/syntetisk evidens; ekte
+TA-only-baseline og kald replay gjenstår. Ingen kjøring er ennå innrømmet.
+GC er utsatt, M1-forbudet og TEST-forseglingen består.
+TA006-normaliseringen inkluderer septemberCONTROL og gjenbrukes ikke;
+ferdige TA-verdier/native parametre beholdes, med fersk tidligere-TRAIN-statistikk.
+
 Operatøren prioriterer nå retningsedge UTEN GC. GC settes på vent;
 alle genuine ikke-GC-indikatorfamilier og D1/makro beholdes på M5/MTF.
 Eksisterende fabrikk har en egen TA-rute med ni inputflater uten GC-historikk.
@@ -20,8 +31,8 @@ tredelene har 49,1 / 48,0 / 55,1 prosent OPP blant ikke-like utfall. Dette gir
 ingen begrunnelse for stor OPP/NED-klassevekting og beviser ingen årsak.
 Klasseorden og sign+1 samsvarer; native loss har ingen OPP-klassevekt.
 Hodene bruker symmetrisk tilfeldig initialisering. TRAIN-priorinitialisering
-er bare en kandidat, ikke implementert eller bevist som kur. Ingen
-modell-/tapsmatematikk, modellkjøring eller ekstra epoke er gjort her.
+er nå implementert og kildekvalifisert som eksplisitt TA-valg, uten endret tap.
+Ingen ny modellkjøring eller ekstra epoke er gjort; en kur er ikke bevist.
 
 ### Sist fullførte runde, opprinnelig full-GC-omfang
 

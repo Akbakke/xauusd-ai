@@ -162,9 +162,28 @@ def _native_bar_feature_keys(binding):
     return FULL_TA_ENTRY_FEATURE_KEYS
 
 
-def native_bar_model_contract(input_binding):
+def native_bar_prior_initialization_contract(train_prior):
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_bar_train_prior
+    prior=require_native_bar_train_prior(train_prior)
+    support={task:{tf:{'predictive_train_cells':cell['count'],
+        'train_observations_available':cell['train_observations_available'],
+        'role':('predictive_TRAIN_prior' if cell['train_observations_available']
+                else 'UNFITTED_uniform_pseudocount_reference_no_predictive_TRAIN_support')}
+        for tf,cell in prior['per_task'][task].items()} for task in ('open','close')}
+    return _seal_native({'schema_version':'gx1_native_m5_predictive_train_prior_head_initialization_v1',
+        'prior_sha256':prior['contract_sha256'],'prior_contract_sha256':prior['prior_contract_sha256'],
+        'target_contract_sha256':prior['target_contract_sha256'],
+        'objective_contract_sha256':prior['objective_contract_sha256'],
+        'class_order':[-1,0,1],'timeframes':list(TIMEFRAMES),
+        'method':'zero_final_Linear_weights_plus_FP32_log_validated_TRAIN_probabilities_bias',
+        'per_head_support':support,'backbone_and_heads_trainable':True,
+        'first_step_backbone_data_gradient':'zero_until_final_head_weights_update',
+        'checkpoint_load_reinitializes_heads':False})
+
+
+def native_bar_model_contract(input_binding,*,train_prior=None):
     binding = require_native_bar_input_binding(input_binding)
-    return _seal_native({
+    value={
         'schema_version': 'gx1_native_m5_bar_direction_model_v1',
         'role': 'research_forecast_no_fit_entry_or_trade_authority',
         'target_contract_sha256': native_target_contract()['contract_sha256'],
@@ -176,29 +195,72 @@ def native_bar_model_contract(input_binding):
         'forward_inputs': sorted(_native_bar_feature_keys(binding)),
         'target_metadata_as_forward_input': False,
         'initialization': 'fresh_random_no_checkpoint',
-    })
+    }
+    if train_prior is not None:
+        _need(len(_native_bar_feature_keys(binding))==9,'NATIVE_PRIOR_TA_ONLY')
+        value['schema_version']='gx1_native_m5_bar_direction_prior_initialized_model_v1'
+        value['initialization']=native_bar_prior_initialization_contract(train_prior)
+    return _seal_native(value)
 
 
 class NativeM5BarDirectionModel(nn.Module):
     """Two independent three-class bar readouts over each shared native TF token."""
 
-    def __init__(self, backbone, *, input_binding):
+    def __init__(self, backbone, *, input_binding,train_prior=None):
         super().__init__()
         self.input_binding = require_native_bar_input_binding(input_binding)
+        self._train_prior=None
+        if train_prior is not None:
+            _need(len(_native_bar_feature_keys(self.input_binding))==9,'NATIVE_PRIOR_TA_ONLY')
+            from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_bar_train_prior
+            self._train_prior=require_native_bar_train_prior(train_prior)
         _need(type(backbone) is EntryV10CtxHybridTransformer, 'NATIVE_BACKBONE_TYPE')
         self.backbone = backbone
+        if self._train_prior is not None:
+            prior_population=self._train_prior['fit_population']
+            normalization_population=backbone._input_normalization_contract['fit_population']
+            _need(prior_population['cutoff_ns']==normalization_population['cutoff_ns']
+                and normalization_population['first_issue_ns']<=prior_population['first_issue_ns']
+                and prior_population['last_issue_ns']<=normalization_population['last_issue_ns']
+                and prior_population['issue_rows']<=normalization_population['issue_rows'],
+                'NATIVE_PRIOR_TRAIN_POPULATION')
         width = int(backbone.cfg.d_model)
         device = backbone.entry_q_joint_in.weight.device
         self.open_heads = nn.ModuleDict({tf: nn.Linear(width, 3, device=device, dtype=torch.float32) for tf in TIMEFRAMES})
         self.close_heads = nn.ModuleDict({tf: nn.Linear(width, 3, device=device, dtype=torch.float32) for tf in TIMEFRAMES})
+        if self._train_prior is not None:
+            from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_train_prior_logits
+            logits=native_bar_train_prior_logits(self._train_prior,rows=1)
+            with torch.no_grad():
+                for task,heads in (('open',self.open_heads),('close',self.close_heads)):
+                    for j,tf in enumerate(TIMEFRAMES):
+                        heads[tf].weight.zero_()
+                        heads[tf].bias.copy_(torch.from_numpy(logits[task+'_logits'][0,j]).to(device))
+            for name,digest in (('native_bar_initialization_sha256',native_bar_prior_initialization_contract(self._train_prior)['contract_sha256']),
+                                ('native_bar_train_prior_sha256',self._train_prior['contract_sha256'])):
+                self.register_buffer(name,torch.tensor(list(bytes.fromhex(digest)),device=device,dtype=torch.uint8))
         self.register_buffer('native_bar_objective_sha256', torch.tensor(
             list(bytes.fromhex(self.research_objective['contract_sha256'])),
             device=device, dtype=torch.uint8))
         self._require_binding()
+        if self._train_prior is not None:self.require_prior_initialization_state()
 
     @property
     def research_objective(self):
-        return native_bar_model_contract(self.input_binding)
+        return native_bar_model_contract(self.input_binding,train_prior=self._train_prior)
+
+    def require_prior_initialization_state(self):
+        # Fresh-state assertion only; checkpoint restore never calls this.
+        from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_train_prior_logits
+        _need(self._train_prior is not None,'NATIVE_PRIOR_INITIALIZATION_REQUIRED')
+        logits=native_bar_train_prior_logits(self._train_prior,rows=1)
+        for task,heads in (('open',self.open_heads),('close',self.close_heads)):
+            for j,tf in enumerate(TIMEFRAMES):
+                head=heads[tf]
+                expected=torch.from_numpy(logits[task+'_logits'][0,j]).to(head.bias.device)
+                _need(torch.count_nonzero(head.weight).item()==0 and torch.equal(head.bias,expected),
+                      'NATIVE_FRESH_PRIOR_HEAD_STATE')
+        return self.research_objective['initialization']
 
     def _require_binding(self):
         binding = require_native_bar_input_binding(self.input_binding)
@@ -215,6 +277,12 @@ class NativeM5BarDirectionModel(nn.Module):
                   == binding['feature_provider_contract_sha256']
               and bytes(self.backbone.input_norm_contract_sha256.detach().cpu().tolist()).hex()
                   == binding['input_normalization_sha256'], 'NATIVE_BACKBONE_IDENTITY')
+        if self._train_prior is not None:
+            for name,digest in (('native_bar_initialization_sha256',native_bar_prior_initialization_contract(self._train_prior)['contract_sha256']),
+                                ('native_bar_train_prior_sha256',self._train_prior['contract_sha256'])):
+                actual=getattr(self,name)
+                _need(torch.equal(actual.detach().cpu(),torch.tensor(list(bytes.fromhex(digest)),dtype=torch.uint8)),
+                      'NATIVE_PRIOR_STATE_BINDING')
         self.backbone.require_input_normalization_state()
         device = self.backbone.entry_q_joint_in.weight.device
         expected = torch.tensor(list(bytes.fromhex(self.research_objective['contract_sha256'])),
@@ -248,6 +316,8 @@ class NativeM5BarDirectionModel(nn.Module):
     def load_state_dict(self, state_dict, strict=True, assign=False):
         _need(strict is True, 'NATIVE_STRICT_CHECKPOINT_REQUIRED')
         names = ['native_bar_objective_sha256','backbone.input_norm_contract_sha256']
+        if self._train_prior is not None:
+            names += ['native_bar_initialization_sha256','native_bar_train_prior_sha256']
         if len(_native_bar_feature_keys(self.input_binding))==14:
             names += ['backbone.gc_mtf_layout_sha256','backbone.gc_mtf_normalization_sha256','backbone.entry_execution_profile_contract_sha256']
         for name in names:
@@ -287,11 +357,12 @@ def native_bar_backbone_geometry():
     return {'local': ENTRY_FEATURE_SEQUENCE_BARS, **dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS)}
 
 
-def build_native_bar_direction_model(*, input_normalization, input_binding, architecture, device, gc_mtf_history=None):
+def build_native_bar_direction_model(*, input_normalization, input_binding, architecture, device, gc_mtf_history=None,train_prior=None):
     """Build fresh native parameters from explicit architecture and native statistics."""
     from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     from gx1.features import entry_specialist_feature_groups_v1 as owners
     binding = require_native_bar_input_binding(input_binding)
+    _need(train_prior is None or len(_native_bar_feature_keys(binding))==9,'NATIVE_PRIOR_TA_ONLY')
     if len(_native_bar_feature_keys(binding))==14:
         _need(gc_mtf_history is not None and input_normalization.get('gc_mtf_history')==gc_mtf_history,'NATIVE_GC_FACTORY_HISTORY')
         profile = owners.compile_native_m5_full_gc_entry_execution_profile(gc_mtf_history)
@@ -343,4 +414,4 @@ def build_native_bar_direction_model(*, input_normalization, input_binding, arch
         kwargs[tf.lower() + '_seq_dim'] = widths['mtf']
         kwargs[tf.lower() + '_seq_len'] = geometry[tf]
     backbone = EntryV10CtxHybridTransformer(**kwargs).to(device)
-    return NativeM5BarDirectionModel(backbone, input_binding=binding).to(device)
+    return NativeM5BarDirectionModel(backbone, input_binding=binding,train_prior=train_prior).to(device)

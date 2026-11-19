@@ -143,6 +143,23 @@ fra fit og har separat diagnostikk. En celle uten TRAIN-observasjoner
 merkes eksplisitt ufittet. Verken referanse eller normalisering tilpasses
 CONTROL. Tap, proper-score og prior bruker samme modne målmasker.
 
+Den vedtatte TA-only-kandidaten bruker null sluttvekter og float32
+logaritmer av den frosne Laplace1-TRAIN-prioren som head-bias. Alle genuine
+TA-familier og M5/M15/H1/H4/D1 beholdes; GC er utsatt. Startlogits skal
+være identiske med priorreferansen på hele valgte FIT og CONTROL.
+Et hode uten prediktiv TRAIN-støtte beholder den eksplisitt ufittede,
+uniforme pseudocount-referansen og får ingen læringskreditt.
+Initialiseringsidentitet og priorhash bindes i modellkontrakt og state;
+ulikt priorgrunnlag skal nektes ved strict load. Den historiske tilfeldige
+initialiseringen beholdes uendret uten eksplisitt priorvalg.
+
+Null sluttvekter gir forventet null signalgradient til backbone i første
+steg. Neste steg skal bevise faktisk ikke-null backbonegradient; AdamW-
+vektnedbrytning alene er ikke et slikt bevis. En ny teknisk plan kontrollerer
+også kald neste-steg-paritet over passgrensen. Hovedrundens antall pass,
+checkpoints og kjøretidsbudsjett fryses fra teknisk throughput før kjøring;
+senere CONTROL velger verken passantall eller beste checkpoint.
+
 En separat teknisk engangsplan skal bevise ekte optimizeroppdatering og
 kald neste-steg-paritet i en ny prosess. Checkpoint binder modell, optimizer,
 CPU-/CUDA-/NumPy-/Python-RNG, cursor, eventuell scheduler og inputidentitet.

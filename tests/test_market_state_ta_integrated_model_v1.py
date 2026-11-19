@@ -468,3 +468,121 @@ print('FRESH_GC_FULL_FORWARD_BACKWARD_PASS 0 {}')
         capture_output=True,text=True,timeout=120)
     assert result.returncode==0,(result.stdout+result.stderr)[-12000:]
     assert result.stdout.strip().endswith('FRESH_GC_FULL_FORWARD_BACKWARD_PASS 0 {}')
+
+
+def _native_ta_prior_packet():
+    import numpy as np
+    from tests.test_entry_model_native_input_normalization import native_m5_normalization_fixture
+    from gx1.contracts.market_state_native_m5_targets_v1 import contract as target_contract
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import fit_native_bar_train_prior
+    normalization,raw,cats=native_m5_normalization_fixture()
+    issues=normalization['fit_population']['first_issue_ns']+np.arange(32,dtype=np.int64)*300_000_000_000
+    shape=(32,5);known=np.zeros(shape,np.bool_);known[:,-1]=True
+    signs=np.broadcast_to((np.arange(32)%3-1).astype(np.int8)[:,None],shape).copy()
+    truth={'issue_ns':issues,'target_row':np.broadcast_to(np.arange(1,33,dtype=np.int64)[:,None],shape).copy(),
+        'validity_ns':np.broadcast_to((issues+300_000_000_000)[:,None],shape).copy(),
+        'target_present':np.ones(shape,np.bool_),'observed_previous':np.ones(shape,np.bool_),
+        'mature':np.ones(shape,np.bool_),'eligible':np.ones(shape,np.bool_),
+        'open_known_at_issue':known,'open_sign':signs,'close_sign':signs.copy()}
+    prior=fit_native_bar_train_prior(truth=truth,fold_upper_ns=normalization['fit_population']['cutoff_ns'],
+        target_contract_sha256=target_contract()['contract_sha256'])
+    return normalization,raw,cats,truth,prior
+
+
+def test_native_ta_prior_heads_are_exact_input_independent_and_enable_backbone_after_first_step(monkeypatch,native_gc_single_thread):
+    import copy
+    import numpy as np
+    from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_bar_direction_model,NativeM5BarDirectionModel
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_train_prior_logits,native_bar_direction_loss,fit_native_bar_train_prior
+    normalization,raw,cats,truth,prior=_native_ta_prior_packet();binding=_native_model_binding(normalization)
+    architecture={'dropout':.05,'multi_tf_num_layers':2,'multi_tf_scale':.5,
+        'specialist_num_layers':1,'specialist_fusion_scale':.25,'cross_family_fusion_scale':.25}
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(43)
+        model=build_native_bar_direction_model(input_normalization=normalization,input_binding=binding,
+            architecture=architecture,device=torch.device('cpu'),train_prior=prior)
+    support=model.require_prior_initialization_state()['per_head_support']
+    assert support['open']['D1']['predictive_train_cells']==0
+    assert support['open']['D1']['train_observations_available']is False
+    assert support['open']['D1']['role'].startswith('UNFITTED_uniform')
+    assert all(parameter.requires_grad for parameter in model.parameters())
+    def synthetic_encode(self,**values):
+        assert values.pop('research_representation_only')is True
+        assert values.pop('research_timeframe_representations')is True
+        source=values['seq_x'][:,-1,:self.cfg.d_model]
+        hidden=self.entry_q_joint_in(torch.cat((source,)*4,dim=1))
+        return {'entry_q_timeframe_hidden':hidden[:,None].expand(-1,5,-1)}
+    monkeypatch.setattr(EntryV10CtxHybridTransformer,'forward',synthetic_encode)
+    sequence=np.stack((raw['signal'],raw['signal'][::-1]))
+    values={'seq_x':torch.from_numpy(sequence),'snap_x':torch.from_numpy(sequence[:,-1]),
+        'ctx_cont':torch.from_numpy(np.stack((raw['ctx_cont'][-1],raw['ctx_cont'][0]))),
+        'ctx_cat':torch.from_numpy(np.stack((cats[-1],cats[0])))}
+    values.update({'seq_'+tf:torch.from_numpy(np.stack((raw['mtf_'+tf],raw['mtf_'+tf][::-1])))
+        for tf in ('m5','m15','h1','h4','d1')})
+    expected=native_bar_train_prior_logits(prior,rows=2);output=model(values)
+    for key in output:assert torch.equal(output[key],torch.from_numpy(expected[key]))
+    assert torch.equal(torch.softmax(output['open_logits'][:,-1],dim=-1),torch.full((2,3),1/3))
+    selected={key:value[:2].copy()for key,value in truth.items()}
+    kwargs={'truth':selected,'fold_upper_ns':normalization['fit_population']['cutoff_ns'],
+        'target_contract_sha256':prior['target_contract_sha256']}
+    loss=native_bar_direction_loss(model_output=output,**kwargs)['loss'];loss.backward()
+    assert torch.count_nonzero(model.backbone.entry_q_joint_in.weight.grad)==0
+    assert torch.count_nonzero(model.close_heads['M5'].weight.grad)>0
+    optimizer=torch.optim.AdamW(model.parameters(),lr=1e-4,weight_decay=1e-4)
+    optimizer.step();optimizer.zero_grad(set_to_none=True)
+    native_bar_direction_loss(model_output=model(values),**kwargs)['loss'].backward()
+    assert torch.count_nonzero(model.backbone.entry_q_joint_in.weight.grad)>0
+    snapshot=copy.deepcopy(model.state_dict())
+    restored=NativeM5BarDirectionModel(model.backbone,input_binding=binding,train_prior=prior)
+    restored.load_state_dict(snapshot,strict=True)
+    assert torch.equal(restored.close_heads['M5'].weight,model.close_heads['M5'].weight)
+    assert torch.count_nonzero(restored.close_heads['M5'].weight)>0
+    forged=dict(snapshot);forged['native_bar_train_prior_sha256']=torch.zeros(32,dtype=torch.uint8)
+    before=restored.close_heads['M5'].weight.detach().clone()
+    with pytest.raises(ValueError,match='NATIVE_CHECKPOINT_IDENTITY'):restored.load_state_dict(forged,strict=True)
+    assert torch.equal(before,restored.close_heads['M5'].weight)
+    with pytest.raises(ValueError,match='NATIVE_FRESH_PRIOR_HEAD_STATE'):restored.require_prior_initialization_state()
+    different=copy.deepcopy(truth);different['close_sign'][0]=1
+    other=fit_native_bar_train_prior(truth=different,fold_upper_ns=kwargs['fold_upper_ns'],
+        target_contract_sha256=kwargs['target_contract_sha256'])
+    wrong=NativeM5BarDirectionModel(model.backbone,input_binding=binding,train_prior=other)
+    before=wrong.close_heads['M5'].weight.detach().clone()
+    with pytest.raises(ValueError,match='NATIVE_CHECKPOINT_IDENTITY'):wrong.load_state_dict(snapshot,strict=True)
+    assert torch.equal(before,wrong.close_heads['M5'].weight)
+    later=copy.deepcopy(truth)
+    shift=normalization['fit_population']['cutoff_ns']-int(later['issue_ns'][0])
+    later['issue_ns']+=shift;later['validity_ns']+=shift
+    future=fit_native_bar_train_prior(truth=later,
+        fold_upper_ns=int(later['validity_ns'].max())+300_000_000_000,
+        target_contract_sha256=kwargs['target_contract_sha256'])
+    earlier=copy.deepcopy(truth);earlier['issue_ns']-=300_000_000_000;earlier['validity_ns']-=300_000_000_000
+    outside=fit_native_bar_train_prior(truth=earlier,fold_upper_ns=kwargs['fold_upper_ns'],
+        target_contract_sha256=kwargs['target_contract_sha256'])
+    with monkeypatch.context() as patch:
+        patch.setattr(torch.nn,'Linear',lambda *args,**keys:pytest.fail('constructed head before prior-fold validation'))
+        for invalid in (future,outside):
+            with pytest.raises(ValueError,match='NATIVE_PRIOR_TRAIN_POPULATION'):
+                NativeM5BarDirectionModel(model.backbone,input_binding=binding,train_prior=invalid)
+
+
+def test_native_random_default_retains_linear_initialization_rng_contract_and_state(native_gc_single_thread):
+    from gx1.contracts import market_state_ta_integrated_model_v1 as owner
+    normalization,_,_,_,_=_native_ta_prior_packet();binding=_native_model_binding(normalization)
+    architecture={'dropout':.05,'multi_tf_num_layers':2,'multi_tf_scale':.5,
+        'specialist_num_layers':1,'specialist_fusion_scale':.25,'cross_family_fusion_scale':.25}
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(47)
+        parent=owner.build_native_bar_direction_model(input_normalization=normalization,input_binding=binding,
+            architecture=architecture,device=torch.device('cpu'))
+        torch.manual_seed(53)
+        model=owner.NativeM5BarDirectionModel(parent.backbone,input_binding=binding)
+        after=torch.get_rng_state().clone()
+        torch.manual_seed(53)
+        expected=[torch.nn.Linear(parent.backbone.cfg.d_model,3,dtype=torch.float32)for _ in range(10)]
+        assert torch.equal(after,torch.get_rng_state())
+    for head,reference in zip([*model.open_heads.values(),*model.close_heads.values()],expected):
+        assert torch.equal(head.weight,reference.weight)and torch.equal(head.bias,reference.bias)
+    assert model.research_objective['schema_version']=='gx1_native_m5_bar_direction_model_v1'
+    assert model.research_objective['initialization']=='fresh_random_no_checkpoint'
+    assert owner.native_bar_model_contract(binding)==owner.native_bar_model_contract(binding,train_prior=None)
+    assert not any(key in model.state_dict()for key in ('native_bar_initialization_sha256','native_bar_train_prior_sha256'))

@@ -590,3 +590,254 @@ def test_small_matched_prior_uses_exact_fit1536_and_keeps_pool_normalization(tmp
     expected=np.bincount(truth['close_sign'][ranks,0].astype(np.int64)+1,minlength=3)
     assert prior['per_task']['close']['M5']['class_counts']==expected.tolist()
     assert prior['fit_population']['issue_ns_sha256']==owner.digest(issues[ranks])
+
+
+def _ta_recipe(mode='ta_mechanics',passes=2):
+    recipe=_fit_recipe()
+    recipe.update(passes=passes,fit_batches=2 if mode=='ta_mechanics'else passes*96,
+        checkpoint_every_updates=1 if mode=='ta_mechanics'else 96,score_batches_per_split=None)
+    return recipe
+
+
+def test_ta_recipe_has_explicit_passes_exact_limits_and_boundary_cursor():
+    metadata,context=_rank_context();metadata={'source_pool':metadata['mechanics']}
+    recipe=_ta_recipe();assert owner.fit_recipe(recipe,'ta_mechanics')==recipe
+    assert owner.fit_limits(recipe,'ta_mechanics',metadata)=={
+        'model_constructions':2,'model_forwards':67,'backward_calls':3,'optimizer_steps':3}
+    selected,_=owner.selected_small_cohorts({'metadata':metadata,
+        'cohort_selection':owner.small_cohort_manifest(metadata)},context)
+    plan={'mode':'ta_mechanics','recipe':recipe}
+    batches=owner._ta_training_batches(selected,plan)
+    assert len(batches)==2
+    np.testing.assert_array_equal(batches[0],selected['FIT'][:16])
+    np.testing.assert_array_equal(batches[0],batches[1])
+    assert owner._ta_schedule_position(plan,1)=={'completed_updates':1,'next_pass':1,
+        'next_batch_in_pass':0,'batches_per_pass':1,'declared_passes':2}
+    main=_ta_recipe('ta_main',passes=4);assert owner.fit_recipe(main,'ta_main')==main
+    assert owner.fit_limits(main,'ta_main',metadata)=={
+        'model_constructions':1,'model_forwards':544,'backward_calls':384,'optimizer_steps':384}
+    mainplan={'mode':'ta_main','recipe':main};schedule=owner._ta_training_batches(selected,mainplan)
+    assert len(schedule)==384
+    for at in range(0,len(schedule),96):
+        np.testing.assert_array_equal(np.concatenate(schedule[at:at+96]),selected['FIT'])
+    assert owner._ta_schedule_position(mainplan,96)['next_pass']==1
+    assert owner._ta_schedule_position(mainplan,96)['next_batch_in_pass']==0
+    for change in ({'passes':0},{'passes':3},{'score_batches_per_split':1},{'checkpoint_every_updates':2}):
+        bad=copy.deepcopy(recipe);bad.update(change)
+        with pytest.raises(ValueError):owner.fit_recipe(bad,'ta_mechanics')
+    assert owner.FIT_SCOPES['ta_mechanics'][1].name=='NATIVE_M5_TA_PRIOR_MECHANICS_20261119_001.json'
+    assert owner.FIT_SCOPES['ta_main'][1].name=='NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001.json'
+
+
+def test_ta_role_gates_reject_gc_inputs_before_receipt_or_packet_io(monkeypatch):
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('unadmitted metadata IO'))
+    for mode in ('ta_mechanics','ta_main'):
+        with pytest.raises(ValueError,match='TA_FIT_INPUT_ROLES'):
+            owner.ta_fit_metadata({'joint_result':{},'gc_result':{}},mode)
+    with pytest.raises(ValueError,match='TA_FIT_EXACT_PARENT'):
+        owner.ta_fit_metadata({key:{}for key in ('ta_result','ta_terminal','matched_prior_reference')},'ta_mechanics')
+
+
+def test_ta_source_rank_axis_reads_only_hash_checked_clock_arrays(tmp_path,monkeypatch):
+    step=300_000_000_000
+    starts=np.array([owner.FIT_START_NS-step,owner.FIT_START_NS,
+        owner.FIT_END_NS-step,owner.FIT_END_NS,owner.CONTROL_END_NS-step],np.int64)
+    retained=np.arange(5,dtype=np.int64)
+    arrays={'bar_start_ns':starts,'retained_issue_rows':retained}
+    path=tmp_path/'clock.npz';np.savez(path,**arrays,signal=np.array([999.],np.float32))
+    snapshot={'arrays':{key:{'dtype':value.dtype.str,'shape':list(value.shape),'sha256':owner.digest(value)}
+        for key,value in arrays.items()}}
+    plan={'inputs':{'candidate_archive':owner.ref(path),'candidate_snapshot':{'path':'snapshot','sha256':'1'*64}}}
+    monkeypatch.setattr(owner,'read',lambda ref:snapshot if ref['path']=='snapshot'else pytest.fail('nonclock read'))
+    original=owner.np.load
+    class ClockOnly:
+        def __enter__(self):self.archive=original(path,allow_pickle=False);return self
+        def __exit__(self,*args):self.archive.close()
+        def __getitem__(self,key):
+            assert key in arrays,'feature/label decode before source selection'
+            return self.archive[key]
+    monkeypatch.setattr(owner.np,'load',lambda *args,**kwargs:ClockOnly())
+    axis=owner._ta_pool_axis(plan)
+    assert axis['TRAIN']['input_ready_rows']==2 and axis['CONTROL']['input_ready_rows']==2
+    assert axis['TRAIN']['source_rows_sha256']==owner.digest(np.array([0,1],np.int64))
+    assert axis['CONTROL']['source_rows_sha256']==owner.digest(np.array([2,3],np.int64))
+    snapshot['arrays']['bar_start_ns']['sha256']='0'*64
+    with pytest.raises(ValueError,match='TA_CLOCK_BYTES'):owner._ta_pool_axis(plan)
+
+
+def _ta_prior_context():
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import fit_native_bar_train_prior
+    metadata,context=_rank_context();metadata={'source_pool':metadata['mechanics'],
+        'target_contract':target_contract(),'ta_plan':{},'dependencies':{'target_tape':{}}}
+    train=context['cohorts']['TRAIN'];n=len(train['rows']);shape=(n,5);step=300_000_000_000
+    issues=dict.__getitem__(train['truth'],'issue_ns')
+    truth={key:np.ones(shape,bool)for key in ('target_present','observed_previous','mature','eligible')}
+    truth.update(issue_ns=issues,open_known_at_issue=np.zeros(shape,bool),
+        target_row=np.broadcast_to(np.arange(n,dtype=np.int64)[:,None],shape).copy(),
+        validity_ns=np.broadcast_to((issues+step)[:,None],shape).copy(),
+        open_sign=np.zeros(shape,np.int8),close_sign=np.zeros(shape,np.int8))
+    truth['open_known_at_issue'][:,-1]=True
+    train.update(truth=truth,fit_rows=train['rows'],fit_truth=truth,upper_ns=owner.FIT_END_NS)
+    plan={'mode':'ta_mechanics','recipe':_ta_recipe(),'metadata':metadata,
+        'cohort_selection':owner.small_cohort_manifest(metadata),'inputs':{}}
+    selected,_=owner.selected_small_cohorts(plan,context)
+    prior=fit_native_bar_train_prior(truth=owner.slice_truth(train,selected['FIT'],fit=True),
+        fold_upper_ns=owner.FIT_END_NS,target_contract_sha256=target_contract()['contract_sha256'])
+    return plan,context,prior
+
+
+def test_ta_prepare_fits_only_train_prefix_and_reuses_exact_stats_for_cold_and_main(tmp_path,monkeypatch):
+    from gx1.contracts import market_state_native_m5_gc_feature_inputs_v1 as gc
+    plan,context,prior=_ta_prior_context();axis=copy.deepcopy(plan['metadata']['source_pool']['axis'])
+    # Real target-axis construction normally supplies these complete reports.
+    context['cohorts']['CONTROL']['fit_rows']=context['cohorts']['CONTROL']['rows']
+    issue=np.zeros(int(context['cohorts']['CONTROL']['rows'][-1])+1,np.int64)
+    for cohort in context['cohorts'].values():issue[cohort['rows']]=dict.__getitem__(cohort['truth'],'issue_ns')
+    observed=[]
+    provider=SimpleNamespace(issue_ns=issue,input_binding=lambda value:observed.append(value['fit_population']['cutoff_ns']))
+    monkeypatch.setattr(owner.ta_audit,'load_candidate_provider',lambda _: (provider,{'numeric_arrays_reused':True}))
+    monkeypatch.setattr(owner,'fit_axes',lambda *args:(context['cohorts'],axis))
+    monkeypatch.setattr(gc,'load_native_m5_gc_feature_packet',lambda *_:pytest.fail('TA opened GC packet'))
+    monkeypatch.setattr(gc,'NativeM5GCFeatureProvider',lambda *_:pytest.fail('TA built GC provider'))
+    calls=[]
+    def fit(p,*,fit_source_rows,cutoff_ns):
+        assert p is provider and cutoff_ns==owner.FIT_END_NS
+        np.testing.assert_array_equal(fit_source_rows,context['cohorts']['TRAIN']['rows'])
+        calls.append(len(fit_source_rows))
+        return {'fit_population':{'cutoff_ns':cutoff_ns,'issue_rows':len(fit_source_rows),
+            'selected_source_rows_sha256':owner.digest(fit_source_rows)}}
+    monkeypatch.setattr(ta,'fit_native_m5_feature_normalization',fit)
+    reference=tmp_path/'label_only_prior.json';reference_ref=owner.publish(reference,prior)
+    plan['inputs']['matched_prior_reference']=reference_ref
+    first=owner.prepare_native_fit(plan,tmp_path)
+    assert calls==[24175]and first['normalization_fits']==first['prior_fits']==1
+    assert first['prior']==prior and first['prior_ref']['sha256']==reference_ref['sha256']
+    stage,path,_=owner.FIT_SCOPES['ta_mechanics']
+    monkeypatch.setitem(owner.FIT_SCOPES,'ta_mechanics',(stage,path,tmp_path))
+    monkeypatch.setattr(ta,'fit_native_m5_feature_normalization',lambda *a,**k:pytest.fail('stats refitted'))
+    cold=owner.prepare_native_fit(plan,tmp_path/'cold',reload_normalization=first['normalization_ref'],reload_prior=first['prior_ref'])
+    assert cold['normalization_fits']==cold['prior_fits']==0
+    assert cold['normalization']==first['normalization']and cold['prior']==first['prior']
+    main=copy.deepcopy(plan);main['mode']='ta_main';main['recipe']=_ta_recipe('ta_main',4)
+    main['metadata']['mechanics']={'axis':axis,'normalization':first['normalization_ref'],
+        'prior':first['prior_ref'],'normalization_population':first['normalization']['fit_population']}
+    reused=owner.prepare_native_fit(main,tmp_path/'main')
+    assert reused['normalization_fits']==reused['prior_fits']==0
+    assert observed==[owner.FIT_END_NS]*3
+    wrong=copy.deepcopy(main);wrong['metadata']['mechanics']['normalization_population']['cutoff_ns']=owner.CONTROL_END_NS
+    with pytest.raises(ValueError,match='TA_FIT_IMMUTABLE_STATS'):owner.prepare_native_fit(wrong,tmp_path/'bad')
+
+
+def test_ta_checkpoint_resume_restores_pass_boundary_rng_optimizer_and_rejects_bad_cursor(tmp_path,monkeypatch):
+    provider,cohort,context,plan,fresh=_training_unit(monkeypatch)
+    plan.update(mode='ta_mechanics',recipe=_ta_recipe())
+    plan_ref={'path':'TAplan','sha256':'3'*64}
+    torch.manual_seed(19);model,opt=fresh();model.research_objective={'unit_prior_initialization_sha256':'4'*64}
+    owner.fit_step(model,opt,provider,cohort,cohort['rows'],plan)
+    checkpoint=copy.deepcopy(owner.fit_checkpoint(model,opt,context,plan,plan_ref,1))
+    assert checkpoint['schedule_position']['next_pass']==1 and checkpoint['schedule_position']['next_batch_in_pass']==0
+    assert checkpoint['schema_version']=='gx1_native_m5_ta_prior_training_state_v1'
+    next_step=owner.fit_step(model,opt,provider,cohort,cohort['rows'],plan)
+    expected=owner.fit_state_proof(model,opt,2,next_step)
+    resumed,other=fresh();resumed.research_objective=copy.deepcopy(model.research_objective)
+    assert owner.restore_fit_checkpoint(resumed,other,context,plan,plan_ref,checkpoint)==1
+    actual_step=owner.fit_step(resumed,other,provider,cohort,cohort['rows'],plan)
+    assert owner.fit_state_proof(resumed,other,2,actual_step)==expected
+    bad=copy.deepcopy(checkpoint);bad['schedule_position']['next_pass']=0
+    with pytest.raises(ValueError,match='TA_FIT_CHECKPOINT_PASS_CURSOR'):
+        owner.restore_fit_checkpoint(resumed,other,context,plan,plan_ref,bad)
+
+
+def test_ta_initial_baseline_proves_exact_prior_for_every_selected_row():
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_train_prior_logits
+    _,_,prior=_ta_prior_context();captures={}
+    for name,n in [('TRAIN',1536),('CONTROL',512)]:
+        captures[name+'__source_row']=np.arange(n,dtype=np.int64)
+        captures.update({name+'__'+key:value.astype(np.float32)
+            for key,value in native_bar_train_prior_logits(prior,rows=n).items()})
+    model=SimpleNamespace(research_objective={'initialization':{'prior_sha256':prior['contract_sha256']}})
+    proof=owner._ta_initial_prior_proof(model,{'prior':prior},captures)
+    assert proof['all_selected_initial_logits_equal_prior']and proof['rows']=={'TRAIN':1536,'CONTROL':512}
+    captures['CONTROL__close_logits'][-1,-1,-1]+=np.float32(.1)
+    with pytest.raises(ValueError,match='TA_FIT_INITIAL_PRIOR_LOGITS:CONTROL:close_logits'):
+        owner._ta_initial_prior_proof(model,{'prior':prior},captures)
+
+
+def test_ta_learning_curve_scores_every_declared_pass_without_control_selection(tmp_path,monkeypatch):
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_train_prior_logits
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    plan,base,prior=_ta_prior_context();plan['mode']='ta_main';plan['recipe']=_ta_recipe('ta_main',2)
+    plan['metadata']['architecture']={'synthetic':True}
+    reference=owner.publish(tmp_path/'label_prior.json',prior);plan['inputs']['matched_prior_reference']=reference
+    norm={'fit_population':{'cutoff_ns':owner.FIT_END_NS,'issue_rows':24175}}
+    normal_ref=owner.publish(tmp_path/'norm.json',norm)
+    class Provider:
+        surfaces={'source_binding':{'native_only':True}}
+        @property
+        def source_binding(self):pytest.fail('TA followed GC source-binding interface')
+        def input_binding(self,normalization):return {'TA_only':True}
+    class Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__();self.weight=torch.nn.Parameter(torch.tensor([0.]))
+            self._native_fit_counts={'model_constructions':1,'model_forwards':0,'backward_calls':0,'optimizer_steps':0}
+            self.research_objective={'initialization':{'prior_sha256':prior['contract_sha256']}}
+        def require_prior_initialization_state(self):assert float(self.weight)==0
+    model=Model();optimizer=torch.optim.AdamW(model.parameters(),lr=1e-4)
+    plan['metadata']['mechanics']={'initial_state_sha256':canonical_model_state_sha256(model.state_dict()),
+        'result':{'path':'synthetic_TA_mechanics','sha256':'1'*64}}
+    context={**base,'axis':plan['metadata']['source_pool']['axis'],
+        'provider':Provider(),'normalization':norm,'normalization_ref':normal_ref,
+        'prior':prior,'prior_ref':reference,'feature_requalification':{'same_TA_arrays':True}}
+    plan['limits']=owner.fit_limits(plan['recipe'],'ta_main',plan['metadata'])
+    monkeypatch.setattr(owner,'prepare_native_fit',lambda *args:context)
+    monkeypatch.setattr(owner,'fresh_fit_model',lambda *args,**kwargs:(model,optimizer))
+    calls=[];seen=[]
+    def score(m,c,panels,p):
+        # Deliberately worsening CONTROL cannot shorten/extend the declared loop.
+        phase=len(calls);calls.append(phase);captures={};reports={}
+        for name,batches in panels.items():
+            rows=np.concatenate(batches);captures[name+'__source_row']=rows
+            captures.update({name+'__'+key:value.astype(np.float32)
+                for key,value in native_bar_train_prior_logits(prior,rows=len(rows)).items()})
+            reports[name]={'diagnostic_loss':float(phase+1),'rows':len(rows)}
+            m._native_fit_counts['model_forwards']+=len(batches)
+        return reports,captures
+    def step(m,opt,p,cohort,rows,recipe):
+        cursor=len(seen);seen.append(rows.copy())
+        with torch.no_grad():m.weight.add_(1)
+        for key in ('model_forwards','backward_calls','optimizer_steps'):m._native_fit_counts[key]+=1
+        return {'heads_gradient_l2':1.,'backbone_gradient_l2':0. if cursor==0 else 1.}
+    monkeypatch.setattr(owner,'fit_score',score);monkeypatch.setattr(owner,'fit_step',step)
+    for name in ('synchronize','empty_cache'):monkeypatch.setattr(torch.cuda,name,lambda:None)
+    for name in ('max_memory_allocated','max_memory_reserved'):monkeypatch.setattr(torch.cuda,name,lambda:0)
+    _cpu_rng(monkeypatch)
+    report=owner.fit_physical(plan,{'path':'synthetic_plan','sha256':'2'*64},tmp_path)
+    assert calls==[0,1,2]and len(seen)==192 and report['actual_counts']==plan['limits']
+    assert [item['completed_updates']for item in report['learning_curve']]==[96,192]
+    assert len(report['checkpoints'])==2 and report['declared_passes']==2
+    np.testing.assert_array_equal(np.concatenate(seen[:96]),np.concatenate(seen[96:]))
+    assert report['initial']['CONTROL']['diagnostic_loss']==1.
+    assert report['final']['CONTROL']['diagnostic_loss']==3.
+    assert report['prior_initialization']['all_selected_initial_logits_equal_prior']
+    assert report['normalization_fits']==report['prior_fits']==0
+
+
+@pytest.mark.parametrize('mode',['ta_mechanics','ta_main'])
+def test_ta_wrong_but_valid_prior_reference_rejected_before_any_receipt_io(tmp_path,monkeypatch,mode):
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_bar_train_prior
+    _,_,prior=_ta_prior_context()
+    assert require_native_bar_train_prior(prior)['fit_population']['issue_rows']==1536
+    assert prior['fit_population']['cutoff_ns']==owner.FIT_END_NS
+    wrong_ref=owner.publish(tmp_path/'another_valid_1536_TRAIN_prior.json',prior)
+    inputs={'ta_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_006/RESULT.json',
+        'sha256':'5c015b3af8a17c8a16459be0eeba5ca017b7625db91e193aa84b101e664e7bca'},
+        'ta_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_006/TERMINAL.json',
+        'sha256':'849bcda1483e088ca5fa2ec8671e8ed6b003654331a6556c70af53dcfc11c874'},
+        'matched_prior_reference':wrong_ref}
+    if mode=='ta_main':inputs.update(mechanics_result={},mechanics_terminal={})
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('receipt read before exact prior gate'))
+    monkeypatch.setattr(ta,'fit_native_m5_feature_normalization',lambda *a,**kw:pytest.fail('normalization before prior gate'))
+    with pytest.raises(ValueError,match='TA_FIT_EXACT_MATCHED_PRIOR'):owner.ta_fit_metadata(inputs,mode)
+    # The exact historical path with different valid prior bytes is equally forbidden.
+    inputs['matched_prior_reference']={**owner.TA_MATCHED_PRIOR_REFERENCE,'sha256':wrong_ref['sha256']}
+    with pytest.raises(ValueError,match='TA_FIT_EXACT_MATCHED_PRIOR'):owner.ta_fit_metadata(inputs,mode)
