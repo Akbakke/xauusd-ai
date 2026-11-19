@@ -6,7 +6,7 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`FULL_HISTORY_NATIVE_M5_FACTS_COMPLETE_PIPELINE_PHYSICAL_PENDING`.
+`NATIVE_M5_PIPELINE_001_ADMITTED`.
 
 Fullhistorikk-plan003 er fullført én gang med exit0 og uendret kilde.
 1 215 514 native M5-rader er dekodet fra18kildeår2009–2026. Én bar
@@ -38,7 +38,7 @@ med320 distinkte fokuserte testtilfeller. Fabrikkens tuple/list-grense er rettet
 Syntaks, diffkontroll og commit-vakter består. Seks livssyklustester er
 gjentatt etter varig publisering av den uavhengige historikkontrollen.
 
-Pipeline001 er PREPARED_NOT_ADMITTED, planhashb245d3746b090a4836d342b6485773bea388f3fa381da82120b8810872d0fca0.
+Pipeline001 er ADMITTED_ONE_USE etter godkjent fysisk metadata-preflight, planhashb245d3746b090a4836d342b6485773bea388f3fa381da82120b8810872d0fca0.
 Omfang: uavhengig råberegning av alle76arrays,
 ferske native5-squeeze-/V29-parametre,318signaler/132kontekst/256felt perTF,
 61as-of-makrofelter, hele faktisk konsumerte TRAIN-normaliseringspopulasjonen
@@ -46,7 +46,7 @@ og én fersk teknisk CPU-batch på16rader med privat initialcheckpoint.
 Dette er ennå ikke fysisk utført.
 Første preflight ble avvist før oppstart fordi audit tillater høyst4G.
 Pipeline bruker derfor eksisterende CPU-research-producer med12G/512M.
-Ingen CLAIM eller prislesing ble gjort; klargjort plan er bundet på nytt og venter på preflight. GC/MBP-ruten er separat og beholdt.
+Ingen CLAIM eller prislesing ble gjort; klargjort plan er bundet på nytt og preflight bestod før admisjon. GC/MBP-ruten er separat og beholdt.
 M1, Entry, modellfit, TEST, broker og handel forblir stengt.
 
 ### Kilderevisjon før M1-presiseringen18.11 (historisk)
