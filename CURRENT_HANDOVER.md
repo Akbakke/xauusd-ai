@@ -8,14 +8,14 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 Hele tilgjengelige native prishistorikk før TEST har tett barfasit på alle
 fem tidsrammer. Native TA, direkte rå-GC, fysisk GC-pakke og den samlede
-modellens tekniske konsumkontroll er fullført. Ingen kjøring er aktiv.
-NEXT_RUN_POLICY eier arbeidsstatus og hashreferanser til originalkvitteringene.
+modellens tekniske konsumkontroll er fullført. NEXT_RUN_POLICY eier
+arbeidsstatus og hashreferanser til originalkvitteringene.
 
-Dette kvalifiserer datagrunnlag og den kontrollerte modellkoblingen.
-Full-TRAIN initial prognosebaseline, læring, senere generalisering og
-retningsedge er fortsatt ikke målt. Aktivt brukermål klargjør nå én kort
-treningsrunde. Teknisk GPU-update/kald resume er nå bestått; hovedrunden
-er ikke innrømmet. Mechanics002 er nå fullført og konsumert. Hovedplanen er nå innrømmet én gang etter bestått eksakt førkontroll.
+Mechanics001 og002 er fullført og konsumert; ekte CUDA-update/kald resume
+består. SHORT_FIT001 er innrømmet én gang for256oppdateringer og full
+før-/ettermåling. Kilde/policy fryses fra CLAIM til TERMINAL; faktisk prosess
+og kvitteringer styrer kjørestatus. Ingen hovedresultater foreligger ennå.
+Full prognosebaseline, læring, senere generalisering og edge er ikke målt.
 
 ### Full historikkfasit
 
