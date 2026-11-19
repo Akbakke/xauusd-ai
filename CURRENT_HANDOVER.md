@@ -6,7 +6,7 @@ prosess og eksakte terminalkvitteringer overstyrer prosa. Tidligere bølger finn
 
 ## Gjeldende status 19.11.2026
 
-`FULL_HISTORY_NATIVE_M5_SOURCE_QUALIFIED_AWAITING_FACT_AUDIT`.
+`FULL_HISTORY_NATIVE_M5_FACT_AUDIT_003_ADMITTED`.
 
 Bestillingen er utvidet til all tillatt native historikk før forseglet TEST
 01.07.2026. Fasit er åpning mot forrige observerte åpning og slutt mot
@@ -37,7 +37,7 @@ Syntaks og diffkontroll bestod. Genuin fysisk kvalifisering gjenstår.
 GC/MBP er en separat beholdt rute med kortere faktisk dekning; den blir
 ikke fabrikkert i full-TA-profilen. Modellfit, Entry, TEST og handel er stengt.
 
-Neste steg er kildefrys og eksakt engangsadmisjon av003 etter metadata-preflight. Etter faktakontrollen følger én egen
+Neste steg er eksakt én003-kjøring med fryst kilde/policy,4G/512M og900s ytre grense. Etter faktakontrollen følger én egen
 kildebundet fysisk parameter-/input-/nullstegsmodellkvalifisering.
 NEXT_RUN_POLICY er eneste kjøreautoritet.
 
