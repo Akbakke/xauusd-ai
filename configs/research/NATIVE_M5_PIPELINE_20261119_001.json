@@ -10,7 +10,7 @@
   "batch_rows": 16,
   "economic_edge_proven": false,
   "execution": {
-    "class": "audit",
+    "class": "producer",
     "internal_seconds": 3570,
     "kill_after_seconds": 10,
     "memory": "12G",
@@ -5251,10 +5251,10 @@
   },
   "schema_version": "gx1_native_m5_pipeline_plan_v1",
   "seed": 20260911,
-  "source_base_commit": "e300b04adcf2614b9c009e8c1a8ed05da5f1686b",
+  "source_base_commit": "6050393eb93ca92b8b7b5687cd187979c2bd16c6",
   "source_owners": {
     "gx1/audit/build_native_m5_direction_targets_v1.py": "161f9751f8648d01ff620a71c071f1ac3062a4ee99d2420b65d0c933c7306f42",
-    "gx1/audit/qualify_market_state_native_m5_pipeline_v1.py": "2278aa261e9d3a06a3170609ed79cb2d2f6f096bcc8759ce6a1c144aaaef5c34",
+    "gx1/audit/qualify_market_state_native_m5_pipeline_v1.py": "d1ef09573f9d70633825f8e7da460611b064e3d9767b544dcf5a43712b604f24",
     "gx1/contracts/entry_exit_production_architecture_v1.py": "a3fc3bbfd11df7da56701ea2f23d830bb61133655d2290343de2b14969acc709",
     "gx1/contracts/entry_model_native_input_normalization_v1.py": "3ece5b551ea7528f018f1e688e045cc36203eb058fc41f50182a2bef9bea8f86",
     "gx1/contracts/entry_model_native_signal_v1.py": "2390e52858e953886a60c414bd8fc080564beec2868984359ef4ebc4b3e2671b",
@@ -5275,7 +5275,7 @@
     "gx1/scripts/fit_volatility_squeeze_artifacts_v1.py": "353768f967fcecc301bc87c6806a4d52b4c8cd3a5892909015591269ac622244",
     "gx1/scripts/research_ta_campaign_v1.py": "021f28ca8ee112ca5ebf2c29c7e4af68b8e40312dd09265327a214d51b9c93e0",
     "scripts/gx1_capped_run.sh": "6028e86a7662267562f5f71ecc8ac8dbd4adf571612997ac6f23f001b91df9c1",
-    "tests/test_qualify_market_state_native_m5_pipeline_v1.py": "d91190fd3ec68404cfa80f28876ea4bba34266c6248e4c8058bfb6758843a54a"
+    "tests/test_qualify_market_state_native_m5_pipeline_v1.py": "c824d9d319faa6dfda59edbb7379037fee06deca52ee0b125336a0cd122b26ee"
   },
   "stage": "native_m5_pipeline_20261119_001",
   "status": "PREPARED_NOT_ADMITTED",

@@ -89458,7 +89458,7 @@
     "claimed_invocations": 0,
     "completed_invocations": 0,
     "execution": {
-      "class": "audit",
+      "class": "producer",
       "internal_seconds": 3570,
       "kill_after_seconds": 10,
       "memory": "12G",
@@ -89477,7 +89477,14 @@
     "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_001",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_PIPELINE_20261119_001.json",
-      "sha256": "54db8f5d6490eb1a06307614b57509f69513bd7d7a1b7c1d7bafb08ffbf2013a"
+      "sha256": "b245d3746b090a4836d342b6485773bea388f3fa381da82120b8810872d0fca0"
+    },
+    "preflight_before_source_correction": {
+      "claim_created": false,
+      "data_reads": 0,
+      "exit_code": 75,
+      "reason": "audit jobs may request at most4G",
+      "status": "REJECTED_BY_CAPPED_RUNNER_BEFORE_START"
     },
     "relaunch_allowed": false,
     "remaining_invocations": 0,
