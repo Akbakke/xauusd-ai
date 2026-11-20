@@ -84,8 +84,9 @@ Overleveringen viste eldre Entry-blokkeringer som aktiv femårsstatus; rapporten
 er rettet, og to foreldede GC-tester har fått riktig historisk scope. Alle133
 tester i overleveringseieren består. Ingen modell-/taps-/optimizerendring.
 Hovedplanens kildebase er oppdatert for rapportendringen; alle53bundne eiere
-er byteuendret. Ny lesende preflight og readiness-binding ferdigstilles før
-startstreken bekreftes igjen; ingen trening innrømmes av gjennomgangen.
+er byteuendret. Ny lesende preflight består med0modell/updates/claims;
+ny readiness- og målekontraktbinding peker til samme ustartede plan.
+Originalbevis er bevart. Ingen trening innrømmes av gjennomgangen.
 
 Full initialscore er uavhengig kontrollert fra JSON-aggregater for20predictive
 proper-scoreceller, maksavvik4,08e-10. INIT=model=fixedTRAINprior på begge
@@ -110,7 +111,7 @@ består. Målt B64-compute fra profiler er uten AdamW; full hovedpass-tid er um�
 10800s er en hardgrense, ikke en fullføringsgaranti. Kilde/policy fryses under kjøring;
 stabil langkjøring kontrolleres omtrent hver15.–30.minutt, ingen minuttvis modellpolling.
 
-EVALUATION_CONTRACT.json og TRAINING_READY.json under
+EVALUATION_CONTRACT_CODE_REVIEW001.json og TRAINING_READY_CODE_REVIEW001.json under
 /home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001
 binder hele forberedelsen og fast sammenligning: samme heleTRAIN før/etter mot
 matchedprior, senere utviklingsVAL separat, M5close log-tap/Brier og alle3klassers

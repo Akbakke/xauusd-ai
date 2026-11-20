@@ -4407,8 +4407,8 @@
     },
     "current_function_native_baseline_qualification_scope": "Exactfiveyearscope only; fresh wholeTRAIN normalization andprior, raw/noise target identities and fullinitial qualified. NativeTEST remains sealed.",
     "latest_current_initial_state_audit": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY.json",
-      "sha256": "6cb0bcd47013a545130599ac5ff5678bd8736efee7f33c69dc91d209cb3bafe0"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY_CODE_REVIEW001.json",
+      "sha256": "fc1c338da4cb9ab653acd3ed878d5373f6c2bae5bf77502ddca6471222b94152"
     },
     "latest_current_function_mechanics": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001/RESULT.json",
@@ -4723,8 +4723,8 @@
     "latest_current_initial_state_audit_role": "Compositegenuineproducerbookends plus independentmetadata/scoreaudit; no independentcheckpointdecode claimed.",
     "bounded_five_year_test_technically_ready": true,
     "bounded_five_year_test_readiness": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY.json",
-      "sha256": "6cb0bcd47013a545130599ac5ff5678bd8736efee7f33c69dc91d209cb3bafe0"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY_CODE_REVIEW001.json",
+      "sha256": "fc1c338da4cb9ab653acd3ed878d5373f6c2bae5bf77502ddca6471222b94152"
     },
     "current_function_main_evidence_missing": true,
     "required_before_more_extensive_training_scope": "MeasuredTRAINlearning andlaterdevelopmentdirectionevidence required beforeextraepochs oradditionalexpansion; exactonefiveyearpass technicallyready butnotadmitted.",
@@ -25842,8 +25842,8 @@
     },
     "current_technical_gap": null,
     "latest_ATR03_training_readiness": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY.json",
-      "sha256": "6cb0bcd47013a545130599ac5ff5678bd8736efee7f33c69dc91d209cb3bafe0"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY_CODE_REVIEW001.json",
+      "sha256": "fc1c338da4cb9ab653acd3ed878d5373f6c2bae5bf77502ddca6471222b94152"
     },
     "current_training_running": false,
     "latest_source_audit": {
@@ -25864,8 +25864,8 @@
       "sha256": "a5fa1e3ff6c90aba83d0c4aaa72afdd0ac822bab5daa19cefae91158858a1e02"
     },
     "latest_five_year_readiness": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY.json",
-      "sha256": "6cb0bcd47013a545130599ac5ff5678bd8736efee7f33c69dc91d209cb3bafe0"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY_CODE_REVIEW001.json",
+      "sha256": "fc1c338da4cb9ab653acd3ed878d5373f6c2bae5bf77502ddca6471222b94152"
     },
     "pretraining_code_review_20261120": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/PRETRAIN_CODE_REVIEW_20261120_001.json",
@@ -92954,8 +92954,8 @@
     },
     "current_goal_turn_progress": {
       "evidence": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY.json",
-        "sha256": "6cb0bcd47013a545130599ac5ff5678bd8736efee7f33c69dc91d209cb3bafe0"
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY_CODE_REVIEW001.json",
+        "sha256": "fc1c338da4cb9ab653acd3ed878d5373f6c2bae5bf77502ddca6471222b94152"
       },
       "reason": "Newextendedgenuinecache, freshwholeTRAINnorm/prior/fullinitialbaseline, B64coldmechanics andexactmainplan independentlyqualified; mainnotstarted.",
       "operator_request": "Lag nytt m\u00e5l for bygging/klargj\u00f8ring av stor fem\u00e5rstest; gjennomg\u00e5 hele pipelinen underveis og tilslutt og si fra ved startstreken.",
@@ -93016,16 +93016,16 @@
       "sha256": "8ff8dd726cdb769f79e474d09c114befb2d0ac27fda7b6c738f73f0da6e5b71f"
     },
     "latest_ATR03_training_readiness": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY.json",
-      "sha256": "6cb0bcd47013a545130599ac5ff5678bd8736efee7f33c69dc91d209cb3bafe0"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY_CODE_REVIEW001.json",
+      "sha256": "fc1c338da4cb9ab653acd3ed878d5373f6c2bae5bf77502ddca6471222b94152"
     },
     "latest_year_training_readiness": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003/LARGER_YEAR_TRAINING_READY_20261120.json",
       "sha256": "6e13807b6bfc62be1bb5669e7bc2369267b0cce0e1fd8b09d8489ba189b85862"
     },
     "latest_five_year_training_readiness": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY.json",
-      "sha256": "6cb0bcd47013a545130599ac5ff5678bd8736efee7f33c69dc91d209cb3bafe0"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY_CODE_REVIEW001.json",
+      "sha256": "fc1c338da4cb9ab653acd3ed878d5373f6c2bae5bf77502ddca6471222b94152"
     }
   },
   "native_m5_ta_prior_block_order_20261119_001": {
@@ -94479,18 +94479,18 @@
     },
     "mechanics_elapsed_seconds": 84.51727648600354,
     "evaluation_contract": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/EVALUATION_CONTRACT.json",
-      "sha256": "78f563df18dd5d1c9c4a8563550b70022bb6f3614f0bc614c0f304af44cf098b"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/EVALUATION_CONTRACT_CODE_REVIEW001.json",
+      "sha256": "b34fc338da2090ec32582116d8d1dbcc5234a709ecef54217682ae89b8033c04"
     },
     "final_pipeline_audit_complete": true,
     "all_preparation_checks_complete": true,
     "training_readiness": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY.json",
-      "sha256": "6cb0bcd47013a545130599ac5ff5678bd8736efee7f33c69dc91d209cb3bafe0"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY_CODE_REVIEW001.json",
+      "sha256": "fc1c338da4cb9ab653acd3ed878d5373f6c2bae5bf77502ddca6471222b94152"
     },
     "final_pipeline_review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/FINAL_PIPELINE_REVIEW.json",
-      "sha256": "0eabc363faa5f176bd7964efd5a09ffb4c5397eeb504bb86907aeb1077193209"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/FINAL_PIPELINE_REVIEW_CODE_REVIEW001.json",
+      "sha256": "05a082ed9d4fe0a80b12e1206b4ccd95ff112b446a901e03bdf414b12f3b42c1"
     },
     "main_plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json",
@@ -94652,20 +94652,20 @@
     "scope": "whole_2021_2025_input_TRAIN_fresh_stats_prior_fullinitial_then_Jan_Jun2026_development_VAL",
     "main_training_started": false,
     "evaluation_contract": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/EVALUATION_CONTRACT.json",
-      "sha256": "78f563df18dd5d1c9c4a8563550b70022bb6f3614f0bc614c0f304af44cf098b"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/EVALUATION_CONTRACT_CODE_REVIEW001.json",
+      "sha256": "b34fc338da2090ec32582116d8d1dbcc5234a709ecef54217682ae89b8033c04"
     },
     "preflight": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/FIVE_YEAR_MAIN001_PREFLIGHT.log",
-      "sha256": "6ceeec7cbff48f14dbf8c05a69516f69329c1e954f1132fbda0f6bfffc40fbc3"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/FIVE_YEAR_MAIN001_CODE_REVIEW_PREFLIGHT.log",
+      "sha256": "9d680f6a527a80c1ed778d17bea82275196f19cf3f19559cbaf674468ce6d854"
     },
     "training_readiness": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY.json",
-      "sha256": "6cb0bcd47013a545130599ac5ff5678bd8736efee7f33c69dc91d209cb3bafe0"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY_CODE_REVIEW001.json",
+      "sha256": "fc1c338da4cb9ab653acd3ed878d5373f6c2bae5bf77502ddca6471222b94152"
     },
     "final_pipeline_review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/FINAL_PIPELINE_REVIEW.json",
-      "sha256": "0eabc363faa5f176bd7964efd5a09ffb4c5397eeb504bb86907aeb1077193209"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/FINAL_PIPELINE_REVIEW_CODE_REVIEW001.json",
+      "sha256": "05a082ed9d4fe0a80b12e1206b4ccd95ff112b446a901e03bdf414b12f3b42c1"
     },
     "ready_for_later_one_use_admission": true
   }
