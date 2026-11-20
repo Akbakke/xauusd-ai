@@ -94702,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Stats002 failedD1geomline_bars_since_break_signed centerbits afterallotherfive surfaces passed. Storedcenternegativezero; independentactualD1value notyetdiagnosed. NewD1-only boundeddiagnostic admitted; no parameter/data change and no FAILEDplanrelaunch.",
+    "latest_observation": "D1diagnosisCOMPLETE:exactone+0vs-0centerdifference,numericidentical; all256D1statistics/extremapass. Correctedverifier003pending. ExactfourfileSHAparity audit admittedforqualifiedduplicatecleanup; no DATA/RUNS deletion.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94788,7 +94788,15 @@
     },
     "focused_test_cases_composite_passed": 544,
     "legacy_teacher_test_main_norm_scope_corrected": true,
-    "retired_repo_config_count": 1
+    "retired_repo_config_count": 1,
+    "D1_signed_zero_diagnostic_result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/D1_STATS_DIAG001/RESULT.json",
+      "sha256": "88fcce2694073dc8b76a0cbc0afe0accd7d7ce896021ca6d6035db51ab6ecb6c"
+    },
+    "D1_signed_zero_diagnostic_terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/D1_STATS_DIAG001/TERMINAL.json",
+      "sha256": "8daa6d863a09048d10befc65d9096c27a7b9d058f8fb52fd1deaf31dbcefe691"
+    }
   },
   "full_project_current_native_feature_numeric_20261120_001": {
     "status": "COMPLETE_CONSUMED",
@@ -95239,19 +95247,19 @@
     }
   },
   "full_project_current_native_d1_stat_signed_zero_diagnostic_20261120_001": {
-    "status": "ADMITTED_EXACT_D1_CENTER_DIAGNOSTIC_ONLY",
+    "status": "COMPLETE_CONSUMED_SIGNED_ZERO_ONLY_NO_NUMERIC_DIFFERENCE",
     "contract": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/D1_STATS_DIAG_CONTRACT001.json",
       "sha256": "118fc7f84ca254dc14b6a314897f5df7d19abbb2ccb8d890dd352b1788c2997d"
     },
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/D1_STATS_DIAG001",
-    "execution_authorized": true,
+    "execution_authorized": false,
     "training_authorized": false,
     "test_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "memory": "4G",
     "swap": "512M",
@@ -95259,6 +95267,34 @@
     "tasks_max": 64,
     "outer_seconds": 120,
     "internal_seconds": 110,
-    "actual_scope": "D1TRAIN1542rows256stats; no fit/model/targets. Classify numeric difference vs signedzero bit differences without waiving current assertion."
+    "actual_scope": "D1TRAIN1542rows256stats; no fit/model/targets. Classify numeric difference vs signedzero bit differences without waiving current assertion.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/D1_STATS_DIAG001/RESULT.json",
+      "sha256": "88fcce2694073dc8b76a0cbc0afe0accd7d7ce896021ca6d6035db51ab6ecb6c"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/D1_STATS_DIAG001/TERMINAL.json",
+      "sha256": "8daa6d863a09048d10befc65d9096c27a7b9d058f8fb52fd1deaf31dbcefe691"
+    }
+  },
+  "full_project_duplicate_byte_parity_20261120_001": {
+    "status": "ADMITTED_READONLY_DUPLICATE_BYTES_PROOF",
+    "contract": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/DUPLICATE_BYTE_PARITY_CONTRACT001.json",
+      "sha256": "718b22522c8b820425788877d999c83d5c7f43a411d7277e4835769d4a316652"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/DUPLICATE_BYTE_PARITY001",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "test_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "memory": "4G",
+    "swap": "512M",
+    "tasks_max": 64,
+    "numerical_threads": 1,
+    "outer_seconds": 600
   }
 }

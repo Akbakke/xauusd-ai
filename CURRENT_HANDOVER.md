@@ -67,8 +67,10 @@ Frosne heleTRAIN-statistikker er ennå ikke ferdig uavhengig verifisert.
 Audit001 feilet på auditørens tuple/list-sammenligning; originalen er bevart.
 Korrigert002 fullførte signal318/kontekst132 og alle256felt på M5/M15/H1/H4,
 men stoppet på eksakt centerbit i D1 geomline_bars_since_break_signed.
-Lagret center er negativ null. Syntetiske forsøk viser at NumPy-partisjon og
-fullsortering kan velge ulike nullfortegn, men faktisk D1-årsak er ikke bevist.
+Lagret center er negativ null. Faktisk D1-diagnose er nå fullført:én +0/-0-centerrepresentasjon, ingen
+numerisk forskjell i noen av256D1-statistikker. Scalar/32-kolonners NumPy-kvartiler
+[-2,-0,1] samsvarer med den frosne statistikken, skala3. Korrigertverifikator003
+klargjøres uten endring av frosne parametre.
 En ny D1-only diagnose er innrømmet:1542TRAIN-rader/256statistikkfelt,
 D1_STATS_DIAG_CONTRACT001.json, audit4GiB/512MiB/1tråd/64tasks,110/120s.
 Ingen gammel engangsplan relanseres, ingen modell/fit/target/TEST/parameterendring.
@@ -199,3 +201,7 @@ kan rydde etter verifiserte referanser/eiere/prosesser. Git er kildegjenoppretti
 Ingen fast tapsgrense eller maksimal holdetid er innført.
 Kode/docs/interne stier/aggregerte bevis kan pushes til autorisert branch;
 aldri rådata, vekter, hemmeligheter eller force-push.
+
+Aktiv housekeeping:én avgrenset SHA-only-kontroll av fire positive preseal-filer
+(to mulige byteidentiske TRAIN/VAL-kopipar), gjennom eksisterende retention-inventar.
+Ingen arraydekoding/sletting/trening; kilde/policy fryses under kjøringen.
