@@ -99,11 +99,14 @@ AST-bro/17numeriskeeiere og byte/NaN/view/itemcache-proofs:11ulike fokuserte
 cachetilfeller består påtversavbølger (5uendredegjenbrukt). Én nytest forventet
 feil exceptiontype; kun testforventningen ble rettet. Uavhengig source-review
 og genuin metadata utenrawdecode/Torch består. Ny002plan er klargjort, egenidentitet og samme6år/12G/3570s;
-preflight/selvstendiginnrømming gjenstår. Obligatoriske precommit-kontrakter
+eksaktCLI-preflight bestod med0decode/modell/fit/CLAIM/Torch.
+Uavhengig metadatareview bekreftet41kildehasher/17valueowners/107refs.
+Bare cache002 er innrømmet én gang; alle treningsporter er stengt, og
+source/policy fryses gjennom dens nativeTERMINAL. Obligatoriske precommit-kontrakter
 for modell-nativegrensen bestod også. Workerens
 eksakte COW-setting/dødsfase er ukjent. NyCLAIM må binde cgroup/PID/cap, og
 små fase/maxRSS-kvitteringer skal lokalisere en eventuell ny hardkill.
-Ingen produksjon/trening er innrømmet;001 relanseres aldri. CPU12G/512M,
+Bare ny002cacheproduksjon er innrømmet, ingen trening;001 relanseres aldri. CPU12G/512M,
 1tråd/64tasks og internSIGALRM3570s beholdes; ingen eksternwallcap eller
 seksårs kjøretid/minne er påstått. Rapportert primary_matrix_bytes er
 delvolum; total27-arrayvolum må beregnes fra descriptorene.
