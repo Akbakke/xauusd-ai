@@ -239,7 +239,7 @@ def test_consumed_001_observation_is_not_a_native_terminal_or_relaunch(monkeypat
     monkeypatch.setattr(cache,'read',lambda binding:copy.deepcopy(observation))
     proof=cache.previous_exit_metadata(cache.INPUT_REFS)
     assert proof['outer_exit_code']==137 and proof['native_TERMINAL_present']is False
-    assert cache.STAGE.endswith('_002')and cache.ROOT.name.endswith('_002')
+    assert cache.STAGE.endswith('_003')and cache.ROOT.name.endswith('_003')
     observation['native_TERMINAL_present']=True
     with pytest.raises(ValueError,match='CONSUMED_001_EXIT_OBSERVATION'):cache.previous_exit_metadata(cache.INPUT_REFS)
     observation['native_TERMINAL_present']=False;observation['source_policy_plan_unchanged_at_external_bookend']=False
@@ -286,3 +286,86 @@ def test_produce_phase_witnesses_bracket_only_existing_operations(monkeypatch):
         '07_BEFORE_SNAPSHOT_PUBLISH','SNAPSHOT_PUBLISH','08_AFTER_SNAPSHOT_PUBLISH',
         '09_BEFORE_SNAPSHOT_RELOAD','SNAPSHOT_RELOAD','10_AFTER_SNAPSHOT_RELOAD']
     assert len(report['phases'])==10 and report['actual_counts']==cache.COUNTS
+
+
+def test_macro_research_import_and_pure_asof_helper_are_torch_and_data_free_in_fresh_process():
+    code='''import json,sys
+def deny(event,args):
+    if event=='import'and(args[0]=='torch'or args[0].startswith('torch.')):
+        raise RuntimeError('Torch import forbidden')
+    if event=='open'and isinstance(args[0],str)and(
+        '/GX1_DATA/'in args[0]or '/GX1_RUNS/'in args[0]or args[0].endswith(('.parquet','.npz'))):
+        raise RuntimeError('Data open forbidden')
+    if event.startswith('socket.'):raise RuntimeError('Network forbidden')
+sys.addaudithook(deny)
+from gx1.contracts.native_m5_direction_io_firewall_v1 import install_native_m5_direction_io_firewall
+firewall=install_native_m5_direction_io_firewall()
+from gx1.features import d1_macro_context_v1 as macro
+research=macro._research()
+import numpy as np,pandas as pd
+at=pd.DatetimeIndex(['2024-05-01T00:00Z'])
+out=research.align_asof(pd.DatetimeIndex(['2024-05-01T00:00Z','2024-05-01T00:01Z']),
+    pd.Series(at),pd.DataFrame({'value':[17.0]}))
+assert np.isnan(out.iloc[0,0])and out.iloc[1,0]==17.0
+assert not any(name=='torch'or name.startswith('torch.')for name in sys.modules)
+assert firewall['denied_attempts']==0
+print(json.dumps({'Torch_imported':False,'data_values_decoded':0,'model_constructions':0,'pure_asof_helper':True}))
+'''
+    result=cache.subprocess.run([cache.sys.executable,'-c',code],cwd=cache.REPO,
+        capture_output=True,text=True,check=True,timeout=30)
+    assert json.loads(result.stdout)=={'Torch_imported':False,'data_values_decoded':0,
+        'model_constructions':0,'pure_asof_helper':True}
+
+
+def test_research_bridge_strips_only_two_import_sources_and_rejects_body_or_macro_change(tmp_path,monkeypatch):
+    first,second=cache.RESEARCH_LAZY_IMPORTS
+    old=('from '+first+' import RidgeGram, Tape, fit_hgb\n'
+        'from '+second+' import ResearchFinancingCurve, portfolio_path\n'
+        'import math\n'
+        'def pure_macro(x):\n    return x+1\n'
+        'def fit(x):\n    return fit_hgb(x)\n'
+        'def portfolio(x):\n    return portfolio_path(x)\n')
+    new=('import math\n'
+        'def pure_macro(x):\n    return x+1\n'
+        'def fit(x):\n    from '+first+' import fit_hgb\n    return fit_hgb(x)\n'
+        'def portfolio(x):\n    from '+second+' import portfolio_path\n    return portfolio_path(x)\n')
+    assert cache.research_import_numeric_identity(old)==cache.research_import_numeric_identity(new)
+    path=tmp_path/cache.RESEARCH_SOURCE_PATH;path.parent.mkdir(parents=True);path.write_text(new)
+    monkeypatch.setattr(cache,'REPO',tmp_path)
+    monkeypatch.setattr(cache.subprocess,'check_output',lambda *a,**k:old.encode())
+    plan={'source_base_commit':'unit','source_owners':{cache.RESEARCH_SOURCE_PATH:cache.hashlib.sha256(old.encode()).hexdigest()}}
+    proof=cache.research_import_bridge(plan)
+    assert proof['all_other_module_statements_and_macro_function_bodies_unchanged']is True
+    assert proof['original_sha256']==plan['source_owners'][cache.RESEARCH_SOURCE_PATH]
+    for changed in (new.replace('x+1','x+2'),new.replace('return fit_hgb(x)','return fit_hgb(x+1)'),
+                    new.replace('import math','import cmath')):
+        path.write_text(changed)
+        with pytest.raises(ValueError,match='RESEARCH_NON_IMPORT_AST_CHANGED'):cache.research_import_bridge(plan)
+    plan['source_owners'][cache.RESEARCH_SOURCE_PATH]='0'*64
+    with pytest.raises(ValueError,match='ORIGINAL_RESEARCH_SOURCE'):cache.research_import_bridge(plan)
+
+
+def test_consumed_002_binding_uses_original_failure_terminal_without_inventing_source_fields(monkeypatch):
+    stage='native_m5_ta_history_expansion_20261120_002'
+    plan={'path':'oldplan','sha256':'1'*64};claim_ref={'path':'oldclaim','sha256':'2'*64}
+    terminal_ref={'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_002/TERMINAL.json',
+        'sha256':'949c05791e322f5a7300d8396dc46becf25b91abe68346f0359d54b3ad298a12'}
+    observation={'schema_version':'gx1_native_ta_cache_import_failure_bookend_v1','stage':stage,
+        'terminal':terminal_ref,'outer_exit_code':1,'native_exit_code':1,'native_status':'FAILED_CONSUMED',
+        'native_RESULT_present':False,'native_terminal_source_unchanged_field_present':False,
+        'source_policy_plan_unchanged_at_external_bookend':True,'alias_loop_was_passed_before_this_failure':True,
+        'cache_artifacts_present':False,'training_started':False,'test_data_used':False,'relaunch_allowed':False,
+        'model_constructions':0,'optimizer_steps':0,'plan':plan,'claim':claim_ref}
+    terminal={'stage':stage,'status':'FAILED_CONSUMED','exit_code':1,
+        'error':'RuntimeError:NATIVE_TA_CACHE_TORCH_FORBIDDEN','result':None,'plan':plan,'claim':claim_ref,
+        'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False}
+    values={cache.INPUT_REFS['previous_import_failure']['path']:observation,
+        terminal_ref['path']:terminal,claim_ref['path']:{'stage':stage,'plan':plan}}
+    monkeypatch.setattr(cache,'read',lambda binding:copy.deepcopy(values[binding['path']]))
+    proof=cache.previous_import_failure_metadata(cache.INPUT_REFS)
+    assert proof['native_status']=='FAILED_CONSUMED'and proof['terminal']==terminal_ref
+    assert proof['native_terminal_source_unchanged_field_present']is False
+    observation['native_RESULT_present']=True
+    with pytest.raises(ValueError,match='CONSUMED_002_IMPORT_FAILURE'):cache.previous_import_failure_metadata(cache.INPUT_REFS)
+    observation['native_RESULT_present']=False;terminal['source_unchanged']=True
+    with pytest.raises(ValueError,match='ORIGINAL_002_NATIVE_FAILURE'):cache.previous_import_failure_metadata(cache.INPUT_REFS)

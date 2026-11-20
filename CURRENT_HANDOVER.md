@@ -157,3 +157,14 @@ Ikke gjenta tidligere fullført retention/Windows-/cache-opprydding. Historiske
 detaljer er i Git; policy beholder originale bindingsreferanser.
 Kode/docs/interne stier/aggregerte bevis kan pushes til autorisert work/gx1-current;
 aldri rådata, vekter, hemmeligheter eller force-push.
+
+Makro-importrettelsen er nå kildekvalifisert: kun to importgrupper er flyttet
+til14faktiske runtimefunksjoner i research_ta_campaign; ingen kalender-, makro-
+eller asof-formel er endret. Én fit_hgb-testmonkeypatch og8testkonstruksjoner
+peker til faktiske eiere.3nye cachekontroller og9berørte regresjonstilfeller
+består under audit4G. Ren fresh-process _research/asof under Torch-nekt
+består utenrådata/modell. Hel research-AST er identisk bortsett fra bare de
+to navngitte importgruppene;17numeriskeeiere/aliasbro er fortsatt kvalifisert.
+Uavhengig lesereview og genuinmetadata består. Ny cache003 klargjøres med
+samme6år/12G/3570s og egneporter;001/002forblirkonsumert. Ingen produksjon
+eller trening er foreløpig innrømmet.

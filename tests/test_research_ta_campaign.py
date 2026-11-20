@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 
 from gx1.scripts import research_ta_campaign_v1 as ta
+from gx1.scripts.research_model_free_baselines_v1 import ResearchFinancingCurve
 
 
 def _bars(n=850):
@@ -75,7 +76,7 @@ def test_walkforward_and_portfolio_integration_include_full_family_and_purged_fi
     assert complete
     assert all(pd.Timestamp(f["last_fit_outcome_time"]) < pd.Timestamp(f["first_hold_time"]) for f in complete)
     assert all(f["ridge"]["constant_alternative_enabled"] is False for f in complete)
-    curve = ta.ResearchFinancingCurve(pd.DatetimeIndex([frame.index[0]]), np.array([0.04]),
+    curve = ResearchFinancingCurve(pd.DatetimeIndex([frame.index[0]]), np.array([0.04]),
                                      frame.index[-1] + pd.Timedelta(days=1), 0.0129, 31557600.)
     result = ta.evaluate(panel, forecasts, curve, spec, tmp_path)
     assert len(result["declared_family"]) == 96
@@ -135,7 +136,7 @@ def test_run_writes_terminal_bound_inventory_and_predictions(tmp_path, monkeypat
                 read_end_exclusive=str(frame.index[-1] + pd.Timedelta(minutes=5)))
     spec_path = tmp_path / "prereg.json"
     spec_path.write_text(json.dumps(spec))
-    curve = ta.ResearchFinancingCurve(pd.DatetimeIndex([frame.index[0]]), np.array([0.04]),
+    curve = ResearchFinancingCurve(pd.DatetimeIndex([frame.index[0]]), np.array([0.04]),
                                      frame.index[-1] + pd.Timedelta(days=1), 0.0129, 31557600.)
     monkeypatch.setattr(ta, "load_funding", lambda spec: curve)
     monkeypatch.setattr(ta, "load_market", lambda spec: (frame, {"test_accessed": False, "fixture": True}))
@@ -329,7 +330,7 @@ def test_c_book_cash_reconciles_limit_price_costs_signed_funding_and_terminal_ma
     cohort, _ = ta.c_select(market, signals, spec)
     assert cohort.iloc[-1].censored_at_end  # still accounted at the last available close
     tape = ta.c_quotes(market, pd.Timestamp(spec["evaluation_start"]))
-    curve = ta.ResearchFinancingCurve(pd.DatetimeIndex(["2026-06-01T00:00Z"]), np.array([.04]),
+    curve = ResearchFinancingCurve(pd.DatetimeIndex(["2026-06-01T00:00Z"]), np.array([.04]),
                                      pd.Timestamp("2026-06-02T00:00Z"), .0129, 31557600.)
     for mode in ["active", "long", "passive"]:
         book, outcomes = ta.c_book(tape, cohort, mode, 1., curve, 100.)
@@ -391,7 +392,7 @@ def test_c_run_includes_nonfills_full_family_and_censored_positions(tmp_path, mo
     }
     spec_path = tmp_path / "spec.json"
     spec_path.write_text(json.dumps(spec))
-    curve = ta.ResearchFinancingCurve(pd.DatetimeIndex(["2026-06-01T00:00Z"]), np.array([.04]),
+    curve = ResearchFinancingCurve(pd.DatetimeIndex(["2026-06-01T00:00Z"]), np.array([.04]),
                                      pd.Timestamp("2026-07-01T00:00Z"), .0129, 31557600.)
     monkeypatch.setattr(ta, "load_market", lambda spec, **kwargs: (market, {"test_accessed": False, "synthetic": True}))
     monkeypatch.setattr(ta, "load_funding", lambda spec: curve)
@@ -532,11 +533,12 @@ def test_b_matched_fits_preserve_original_targets_and_use_identical_inner_and_ou
     panel, components, spec = _b_fixture(tmp_path)
     joint = ta.join_b_components(panel, components)
     calls = []
-    owner = ta.fit_hgb
+    from gx1.scripts import research_entry_direction_walkforward_v1 as fit_owner
+    owner = fit_owner.fit_hgb
     def record(X, target, hold, **kwargs):
         calls.append((X.copy(), target.copy(), hold.copy(), kwargs["fit_positions"].copy()))
         return owner(X, target, hold, **kwargs)
-    monkeypatch.setattr(ta, "fit_hgb", record)
+    monkeypatch.setattr(fit_owner, "fit_hgb", record)
     forecasts, fits = ta.fit_matched_b(joint, spec)
     output = capsys.readouterr().out
     assert "[TA-A]" in output and "[TA-B]" in output
@@ -576,7 +578,7 @@ def test_b_paired_evaluation_includes_matched_a_in_joint_family_and_rejects_row_
     panel, components, spec = _b_fixture(tmp_path)
     joint = ta.join_b_components(panel, components)
     forecasts, _ = ta.fit_matched_b(joint, spec)
-    curve = ta.ResearchFinancingCurve(pd.DatetimeIndex([panel.fill_time.iloc[0]]), np.array([.04]),
+    curve = ResearchFinancingCurve(pd.DatetimeIndex([panel.fill_time.iloc[0]]), np.array([.04]),
                                      panel.fill_time.iloc[-1] + pd.Timedelta(days=1), .0129, 31557600.)
     result = ta.evaluate_matched_b(joint, forecasts, curve, spec, tmp_path)
     assert len(result["declared_family"]) == len(result["endpoints"]) == 120
@@ -860,7 +862,7 @@ def test_sweep_full_report_retains_insolvent_losses_and_marks_sharpe_undefined(t
     monkeypatch.setattr(ta,"load_market",lambda *a,**k:(market,{}))
     monkeypatch.setattr(ta,"sweep_signal_panel",lambda *a:signals)
     monkeypatch.setattr(ta,"c_select",lambda *a,**k:(cohort.copy(),{}))
-    monkeypatch.setattr(ta,"load_funding",lambda *a:ta.ResearchFinancingCurve(
+    monkeypatch.setattr(ta,"load_funding",lambda *a:ResearchFinancingCurve(
         pd.DatetimeIndex(["2009-01-01T00:00Z"]),np.array([0.]),pd.Timestamp("2026-01-01T00:00Z"),0.,31557600.))
     spec={"cells":["sweep"],"confirmation_bars":5,"hold_bars":12,"slippage_scenarios":[0.,.5,1.,2.],
           "read_end_exclusive":"2026-01-01T00:00:00Z","evaluation_start":"2011-01-01T00:00:00Z",
@@ -903,7 +905,7 @@ def test_macro_core_keeps_full_b_closed_and_compares_same_rows_and_cost_family(t
     for h in spec["horizons"]:
         np.testing.assert_array_equal(forecasts[h]["a_ridge"], expected_a[h]["ridge"])
         np.testing.assert_array_equal(forecasts[h]["a_hgb"], expected_a[h]["hgb"])
-    curve = ta.ResearchFinancingCurve(pd.DatetimeIndex([panel.fill_time.iloc[0]]), np.array([.04]),
+    curve = ResearchFinancingCurve(pd.DatetimeIndex([panel.fill_time.iloc[0]]), np.array([.04]),
                                      panel.fill_time.iloc[-1] + pd.Timedelta(days=1), .0129, 31557600.)
     result = ta.evaluate_matched_macro_core(joint, forecasts, curve, spec, tmp_path)
     assert len(result["declared_family"]) == 120
@@ -1029,7 +1031,7 @@ def test_macro_core_run_binds_completed_inputs_population_and_terminal(tmp_path,
                 output_directory=str(tmp_path / "measurement"))
     path = source / "SPEC.json"
     path.write_text(json.dumps(spec))
-    curve = ta.ResearchFinancingCurve(pd.DatetimeIndex([panel.fill_time.iloc[0]]), np.array([.04]),
+    curve = ResearchFinancingCurve(pd.DatetimeIndex([panel.fill_time.iloc[0]]), np.array([.04]),
                                      panel.fill_time.iloc[-1] + pd.Timedelta(days=1), .0129, 31557600.)
     monkeypatch.setattr(ta, "load_funding", lambda _: curve)
     result = ta.run_macro_core(spec, path)

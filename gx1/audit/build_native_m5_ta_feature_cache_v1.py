@@ -33,9 +33,9 @@ from gx1.contracts.native_m5_direction_io_firewall_v1 import install_native_m5_d
 from gx1.features.volatility_squeeze_state_v1 import load_volatility_squeeze_artifact_manifest
 
 REPO=owner.REPO;POLICY=REPO/'NEXT_RUN_POLICY.json'
-STAGE='native_m5_ta_history_expansion_20261120_002'
-PLAN=REPO/'configs/research/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_002.json'
-ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_002')
+STAGE='native_m5_ta_history_expansion_20261120_003'
+PLAN=REPO/'configs/research/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003.json'
+ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003')
 START_NS=1538352000000000000  # 2018-10-01T00:00:00Z
 END_NS=1727740800000000000    # 2024-10-01T00:00:00Z
 INPUT_REFS={
@@ -44,7 +44,9 @@ INPUT_REFS={
     'ta_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_006/TERMINAL.json',
         'sha256':'849bcda1483e088ca5fa2ec8671e8ed6b003654331a6556c70af53dcfc11c874'},
     'previous_exit_observation':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_001/OPERATOR_EXIT_OBSERVATION.json',
-        'sha256':'3a77d7ae4c9169891fcd8d85a6c9874a2ad27d7c3623b50a2153970b3fae1060'}}
+        'sha256':'3a77d7ae4c9169891fcd8d85a6c9874a2ad27d7c3623b50a2153970b3fae1060'},
+    'previous_import_failure':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_002/OPERATOR_FAILURE_BOOKEND.json',
+        'sha256':'25b3d3b99bef9ad5f6234f0976bf802a14e05565f2acfeb24841c43beda16957'}}
 EXECUTION={'class':'producer','device':'cpu','memory':'12G','swap':'512M','tasks_max':64,
     'numerical_threads':1,'internal_seconds':3570,'external_wall_timeout_enforced':False}
 COUNTS={'model_constructions':0,'model_forwards':0,'autograd_calls':0,'optimizer_steps':0,
@@ -122,6 +124,58 @@ def numeric_owner_identities(old_plan):
     return identities,bridge
 
 
+RESEARCH_SOURCE_PATH='gx1/scripts/research_ta_campaign_v1.py'
+RESEARCH_LAZY_IMPORTS=('gx1.scripts.research_entry_direction_walkforward_v1',
+    'gx1.scripts.research_model_free_baselines_v1')
+
+
+def research_import_numeric_identity(source):
+    class ImportOnly(ast.NodeTransformer):
+        def visit_ImportFrom(self,node):
+            return None if node.module in RESEARCH_LAZY_IMPORTS else node
+    return hashlib.sha256(ast.dump(ImportOnly().visit(ast.parse(source)),include_attributes=False).encode()).hexdigest()
+
+
+def research_import_bridge(old_plan):
+    original=subprocess.check_output(['git','show',old_plan['source_base_commit']+':'+RESEARCH_SOURCE_PATH],cwd=REPO)
+    original_sha=hashlib.sha256(original).hexdigest()
+    need(original_sha==old_plan['source_owners'][RESEARCH_SOURCE_PATH],'ORIGINAL_RESEARCH_SOURCE')
+    before=research_import_numeric_identity(original.decode())
+    after=research_import_numeric_identity((REPO/RESEARCH_SOURCE_PATH).read_text())
+    need(before==after,'RESEARCH_NON_IMPORT_AST_CHANGED')
+    return {'schema_version':'gx1_native_m5_macro_research_lazy_import_bridge_v1',
+        'source_owner':RESEARCH_SOURCE_PATH,'original_sha256':original_sha,'current_sha256':sha(REPO/RESEARCH_SOURCE_PATH),
+        'import_only_normalized_ast_sha256':after,'relocated_import_sources':list(RESEARCH_LAZY_IMPORTS),
+        'all_other_module_statements_and_macro_function_bodies_unchanged':True}
+
+
+def previous_import_failure_metadata(inputs):
+    observation=read(inputs['previous_import_failure'])
+    terminal_ref={'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_002/TERMINAL.json',
+        'sha256':'949c05791e322f5a7300d8396dc46becf25b91abe68346f0359d54b3ad298a12'}
+    need(observation['schema_version']=='gx1_native_ta_cache_import_failure_bookend_v1'
+        and observation['stage']=='native_m5_ta_history_expansion_20261120_002'
+        and observation['terminal']==terminal_ref and observation['outer_exit_code']==observation['native_exit_code']==1
+        and observation['native_status']=='FAILED_CONSUMED'and observation['native_RESULT_present']is False
+        and observation['native_terminal_source_unchanged_field_present']is False
+        and observation['source_policy_plan_unchanged_at_external_bookend']is True
+        and observation['alias_loop_was_passed_before_this_failure']is True
+        and observation['cache_artifacts_present']is False and observation['training_started']is False
+        and observation['test_data_used']is False and observation['relaunch_allowed']is False
+        and observation['model_constructions']==observation['optimizer_steps']==0,'CONSUMED_002_IMPORT_FAILURE')
+    terminal=read(terminal_ref);claim=read(observation['claim'])
+    need(terminal['stage']==claim['stage']==observation['stage']and terminal['status']=='FAILED_CONSUMED'
+        and terminal['exit_code']==1 and terminal['error']=='RuntimeError:NATIVE_TA_CACHE_TORCH_FORBIDDEN'
+        and terminal['result']is None and terminal['plan']==claim['plan']==observation['plan']
+        and terminal['claim']==observation['claim']and terminal['remaining_invocations']==0
+        and terminal['relaunch_allowed']is False and terminal['test_data_used']is False
+        and 'source_unchanged'not in terminal,'ORIGINAL_002_NATIVE_FAILURE')
+    return {'observation':inputs['previous_import_failure'],'terminal':terminal_ref,'claim':observation['claim'],
+        'plan':observation['plan'],'native_status':'FAILED_CONSUMED','native_exit_code':1,'native_RESULT_present':False,
+        'native_terminal_source_unchanged_field_present':False,'source_policy_plan_unchanged_at_external_bookend':True,
+        'error':terminal['error']}
+
+
 def previous_exit_metadata(inputs):
     observation=read(inputs['previous_exit_observation'])
     need(observation['schema_version']=='gx1_native_ta_cache_external_exit_observation_v1'
@@ -149,6 +203,7 @@ def phase(name):
 def metadata(inputs):
     need(type(inputs)is dict and inputs==INPUT_REFS,'EXACT_QUALIFIED_PARENT')
     previous_exit=previous_exit_metadata(inputs)
+    previous_import_failure=previous_import_failure_metadata(inputs)
     result,terminal=(read(inputs[key])for key in ('ta_result','ta_terminal'))
     plan,claim=read(result['plan']),read(result['claim'])
     need(result['status']=='COMPLETE_NATIVE_M5_PIPELINE_TECHNICAL_QUALIFICATION'
@@ -181,6 +236,7 @@ def metadata(inputs):
         'native_manifest':spec['manifest'],'macro_source_plan':plan['inputs']['macro_source_plan'],
         'squeeze_fit_plan':plan['inputs']['squeeze_fit_plan'],'registry_fit_plan':plan['inputs']['registry_fit_plan']}
     dependencies.update({'native_part_'+str(i):{'path':p['path'],'sha256':p['sha256']}for i,p in enumerate(spec['parts'])})
+    dependencies.update({'previous_import_failure_'+key:previous_import_failure[key]for key in ('plan','claim','terminal')})
     source_metadata={part['path']:owner.data.part_metadata(part)for part in spec['parts']}
     no_torch()
     numeric_owners,alias_bridge=numeric_owner_identities(plan)
@@ -190,7 +246,8 @@ def metadata(inputs):
         'geometry':plan['geometry'],'parameter_reuse':parameters,'feature_contract':contract,
         'expected_full_source_binding':old_source,'reference_snapshot':snapshot_ref,'reference_archive':archive_ref,
         'numeric_owner_identities':numeric_owners,'alias_layout_bridge':alias_bridge,
-        'previous_consumed_invocation':previous_exit}
+        'previous_consumed_invocation':previous_exit,'previous_import_failure':previous_import_failure,
+        'research_import_bridge':research_import_bridge(plan)}
 
 
 def build_plan(*,inputs,source_base_commit=None):

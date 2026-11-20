@@ -40,11 +40,6 @@ from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execu
 from gx1.features.htf_features import _resample_ohlc_for_model_native_scalars
 from gx1.features.technical_indicators_v1 import classic_ema, wilder_atr
 from gx1.time.session_detector import M5_BAR_DURATION, TRADING_SESSION_DURATION
-from gx1.scripts.research_entry_direction_walkforward_v1 import RidgeGram, Tape, fit_hgb
-from gx1.scripts.research_model_free_baselines_v1 import (
-    ResearchFinancingCurve, causal_risk_units, max_t_inference, portfolio_path,
-    portfolio_period_returns, portfolio_summary, stationary_bootstrap_indices,
-)
 
 ROOT = Path(__file__).resolve().parents[2]
 FEATURES = [*(f"momentum_{n}_atr14" for n in (21, 63, 126, 252)),
@@ -767,6 +762,7 @@ def fetch_funding(spec: dict, spec_path: Path) -> dict:
 
 
 def load_funding(spec: dict) -> ResearchFinancingCurve:
+    from gx1.scripts.research_model_free_baselines_v1 import ResearchFinancingCurve
     fetch_manifest = Path(spec["funding"]["manifest"])
     if sha(fetch_manifest) != spec["funding"]["manifest_sha256"]:
         raise RuntimeError("TA_FUNDING_MANIFEST_HASH")
@@ -882,6 +878,7 @@ def fit_predictions(panel: pd.DataFrame, spec: dict) -> tuple[dict, list[dict]]:
 
 def _fit_predictions(panel: pd.DataFrame, spec: dict, feature_names: list[str],
                      population: np.ndarray) -> tuple[dict, list[dict]]:
+    from gx1.scripts.research_entry_direction_walkforward_v1 import RidgeGram, fit_hgb
     X = panel[feature_names].to_numpy(float)
     if (population.dtype != bool or population.shape != (len(panel),)
             or not np.isfinite(X[population]).all()):
@@ -1044,6 +1041,8 @@ def _evaluate_matched_macro(panel: pd.DataFrame, forecasts: dict, curve: Researc
 
 def _evaluate(panel: pd.DataFrame, forecasts: dict, curve: ResearchFinancingCurve,
               spec: dict, out: Path, learner_baselines: dict[str, list[str]]) -> dict:
+    from gx1.scripts.research_entry_direction_walkforward_v1 import Tape
+    from gx1.scripts.research_model_free_baselines_v1 import causal_risk_units, max_t_inference, portfolio_path, portfolio_period_returns, portfolio_summary, stationary_bootstrap_indices
     common = np.logical_and.reduce([np.isfinite(v) for arm in forecasts.values() for v in arm.values()])
     rows = np.flatnonzero(common)
     if len(rows) < 2 or np.any(np.diff(rows) != 1):
@@ -1291,6 +1290,7 @@ C_CELLS = (
 
 
 def c_signal_panel(market: pd.DataFrame, spec: dict) -> tuple[pd.DataFrame, dict]:
+    from gx1.scripts.research_model_free_baselines_v1 import causal_risk_units
     from gx1.scripts.research_intraday_mechanisms_v1 import (
         PRIMITIVE_PARAMS, SETUP_COLUMNS, build_primitives, setup_pair_sides,
         round_number_sides, local_weekdays, local_instant, LONDON, LONDON_OPEN,
@@ -1405,6 +1405,7 @@ def c_select(market: pd.DataFrame, signals: pd.DataFrame, spec: dict, *,
 
 def c_quotes(market: pd.DataFrame, start: pd.Timestamp) -> Tape:
     """Actual open quotes plus actual closes at bar-end; opens win coincident timestamps."""
+    from gx1.scripts.research_entry_direction_walkforward_v1 import Tape
     opened = market[["open", "bid_open", "ask_open"]].copy()
     opened.columns = ["mid", "bid", "ask"]
     closed = market[["close", "bid_close", "ask_close"]].copy()
@@ -1526,6 +1527,7 @@ def c_statistics(series: dict, comparisons: list[dict], counts: np.ndarray,
 
 
 def run_c(spec: dict, spec_path: Path) -> dict:
+    from gx1.scripts.research_model_free_baselines_v1 import max_t_inference, portfolio_period_returns, portfolio_summary, stationary_bootstrap_indices
     if (spec["cells"] != list(C_CELLS) or spec["hold_bars"] != 12
             or spec["slippage_scenarios"] != [0., .5, 1., 2.]
             or spec["read_end_exclusive"] != "2026-07-01T00:00:00Z"):
@@ -1776,6 +1778,7 @@ def sweep_confirmations(market: pd.DataFrame, up: np.ndarray, down: np.ndarray,
 
 
 def sweep_signal_panel(market: pd.DataFrame, spec: dict) -> pd.DataFrame:
+    from gx1.scripts.research_model_free_baselines_v1 import causal_risk_units
     from gx1.features.smc_v1 import compute_smc_features
     features = market[["high", "low", "close"]].copy()
     features["atr"] = wilder_atr(market.high, market.low, market.close, 14)
@@ -1799,6 +1802,7 @@ def sweep_signal_panel(market: pd.DataFrame, spec: dict) -> pd.DataFrame:
 
 
 def run_sweep(spec: dict, spec_path: Path) -> dict:
+    from gx1.scripts.research_model_free_baselines_v1 import max_t_inference, portfolio_period_returns, portfolio_summary, stationary_bootstrap_indices
     if (spec["cells"] != ["sweep"] or spec["confirmation_bars"] != 5 or spec["hold_bars"] != 12
             or spec["slippage_scenarios"] != [0., .5, 1., 2.]
             or spec["read_end_exclusive"] != "2026-01-01T00:00:00Z"
@@ -2310,6 +2314,8 @@ def entry_edge_actions(prediction):
 
 def _entry_edge_portfolios(frame, spec, scope, out):
     """Single-position research cash ledgers. The 95min label is not an exit rule."""
+    from gx1.scripts.research_entry_direction_walkforward_v1 import Tape
+    from gx1.scripts.research_model_free_baselines_v1 import ResearchFinancingCurve, portfolio_path, portfolio_summary
     start = pd.Timestamp(frame.decision_time.iloc[0])
     end = pd.Timestamp(spec["train_end_exclusive"])
     m1 = pq.read_table(
@@ -2375,6 +2381,7 @@ def _entry_edge_portfolios(frame, spec, scope, out):
 
 def _entry_edge_monthly_intervals(values, spec):
     """Reuse paired stationary bootstrap; intervals are conditional development estimates."""
+    from gx1.scripts.research_model_free_baselines_v1 import stationary_bootstrap_indices
     X = values.to_numpy(float)
     if not np.isfinite(X).all() or len(X) < spec["mean_block_months"]:
         raise RuntimeError("ENTRY_EDGE_MONTHLY_INFERENCE_INVALID")
@@ -2393,6 +2400,7 @@ def _entry_edge_monthly_intervals(values, spec):
 
 def run_entry_edge_probe(spec, spec_path):
     """Two fixed ridge representations on the same purged TRAIN folds and cost targets."""
+    from gx1.scripts.research_entry_direction_walkforward_v1 import RidgeGram
     import time
     import resource
     import torch
@@ -2664,6 +2672,7 @@ def entry_learning_action_references(prediction, target, time_ns):
 
 def entry_learning_paired_review(*,initial,final,target,constant,time_ns,review):
     """Fixed paired week bootstrap across the six predeclared comparisons."""
+    from gx1.scripts.research_model_free_baselines_v1 import stationary_bootstrap_indices
     y=np.asarray(target,dtype=float)
     constant=np.broadcast_to(np.asarray(constant,dtype=float),y.shape)
     forecasts={"initial":np.asarray(initial,dtype=float),"final":np.asarray(final,dtype=float),"constant":constant}
@@ -2702,6 +2711,7 @@ def entry_learning_paired_review(*,initial,final,target,constant,time_ns,review)
 
 def run_entry_learning_baseline(spec, spec_path):
     """Two fixed, purged HGB fits on the native curve's identical TRAIN rows."""
+    from gx1.scripts.research_entry_direction_walkforward_v1 import fit_hgb
     import time
     import resource
     import torch
@@ -4056,6 +4066,7 @@ def _finite_or_none(value: float):
 
 def score_journal_month(panel: pd.DataFrame, feature_names: list[str], spec: dict, month: str) -> dict:
     """Fit on rows whose max-horizon outcome closed before the month; score every month row once."""
+    from gx1.scripts.research_entry_direction_walkforward_v1 import RidgeGram
     X = panel[feature_names].to_numpy(float)
     population = np.isfinite(X).all(axis=1)
     mid, atr = panel.fill_mid.to_numpy(float), panel.atr14.to_numpy(float)
