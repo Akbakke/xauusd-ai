@@ -10,14 +10,20 @@ Nytt brukerbestilt mål: bygg og klargjør stor test med TRAIN[2021-01-01,2026-0
 og utviklingsVAL[2026-01-01,2026-07-01). Kontroller hele den aktive pipelinen
 kritisk underveis og ved slutt, og meld brukeren ved startstreken. Selve
 stortreningen skal IKKE startes i dette arbeidet. Appmålet og policy-målet er aktive.
-Kvalifisert cache003 stopper2024-10-01. Utvidet kilde/inputgrunnlag, ferske
-helefemårsTRAIN-stats/prior/full initialbaseline, B64optimizer/kaldreplay og
-én eksakt hovedplan må kvalifiseres. NativeTEST er fortsatt forseglet.
+Ny FIVE_YEAR_CACHE001 er fysisk fullført på1334,011s (CPU12G/1tråd),
+med1215513nativeM5-prefiksrader og389484klare issues2021–2026H1.
+Alle8TA-familier/61D1-makrofelt/femTF beholdes; ingen manglende inputrader.
+Uavhengig NumPy4G-kontroll bestod på30,319s: alle27arrays dtype/shape/SHA,
+kausale TF-vinduer,132aliaspar og265807felles issues byteidentiske motcache003;
+gammel fullM5-klokke er eksakt prefiks.0Torch/targets/norm/fit/M1/TEST.
+Ferske helefemårsTRAIN-stats/prior/full initialbaseline, B64optimizer/kaldreplay
+og hovedplan gjenstår. NativeTEST er fortsatt forseglet.
 Tidligere YEAR_FIT001 er supersedert utenCLAIM og skal ikke relanseres;
 årskvalifikasjon/profiler er bevart som historisk omfangsbundet evidens.
-Alle globale treningsporter står stengt. FIVE_YEAR_CACHE001 er innrømmet
-én gang forCPU12G/1tråd/3570s,0modeller/targets/fit; kode/policy fryses under
-kjøringen. Storfit er ikke startet.100målrettede tester og metadata-preflight består.
+Alle globale treningsporter står stengt. FIVE_YEAR_PREPARE001 er publisert
+for1ferskmodell/6086initialforwards/0updates,1nyheleTRAIN-normalisering/prior,
+CPU20G/CUDA12GiB/8tråder/5400s. Metadata-preflight gjenstår; storfit er ikke startet.
+100målrettede kilde-/guardtester består. Ingen sourcekode er endret ettercacheclaim.
 
 M1 brukes ALDRI til retning: ingen input, fasit, metadataforelder, rader,
 prior, normalisering, evaluering eller warmstart. Bare senere oppfølging
