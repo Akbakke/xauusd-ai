@@ -48,16 +48,23 @@ Hele CURRENT har nå1402Pythonfiler/20249definisjoner/311896AST-kall.
 uåpnet,76historisk ugyldige bevart,5overstørrelse hashkontrollert uten
 dekoding og2root-eide historiske observasjoner uleselige. Canonicalretention
 reachability er fullført med830beskyttede stier. Dette er ikke full
-atferds-/bytegodkjenning. Nye fulle nativefeltorakler klargjøres; makro- og
-tillatt byteintegritetskontroll gjenstår. Trening er fortsatt stengt.
+atferds-/bytegodkjenning. Den sourcebundne native tallkontrollen er fullført med exit0 på5078,675s,
+peakRSS2551732KiB. Alle256felt på M5/M15/H1/H4/D1 og lokale ikke-makrofelt
+består:1609uavhengige råfeltposter. Alle27arrays og1731normaliseringsdomener/
+aritmetikk er kontrollert. Ingen modell, optimizer, checkpoint, CUDA, mål-,
+M1-, GC- eller nativeTEST-lesing; kilde/policy/inputidentiteter er uendret.
+RESULT/TERMINAL er SHA-bundet i policy.122råmakroposter gjenstår.
 
-Én sourcebundet CPU-numerikkaudit er innrømmet:all256felt påalle5TF
-plusslokale ikke-makrofelt,1609uavhengige råfeltposter ogall1731
-normaliseringsdomener.122råmakroposter gjenstår somegenfase. Kjøring
-binder FULL_NUMERIC_CONTRACT001.json underauditroten;9syntetiske prøver
-ogeksaktmetadata-preflight består utenCLAIM/arrays. Producer12GiB/512MiB,
-1tråd/64tasks,intern7170s/ekstern7200s. Allemodell-/fit-/target-/TEST-
-ruter stenges eksplisitt;Kilde/policy fryses underkjøring. Ingen trening.
+Neste fase er en separat engangs CPU-audit av61makrofelt i signal og kontekst,
+122feltposter. MACRO_NUMERIC_CONTRACT001.json binder eksakt74offentlige
+kildereferanser og fysisk kildeavgrensning. Hele offentlige kildecontainere
+hashes eksplisitt, inkludert bytes etter forseglingen; bare kvalifiserte
+observasjoner/tilgjengelighet før forseglingen brukes til makroverdier.
+Ingen nativeTEST-fil, modell eller fit er innrømmet. Audit4GiB/512MiB,
+1tråd/64tasks,intern1770s/ekstern1800s.21syntetiske prøver og preflight
+består utenCLAIM/arrays. Kilde/policy fryses under kjøringen. Historiske
+vendorrevisjoner/publiseringstidspunkt er fortsatt ikke fullstendig bevist.
+Frosne heleTRAIN-statistikker og kvalifisert retention/bytekontroll gjenstår.
 
 ## Fysisk kvalifisert grunnlag
 

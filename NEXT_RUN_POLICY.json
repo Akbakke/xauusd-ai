@@ -91484,8 +91484,7 @@
     "predictive_edge_proven": false,
     "economic_edge_proven": false
   },
-  "market_state_ta_s_five_tf_readout_20261116_001": {"status": "COMPLETE_CONSUMED_M5_REJECTED_EDGE_UNQUALIFIED", "plan": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/PLAN.json", "sha256": "046a7019e96a3a3495e938dcf9a8cc5ea4367bbfe923ee21a8bb6a74e7b273e0"}, "script": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/COMPARE.py", "sha256": "3b235d12d8a213050d48912c059dad403d365569d10ca9bfdda123a19dd37eea"}, "source_review": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/SOURCE_REVIEW.json", "sha256": "b7f4193e1fd5ff3b817ec7ae448a1358e7f6d757ac4717df09df577b22a9bf3b"}, "max_invocations": 1, "remaining_invocations": 0, "claimed_invocations": 1, "completed_invocations": 1, "execution_authorized": false, "training_authorized": false, "native_training_authorized": false, "relaunch_allowed": false, "readout_fits": 10, "coordinate_fits": 6, "archive_decodes": 4, "models": 0, "forwards": 0, "checkpoint_decodes": 0, "native_updates": 0, "wall_seconds": 300, "memory": "4G", "swap": "512M", "test_data_used": false, "authorization": "User 2026-11-16 explicitly approved exactly one non-GC S CPU readout; no Full GC, TEST, broker or trading.", "result": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/RESULT.json", "sha256": "d54a90b271fa4af5bb19ff283d03d3d3246c620db093fe6a77167fb0e252ba17"}, "terminal": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/TERMINAL.json", "sha256": "87407c9772cc424fe2e416c5f98d0c82ae4735c66dafad4d9144db93776733c4"}, "claim": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/CLAIM.json", "sha256": "2a36a4af1b5696a13c2879653017b7f223a990abc387b3d0ab4e33e996106c86"}, "wrapper_exit": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/WRAPPER_EXIT.json", "sha256": "a9542d8bb495356ecc69f18aee03fa72558eed20d6ede2ad543252785af58232"}, "fit_lock": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/TRAIN_LOCK.json", "sha256": "592ce278d92fd6f4b1d60ca6c65e2b89bfd4a838228df5e9d9644d1f9537aa29"}, "predictions": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/PREDICTIONS.npz", "sha256": "ab1d1cf40d121089808cf3b2d2e2472f48e242da7433e79960e9d3a8e4507cbd"}, "actual_counts": {"archive_decodes": 4, "checkpoint_decodes": 0, "coordinate_fits": 6, "forwards": 0, "models": 0, "native_updates": 0, "readout_fits": 10}, "elapsed_seconds": 6.134577641998476, "source_unchanged": true, "review": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/REVIEW.json", "sha256": "7075c2c117ee046ebc58fa6324da592c69b8858fc8287b9ee02749f492046e62"}, "review_script": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/REVIEW.py", "sha256": "f3336413e8dd805a8cf72d626384d4c11dd995bf9613c0d9718f5a08433fff16"}, "repository_review": {"path": "docs/TA_S_FIVE_TF_FROZEN_REPRESENTATION_RESULT_REVIEW_20261116.json", "sha256": "3ef98999017ba3ea479f44e98d34dfdf6b556265a089e86395bc0d337a3c5c4c"}}
-,
+  "market_state_ta_s_five_tf_readout_20261116_001": {"status": "COMPLETE_CONSUMED_M5_REJECTED_EDGE_UNQUALIFIED", "plan": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/PLAN.json", "sha256": "046a7019e96a3a3495e938dcf9a8cc5ea4367bbfe923ee21a8bb6a74e7b273e0"}, "script": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/COMPARE.py", "sha256": "3b235d12d8a213050d48912c059dad403d365569d10ca9bfdda123a19dd37eea"}, "source_review": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/SOURCE_REVIEW.json", "sha256": "b7f4193e1fd5ff3b817ec7ae448a1358e7f6d757ac4717df09df577b22a9bf3b"}, "max_invocations": 1, "remaining_invocations": 0, "claimed_invocations": 1, "completed_invocations": 1, "execution_authorized": false, "training_authorized": false, "native_training_authorized": false, "relaunch_allowed": false, "readout_fits": 10, "coordinate_fits": 6, "archive_decodes": 4, "models": 0, "forwards": 0, "checkpoint_decodes": 0, "native_updates": 0, "wall_seconds": 300, "memory": "4G", "swap": "512M", "test_data_used": false, "authorization": "User 2026-11-16 explicitly approved exactly one non-GC S CPU readout; no Full GC, TEST, broker or trading.", "result": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/RESULT.json", "sha256": "d54a90b271fa4af5bb19ff283d03d3d3246c620db093fe6a77167fb0e252ba17"}, "terminal": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/TERMINAL.json", "sha256": "87407c9772cc424fe2e416c5f98d0c82ae4735c66dafad4d9144db93776733c4"}, "claim": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/CLAIM.json", "sha256": "2a36a4af1b5696a13c2879653017b7f223a990abc387b3d0ab4e33e996106c86"}, "wrapper_exit": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/WRAPPER_EXIT.json", "sha256": "a9542d8bb495356ecc69f18aee03fa72558eed20d6ede2ad543252785af58232"}, "fit_lock": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/TRAIN_LOCK.json", "sha256": "592ce278d92fd6f4b1d60ca6c65e2b89bfd4a838228df5e9d9644d1f9537aa29"}, "predictions": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/PREDICTIONS.npz", "sha256": "ab1d1cf40d121089808cf3b2d2e2472f48e242da7433e79960e9d3a8e4507cbd"}, "actual_counts": {"archive_decodes": 4, "checkpoint_decodes": 0, "coordinate_fits": 6, "forwards": 0, "models": 0, "native_updates": 0, "readout_fits": 10}, "elapsed_seconds": 6.134577641998476, "source_unchanged": true, "review": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/REVIEW.json", "sha256": "7075c2c117ee046ebc58fa6324da592c69b8858fc8287b9ee02749f492046e62"}, "review_script": {"path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_S_FIVE_TF_READOUT_20261116_001/REVIEW.py", "sha256": "f3336413e8dd805a8cf72d626384d4c11dd995bf9613c0d9718f5a08433fff16"}, "repository_review": {"path": "docs/TA_S_FIVE_TF_FROZEN_REPRESENTATION_RESULT_REVIEW_20261116.json", "sha256": "3ef98999017ba3ea479f44e98d34dfdf6b556265a089e86395bc0d337a3c5c4c"}},
   "market_state_ta_direct_tf_source_20261116": {
     "status": "SOURCE_ONLY_SYNTHETIC_PASS_PHYSICAL_FORWARD_UNQUALIFIED",
     "mode": "direct_tf_hidden=True with dedicated_m5_side=True and dedicated_non_m5_side=True",
@@ -91516,8 +91515,7 @@
     "test_authorized": false,
     "broker_access_allowed": false,
     "economic_edge_proven": false
-  }
-,
+  },
   "market_state_ta_current_s_input_source_20261116": {
     "status": "CURRENT_ONLY_SOURCE_PASS_MODEL_AND_ONLINE_UNQUALIFIED",
     "source_semantics": "selected_0.5_ATR_activity_1.0_ATR_proven_side",
@@ -94690,7 +94688,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Currentnative all256fiveTF+localnonmacro CPU numeric audit admitted once after exactmetadata+9syntheticpreflight and independentpeerreview;122rawmacrofields followseparately. No model/training/target/TEST/GC/M1. Sourceandpolicy freeze oncejobstarts.",
+    "latest_observation": "Phase1 COMPLETE exit0 in5078.675s: all256fields fiveTF andlocalnonmacro; all27arrays,1731normalization arithmetic/domains; no forbiddenmodel/checkpoint/CUDA actions. Stage2 exact61publicmacro formulas/asof admittedonce, no nativeTEST/model/fit/training.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94747,20 +94745,31 @@
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_NUMERIC_CONTRACT001.json",
       "sha256": "cab64e7692a1b2a9ad96ebffe8bb2fabb765addf92f65bafbfad5adac09a7d1b"
     },
-    "current_native_numeric_audit_stage": "full_project_current_native_feature_numeric_20261120_001"
+    "current_native_numeric_audit_stage": "full_project_current_native_feature_numeric_20261120_001",
+    "current_native_numeric_result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_NATIVE_NUMERIC001/RESULT.json",
+      "sha256": "1cb4804d21e6f39307ff6c634cef713d0426ae4a8a098649ff9249c02ff173f4"
+    },
+    "current_native_numeric_terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_NATIVE_NUMERIC001/TERMINAL.json",
+      "sha256": "344e508ed81f7f602eb7659401736c786616bfc39f9efe252d824a1834624d0a"
+    },
+    "current_native_numeric_completed": true,
+    "raw_input_field_records_independently_checked": 1609,
+    "raw_macro_field_records_pending": 122
   },
   "full_project_current_native_feature_numeric_20261120_001": {
-    "status": "ADMITTED_ONE_USE_NUMERIC_AUDIT_ONLY",
+    "status": "COMPLETE_CONSUMED",
     "contract": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_NUMERIC_CONTRACT001.json",
       "sha256": "cab64e7692a1b2a9ad96ebffe8bb2fabb765addf92f65bafbfad5adac09a7d1b"
     },
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_NATIVE_NUMERIC001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
-    "execution_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
+    "execution_authorized": false,
     "training_authorized": false,
     "test_authorized": false,
     "relaunch_allowed": false,
@@ -94781,6 +94790,348 @@
     "swap": "512M",
     "numerical_threads": 1,
     "tasks_max": 64,
+    "monitor_interval_minutes": 30,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_NATIVE_NUMERIC001/RESULT.json",
+      "sha256": "1cb4804d21e6f39307ff6c634cef713d0426ae4a8a098649ff9249c02ff173f4"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_NATIVE_NUMERIC001/TERMINAL.json",
+      "sha256": "344e508ed81f7f602eb7659401736c786616bfc39f9efe252d824a1834624d0a"
+    }
+  },
+  "full_project_current_native_macro_numeric_20261120_001": {
+    "status": "ADMITTED_ONE_USE_MACRO_NUMERIC_AUDIT_ONLY",
+    "contract": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/MACRO_NUMERIC_CONTRACT001.json",
+      "sha256": "9a3e13d645593e89ab91da23242741a5a861f96da736c2af440a3cd5ed2bd3e0"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_MACRO_NUMERIC001",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "test_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "public_macro_source_container_hashing_authorized": true,
+    "public_macro_source_bindings": [
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/D1_MACRO_CONTEXT_SOURCES_20261011_001.json",
+        "sha256": "b8e2c01ddc5c1941dd509f1c3507a4211b2d0f7e3820f64c7607e95a0916d6b3"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/RESULT.json",
+        "sha256": "97c6d4ef84db17f2655622033e6820ec4192abedb993a42366996bea635ab00b"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_004/RESULT.json",
+        "sha256": "d6a575464a1d9a43c013443575b931cb29b8a8fb43130e2cabe226322a986ab1"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/RESULT.json",
+        "sha256": "9267700c213da15ce9a5746556ef751fc92d1d828b7d0154f1bb7b4937309c68"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CBOE_VIX_SOURCE_20261011_002/RESULT.json",
+        "sha256": "bf8464b6e9c44c03769d50bdfc3c98c9768ba9823df8e5bcfc7655d1ee9103b7"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_HOLDINGS_SOURCE_20261011_003/RESULT.json",
+        "sha256": "d54c28e1169c7719a1bcc01abe423b71942c8dd78bfae42f3bbebd4b75c45b88"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/CFTC_COT_PUBLICATION_CLOCK_20261018_001.json",
+        "sha256": "64b6d2e0566f977b38f98e02848e4fdff7bb0b7a32c31cd50e18b47d7f91e0d2"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2009.zip",
+        "sha256": "5558e169e558ee15a861fb623e2a986aaafcdc178d7ab2eaf7dc628ed217b32b"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2010.zip",
+        "sha256": "ba52af024b2cc24f4bf7699950b70b0ae70ce2a123fca63e88c93f5d67561253"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2011.zip",
+        "sha256": "8872d6e7d43cc09d5d5834122dcbf4dd426dc0590faa394d041f603234e8d16a"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2012.zip",
+        "sha256": "018de1a8b9c8c87ccdcac31652f56828f9af3b44f89df2de474fd460a0dfd6de"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2013.zip",
+        "sha256": "881bed5906e156c23dc2036f6b4312f3c2215a7b9aebe51ee7973458ec0bf845"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2014.zip",
+        "sha256": "65e8c7111bc628c1bc2801a246e7872c574fdead67f210a5dd58303b384dba1a"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2015.zip",
+        "sha256": "768b7be61d0f9895dd6c3ddcef9f1449c85773bd61dc8cc656fd43d30531871b"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2016.zip",
+        "sha256": "186c95a12c71fdbd241b83679afcfff2cc900c779b67bfe9bcd091d16a7ca0ce"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2017.zip",
+        "sha256": "5e910b93b5af5e1c8f4006eaeee10109754ee5dd2c7f9d04520bd9770c8ece2b"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2018.zip",
+        "sha256": "adaecbfadf54f117308cc8a135cd9ba827deac3eb1489a5febc642c403728527"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2019.zip",
+        "sha256": "3f2707b5fcab1491329684c82cc03759ab66899839f533e09ff0a5dcf517b0c5"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2020.zip",
+        "sha256": "8c83c820e5f6fd193a0923aa02cfe520d20dbe74bba571a576c92baf7a186317"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2021.zip",
+        "sha256": "423d20412ec3fb629500fcbfbaa7b6973c5868965000d13963e9b63700c90952"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2022.zip",
+        "sha256": "206364f467eb0013b0a5f8e9526426cc6fcfc5bad4e4f91b25e00311a0184cfa"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2023.zip",
+        "sha256": "fd17a44cb7c9acb068515380f5c9ff450052d4a89f45d6b97f0d71ca2d69425c"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2024.zip",
+        "sha256": "3a33564a5677a4dad90b2513b07a81d8d55308318f9dcd6c8e80690a25c6b768"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2025.zip",
+        "sha256": "e5ae323dadda5ebbf69b6989af0d912fb1a4aebd954372f999eccb3a692352f9"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2026.zip",
+        "sha256": "f5ae08dffa48cd5242392b2fc0e9b6bedb5a643c966e6165416d6995d044d913"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XAG_USD_D.parquet",
+        "sha256": "fd226e08dfc615c810ed1ed95faea1eb4bedf97da173fd88ddbb89ee69bb9daf"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XPT_USD_D.parquet",
+        "sha256": "64a8d0c7eb5d5b9475f111a151ecbb1e71e863355d75a2369384c7f89c120f53"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XPD_USD_D.parquet",
+        "sha256": "74ddb33ed3f3c693ec5014a7936ba8b71cbe0e55c2b81830687a85363ce60dd0"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XCU_USD_D.parquet",
+        "sha256": "f8a58519139e20957f40bac2bb39adcf361d031744cf5421d0894fe92289927e"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/BCO_USD_D.parquet",
+        "sha256": "ef828d4effde87e7ffa05edad55024a7ce8a25566b5dc43aaa9e631934a4541a"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/WTICO_USD_D.parquet",
+        "sha256": "35b68ebb621aa8cfcc73f12aa1c7747b4864a0f1ae7d79af6b6cd9b5ebbacbbe"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/SPX500_USD_D.parquet",
+        "sha256": "6f38fc4cef340419f7079ca663811b7eadc9bc59cd2d5d35a4e33b5e28de20f3"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/USB10Y_USD_D.parquet",
+        "sha256": "2f749672ac5c2413bd47aaedc19748e72769f27d3136a7e311c70079235d0103"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/EUR_USD_D.parquet",
+        "sha256": "2c2d1dd0866ec084bec39542809943fe8f520b32adb89ae4ca0a1966b45e5ede"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/USD_JPY_D.parquet",
+        "sha256": "1dc1670612319e8b78d203fc763dec84bb3dc4bae47ab013beae33d86eea8b9f"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XAU_USD_D.parquet",
+        "sha256": "26ba0f908e10bf65b9c47244a6f8495774f27edf297622d661deda09990ca31f"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2009.csv",
+        "sha256": "3c9294cfa71136e1d5330b09a00bf996ecf86c865d593d7ee954d11984a5bdb1"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2009.csv",
+        "sha256": "68f1f8b2de5234e2e4650de06c6786dbb4fbec6ea3894bd4edb73930e32843c4"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2010.csv",
+        "sha256": "f973bd3988989d3e408655cbc7fed89faefbaa8a1c111ec313241fb47fc75e2d"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2010.csv",
+        "sha256": "c16d0db0208b7e016a35c93cd1b354cbe735002683fe66063fa6371aae3f3bc2"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2011.csv",
+        "sha256": "224eaf29d6fe7cbccc746c7a8c845f189cf91424bab43f46ca386a74e98d81f7"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2011.csv",
+        "sha256": "d1bd695b0764e2af85373f6b2909a57217cb575ba21e131853a512af5d3ec63b"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2012.csv",
+        "sha256": "9c889b6e3cb87f40f3760bddb69f05f7525800ac480ef5712b2cf318765fa184"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2012.csv",
+        "sha256": "6ee991ccdbdaa615bf329cdfd79fcd813a9fbd88e1795b13e77ff0c76c905ec4"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2013.csv",
+        "sha256": "1e1a98426d9274afcc68467962f9238104db775b8765e48f45ac7488b33ff338"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2013.csv",
+        "sha256": "6819c5fbbbbfbd511dd7fef270857db7cf2c97f862805fd24589af7af2df8c15"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2014.csv",
+        "sha256": "8d560698e03e4c0d8d22ff8be7f5f7c5c0d472b1e33a22b6a75373a57e84aa0f"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2014.csv",
+        "sha256": "1b7365254bdc3bd75a1fef774c9bba0a39fa3d499a13ae80e65a4eda4c61a92d"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2015.csv",
+        "sha256": "b7665d1ce46d6ed6d08fbda34aae1831de38e274e3c7caed81904042aac9b5bc"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2015.csv",
+        "sha256": "aec6d36e527bab697717aea76a04113e168392a15944bc8461690d05f9aa0b47"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2016.csv",
+        "sha256": "b4d0a8d86e2734bc64d84d9a9824434d841737621582daeac58f13c7129f325c"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2016.csv",
+        "sha256": "b38e72f59b7edbc660b00be57e1a82e1a49bc7f3128fcb520faddd05d99f7c49"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2017.csv",
+        "sha256": "56074da7c32103a28cf4ba2bdf5eaa12f98fd49852047aef1a6eb16e64bd6e83"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2017.csv",
+        "sha256": "94b310fafe718ca3f6717b7da4cd7d7bf335faecf1a302793f0f34733f164473"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2018.csv",
+        "sha256": "e8375524a7a8d3e8091bbe7690d0378b9365be09efff5b18b8eefddc25f718d3"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2018.csv",
+        "sha256": "d1ef01905a1608957d06cbcd26593eac1e8b9bff9e92a1fa3a1b142a97ef0a95"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2019.csv",
+        "sha256": "83fc47c17325e222c45fd3a1eb26c69ae01f62d33b793030b4b8b350ca0a290b"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2019.csv",
+        "sha256": "593741b038e0970fe5be65a04e0047e17f00809da64e84948d1d306ab032e207"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2020.csv",
+        "sha256": "edcf1c8be9622f3cd92eb7de1847aefc3977e2118e2ff9af67f46614a5c306a7"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2020.csv",
+        "sha256": "30c98a2d75a4474e08a338bc3874745241d63be8f4a0d07a7f04a454a332921c"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2021.csv",
+        "sha256": "1be57e49c63a99f6002431a1030c8fbe539b71066c3eaf14f9f58ddc34492cea"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2021.csv",
+        "sha256": "9c614f8b16db601f1dc01ddd77db42d4e4a54b7243db4b4fc228270a08f747d3"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2022.csv",
+        "sha256": "c33cb2758e5e34c2c23b7ab759d18681091860f3f9e5960112859f64f31cd814"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2022.csv",
+        "sha256": "70b21a92a05801c479f1ddaee21137b7f842d43d883d32d57f9bbae272111a48"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2023.csv",
+        "sha256": "edb7f3904e11dcaa502cdcc03ad9b1b16c893802d166ce9bc5fa1118251249d4"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2023.csv",
+        "sha256": "ef28bcafaca75c45bb6b3491b4df4bd1b5e2ab7ff35ac014b6f8362df330c0ca"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2024.csv",
+        "sha256": "6775840b76cd7fd41121f61d6f6c60184eca6b2ba49954ec7372c463cbeef34d"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2024.csv",
+        "sha256": "d3ff00a9287ebf68fdc80e72fb2d1895a73c84b3ff2a6ca8c6d64648cb470f16"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2025.csv",
+        "sha256": "cf2fa3da7f160384b63d2ead698532b1d76cd9f789ce4911e2304db85b14e6d5"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2025.csv",
+        "sha256": "d3d3131c41e1f93f4661d227ce7079049d51888b395aaff863b6ad8e08838b64"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2026.csv",
+        "sha256": "0e7164f6f348497a4541b61ce9b3e76fc00902c988540d08332a7d956350c764"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2026.csv",
+        "sha256": "2fe4b3a277eae774a79748c4cb8db54a64b1bec5ad4a84cc453a5915a573a509"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CBOE_VIX_SOURCE_20261011_002/VIX_History.csv",
+        "sha256": "51ea1e59bfeaf400f6816300c39145df5e3fb437e7c60bdb8ca2178f8c96f436"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_HOLDINGS_SOURCE_20261011_003/GLD_historical_archive_live.xlsx",
+        "sha256": "57f07e03e9cb4cdada97405227e8ff642e9d63ffc9a5336e1d7c35da69cedff0"
+      }
+    ],
+    "physical_source_metadata": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/MACRO_SOURCE_PHYSICAL_METADATA001.json",
+      "sha256": "f3600f0a0ff05c2aee518cf0d7d3fec0ec7942eee2539eb8d17c22d349f58513"
+    },
+    "native_TEST_files_read": false,
+    "after_seal_macro_feature_values_converted": false,
+    "whole_container_hashing_includes_public_after_seal_bytes": true,
+    "model_constructions": 0,
+    "optimizer_steps": 0,
+    "parameter_fits": 0,
+    "normalization_fits": 0,
+    "outer_seconds": 1800,
+    "internal_seconds": 1770,
+    "memory": "4G",
+    "swap": "512M",
+    "numerical_threads": 1,
+    "tasks_max": 64,
+    "preflight_synthetic_checks_passed": 21,
     "monitor_interval_minutes": 30
   }
 }
