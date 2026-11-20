@@ -25,30 +25,32 @@ Eksakte øvrige referanser/SHA står i policy og disse kvitteringene.
 
 ## Aktiv effektiviseringsbølge 20.11.2026
 
-Brukeren har nå bestilt faktisk maksimal effektivisering. Bare målte runtime-
-flaskehalser og én fast B256/equal-length-TF-scorekandidat kvalifiseres. TRAIN
-beholder B64, samtlige inputs/TF, mål, FP32, recipe og vakter. Ingen main er
-startet. Kildeendringer krever nye kildebundne paritets-/mekanikkbevis; gammel
-initial, konsumerte planer og kvitteringer omskrives ikke. Main001 er fortsatt
-uclaimet, men teknisk admisjonsklarhet er trukket tilbake under denne bølgen.
+Brukeren har bestilt faktisk maksimal effektivisering. Modellkontraktens ferske
+bindingskontroll gjenbrukes lokalt; ingen varig cache. Aktiv fit/score bruker
+samlede finite-kontroller. Uavhengig AST-restitusjon består for kontraktmodul,
+fit/score og uendrede wrappervakter.303fokustester består (295+8; uendrede tester
+og52øvrige kildeeiere er eksplisitt gjenbrukt). Fryst kildebase1a03fa47.
+
+Genuine throughput003 er COMPLETE/exit0:1modell/15forwards/6backwards/0updates.
+B64 train/eval-output/loss/gradient/RNG er bitidentiske mot autentisert gammel
+kontrollflyt. Treningspanel uten optimizer1,12137→1,05918s i snitt; to par,
+ikke robust fullfit-/AdamW-ETA. Eval256rader2,11099→0,53442s med B256/equalTF.
+FP32-logits maksavvik1,1921e-7, hidden2,6226e-6 innen forhåndsbundet eksisterende
+toleranse; tellinger/confusion/ties eksakte, state/RNG uendret og korttail består.
+Peak CUDA-reserved7331643392bytes under12GiB. Signert vakt observerte maks50C
+core/48Cmem/179,28W,47samples; source/io-firewall består. Kvitteringer i policy.
+
+Ny mekanikk002 er PREPARED_NOT_ADMITTED, SHA
+7dfda4b0f7a360687e8c113b4c2ceb5f64bd8b4c2474c8dfc0ca5fc2aefbfd12.
+Den beholder B64,7forwards/3updates/6autograd og kald resume; krever også eksakt
+original modell-/optimizer-/RNG-/stepbane. Denne genuine kontrollen gjenstår.
+Main001 er uclaimet men supersederes ved kvalifisert002; ingen main er startet.
+B256/equalTF er målt kvalifisert i panelet, men ennå ikke valgt i ny mainplan.
 
 Kvitteringsrot: `GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001`.
-
-Kilde er nå skrevet: lokal gjenbruk av én fersk inputbindingskontroll og grouped
-finite-forward i aktiv fit/score. Ingen varig cache eller endret TRAIN-matematikk.
-Uavhengig AST-restitusjon består for kontraktmodul og fit/score; wrapperdiffen
-består eksakt inversekontroll.295fokustester+8nye negative/positive porttester
-består. De opprinnelige295gjenbrukes ved bevist uendret testfilprefix og52øvrige
-kildeeiere; ikke kalt303nye tester i samme prosess. Kildebroen SHA-binder begge
-bevis. Genuine throughput003 og kald mekanikk002 gjenstår; B256/equalTF er kun
-kildeimplementert og har ennå ingen bruksadmisjon. Main001/002 er ikke startet.
-
-Gjeldende fryste kildebase er1a03fa47978b8c265f94c29f4e5d9f89a4755e79.
-Sourcecompat001 SHA4d245b9a6a755d56216d901021f7cdfc09f911685169a3248cf56be0a38eb6b4
-binder seks endrede kildeeiere og47uendrede, ekte gamle Gitbytes og303PASS.
-Ny throughput003 er forberedt, SHA41c3099e5ac83d563199f14ab289cbedcd9165af06a2e63b1ef96f61b2c384b8:
-1modell,1checkpointload,15forwards,6backwards,0autograd/optimizerupdates.
-Global training_enabled=false består. Planen gjenåpner ingen konsumert kjøring.
+Original fullinitial gjenbrukes med eksplisitt kildebro; ingen originale kilde-
+vektorer eller konsumerte planer omskrives. Alle genuine features/TF, mål og
+FP32/B64TRAIN/5540updates beholdes. GPU-/kapasitetsvakter svekkes ikke.
 
 ## Bestilt restart og effektivitet 20.11.2026
 

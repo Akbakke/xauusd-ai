@@ -4751,7 +4751,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Zero-update throughput003 still unclaimed; native telemetry guard transport repaired and signature verified; proceed to first producer invocation",
+    "current_activity": "Throughput003COMPLETE exactB64train/eval and qualified fasterB256/equalTF; new cold-mechanics002 prepared",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -95725,14 +95725,14 @@
     "unmeasured_efficiency_changes_enabled": false
   },
   "native_m5_ta_efficiency_qualification_20261120_001": {
-    "status": "THROUGHPUT003_ADMITTED_AWAITING_LAUNCH",
+    "status": "THROUGHPUT003_COMPLETE_MECHANICS002_PREPARED",
     "operator_request": "Ja, optimaliser effektivitet til maks",
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001",
     "scope": "Measured runtime controls and one fixed evalB256/equal-length-TF candidate; preserve TRAIN math and qualify exact source before any later main",
     "main_training_started": false,
     "test_authorized": false,
     "source_review_pending": false,
-    "new_one_use_diagnostic_required": true,
+    "new_one_use_diagnostic_required": false,
     "new_cold_mechanics_required": true,
     "heavy_job_running": false,
     "focused_unit_proof": {
@@ -95747,20 +95747,28 @@
     "postboot_telemetry_transport_repaired": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/POSTBOOT_PORTPROXY_REAPPLY001.json",
       "sha256": "cff9c3b08471a1d2ee8c678a0e1c272a6bfe3be9aa88b6f4e8f5be6687965a06"
+    },
+    "throughput_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003/RESULT.json",
+      "sha256": "02f2cd0653cfdd18cd0599f7855565fea7a47d700e168651a6765a952c735fb7"
+    },
+    "throughput_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003/TERMINAL.json",
+      "sha256": "5066d589d3f2bcc08ce93f714e2a6343327e9926fcfb909ed1652b3f064ef11c"
     }
   },
   "native_m5_ta_atr03_throughput_20261120_003": {
-    "status": "ADMITTED_ONE_USE",
+    "status": "COMPLETE_CONSUMED_TRAIN_EVAL_RUNTIME_PARITY",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003.json",
       "sha256": "41c3099e5ac83d563199f14ab289cbedcd9165af06a2e63b1ef96f61b2c384b8"
     },
     "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
-    "execution_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
+    "execution_authorized": false,
     "training_authorized": false,
     "test_authorized": false,
     "relaunch_allowed": false,
@@ -95780,6 +95788,36 @@
     "guard_preflight_rejection_before_producer": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/GUARD_PREFLIGHT_REJECTION_AND_REPAIR001.json",
       "sha256": "e30cbae04a6486644b633d11177b8ee2d95aebce0f3a0221ce6e530b5add9818"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003/RESULT.json",
+      "sha256": "02f2cd0653cfdd18cd0599f7855565fea7a47d700e168651a6765a952c735fb7"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003/TERMINAL.json",
+      "sha256": "5066d589d3f2bcc08ce93f714e2a6343327e9926fcfb909ed1652b3f064ef11c"
     }
+  },
+  "native_m5_ta_atr03_five_year_mechanics_20261120_002": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002.json",
+      "sha256": "7dfda4b0f7a360687e8c113b4c2ceb5f64bd8b4c2474c8dfc0ca5fc2aefbfd12"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "model_constructions": 2,
+    "model_forwards": 7,
+    "backward_calls": 3,
+    "optimizer_steps": 3,
+    "autograd_calls": 6,
+    "scope": "Exact old five-year B64 first-two-distinct TRAIN trajectory plus third cold-resume update; no warmstart; reference model optimizer RNG equality required"
   }
 }
