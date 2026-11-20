@@ -95889,7 +95889,7 @@
     "superseded_by": "native_m5_ta_atr03_five_year_fit_20261120_003"
   },
   "native_m5_ta_resilient_training_preparation_20261120_001": {
-    "status": "QUALIFICATION_RESUMABLE_CONSUMED_NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_001",
+    "status": "CROSS_BOOT_CONTINUATION_PREPARED",
     "operator_request": "Sikre ekstra med mellomlagring om noe skulle skje; vurder watt/GPU/CPU og5epoker/earlystop",
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001",
     "observed_gap": "Main002 checkpointbytes durable but no admissible practical maincontinuation after hard interruption/timecap; only mechanics coldproof",
@@ -95953,7 +95953,15 @@
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002.json",
         "sha256": "db8035b3e2b4ff99a98af120d26dab5561aff893d7f03170109a9e10a0fa002c"
       }
-    ]
+    ],
+    "postboot_integrity": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/CHECKPOINT_POSTBOOT_INTEGRITY001.json",
+      "sha256": "284e922f1bbd1744cd6635f2085c59814930735813c22ccd532437d8ce327430"
+    },
+    "qualification_continuation_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_CONTINUE_20261121_001.json",
+      "sha256": "a757d7fbf76e07c3bfbfd7932f8f6775f33dd13700cd78fecf666fe052312c63"
+    }
   },
   "native_m5_ta_atr03_throughput_20261120_004": {
     "status": "COMPLETE_CONSUMED_RECOVERY_SOURCE_PARITY",
@@ -96123,5 +96131,26 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002/CHECKPOINT_000002.json",
       "sha256": "94bdebea569dbf8c6467963b2b60145904dcd847c389069c77de8391d07c28d1"
     }
+  },
+  "native_m5_ta_atr03_five_year_continue_20261121_001": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_CONTINUE_20261121_001.json",
+      "sha256": "a757d7fbf76e07c3bfbfd7932f8f6775f33dd13700cd78fecf666fe052312c63"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_CONTINUE_20261121_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "model_constructions": 1,
+    "model_forwards": 1,
+    "backward_calls": 1,
+    "optimizer_steps": 1,
+    "autograd_calls": 0
   }
 }
