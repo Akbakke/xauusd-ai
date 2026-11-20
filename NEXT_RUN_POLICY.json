@@ -94690,7 +94690,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Allcurrentdefinitions indexed withperfile hashes;5consumedhistoricalworkers retiredtoGit after43metadatarefs/13closedplans.47474JSONfiles classified;fullnative256+localnonmacro numeric audit preparing;macro rawphase and permittedbyteintegrity sweep pending.",
+    "latest_observation": "Currentnative all256fiveTF+localnonmacro CPU numeric audit admitted once after exactmetadata+9syntheticpreflight and independentpeerreview;122rawmacrofields followseparately. No model/training/target/TEST/GC/M1. Sourceandpolicy freeze oncejobstarts.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94742,6 +94742,45 @@
     },
     "full_behavior_of_every_historical_function_proved": false,
     "all_data_bytes_checked": false,
-    "native_TEST_kept_sealed": true
+    "native_TEST_kept_sealed": true,
+    "current_native_numeric_audit_contract": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_NUMERIC_CONTRACT001.json",
+      "sha256": "cab64e7692a1b2a9ad96ebffe8bb2fabb765addf92f65bafbfad5adac09a7d1b"
+    },
+    "current_native_numeric_audit_stage": "full_project_current_native_feature_numeric_20261120_001"
+  },
+  "full_project_current_native_feature_numeric_20261120_001": {
+    "status": "ADMITTED_ONE_USE_NUMERIC_AUDIT_ONLY",
+    "contract": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_NUMERIC_CONTRACT001.json",
+      "sha256": "cab64e7692a1b2a9ad96ebffe8bb2fabb765addf92f65bafbfad5adac09a7d1b"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_NATIVE_NUMERIC001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "execution_authorized": true,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "model_constructions": 0,
+    "optimizer_steps": 0,
+    "parameter_fits": 0,
+    "normalization_fits": 0,
+    "target_values_decoded": 0,
+    "raw_independent_input_field_records": 1609,
+    "macro_raw_independent_field_records_deferred": 122,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_NUMERIC001_PREFLIGHT.json",
+      "sha256": "08c754ff388ce8901716ae09950fadfc2863f74b43407f36ebd26cb40aae469c"
+    },
+    "outer_seconds": 7200,
+    "internal_seconds": 7170,
+    "memory": "12G",
+    "swap": "512M",
+    "numerical_threads": 1,
+    "tasks_max": 64,
+    "monitor_interval_minutes": 30
   }
 }

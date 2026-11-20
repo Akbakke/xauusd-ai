@@ -51,6 +51,14 @@ reachability er fullført med830beskyttede stier. Dette er ikke full
 atferds-/bytegodkjenning. Nye fulle nativefeltorakler klargjøres; makro- og
 tillatt byteintegritetskontroll gjenstår. Trening er fortsatt stengt.
 
+Én sourcebundet CPU-numerikkaudit er innrømmet:all256felt påalle5TF
+plusslokale ikke-makrofelt,1609uavhengige råfeltposter ogall1731
+normaliseringsdomener.122råmakroposter gjenstår somegenfase. Kjøring
+binder FULL_NUMERIC_CONTRACT001.json underauditroten;9syntetiske prøver
+ogeksaktmetadata-preflight består utenCLAIM/arrays. Producer12GiB/512MiB,
+1tråd/64tasks,intern7170s/ekstern7200s. Allemodell-/fit-/target-/TEST-
+ruter stenges eksplisitt;Kilde/policy fryses underkjøring. Ingen trening.
+
 ## Fysisk kvalifisert grunnlag
 
 FIVE_YEAR_CACHE001 fullførte exit0 på1334,011s, CPU12GiB/512MiB/1tråd/64tasks.
