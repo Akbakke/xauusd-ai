@@ -382,7 +382,7 @@ def candidate_fixture(monkeypatch):
         inputs['candidate_terminal']['path']: terminal,
         plan_ref['path']: old_plan, claim_ref['path']: {'stage': old_plan['stage'], 'plan': plan_ref}}
     monkeypatch.setattr(audit, 'read', lambda ref: records[ref['path']])
-    monkeypatch.setattr(audit, 'numeric_owner_identities', lambda plan: {'numeric_owner': '6' * 64})
+    monkeypatch.setattr(audit, 'numeric_owner_identities', lambda plan: {name: '6' * 64 for name in audit.NUMERIC_OWNER_PATHS})
     monkeypatch.setattr(audit, 'candidate_clock_proof', lambda *args: {'synthetic_clock_proof': True})
     return inputs, before, after, saved, terminal
 
@@ -664,3 +664,57 @@ def test_canonical_alias_bridge_rejects_helper_or_other_numeric_changes(monkeypa
     with pytest.raises(ValueError,match='CANDIDATE_NUMERIC_OWNER_CHANGED:'):audit.numeric_owner_identities(plan)
     path.write_text(current);(tmp_path/other).write_text('LIMIT=4\ndef formula(x): return x+LIMIT\n')
     with pytest.raises(ValueError,match='CANDIDATE_NUMERIC_OWNER_CHANGED:'):audit.numeric_owner_identities(plan)
+
+
+def test_numeric_owner_closure_pins_actual_candle_and_cross_tf_formula_producers():
+    import ast
+    tree=ast.parse((audit.REPO/'gx1/features/htf_features.py').read_text())
+    producer=next(node for node in tree.body if isinstance(node,ast.FunctionDef)
+        and node.name=='compute_per_bar_features_v4')
+    calls={node.func.id for node in ast.walk(producer)if isinstance(node,ast.Call)
+        and isinstance(node.func,ast.Name)}
+    expected={'gx1.features.entry_candle_primitives_v1':'build_entry_candle_primitive_layer',
+        'gx1.scripts.augment_forward_outcome_v2':'_compute_closed_lane_group_a'}
+    actual={node.module:alias.name for node in ast.walk(producer)if isinstance(node,ast.ImportFrom)
+        and node.module in expected for alias in node.names if alias.name in calls}
+    assert actual==expected
+    for module in actual:
+        path=module.replace('.','/')+'.py'
+        assert path in audit.NUMERIC_OWNER_PATHS and path in audit.SOURCE_PATHS
+
+
+def test_new_transitive_formula_owners_preserve_full_numeric_ast_guards(monkeypatch,tmp_path):
+    names=('gx1/features/entry_candle_primitives_v1.py','gx1/scripts/augment_forward_outcome_v2.py',
+        'gx1/features/swing_structure_v1.py','gx1/features/model_native_market_context_v1.py')
+    original=b'LIMIT=3\ndef formula(x): return x+LIMIT\n'
+    for name in names:
+        path=tmp_path/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(original)
+    monkeypatch.setattr(audit,'REPO',tmp_path)
+    monkeypatch.setattr(audit,'NUMERIC_OWNER_PATHS',names)
+    monkeypatch.setattr(audit.subprocess,'check_output',lambda *args,**kwargs:original)
+    plan={'source_base_commit':'unit','source_owners':{
+        name:audit.hashlib.sha256(original).hexdigest()for name in names}}
+    assert set(audit.numeric_owner_identities(plan))==set(names)
+    for name in names:
+        path=tmp_path/name
+        path.write_text('LIMIT=3\ndef formula(x): return x-LIMIT\n')
+        with pytest.raises(ValueError,match='CANDIDATE_NUMERIC_OWNER_CHANGED:'):
+            audit.numeric_owner_identities(plan)
+        path.write_bytes(original)
+
+
+def test_actual_006_candidate_receipt_keeps_17_owner_roles_after_all_21_validate_without_arrays(monkeypatch):
+    plan=json.loads((audit.REPO/'configs/research/NATIVE_M5_PIPELINE_20261119_006.json').read_text())
+    expected=plan['candidate_requalification'];calls=[]
+    def no_array_decode(*args,**kwargs):pytest.fail('candidate receipt compatibility must not decode arrays')
+    monkeypatch.setattr(np,'load',no_array_decode)
+    monkeypatch.setattr(audit,'candidate_clock_proof',lambda *args:expected['cached_clock_admission'])
+    validate=audit.numeric_owner_identities
+    def full_validation(original_plan):
+        result=validate(original_plan);calls.append(set(result));return result
+    monkeypatch.setattr(audit,'numeric_owner_identities',full_validation)
+    actual=audit.candidate_metadata(plan['inputs'],plan['feature_contract'])
+    assert len(audit.CANDIDATE_RECEIPT_NUMERIC_OWNER_PATHS)==17 and len(audit.NUMERIC_OWNER_PATHS)==21
+    assert calls==[set(audit.NUMERIC_OWNER_PATHS)]
+    assert len(actual['numeric_owner_ast_sha256'])==17
+    assert actual==expected

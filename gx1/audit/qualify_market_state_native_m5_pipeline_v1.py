@@ -81,7 +81,7 @@ CANDIDATE_ROLES = {'candidate_snapshot', 'candidate_archive', 'candidate_support
 INPUT_KEYS |= CANDIDATE_ROLES
 # These owners produce physical values. Imports/docs and catalogue-only profiles
 # are separate contracts; numerical statements and helper bodies must match.
-NUMERIC_OWNER_PATHS = (
+CANDIDATE_RECEIPT_NUMERIC_OWNER_PATHS = (
     'gx1/contracts/market_state_native_m5_feature_inputs_v1.py',
     'gx1/features/htf_features.py', 'gx1/features/entry_model_native_feature_layers_v1.py',
     'gx1/features/technical_indicators_v1.py', 'gx1/features/basic_v1.py',
@@ -93,6 +93,16 @@ NUMERIC_OWNER_PATHS = (
     'gx1/scripts/materialize_canonical_v3_augment.py',
     'gx1/scripts/materialize_build_canonical_features_v1.py',
 )
+
+
+NUMERIC_OWNER_PATHS = (
+    *CANDIDATE_RECEIPT_NUMERIC_OWNER_PATHS,
+    'gx1/features/entry_candle_primitives_v1.py',
+    'gx1/scripts/augment_forward_outcome_v2.py',
+    'gx1/features/swing_structure_v1.py',
+    'gx1/features/model_native_market_context_v1.py',
+)
+
 
 SOURCE_PATHS = tuple(dict.fromkeys((*SOURCE_PATHS, *NUMERIC_OWNER_PATHS,
     'gx1/features/gc_native_field_catalog_v1.py',
@@ -266,6 +276,9 @@ def candidate_metadata(inputs, feature_contract):
          and strip(before) == strip(feature_contract)
          and before['execution_profile']['name'] == feature_contract['execution_profile']['name'],
          'CANDIDATE_PROVIDER_NUMERIC_CONTRACT')
+    # Validate the complete current closure before preserving the exact legacy
+    # receipt's 17-key representation. This projection grants no owner skip.
+    numeric_owners = numeric_owner_identities(old_plan)
     return {'original_plan': old_plan_ref, 'original_claim': old_claim_ref,
         'candidate_dependencies': {'plan': old_plan_ref, 'claim': old_claim_ref},
         'cached_clock_admission': candidate_clock_proof(inputs, saved),
@@ -280,7 +293,8 @@ def candidate_metadata(inputs, feature_contract):
                                       'independent_static_field_catalog_and_profile_identity',
                                       'fresh_native_source_declared_normalization_domain_policy'],
         'unchanged_provider_contract_domains': sorted(strip(before)),
-        'numeric_owner_ast_sha256': numeric_owner_identities(old_plan),
+        'numeric_owner_ast_sha256': {
+            name: numeric_owners[name] for name in CANDIDATE_RECEIPT_NUMERIC_OWNER_PATHS},
         'excluded_non_raw_functions': ['native_m5_feature_provider_contract',
                                        'fit_native_m5_feature_normalization'],
         'original_full_process_M1_free': False,

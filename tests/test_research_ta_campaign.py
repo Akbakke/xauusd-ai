@@ -1577,3 +1577,51 @@ def test_cot_delayed_publication_does_not_use_future_shutdown_reports(tmp_path):
     cot['publication_clock']['sha256'] = '0' * 64
     with pytest.raises(RuntimeError, match='PUBLICATION_CLOCK_HASH'):
         ta.parse_cot_gold_archives({'cot': cot, 'test_seal_utc': '2026-07-01T00:00:00Z'})
+
+
+@pytest.mark.parametrize('journal',(False,True))
+def test_oanda_panel_filters_strict_read_end_before_price_validation_and_resampling(tmp_path,monkeypatch,journal):
+    seal=pd.Timestamp('2024-05-01T22:00Z')
+    end=pd.Timestamp('2024-05-15T22:00Z')if journal else seal
+    times=pd.date_range('2024-03-01T22:00Z','2024-05-20T22:00Z',freq='h')
+    close=100.+np.arange(len(times),dtype=float)*.001+np.sin(np.arange(len(times))/7.)
+    frame=pd.DataFrame({'time':times,'open':close,'high':close+2.,'low':close-2.,'close':close})
+    resample=ta._resample_ohlc_for_model_native_scalars
+    # The old complete-D1 result is an independent reference from the same
+    # finite source, before making all excluded rows deliberately invalid.
+    bars=resample(frame.set_index('time'),'D1')
+    bars=bars.loc[bars.index+ta.TRADING_SESSION_DURATION<end]
+    expected=pd.DataFrame(index=bars.index)
+    for days in ta.SWING_PANEL_RETURN_DAYS:
+        expected['XAU_USD_logret_'+str(days)+'D']=np.log(bars['close'])-np.log(bars['close'].shift(days))
+    expected['XAU_USD_rv_'+str(ta.SWING_PANEL_RV_DAYS)+'D']=np.log(bars['close']).diff().rolling(
+        ta.SWING_PANEL_RV_DAYS).std(ddof=1)
+    frame.loc[frame['time']>=end,['open','high','low','close']]=np.nan
+    path=tmp_path/'synthetic_panel.parquet';frame.to_parquet(path,index=False)
+    result=tmp_path/'result.json'
+    result.write_text(json.dumps({'records':[{'item':'XAU_USD','status':'RETRIEVED_NOT_ADMITTED',
+        'parquet_path':str(path),'parquet_sha256':ta.sha(path)}]}))
+    spec={'test_seal_utc':seal.isoformat(),'oanda_panel':{
+        'result':{'path':str(result),'sha256':ta.sha(result)},'instruments':['XAU_USD']}}
+    if journal:
+        spec['forward_journal']={'journal_id':'J1','scored_end_utc':end.isoformat()}
+        monkeypatch.setattr(ta,'_forward_journal_policy',lambda:{
+            'authorized':True,'journal_id':'J1','scored_end_utc':end.isoformat(),'native_test_split_read':False})
+    reader=pd.read_parquet;calls=[];resampled=[]
+    def filtered_read(path,*,columns,filters):
+        assert filters==[('time','<',end)]
+        exposed=reader(path,columns=columns,filters=filters)
+        assert (exposed['time']<end).all()and end not in set(exposed['time'])
+        assert np.isfinite(exposed[['open','high','low','close']].to_numpy()).all()
+        calls.append(exposed['time'].max())
+        return exposed
+    def only_filtered_bars(value,timeframe):
+        assert value.index.max()<end and np.isfinite(value.to_numpy()).all()
+        resampled.append(value.index.max())
+        return resample(value,timeframe)
+    monkeypatch.setattr(pd,'read_parquet',filtered_read)
+    monkeypatch.setattr(ta,'_resample_ohlc_for_model_native_scalars',only_filtered_bars)
+    actual=ta.load_oanda_panel_d1(spec)['XAU_USD']
+    pd.testing.assert_frame_equal(actual,expected,check_exact=True)
+    assert calls==resampled==[end-pd.Timedelta(hours=1)]
+    assert (actual.index+ta.TRADING_SESSION_DURATION<end).all()

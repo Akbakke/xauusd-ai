@@ -3180,7 +3180,8 @@ def load_oanda_panel_d1(spec: dict) -> dict[str, pd.DataFrame]:
         path = Path(record["parquet_path"])
         if sha(path) != record["parquet_sha256"]:
             raise RuntimeError("TA_SWING_OANDA_PARQUET_HASH")
-        frame = pd.read_parquet(path, columns=["time", "open", "high", "low", "close"])
+        frame = pd.read_parquet(path, columns=["time", "open", "high", "low", "close"],
+                                filters=[("time", "<", sealed_period_read_end(spec))])
         frame["time"] = pd.to_datetime(frame["time"], utc=True)
         frame = frame.set_index("time").sort_index()
         if frame.index.has_duplicates or not np.isfinite(frame.to_numpy(float)).all():

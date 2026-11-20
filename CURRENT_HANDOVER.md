@@ -12,7 +12,9 @@ verdt å trade. Rå barfakta og separat lokal range-/aktivitetssemantikk består
 ATR03-targets for alle1215513preTEST-issues, ny matchedTRAIN-prior og fersk
 32forward-initialbaseline er ferdige. Optimizer/kald replay bestod på84,434s
 med3tekniskeupdates,67forwards og6gradientprober. Ingen hovedfit startet.
-Den eksakte korte hovedplanen er klar og preflightbestått; alle porter er stengt.
+Brukeren bestiller nå bred prosjektrevisjon og større testklargjøring.
+Gammel kortplan er supersedert utenCLAIM; alle porter er stengt. Kildeclosure
+rettet med4aktive formel-eiere; ytelse og større kohort/stats kvalifiseres nå.
 Målet om tilfredsstillende vekting, prediksjon og edge er fortsatt uoppnådd.
 
 M1 brukes ALDRI til retning: ingen input, fasit, metadataforelder, rader,
@@ -21,6 +23,23 @@ av allerede åpnet trade. M5 med lukket M15/H1/H4/D1 er retningsgrunnlaget.
 GC er utsatt; eksisterende kode/data beholdes. TEST fra01.07.2026,
 Entry/Exit, broker, paper/live, ordre, spending og promotion er stengt.
 Juni2026 og øvrige gjenbrukte perioder er utvikling, ikke urørt test.
+
+## Ny bred revisjon før større test
+
+Alle2160sporede filer er inventarisert:1406PythonAST,650JSON og9shellfiler
+består syntaks/parse.18M1/049-metadatafiler er bare navnelistet, aldri åpnet.
+321statiske importnoder er ikke bevis for faktisk modellkonsum. Dypkontrollen
+følger21formeleiere og den aktive provider→target→modell→loss→checkpointkjeden;
+hele historiske funksjonsbiblioteket er ikke atferdstestet på nytt.
+Fire faktiske formel-/spread-eiere er nå eksplisitt kildebundet. Originale
+Gitbytes matcher cache/pipeline/mekanikk, så ingen feature-rebuild trengs.
+Full21-eiervalidering kommer før eksplisitt gammel17-key kvitteringsprojeksjon.
+Makroparseren får read_end-predikat før DataFrame-eksponering; den gamle
+resample-cutoffen er uendret.2syntetiske seal/journal-tilfeller består.
+Dette beviser ikke at Arrow aldri dekoder en blandet rowgroup fysisk.
+5closure/kvitteringskontroller,8nye guardvarianter og5profilkildetilfeller består.
+GPU0update-profil forB16/B64 er kildeklart, ikke utført. Større test er ennå
+ikke klar; tidsbruk og nye TRAIN-stats/baseline må kvalifiseres først.
 
 ## Ferdig seksårs inputgrunnlag
 

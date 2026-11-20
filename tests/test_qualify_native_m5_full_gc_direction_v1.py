@@ -1389,3 +1389,61 @@ def test_noise_persisted_axes_preserve_raw_source_report_and_independent_masks(t
         assert not actual[name]['truth']['noise_open_eligible'][actual[name]['truth']['open_known_at_issue']].any()
         assert np.all(actual[name]['truth']['noise_close_eligible']<=actual[name]['truth']['eligible'])
     assert any(report['TRAIN']['per_tf_eligible'][i]>report['TRAIN']['per_tf_noise_close_eligible'][i]for i in range(5))
+
+
+def test_throughput_metadata_role_gate_precedes_any_receipt_or_model_io(monkeypatch):
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('receipt read before exact input role gate'))
+    with pytest.raises(ValueError,match='THROUGHPUT_EXACT_INPUTS'):
+        owner.build_throughput_plan(inputs={})
+    with pytest.raises(ValueError,match='THROUGHPUT_CLI'):
+        owner.throughput_cli(SimpleNamespace(plan='bad',out_dir='bad',device='cpu',preflight=False))
+
+
+def test_throughput_profile_contract_has_zero_optimizer_and_bounded_rows_and_memory():
+    assert owner.THROUGHPUT_LIMITS=={'model_constructions':1,'checkpoint_loads':1,'model_forwards':8,
+        'backward_calls':8,'autograd_calls':0,'optimizer_constructions':0,'optimizer_steps':0}
+    assert owner.THROUGHPUT_EXECUTION['cuda_peak_reserved_bytes_max']==12*1024**3
+    assert owner.THROUGHPUT_EXECUTION['internal_seconds']<owner.THROUGHPUT_EXECUTION['outer_seconds']==1800
+    assert owner.THROUGHPUT_EXECUTION['memory']=='20G'and owner.THROUGHPUT_EXECUTION['numerical_threads']==8
+
+
+def test_throughput_grouped_forward_flushes_nonfinite_before_returning_to_loss():
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import model_finite_check_scope,_assert_finite,_MODEL_FINITE_CHECK_SCOPE
+    called=[]
+    with pytest.raises(RuntimeError,match='NONFINITE: active_native_activation'):
+        with model_finite_check_scope('grouped'):
+            _assert_finite('active_native_activation',torch.tensor(float('nan')))
+        called.append('loss')
+    assert called==[] and _MODEL_FINITE_CHECK_SCOPE.get()is None
+
+
+@pytest.mark.parametrize('fail',[False,True])
+def test_throughput_success_and_failure_publish_consumed_terminal(tmp_path,monkeypatch,fail):
+    import gx1.contracts.gx1_capped_execution_v1 as execution
+    root=tmp_path/'out';path=tmp_path/'plan.json';path.write_text('{}')
+    binding=owner.ref(path);policy={'path':'unit_policy','sha256':'a'*64}
+    plan={'metadata':{'analysis_parent':{'path':'unit_parent','sha256':'b'*64}}}
+    monkeypatch.setattr(owner,'THROUGHPUT_ROOT',root);monkeypatch.setattr(owner,'THROUGHPUT_PLAN',path)
+    monkeypatch.setattr(owner,'inspect_throughput',lambda *a,**k:(plan,binding,policy))
+    monkeypatch.setattr(execution,'require_guarded_cuda_trainer_execution',lambda:{'synthetic_reporting_only':True})
+    monkeypatch.setattr(owner,'fit_boot_state',lambda *a,**k:{'actual_windows_boot_id':667})
+    monkeypatch.setattr(owner,'read',lambda *_:{})
+    real_ref=owner.ref
+    monkeypatch.setattr(owner,'ref',lambda p:policy if p==owner.POLICY else real_ref(p))
+    monkeypatch.setattr(owner,'checked_inputs',lambda *_:None)
+    monkeypatch.setattr(owner,'noise_source_clean',lambda *_:True)
+    monkeypatch.setattr(owner.common,'firewall_state',lambda:{'denied_attempts':0})
+    def physical(_):
+        if fail:raise ValueError('unit_profile_failure')
+        return {'synthetic_reporting_only':True}
+    monkeypatch.setattr(owner,'throughput_physical',physical)
+    args=SimpleNamespace(plan=str(path),out_dir=str(root),device='cuda',preflight=False,plan_sha256=binding['sha256'])
+    if fail:
+        with pytest.raises(ValueError,match='unit_profile_failure'):owner.throughput_cli(args)
+    else:owner.throughput_cli(args)
+    terminal=json.loads((root/'TERMINAL.json').read_text())
+    assert terminal['status']==('FAILED_CONSUMED'if fail else'COMPLETE')
+    assert terminal['exit_code']==(1 if fail else 0)
+    assert terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False
+    assert terminal['claim']==real_ref(root/'CLAIM.json')and terminal['plan']==binding
+    assert (terminal['result']is None)==fail
