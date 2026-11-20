@@ -4751,7 +4751,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Exact one-use recovery qualification admitted: NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004",
+    "current_activity": "Recovery-source genuine zero-update train/eval parityPASS; new coldmechanics003 prepared before original maintrajectory003",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -95888,7 +95888,7 @@
     }
   },
   "native_m5_ta_resilient_training_preparation_20261120_001": {
-    "status": "ADMITTED_AWAITING_LAUNCH_NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004",
+    "status": "THROUGHPUT004_COMPLETE_MECHANICS003_PREPARED",
     "operator_request": "Sikre ekstra med mellomlagring om noe skulle skje; vurder watt/GPU/CPU og5epoker/earlystop",
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001",
     "observed_gap": "Main002 checkpointbytes durable but no admissible practical maincontinuation after hard interruption/timecap; only mechanics coldproof",
@@ -95922,20 +95922,28 @@
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/SOURCE_COMPATIBILITY002.json",
       "sha256": "1ed9b6a4746495b9d84966c341dcc5c8a3239bd53a1c26ea96d1b240647a4350"
     },
-    "source_base_commit": "060fe55f719d5adceab78cbcd3423cec909e7347"
+    "source_base_commit": "060fe55f719d5adceab78cbcd3423cec909e7347",
+    "throughput_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004/RESULT.json",
+      "sha256": "7572178a2767d1f38ccc45771fae9031f4621c502790cc6909d03c22f3f35bd0"
+    },
+    "throughput_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004/TERMINAL.json",
+      "sha256": "e35263be0ae7f2cbc28ae985f7bd6fc98af28f80b5be000eb148e75f5d77a202"
+    }
   },
   "native_m5_ta_atr03_throughput_20261120_004": {
-    "status": "ADMITTED_ONE_USE",
+    "status": "COMPLETE_CONSUMED_RECOVERY_SOURCE_PARITY",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004.json",
       "sha256": "4c14a547dd05873d8b3db292f71053351f93fd062aaeb6b07c93ec15795a3f7d"
     },
     "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
-    "execution_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
+    "execution_authorized": false,
     "training_authorized": false,
     "test_authorized": false,
     "relaunch_allowed": false,
@@ -95949,6 +95957,35 @@
     "preflight": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004_PREFLIGHT001.log",
       "sha256": "859598a5b5fcf6f58783b6bc2e1d8a037d38525cf40176566003b12ca059097f"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004/RESULT.json",
+      "sha256": "7572178a2767d1f38ccc45771fae9031f4621c502790cc6909d03c22f3f35bd0"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004/TERMINAL.json",
+      "sha256": "e35263be0ae7f2cbc28ae985f7bd6fc98af28f80b5be000eb148e75f5d77a202"
     }
+  },
+  "native_m5_ta_atr03_five_year_mechanics_20261120_003": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_003.json",
+      "sha256": "a27fb443e18f2f6d38e329c7ef7d63713fb32f494d308fe55973913ad938178c"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_003",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "model_constructions": 2,
+    "model_forwards": 7,
+    "backward_calls": 3,
+    "optimizer_steps": 3,
+    "autograd_calls": 6
   }
 }
