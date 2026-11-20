@@ -9,7 +9,7 @@ original prosess/terminalkvittering overstyrer prosa. Historikk finnes i Git.
 Det vedvarende OPP/NED/FLAT-målet er aktivt, ikke oppnådd.
 PRIMARY_BACKBONE_FIT001 er fullført og uavhengig vurdert, exit0 på578,831s
 (9m39):1fersk modell/4fastepass/384updates/544forwards/0autograd-prober.
-Kilde/policy var uendret. Alle treningsporter er stengt; bare nycache003 er nå innrømmet én gang.
+Kilde/policy var uendret. Alle trenings-/kjøringsporter er stengt; cache003 er fullført og konsumert.
 Alle tidligere engangsplaner er konsumert. Ingen aktiv modelljobb eller ny fit. CACHE_EXPANSION001 er konsumert etter ytre exit137; ingen cache ble produsert.
 Siste målte GPU-idle etter terminal: P8,24,72W,37C,78MiB,0prosentutnyttelse.
 
@@ -134,8 +134,10 @@ to navngitte importgruppene;17numeriskeeiere/aliasbro er fortsatt kvalifisert.
 Uavhengig lesereview og genuinmetadata består. Ny cache003 er klargjort med
 samme6år/12G/3570s og egneporter;001/002forblirkonsumert. EksaktCLI-preflight
 og uavhengigmetadatareview består (41source/17numeric/110refs),0rawdecode/
-modell/fit/Torch/CLAIM. Kun cache003 er innrømmet én gang; ingen trening.
-Source/policy fryses gjennom dens nativeTERMINAL.
+modell/fit/Torch/CLAIM. Cache003 fullførte exit0 på1181,156s (19m41),425320issues/425415lokalrader.
+Alleporter er nå stengt, planen konsumert, source/policyuendret. Alle27arrays
+matcher gammelcache ioverlappen ifølgeproduksjonskvitteringen; uavhengig NumPy-
+readback/overlappsreview gjenstår. Ingen modell/norm/paramfit eller targetdecode.
 
 
 ## Bevart datagrunnlag og ubeviste grenser
