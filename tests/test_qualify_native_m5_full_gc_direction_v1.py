@@ -1565,7 +1565,7 @@ def test_five_year_explicit_scope_routes_preserve_year_and_require_own_prepare_b
         if phase!='prepare':
             assert owner._primary_fit({'mode':mode})
             stage,path,root=owner.FIT_SCOPES[mode]
-            assert stage=='native_m5_ta_atr03_five_year_'+('fit'if phase=='main'else phase)+'_20261120_002'
+            assert stage=='native_m5_ta_atr03_five_year_'+('fit'if phase=='main'else phase)+'_20261120_003'
             assert path.stem==root.name
     # Missing explicit five-year budget rejects before any artifact/model access.
     monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('artifact read before explicit budget'))
@@ -1865,11 +1865,11 @@ def test_runtime_source_review_requires_current_positive_proof(runtime_source_re
 
 
 def test_new_efficiency_scopes_never_alias_consumed_outputs():
-    assert owner.THROUGHPUT_PLAN.name=='NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003.json'
+    assert owner.THROUGHPUT_PLAN.name=='NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004.json'
     assert owner.THROUGHPUT_ROOT.name==owner.THROUGHPUT_PLAN.stem
     for mode in('ta_five_year_mechanics','ta_five_year_main'):
         stage,path,root=owner.FIT_SCOPES[mode]
-        assert stage.endswith('_002')and path.stem==root.name and path.stem.endswith('_002')
+        assert stage.endswith('_003')and path.stem==root.name and path.stem.endswith('_003')
     assert owner.THROUGHPUT_LIMITS['model_forwards']==15
     assert owner.THROUGHPUT_LIMITS['backward_calls']==6
     assert owner.THROUGHPUT_LIMITS['optimizer_steps']==owner.THROUGHPUT_LIMITS['optimizer_constructions']==0
@@ -1974,3 +1974,273 @@ def test_runtime_trajectory_admission_rejects_changed_nonmodel_state_with_identi
     plan={'metadata':{'runtime_qualification':{'reference_mechanics_result':old_ref}}}
     with pytest.raises(ValueError,match='RUNTIME_MECHANICS_OPTIMIZER_RNG_TRAJECTORY'):
         owner.runtime_mechanics_trajectory(report,plan)
+
+
+def test_checkpoint_window_canonical_path_owns_output_without_free_form_root():
+    path=owner.REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_001.json'
+    stage,actual,root=owner.checkpoint_window_paths(path)
+    assert stage==path.stem.lower() and actual==path
+    assert str(root)=='/home/andre2/GX1_RUNS/'+path.stem
+    continuation=path.with_name(path.name.replace('_WINDOW_','_CONTINUE_'))
+    assert owner.checkpoint_window_paths(continuation)[0]==continuation.stem.lower()
+    for bad in (path.name,str(path).replace('/configs/research/','/tmp/'),
+                str(path).replace('_001.json','_001.json.extra'),
+                str(path).replace('_WINDOW_','_ARBITRARY_')):
+        with pytest.raises(ValueError,match='CHECKPOINT_WINDOW_CANONICAL_PATH'):
+            owner.checkpoint_window_paths(bad)
+
+
+def test_checkpoint_window_limits_separate_restored_prefix_and_score_only():
+    trajectory={'recipe':{'fit_batches':5540,'score_batch_rows':256},'metadata':{
+        'selected_cohorts':{'FIT':{'rows':354550},'CONTROL':{'rows':34934}}}}
+    assert owner.checkpoint_window_limits(trajectory,0,1)==dict(model_constructions=1,
+        model_forwards=1,backward_calls=1,optimizer_steps=1,autograd_calls=0)
+    assert owner.checkpoint_window_limits(trajectory,1,2)==owner.checkpoint_window_limits(trajectory,0,1)
+    assert owner.checkpoint_window_limits(trajectory,5540,5540)==dict(model_constructions=1,
+        model_forwards=1522,backward_calls=0,optimizer_steps=0,autograd_calls=0)
+    assert owner.checkpoint_window_limits(trajectory,256,5540)['model_forwards']==5540-256+1522
+
+
+def test_checkpoint_parent_requires_dead_process_or_distinct_boot(monkeypatch):
+    monkeypatch.setattr(owner,'physical_windows_boot_id',lambda:668)
+    identity=owner.checkpoint_process_identity()
+    with pytest.raises(ValueError,match='CHECKPOINT_PARENT_STILL_RUNNING'):
+        owner.require_checkpoint_parent_stopped(identity)
+    owner.require_checkpoint_parent_stopped({**identity,'wsl_boot_id':'distinct-synthetic-boot'})
+    for bad in ({**identity,'pid':0},{**identity,'start_ticks':0},{**identity,'wsl_boot_id':None}):
+        with pytest.raises(ValueError,match='CHECKPOINT_PARENT_IDENTITY'):
+            owner.require_checkpoint_parent_stopped(bad)
+
+
+@pytest.fixture
+def main_checkpoint_receipt(tmp_path,monkeypatch):
+    _cpu_rng(monkeypatch)
+    monkeypatch.setattr(owner,'physical_windows_boot_id',lambda:668)
+    root=tmp_path/'execution';root.mkdir()
+    trajectory={'mode':'ta_five_year_main','recipe':{'passes':1,'fit_batches':2,
+        'checkpoint_every_updates':256},'metadata':{'epoch_batches':2},
+        'source_base_commit':'1'*40,'source_owners':{'synthetic_owner.py':'2'*64},'output_root':str(root)}
+    trajectory['training_schedule']=owner.larger_schedule(np.arange(128,dtype=np.int64),trajectory)
+    trajectory_ref=owner.publish(tmp_path/'trajectory.json',trajectory)
+    identity=owner.checkpoint_process_identity()
+    claim=owner.publish(root/'CLAIM.json',{'status':'CLAIMED_ONE_USE','plan':trajectory_ref,
+        'process_identity':identity})
+    checkpoint={'cursor':1,'schedule_position':owner.larger_schedule_position(trajectory,1),
+        'model_state':{'tiny':torch.tensor([1.,2.])},'optimizer_state':{'tiny':torch.tensor([.25])},
+        'rng_state':{'synthetic':torch.tensor([7],dtype=torch.uint8)},
+        'bindings':{'synthetic_input':'no_real_arrays'},'training':True}
+    steps=[{'source_rows_sha256':trajectory['training_schedule']['batch_source_rows_sha256'][0],
+        'synthetic_loss':.25}]
+    monkeypatch.setattr(owner,'fit_source_clean',lambda _:True)
+    counts=dict(model_constructions=1,model_forwards=1,backward_calls=1,optimizer_steps=1,autograd_calls=0)
+    binding,receipt=owner.publish_main_checkpoint(root/'CHECKPOINT_000001.pt',checkpoint,
+        trajectory=trajectory,trajectory_ref=trajectory_ref,execution_ref=trajectory_ref,
+        claim=claim,steps=steps,restored_cursor=0,current_counts=counts)
+    return root,trajectory,trajectory_ref,binding,receipt,checkpoint
+
+
+def test_checkpoint_receipt_is_durable_hash_bound_and_has_complete_prefix(main_checkpoint_receipt):
+    root,trajectory,trajectory_ref,binding,receipt,checkpoint=main_checkpoint_receipt
+    actual=owner.require_main_checkpoint_receipt(binding,trajectory,trajectory_ref)
+    assert actual==receipt and actual['cursor']==len(actual['steps'])==1
+    assert actual['checkpoint']==owner.ref(root/'CHECKPOINT_000001.pt')
+    loaded=torch.load(actual['checkpoint']['path'],map_location='cpu',weights_only=True)
+    assert owner.checkpoint_state_proof(loaded)==actual['state_proof']==owner.checkpoint_state_proof(checkpoint)
+    assert actual['logical_prefix_counts']==owner.checkpoint_prefix_counts(1)
+    assert 'latest'not in '\n'.join(p.name for p in root.iterdir()).lower()
+    with pytest.raises(Exception):
+        owner.publish_main_checkpoint(root/'CHECKPOINT_000001.pt',checkpoint,trajectory=trajectory,
+            trajectory_ref=trajectory_ref,execution_ref=trajectory_ref,claim=receipt['execution_claim'],
+            steps=receipt['steps'],restored_cursor=0,current_counts=receipt['current_window_counts'])
+
+
+@pytest.mark.parametrize('fault',['cursor','schedule','step_prefix','source','counts','proof','checkpoint_sha','claim_identity'])
+def test_checkpoint_receipt_rejects_incomplete_or_inconsistent_prefix(main_checkpoint_receipt,monkeypatch,fault):
+    _,trajectory,trajectory_ref,binding,receipt,_=main_checkpoint_receipt
+    bad=copy.deepcopy(receipt)
+    if fault=='cursor':bad['cursor']=0
+    elif fault=='schedule':bad['schedule_position']['next_source_batch_sha256']='0'*64
+    elif fault=='step_prefix':bad['steps']=[]
+    elif fault=='source':bad['source_owners']={}
+    elif fault=='counts':bad['current_window_counts']['optimizer_steps']=2
+    elif fault=='proof':bad['state_proof']['rng_state_sha256']='g'*64
+    elif fault=='checkpoint_sha':bad['checkpoint']['sha256']='0'*64
+    elif fault=='claim_identity':bad['process_identity']['start_ticks']+=1
+    read=owner.read
+    monkeypatch.setattr(owner,'read',lambda ref:bad if ref==binding else read(ref))
+    with pytest.raises(ValueError,match='CHECKPOINT_RECEIPT_'):
+        owner.require_main_checkpoint_receipt(binding,trajectory,trajectory_ref)
+
+
+def test_checkpoint_receipt_refuses_older_cursor_when_later_json_was_published(main_checkpoint_receipt):
+    root,trajectory,trajectory_ref,binding,_,_=main_checkpoint_receipt
+    owner.publish(root/'CHECKPOINT_000002.json',{'synthetic_later_receipt':True})
+    with pytest.raises(ValueError,match='CHECKPOINT_RECEIPT_NOT_LAST_PUBLISHED'):
+        owner.require_main_checkpoint_receipt(binding,trajectory,trajectory_ref)
+
+
+def test_checkpoint_parent_end_never_reopens_complete_and_rechecks_process_exit(main_checkpoint_receipt,monkeypatch):
+    root,_,_,binding,receipt,_=main_checkpoint_receipt
+    terminal={'plan':receipt['execution_plan'],'claim':receipt['execution_claim'],
+        'status':'RESUMABLE','remaining_invocations':0,'relaunch_allowed':False,
+        'checkpoint_receipt':binding,'test_data_used':False}
+    end=owner.publish(root/'TERMINAL.json',terminal)
+    with pytest.raises(ValueError,match='CHECKPOINT_PARENT_STILL_RUNNING'):
+        owner.require_checkpoint_parent_end(end,receipt)
+    seen=[];monkeypatch.setattr(owner,'require_checkpoint_parent_stopped',lambda identity:seen.append(identity))
+    assert owner.require_checkpoint_parent_end(end,receipt)==terminal
+    assert seen==[receipt['process_identity']]
+    old_read=owner.read
+    monkeypatch.setattr(owner,'read',lambda ref:{**terminal,'status':'COMPLETE'}if ref==end else old_read(ref))
+    with pytest.raises(ValueError,match='CHECKPOINT_PARENT_TERMINAL'):
+        owner.require_checkpoint_parent_end(end,receipt)
+
+
+def test_checkpoint_hardkill_requires_explicit_unknown_work_evidence(main_checkpoint_receipt,monkeypatch):
+    root,_,_,binding,receipt,_=main_checkpoint_receipt
+    proof={'schema_version':owner.CHECKPOINT_INTERRUPTION_SCHEMA,'status':'INTERRUPTED',
+        'plan':receipt['execution_plan'],'claim':receipt['execution_claim'],
+        'checkpoint_receipt':binding,'process_identity':receipt['process_identity'],
+        'reason':'Synthetic abrupt parent exit; no historical work is invented',
+        'physical_work_after_last_receipt':'UNKNOWN','test_data_used':False}
+    evidence=owner.publish(root/'INTERRUPTION.json',proof)
+    monkeypatch.setattr(owner,'require_checkpoint_parent_stopped',lambda _:None)
+    assert owner.require_checkpoint_parent_end(evidence,receipt)==proof
+    old_read=owner.read
+    monkeypatch.setattr(owner,'read',lambda ref:{**proof,'physical_work_after_last_receipt':0}if ref==evidence else old_read(ref))
+    with pytest.raises(ValueError,match='CHECKPOINT_INTERRUPTION_EVIDENCE'):
+        owner.require_checkpoint_parent_end(evidence,receipt)
+
+
+def test_checkpoint_window_builder_rejects_wrong_trajectory_before_launch(monkeypatch):
+    monkeypatch.setattr(owner,'read',lambda _:{'mode':'ta_five_year_mechanics'})
+    path=owner.REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_001.json'
+    with pytest.raises(ValueError,match='CHECKPOINT_WINDOW_ORIGINAL_TRAJECTORY'):
+        owner.build_checkpoint_window_plan(plan_path=path,trajectory_plan={'path':'synthetic','sha256':'1'*64},
+            stop_after_cursor=1,outer_seconds=1800)
+
+
+def test_new_checkpoint_cadence_preserves_single_epoch_math():
+    n=354550;epoch=(n+63)//64
+    recipe={**_ta_recipe('ta_main',1),'batch_rows':64,'fit_batches':epoch,
+        'checkpoint_every_updates':256,'outer_seconds':10800,'internal_seconds':10770}
+    meta={'prepared':{'full_selected_cohorts':{'FIT':{'rows':n}}},'epoch_batches':epoch}
+    assert owner.larger_recipe(recipe,'ta_five_year_main',meta)==recipe
+    assert len([i for i in range(1,epoch+1)if i%256==0 or i==epoch])==22
+
+
+def test_checkpoint_publication_preserves_actual_python_numpy_and_torch_rng(tmp_path,monkeypatch):
+    _cpu_rng(monkeypatch)
+    import random
+    random.seed(812);np.random.seed(812);torch.manual_seed(812)
+    checkpoint={'tiny':torch.tensor([1.,2.,3.]),'rng':owner.training_rng()}
+    before=owner.state_sha(owner.training_rng())
+    owner.publish_checkpoint(tmp_path/'rng.pt',checkpoint)
+    assert owner.state_sha(owner.training_rng())==before
+    original=owner.publish
+    def rng_mutating_publication(path,value):
+        binding=original(path,value);random.random();return binding
+    monkeypatch.setattr(owner,'publish',rng_mutating_publication)
+    with pytest.raises(ValueError,match='FIT_CHECKPOINT_PUBLICATION_RNG_MUTATION'):
+        owner.publish_checkpoint(tmp_path/'bad_rng.pt',checkpoint)
+
+
+def test_checkpoint_consumption_is_the_durable_zero_update_child_receipt(main_checkpoint_receipt,monkeypatch):
+    root,trajectory,trajectory_ref,binding,receipt,_=main_checkpoint_receipt
+    child_root=root.parent/'child';child_root.mkdir()
+    child_plan={'schema_version':owner.CHECKPOINT_WINDOW_SCHEMA,'mode':'ta_five_year_continuation',
+        'output_root':str(child_root),'inputs':{'trajectory_plan':trajectory_ref,'checkpoint_receipt':binding,
+            'parent_end':{'path':'synthetic_parent_end','sha256':'3'*64}},
+        'recipe':{'start_cursor':1,'stop_after_cursor':2},'execution':{'outer_seconds':1800},
+        'source_base_commit':'1'*40}
+    child_ref=owner.publish(root.parent/'child_plan.json',child_plan)
+    child_claim=owner.publish(child_root/'CLAIM.json',{'status':'CLAIMED_ONE_USE','plan':child_ref,
+        'process_identity':owner.checkpoint_process_identity()})
+    marker=owner.consume_checkpoint_receipt(receipt,binding,execution_ref=child_ref,claim=child_claim)
+    assert marker['path']==str(root/'CHECKPOINT_000001_CONSUMED.json')
+    inherited=owner.read(marker)
+    assert inherited['checkpoint']==receipt['checkpoint']
+    assert inherited['state_proof']==receipt['state_proof']
+    assert inherited['steps']==receipt['steps']
+    assert inherited['execution_plan']==child_ref and inherited['execution_claim']==child_claim
+    assert inherited['inherited_checkpoint_receipt']==binding
+    assert inherited['current_window_counts']==dict(model_constructions=0,model_forwards=0,
+        backward_calls=0,optimizer_steps=0,autograd_calls=0)
+    monkeypatch.setattr(owner,'checkpoint_window_paths',lambda path:('child',owner.Path(path),child_root))
+    monkeypatch.setattr(owner,'build_checkpoint_window_plan',lambda **kwargs:child_plan)
+    assert owner.require_main_checkpoint_receipt(marker,trajectory,trajectory_ref)==inherited
+    with pytest.raises(Exception):
+        owner.consume_checkpoint_receipt(receipt,binding,execution_ref=child_ref,claim=child_claim)
+    # Even a zero-update child owns its own next consumption path, so an
+    # abrupt exit can be followed without ever forking the original receipt.
+    assert owner.checkpoint_consumption_path(inherited)==child_root/'CHECKPOINT_000001_CONSUMED.json'
+    end=owner.publish(child_root/'TERMINAL.json',{'plan':child_ref,'claim':child_claim,
+        'status':'RESUMABLE','checkpoint_receipt':marker,'remaining_invocations':0,
+        'relaunch_allowed':False,'test_data_used':False})
+    monkeypatch.setattr(owner,'require_checkpoint_parent_stopped',lambda _:None)
+    assert owner.require_checkpoint_parent_end(end,inherited)['checkpoint_receipt']==marker
+
+
+@pytest.mark.parametrize('fault',['start','stop'])
+def test_checkpoint_receipt_prefix_must_match_admitted_execution_window(main_checkpoint_receipt,monkeypatch,fault):
+    root,trajectory,trajectory_ref,binding,receipt,_=main_checkpoint_receipt
+    execution=copy.deepcopy(trajectory)
+    execution.update(inputs={'trajectory_plan':trajectory_ref},source_base_commit='1'*40,
+        recipe={'start_cursor':1 if fault=='start'else 0,'stop_after_cursor':2 if fault=='start'else 0},
+        execution={'outer_seconds':1800})
+    execution_ref={'path':'synthetic_window_plan','sha256':'4'*64}
+    claim=copy.deepcopy(owner.read(receipt['execution_claim']));claim['plan']=execution_ref
+    bad={**receipt,'execution_plan':execution_ref}
+    old_read=owner.read
+    def read(ref):
+        if ref==binding:return bad
+        if ref==execution_ref:return execution
+        if ref==receipt['execution_claim']:return claim
+        return old_read(ref)
+    monkeypatch.setattr(owner,'read',read)
+    monkeypatch.setattr(owner,'checkpoint_window_paths',lambda path:('synthetic',owner.Path(path),root))
+    monkeypatch.setattr(owner,'build_checkpoint_window_plan',lambda **kwargs:execution)
+    with pytest.raises(ValueError,match='CHECKPOINT_RECEIPT_BOUND_EXECUTION'):
+        owner.require_main_checkpoint_receipt(binding,trajectory,trajectory_ref)
+
+
+def test_window_score_defers_before_next_forward_without_counting_or_publishing_partial(monkeypatch):
+    _cpu_rng(monkeypatch)
+    model=torch.nn.Linear(2,2);counts=[]
+    model.register_forward_pre_hook(lambda *args:counts.append('forward'))
+    times=iter([0.,0.,3.])
+    monkeypatch.setattr(owner.time,'monotonic',lambda:next(times))
+    def score(model,*args):
+        model(torch.ones(1,2));model(torch.ones(1,2));model(torch.ones(1,2))
+        return {'never':'partial results'},{}
+    monkeypatch.setattr(owner,'fit_score',score)
+    before=owner.state_sha(model.state_dict());rng=owner.state_sha(owner.training_rng())
+    result=owner.checkpoint_window_score(model,None,None,None,deadline=4.,reserve=1.)
+    assert result==(None,None) and len(counts)==2
+    assert owner.state_sha(model.state_dict())==before and owner.state_sha(owner.training_rng())==rng
+    assert len(model._forward_pre_hooks)==1
+
+
+def test_window_score_does_not_swallow_hard_deadline_or_other_timeout(monkeypatch):
+    _cpu_rng(monkeypatch);model=torch.nn.Linear(2,2)
+    def score(*args):raise TimeoutError('Actual hard limit')
+    monkeypatch.setattr(owner,'fit_score',score)
+    with pytest.raises(TimeoutError,match='Actual hard limit'):
+        owner.checkpoint_window_score(model,None,None,None,deadline=10.,reserve=1.)
+    assert len(model._forward_pre_hooks)==0
+
+
+
+def test_interruption_cannot_override_any_published_canonical_terminal(main_checkpoint_receipt,monkeypatch):
+    root,_,_,binding,receipt,_=main_checkpoint_receipt
+    owner.publish(root/'TERMINAL.json',{'plan':receipt['execution_plan'],
+        'claim':receipt['execution_claim'],'status':'COMPLETE','test_data_used':False})
+    proof={'schema_version':owner.CHECKPOINT_INTERRUPTION_SCHEMA,'status':'INTERRUPTED',
+        'plan':receipt['execution_plan'],'claim':receipt['execution_claim'],
+        'checkpoint_receipt':binding,'process_identity':receipt['process_identity'],
+        'reason':'Synthetic alternative interruption must not reopen a finished execution',
+        'physical_work_after_last_receipt':'UNKNOWN','test_data_used':False}
+    evidence=owner.publish(root/'ALTERNATIVE_INTERRUPTION.json',proof)
+    monkeypatch.setattr(owner,'require_checkpoint_parent_stopped',lambda _:None)
+    with pytest.raises(ValueError,match='CHECKPOINT_INTERRUPTION_CANONICAL_TERMINAL_PRESENT'):
+        owner.require_checkpoint_parent_end(evidence,receipt)

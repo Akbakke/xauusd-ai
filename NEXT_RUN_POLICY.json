@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "EFFICIENCY_OPTIMIZATION_QUALIFIED_MAIN002_READY_NOT_ADMITTED",
+  "status": "PRACTICAL_CRASH_RECOVERY_GAP_REPAIR_IN_PROGRESS_MAIN_CLOSED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -4751,7 +4751,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Optimization qualified and complete; main002 ready for one-use admission, no main started",
+    "current_activity": "Practical main/window/continuation source implemented;389focused casesPASS, numericcoreASTunchanged; prepare exact fresh one-use qualification before overnight main",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -4773,7 +4773,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "native_m5_ta_efficiency_qualification_20261120_001",
+    "current_research_id": "native_m5_ta_resilient_training_preparation_20261120_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -4804,7 +4804,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": null,
+    "current_blocker": "Practical crash-recovery implementation and independent-process qualification pending",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RESTART_TRAINING_PREP_001/POSTBOOT_INTEGRITY.json",
       "sha256": "e4b66f3723f90cb5c2aefbe0cf614aadbb85086ba49cef921b1ce113b82b7e01"
@@ -95873,7 +95873,7 @@
     "outer_seconds": 10800,
     "scope": "Same whole2021-2025 TRAIN chronology/B64/5540updates, reused fullinitial and Jan-Jun2026 developmentVAL; qualified B256/equalTF scoring only",
     "main_training_started": false,
-    "ready_for_later_one_use_admission": true,
+    "ready_for_later_one_use_admission": false,
     "training_readiness": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/EFFICIENCY_TRAINING_READY002.json",
       "sha256": "e731a1336880a4ed659282d0706a553fb57945fc3818f00f5a6e7f0f968efce7"
@@ -95886,5 +95886,37 @@
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/MAIN002_PREFLIGHT001.log",
       "sha256": "e9a746a4e86c821f2c97e8b78a942c9df5f1a7bfe8e0c7b412addd33645c31a3"
     }
+  },
+  "native_m5_ta_resilient_training_preparation_20261120_001": {
+    "status": "SOURCE_AND_389_FOCUSED_TESTS_PASS_PENDING_GENUINE_RECOVERY",
+    "operator_request": "Sikre ekstra med mellomlagring om noe skulle skje; vurder watt/GPU/CPU og5epoker/earlystop",
+    "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001",
+    "observed_gap": "Main002 checkpointbytes durable but no admissible practical maincontinuation after hard interruption/timecap; only mechanics coldproof",
+    "main_training_started": false,
+    "source_orchestration_changes_pending": false,
+    "checkpoint_cadence_updates": 256,
+    "five_epoch_preference_pending": false,
+    "default_if_no_epoche_answer": "Preserve one qualified first pass; propose up to5 only after learning evidence and separate explicit stop contract",
+    "training_admitted": false,
+    "test_authorized": false,
+    "operator_epoch_choice": "One epoch first; evaluate up to5 later",
+    "five_epoch_or_early_stop_execution_admitted": false,
+    "overnight_goal": {
+      "thread_id": "01a1f98c-5097-7d23-b0ca-ac7eb14a82f3",
+      "status": "active",
+      "objective": "Finish practical checkpoint recovery qualification, admit and run exactly one full TRAIN epoch, review TRAIN and developmentVAL; no automatic extraepochs",
+      "monitor_interval_minutes": 30,
+      "operator_requested_continuous_overnight_work": true
+    },
+    "operator_monitoring_cadence": "Latest explicit operator request: follow up every30minutes during stable runs; continuous existing hardware guards unchanged",
+    "unit_proof": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/UNIT_PROOF005.json",
+      "sha256": "a3a53c3ab13820405eb2ea0865088ccb71e039779c00b0a294dc5714fc1ce7e5"
+    },
+    "source_diff_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/SOURCE_DIFF_REVIEW004.json",
+      "sha256": "1d5de0f14c03e836b32a35435fabe18c1a84c4af208b1624da40f49dd2ec5e33"
+    },
+    "focused_current_cases_passed": 389
   }
 }

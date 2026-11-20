@@ -472,6 +472,8 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument('--plan',required=True);parser.add_argument('--plan-sha256',required=True)
     parser.add_argument('--out-dir',required=True);parser.add_argument('--preflight',action='store_true');parser.add_argument('--device',choices=('cpu','cuda'))
     args=parser.parse_args();common.firewall_state()
+    if Path(args.plan).name.startswith(('NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_','NATIVE_M5_TA_ATR03_FIVE_YEAR_CONTINUE_')):
+        return checkpoint_window_cli(args)
     if args.plan in(str(LARGER_PREPARE_PLAN),str(FIVE_YEAR_PREPARE_PLAN)):return larger_prepare_cli(args)
     if args.plan==str(THROUGHPUT_PLAN):return throughput_cli(args)
     if args.plan==str(NOISE_PREPARE_PLAN):return noise_prepare_cli(args)
@@ -1430,11 +1432,13 @@ def fit_checkpoint(model,optimizer,context,plan,plan_ref,cursor):
 
 def publish_checkpoint(path,checkpoint):
     import torch
+    rng_before=state_sha(training_rng())
     stream=io.BytesIO();torch.save(checkpoint,stream);payload=stream.getvalue();stream.close()
     binding=publish(path,payload)
     # Strict structural parity on serialized state; this does not construct a model.
     reloaded=torch.load(io.BytesIO(payload),map_location='cpu',weights_only=True)
     need(state_sha(reloaded)==state_sha(checkpoint),'FIT_CHECKPOINT_ROUNDTRIP')
+    need(state_sha(training_rng())==rng_before,'FIT_CHECKPOINT_PUBLICATION_RNG_MUTATION')
     return binding
 
 
@@ -1718,13 +1722,18 @@ def run_native_fit(plan_sha,mode):
     stage,path,root=FIT_SCOPES[mode];root.mkdir(exist_ok=False)
     claim=publish(root/'CLAIM.json',{'stage':stage,'status':'CLAIMED_ONE_USE','plan':plan_ref,
         'policy_at_claim':policy_ref,'physical_windows_boot_id':boot['actual_windows_boot_id'],
+        'process_identity':checkpoint_process_identity(),
         'max_invocations':1,'remaining_invocations':0,'test_data_used':False})
     old=signal.getsignal(signal.SIGALRM);result=None
     def expired(*args):raise TimeoutError('NATIVE_M5_FIT_INTERNAL_LIMIT')
     try:
         remaining=plan['recipe']['internal_seconds']-(time.monotonic()-began);need(remaining>0,'FIT_TIME_BEFORE_INPUTS')
         signal.signal(signal.SIGALRM,expired);signal.setitimer(signal.ITIMER_REAL,remaining)
-        report=fit_physical(plan,plan_ref,root)
+        if mode=='ta_five_year_main'and plan['recipe']['checkpoint_every_updates']==256:
+            report=checkpoint_window_physical(plan,plan_ref,root,execution_ref=plan_ref,claim=claim,
+                limits=plan['limits'],stop_after_cursor=plan['recipe']['fit_batches'],
+                deadline=began+plan['recipe']['internal_seconds'])
+        else:report=fit_physical(plan,plan_ref,root)
         if _mechanics(mode):
             authority=report.pop('_cold_authority')
             publish(root/'COLD_RESUME_AUTHORITY.json',{**authority,'plan':plan_ref,'claim':claim,
@@ -1742,11 +1751,14 @@ def run_native_fit(plan_sha,mode):
         if mode=='ta_five_year_mechanics':
             report['runtime_reference_trajectory']=runtime_mechanics_trajectory(report,plan)
         checked_fit_inputs(plan)
-        need(report['actual_counts']==plan['limits'],'FIT_ACTUAL_COUNT_LIMITS')
+        if report.get('status')=='RESUMABLE':
+            need(all(report['actual_counts'][k]<=v for k,v in plan['limits'].items()),'FIT_PAUSED_COUNT_LIMITS')
+        else:need(report['actual_counts']==plan['limits'],'FIT_ACTUAL_COUNT_LIMITS')
         need(fit_source_clean(plan)and ref(POLICY)==policy_ref and ref(path)==plan_ref,'FIT_SOURCE_POLICY_BOOKEND')
-        updates=3 if _mechanics(mode)else plan['recipe']['fit_batches']
+        updates=report['actual_counts']['optimizer_steps']if report.get('status')=='RESUMABLE'else 3 if _mechanics(mode)else plan['recipe']['fit_batches']
         result=publish(root/'RESULT.json',{'stage':stage,
-            'status':('COMPLETE_NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS'if mode=='ta_five_year_mechanics'else
+            'status':('RESUMABLE_NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT'if report.get('status')=='RESUMABLE'else
+                'COMPLETE_NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS'if mode=='ta_five_year_mechanics'else
                 'COMPLETE_NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT'if mode=='ta_five_year_main'else
                 'COMPLETE_NATIVE_M5_TA_ATR03_YEAR_MECHANICS'if mode=='ta_larger_mechanics'else
                 'COMPLETE_NATIVE_M5_TA_ATR03_YEAR_FIT'if mode=='ta_larger_main'else
@@ -1763,8 +1775,9 @@ def run_native_fit(plan_sha,mode):
             'optimizer_steps':updates,'training_authorized':True,'test_data_used':False,
             'economic_edge_proven':False,'clean_process_io_firewall':common.firewall_state(),
             'elapsed_seconds':time.monotonic()-began})
-        terminal=publish(root/'TERMINAL.json',{'stage':stage,'status':'COMPLETE','exit_code':0,
+        terminal=publish(root/'TERMINAL.json',{'stage':stage,'status':'RESUMABLE'if report.get('status')=='RESUMABLE'else'COMPLETE','exit_code':0,
             'plan':plan_ref,'claim':claim,'result':result,'source_unchanged':True,'remaining_invocations':0,
+            **({'checkpoint_receipt':report['checkpoint_receipt']}if report.get('status')=='RESUMABLE'else{}),
             'relaunch_allowed':False,'test_data_used':False})
         return {'result':result,'terminal':terminal}
     except BaseException as error:
@@ -2731,10 +2744,10 @@ def prepare_noise_native_fit(plan,root,*,reload_normalization=None,reload_prior=
 
 
 # Each throughput scope is one-use; consumed001/002 are not executable aliases.
-THROUGHPUT_STAGE='native_m5_ta_atr03_throughput_20261120_003'
-THROUGHPUT_PLAN=REPO/'configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003.json'
-THROUGHPUT_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003')
-THROUGHPUT_SOURCE_COMPATIBILITY_PATH=Path('/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/SOURCE_COMPATIBILITY001.json')
+THROUGHPUT_STAGE='native_m5_ta_atr03_throughput_20261120_004'
+THROUGHPUT_PLAN=REPO/'configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004.json'
+THROUGHPUT_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004')
+THROUGHPUT_SOURCE_COMPATIBILITY_PATH=Path('/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/SOURCE_COMPATIBILITY002.json')
 THROUGHPUT_INPUTS={
     'mechanics_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001/RESULT.json',
         'sha256':'7b099711b52f12312d94cefd9fb427a2e26bd1abbdc529dcc1e4f523f1b394e5'},
@@ -3304,7 +3317,7 @@ def larger_recipe(value, mode, metadata):
     need(type(n) is int and n >= 128 and metadata['epoch_batches'] == epoch,
          'LARGER_WHOLE_INPUT_TRAIN_EPOCH')
     need(value['fit_batches'] == (2 if mechanics else epoch)
-        and value['checkpoint_every_updates'] == (1 if mechanics else 1024 if _larger_spec(mode)['scope']=='five_year'else epoch)
+        and (value['checkpoint_every_updates'] in (256,1024) if not mechanics and _larger_spec(mode)['scope']=='five_year' else value['checkpoint_every_updates'] == (1 if mechanics else epoch))
         and value['checkpoint_every_updates'] <= value['fit_batches']
         and (value['outer_seconds']==1800 if mechanics else
             value['outer_seconds']==_larger_spec(mode)['main_seconds_max']if _larger_spec(mode)['scope']=='five_year'else value['outer_seconds']==3600)
@@ -3877,11 +3890,495 @@ FIT_SCOPES.update({
 
 
 FIT_SCOPES.update({
-    'ta_five_year_mechanics':('native_m5_ta_atr03_five_year_mechanics_20261120_002',
-        REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002.json',
-        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002')),
-    'ta_five_year_main':('native_m5_ta_atr03_five_year_fit_20261120_002',
-        REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002.json',
-        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002'))})
+    'ta_five_year_mechanics':('native_m5_ta_atr03_five_year_mechanics_20261120_003',
+        REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_003.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_003')),
+    'ta_five_year_main':('native_m5_ta_atr03_five_year_fit_20261120_003',
+        REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003'))})
+
+# Checkpoint windows extend this owner; each launch has a new exact admission.
+CHECKPOINT_RECEIPT_SCHEMA='gx1_native_m5_main_checkpoint_receipt_v1'
+CHECKPOINT_WINDOW_SCHEMA='gx1_native_m5_main_checkpoint_window_plan_v1'
+CHECKPOINT_INTERRUPTION_SCHEMA='gx1_native_m5_execution_interruption_v1'
+
+
+def checkpoint_process_identity():
+    import os
+    fields=Path('/proc/self/stat').read_text().rsplit(')',1)[1].split()
+    return {'pid':os.getpid(),'start_ticks':int(fields[19]),
+        'wsl_boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
+        'physical_windows_boot_id':physical_windows_boot_id()}
+
+def require_checkpoint_parent_stopped(identity):
+    need(type(identity)is dict and set(identity)=={'pid','start_ticks','wsl_boot_id','physical_windows_boot_id'}
+        and type(identity['pid'])is int and identity['pid']>0
+        and type(identity['start_ticks'])is int and identity['start_ticks']>0
+        and type(identity['wsl_boot_id'])is str and bool(identity['wsl_boot_id'])
+        and type(identity['physical_windows_boot_id'])is int and identity['physical_windows_boot_id']>0,
+        'CHECKPOINT_PARENT_IDENTITY')
+    boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+    windows_boot=physical_windows_boot_id()
+    need(windows_boot>=identity['physical_windows_boot_id'],'CHECKPOINT_PARENT_BOOT_ROLLBACK')
+    if boot!=identity['wsl_boot_id']or windows_boot>identity['physical_windows_boot_id']:return
+    path=Path('/proc')/str(identity['pid'])/'stat'
+    try:actual=int(path.read_text().rsplit(')',1)[1].split()[19])
+    except FileNotFoundError:return
+    need(actual!=identity['start_ticks'],'CHECKPOINT_PARENT_STILL_RUNNING')
+
+def checkpoint_state_proof(checkpoint):
+    return {'cursor':checkpoint['cursor'],
+        'model_state_sha256':state_sha(checkpoint['model_state']),
+        'optimizer_state_sha256':state_sha(checkpoint['optimizer_state']),
+        'rng_state_sha256':state_sha(checkpoint['rng_state']),
+        'schedule_position_sha256':state_sha(checkpoint['schedule_position']),
+        'bindings_sha256':state_sha(checkpoint['bindings']),
+        'training':checkpoint['training']}
+
+
+def checkpoint_prefix_counts(cursor):
+    return {'model_forwards':cursor,'backward_calls':cursor,'optimizer_steps':cursor,'autograd_calls':0}
+
+
+def publish_main_checkpoint(path,checkpoint,*,trajectory,trajectory_ref,execution_ref,claim,
+                            steps,restored_cursor,current_counts):
+    need(trajectory['mode']=='ta_five_year_main'
+        and trajectory['recipe']['passes']==1 and len(steps)==checkpoint['cursor'],
+        'CHECKPOINT_TRAJECTORY_PREFIX')
+    rng_before=state_sha(training_rng())
+    checkpoint_ref=publish_checkpoint(path,checkpoint)
+    receipt={'schema_version':CHECKPOINT_RECEIPT_SCHEMA,'trajectory_plan':trajectory_ref,
+        'execution_plan':execution_ref,'execution_claim':claim,'checkpoint':checkpoint_ref,
+        'cursor':checkpoint['cursor'],'schedule_position':checkpoint['schedule_position'],
+        'state_proof':checkpoint_state_proof(checkpoint),
+        'source_base_commit':trajectory['source_base_commit'],
+        'source_owners':trajectory['source_owners'],'source_unchanged':fit_source_clean(trajectory),
+        'steps':list(steps),'restored_prefix_updates':restored_cursor,
+        'current_window_counts':dict(current_counts),
+        'logical_prefix_counts':checkpoint_prefix_counts(checkpoint['cursor']),
+        'process_identity':checkpoint_process_identity(),'inherited_checkpoint_receipt':None,
+        'phase':'TRAIN_COMPLETE_SCORE_PENDING'if checkpoint['cursor']==trajectory['recipe']['fit_batches']else'TRAIN_PREFIX',
+        'test_data_used':False}
+    need(receipt['source_unchanged']is True,'CHECKPOINT_SOURCE_CHANGED')
+    receipt_path=path.parent/('CHECKPOINT_'+str(checkpoint['cursor']).zfill(6)+'.json')
+    binding=publish(receipt_path,receipt)
+    need(state_sha(training_rng())==rng_before,'CHECKPOINT_RECEIPT_PUBLICATION_RNG_MUTATION')
+    return binding,receipt
+
+
+def require_main_checkpoint_receipt(binding,trajectory,trajectory_ref):
+    receipt=read(binding)
+    fields={'schema_version','trajectory_plan','execution_plan','execution_claim','checkpoint',
+        'cursor','schedule_position','state_proof','source_base_commit','source_owners',
+        'source_unchanged','steps','restored_prefix_updates','current_window_counts',
+        'logical_prefix_counts','process_identity','phase','test_data_used','inherited_checkpoint_receipt'}
+    need(type(receipt)is dict and set(receipt)==fields
+        and receipt['schema_version']==CHECKPOINT_RECEIPT_SCHEMA
+        and receipt['trajectory_plan']==trajectory_ref and receipt['source_unchanged']is True
+        and receipt['test_data_used']is False
+        and receipt['source_base_commit']==trajectory['source_base_commit']
+        and receipt['source_owners']==trajectory['source_owners'],'CHECKPOINT_RECEIPT_IDENTITY')
+    cursor=receipt['cursor'];total=trajectory['recipe']['fit_batches']
+    need(type(cursor)is int and 0<=cursor<=total
+        and receipt['schedule_position']==larger_schedule_position(trajectory,cursor)
+        and receipt['logical_prefix_counts']==checkpoint_prefix_counts(cursor)
+        and type(receipt['restored_prefix_updates'])is int
+        and 0<=receipt['restored_prefix_updates']<=cursor
+        and type(receipt['steps'])is list and len(receipt['steps'])==cursor,
+        'CHECKPOINT_RECEIPT_CURSOR')
+    schedule=trajectory['training_schedule']['batch_source_rows_sha256']
+    need(all(type(step)is dict and step.get('source_rows_sha256')==schedule[i]
+             for i,step in enumerate(receipt['steps'])),'CHECKPOINT_RECEIPT_STEP_PREFIX')
+    proof=receipt['state_proof']
+    need(type(proof)is dict and set(proof)=={'cursor','model_state_sha256',
+        'optimizer_state_sha256','rng_state_sha256','schedule_position_sha256','bindings_sha256','training'}
+        and proof['cursor']==cursor and type(proof['training'])is bool
+        and proof['schedule_position_sha256']==state_sha(receipt['schedule_position'])
+        and all(type(proof[key])is str and len(proof[key])==64
+            and all(c in '0123456789abcdef'for c in proof[key])
+            for key in proof if key.endswith('_sha256')),'CHECKPOINT_RECEIPT_STATE_PROOF')
+    execution=read(receipt['execution_plan']);claim=read(receipt['execution_claim'])
+    root=Path(execution['output_root'])
+    if receipt['execution_plan']==trajectory_ref:
+        need(execution==trajectory and receipt['restored_prefix_updates']==0,'CHECKPOINT_RECEIPT_ORIGINAL_EXECUTION')
+    else:
+        _,_,expected_root=checkpoint_window_paths(receipt['execution_plan']['path'])
+        inp=execution['inputs']
+        expected=build_checkpoint_window_plan(plan_path=receipt['execution_plan']['path'],
+            trajectory_plan=inp['trajectory_plan'],checkpoint_receipt=inp.get('checkpoint_receipt'),
+            parent_end=inp.get('parent_end'),stop_after_cursor=execution['recipe']['stop_after_cursor'],
+            outer_seconds=execution['execution']['outer_seconds'],source_base_commit=execution['source_base_commit'])
+        need(execution==expected and inp['trajectory_plan']==trajectory_ref and root==expected_root
+            and receipt['restored_prefix_updates']==execution['recipe']['start_cursor']
+            and execution['recipe']['start_cursor']<=cursor<=execution['recipe']['stop_after_cursor'],
+            'CHECKPOINT_RECEIPT_BOUND_EXECUTION')
+    checkpoint=receipt['checkpoint'];checkpoint_path=Path(checkpoint['path'])
+    inherited=receipt['inherited_checkpoint_receipt']
+    if inherited is None:
+        need(Path(binding['path'])==root/('CHECKPOINT_'+str(cursor).zfill(6)+'.json')
+            and checkpoint_path.parent==root and checkpoint_path.name==(
+                'INITIAL_STATE.pt'if cursor==0 else'CHECKPOINT_'+str(cursor).zfill(6)+'.pt'),
+            'CHECKPOINT_RECEIPT_OWNED_PATH')
+    else:
+        original=require_main_checkpoint_receipt(inherited,trajectory,trajectory_ref)
+        need(receipt['execution_plan']!=trajectory_ref
+            and execution['inputs']['checkpoint_receipt']==inherited
+            and cursor==receipt['restored_prefix_updates']==original['cursor']
+            and checkpoint==original['checkpoint']and receipt['state_proof']==original['state_proof']
+            and receipt['steps']==original['steps']
+            and Path(binding['path'])==checkpoint_consumption_path(original),
+            'CHECKPOINT_RECEIPT_INHERITED_START')
+    need(ref(checkpoint_path)==checkpoint
+        and Path(receipt['execution_claim']['path'])==root/'CLAIM.json'
+        and claim['plan']==receipt['execution_plan']
+        and claim.get('process_identity')==receipt['process_identity']
+        and claim['status']=='CLAIMED_ONE_USE'
+        and receipt['phase']==('TRAIN_COMPLETE_SCORE_PENDING'if cursor==total else'TRAIN_PREFIX'),
+        'CHECKPOINT_RECEIPT_EXECUTION')
+    later=[p for p in root.glob('CHECKPOINT_[0-9][0-9][0-9][0-9][0-9][0-9].json')
+           if int(p.stem.rsplit('_',1)[1])>cursor]
+    need(not later,'CHECKPOINT_RECEIPT_NOT_LAST_PUBLISHED')
+    counts=receipt['current_window_counts'];updates=cursor-receipt['restored_prefix_updates']
+    need(type(counts)is dict and counts=={'model_constructions':0 if inherited is not None else 1,'model_forwards':updates,
+        'backward_calls':updates,'optimizer_steps':updates,'autograd_calls':0},
+        'CHECKPOINT_RECEIPT_WINDOW_COUNTS')
+    return receipt
+
+
+def checkpoint_window_paths(plan_path):
+    import re
+    path=Path(plan_path)
+    need(path.is_absolute()and path.parent==REPO/'configs/research'
+        and path.resolve()==path and re.fullmatch(
+            r'NATIVE_M5_TA_ATR03_FIVE_YEAR_(?:WINDOW|CONTINUE)_[0-9]{8}_[0-9]{3}\.json',path.name)is not None,
+        'CHECKPOINT_WINDOW_CANONICAL_PATH')
+    stage=path.stem.lower();root=Path('/home/andre2/GX1_RUNS')/path.stem
+    return stage,path,root
+
+
+def require_checkpoint_parent_end(binding,receipt):
+    value=read(binding);execution_root=Path(read(receipt['execution_plan'])['output_root'])
+    receipt_path=checkpoint_consumption_path(read(receipt['inherited_checkpoint_receipt']))if receipt['inherited_checkpoint_receipt']is not None else execution_root/('CHECKPOINT_'+str(receipt['cursor']).zfill(6)+'.json')
+    receipt_ref=ref(receipt_path)
+    need(value.get('plan')==receipt['execution_plan']
+        and value.get('claim')==receipt['execution_claim']
+        and value.get('test_data_used')is False,'CHECKPOINT_PARENT_END_BINDINGS')
+    if value.get('schema_version')==CHECKPOINT_INTERRUPTION_SCHEMA:
+        terminal_path=execution_root/'TERMINAL.json'
+        need(not terminal_path.exists()and not terminal_path.is_symlink(),
+            'CHECKPOINT_INTERRUPTION_CANONICAL_TERMINAL_PRESENT')
+        need(value.get('status')=='INTERRUPTED'
+            and value.get('checkpoint_receipt')==receipt_ref
+            and value.get('process_identity')==receipt['process_identity']
+            and type(value.get('reason'))is str and bool(value['reason'].strip())
+            and value.get('physical_work_after_last_receipt')=='UNKNOWN',
+            'CHECKPOINT_INTERRUPTION_EVIDENCE')
+    else:
+        need(Path(binding['path'])==execution_root/'TERMINAL.json',
+            'CHECKPOINT_PARENT_TERMINAL_PATH')
+        need(value.get('status')in('RESUMABLE','FAILED_CONSUMED')
+            and value.get('remaining_invocations')==0 and value.get('relaunch_allowed')is False,
+            'CHECKPOINT_PARENT_TERMINAL')
+        if value['status']=='RESUMABLE':
+            need(value.get('checkpoint_receipt')==receipt_ref,
+                'CHECKPOINT_PARENT_RESUMABLE_RECEIPT')
+    require_checkpoint_parent_stopped(receipt['process_identity'])
+    return value
+
+
+def checkpoint_consumption_path(receipt):
+    root=Path(read(receipt['execution_plan'])['output_root'])
+    return root/('CHECKPOINT_'+str(receipt['cursor']).zfill(6)+'_CONSUMED.json')
+
+
+def consume_checkpoint_receipt(receipt,binding,*,execution_ref,claim):
+    # This one atomic file is both the no-fork claim and the child's safe
+    # zero-update start receipt. There is no two-file publication gap.
+    need(receipt['logical_prefix_counts']==checkpoint_prefix_counts(receipt['cursor']),
+        'CHECKPOINT_CONSUMPTION_PREFIX')
+    current_claim=read(claim)
+    need(current_claim['plan']==execution_ref,'CHECKPOINT_CONSUMPTION_CLAIM')
+    child={**receipt,'execution_plan':execution_ref,'execution_claim':claim,
+        'process_identity':current_claim['process_identity'],
+        'restored_prefix_updates':receipt['cursor'],
+        'current_window_counts':{'model_constructions':0,'model_forwards':0,
+            'backward_calls':0,'optimizer_steps':0,'autograd_calls':0},
+        'inherited_checkpoint_receipt':binding}
+    return publish(checkpoint_consumption_path(receipt),child)
+
+
+def checkpoint_window_limits(trajectory,start,stop):
+    updates=stop-start
+    scoring=sum((item['rows']+trajectory['recipe']['score_batch_rows']-1)//trajectory['recipe']['score_batch_rows']
+        for item in trajectory['metadata']['selected_cohorts'].values())if stop==trajectory['recipe']['fit_batches']else 0
+    return {'model_constructions':1,'model_forwards':updates+scoring,'backward_calls':updates,
+        'optimizer_steps':updates,'autograd_calls':0}
+
+
+def build_checkpoint_window_plan(*,plan_path,trajectory_plan,stop_after_cursor,outer_seconds,
+                                 checkpoint_receipt=None,parent_end=None,source_base_commit=None):
+    stage,path,root=checkpoint_window_paths(plan_path);trajectory=read(trajectory_plan)
+    need(trajectory.get('mode')=='ta_five_year_main'and trajectory['recipe']['passes']==1
+        and trajectory['recipe']['checkpoint_every_updates']==256
+        and trajectory==build_fit_plan(inputs=trajectory['inputs'],recipe=trajectory['recipe'],
+            mode=trajectory['mode'],source_base_commit=trajectory['source_base_commit'])
+        and fit_source_clean(trajectory),'CHECKPOINT_WINDOW_ORIGINAL_TRAJECTORY')
+    need((checkpoint_receipt is None)==(parent_end is None),'CHECKPOINT_WINDOW_PARENT_ROLES')
+    inputs={'trajectory_plan':trajectory_plan};start=0
+    if checkpoint_receipt is not None:
+        receipt=require_main_checkpoint_receipt(checkpoint_receipt,trajectory,trajectory_plan)
+        require_checkpoint_parent_end(parent_end,receipt);start=receipt['cursor']
+        inputs.update(checkpoint_receipt=checkpoint_receipt,parent_end=parent_end)
+    continuation=checkpoint_receipt is not None
+    need(('_CONTINUE_'in path.name)is continuation,'CHECKPOINT_WINDOW_PATH_ROLE')
+    total=trajectory['recipe']['fit_batches']
+    need(type(stop_after_cursor)is int and start<=stop_after_cursor<=total
+        and(stop_after_cursor>start or start==total),'CHECKPOINT_WINDOW_STOP_CURSOR')
+    need(type(outer_seconds)is int and outer_seconds in(1800,10800)and outer_seconds<=trajectory['execution']['outer_seconds'],
+        'CHECKPOINT_WINDOW_EXPLICIT_DEADLINE')
+    execution={**trajectory['execution'],'outer_seconds':outer_seconds,'internal_seconds':outer_seconds-30}
+    return {'schema_version':CHECKPOINT_WINDOW_SCHEMA,'stage':stage,
+        'mode':'ta_five_year_continuation'if continuation else'ta_five_year_window',
+        'status':'PREPARED_NOT_ADMITTED','output_root':str(root),'inputs':inputs,
+        'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
+        'source_owners':{name:sha(REPO/name)for name in LARGER_SOURCE_PATHS},
+        'recipe':{'start_cursor':start,'stop_after_cursor':stop_after_cursor,
+            'trajectory_plan':trajectory_plan,'passes':1,'checkpoint_every_updates':256},
+        'execution':execution,'limits':checkpoint_window_limits(trajectory,start,stop_after_cursor),
+        'normalization_fits':0,'prior_fits':0,'test_data_used':False,'training_authorized':True,
+        'automatic_continuation_allowed':False,'relaunch_allowed':False}
+
+
+def inspect_checkpoint_window(plan_path,plan_sha,*,admitted):
+    stage,path,root=checkpoint_window_paths(plan_path)
+    need(Path.cwd().resolve()==REPO and not root.exists(),'CHECKPOINT_WINDOW_CWD_OUTPUT')
+    plan_ref={'path':str(path),'sha256':plan_sha};plan=read(plan_ref);inputs=plan['inputs']
+    expected=build_checkpoint_window_plan(plan_path=path,trajectory_plan=inputs['trajectory_plan'],
+        checkpoint_receipt=inputs.get('checkpoint_receipt'),parent_end=inputs.get('parent_end'),
+        stop_after_cursor=plan['recipe']['stop_after_cursor'],outer_seconds=plan['execution']['outer_seconds'],
+        source_base_commit=plan['source_base_commit'])
+    need(plan==expected and larger_source_clean(plan),'CHECKPOINT_WINDOW_PLAN_SOURCE')
+    policy_ref=ref(POLICY);policy=read(policy_ref);gate=policy.get(stage,{})
+    closed=set(ta_audit.data.CLOSED_FLAGS)-{'training_enabled','native_training_enabled'}
+    need(all(policy.get(k)is False for k in closed)
+        and policy.get('training_enabled')is admitted and policy.get('native_training_enabled')is admitted,
+        'CHECKPOINT_WINDOW_GLOBAL_GATE')
+    need(gate.get('plan')==plan_ref and gate.get('output_root')==str(root)
+        and gate.get('max_invocations')==1 and gate.get('claimed_invocations')==gate.get('completed_invocations')==0
+        and gate.get('training_authorized')is admitted and gate.get('execution_authorized')is admitted
+        and gate.get('relaunch_allowed')is False and gate.get('test_authorized')is False
+        and gate.get('status')==('ADMITTED_ONE_USE'if admitted else'PREPARED_NOT_ADMITTED')
+        and gate.get('remaining_invocations')==(1 if admitted else 0)
+        and all(gate.get(k)==v for k,v in plan['limits'].items()),'CHECKPOINT_WINDOW_EXACT_GATE')
+    trajectory=read(inputs['trajectory_plan']);checked_fit_inputs(trajectory)
+    if 'checkpoint_receipt'in inputs:
+        receipt=read(inputs['checkpoint_receipt']);consumed=checkpoint_consumption_path(receipt)
+        need(not consumed.exists()and not consumed.is_symlink(),'CHECKPOINT_ALREADY_CONSUMED')
+    if admitted:fit_boot_state(trajectory,admitted=True)
+    return plan,plan_ref,policy_ref
+
+
+def checkpoint_window_score(model,context,panels,trajectory,*,deadline,reserve):
+    # Stop between eval batches; partial scores are discarded. The ordinary
+    # score owner still restores mode/RNG in its finally block.
+    deferred=TimeoutError('CHECKPOINT_WINDOW_SCORE_DEFERRED')
+    before=state_sha(model.state_dict());rng=state_sha(training_rng());training=model.training
+    def safe_batch_boundary(module,args):
+        if time.monotonic()>=deadline-reserve:raise deferred
+    hook=model.register_forward_pre_hook(safe_batch_boundary,prepend=True)
+    try:
+        try:return fit_score(model,context,panels,trajectory)
+        except TimeoutError as error:
+            if error is not deferred:raise
+            return None,None
+    finally:
+        hook.remove()
+        need(state_sha(model.state_dict())==before and state_sha(training_rng())==rng
+            and model.training is training,'WINDOW_SCORE_STATE_RNG_MUTATION')
+
+
+def checkpoint_window_physical(trajectory,trajectory_ref,root,*,execution_ref,claim,limits,
+                               stop_after_cursor,deadline,checkpoint_receipt=None,execution_start_receipt=None):
+    import torch
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    context=prepare_native_fit(trajectory,root);recipe=trajectory['recipe']
+    normalization_body=state_sha(context['normalization'])
+    source_body=state_sha(_fit_source_binding(context['provider'],trajectory))
+    selected,selected_report=larger_selected(context,trajectory)
+    batches=larger_training_batches(selected,trajectory)
+    panels={'TRAIN':all_score_batches(selected['FIT'],recipe['score_batch_rows']),
+        'CONTROL':all_score_batches(selected['CONTROL'],recipe['score_batch_rows'])}
+    model,optimizer=fresh_fit_model(context['provider'],context['normalization'],
+        {**trajectory,'limits':limits},train_prior=context['prior'])
+    model.require_prior_initialization_state()
+    initial_sha=canonical_model_state_sha256(model.state_dict())
+    need(initial_sha==trajectory['metadata']['prepared']['initial_state_sha256'],'WINDOW_FRESH_INITIAL_IDENTITY')
+    initial,_capture,prior_initialization=load_larger_initial(model,context,trajectory);del _capture
+    initial_checkpoint=publish_checkpoint(root/'INITIAL_STATE.pt',fit_checkpoint(model,optimizer,context,
+        trajectory,trajectory_ref,0))
+    restored=0;steps=[];parent_receipt=None
+    if checkpoint_receipt is not None:
+        parent_receipt=require_main_checkpoint_receipt(checkpoint_receipt,trajectory,trajectory_ref)
+        require_checkpoint_parent_stopped(parent_receipt['process_identity'])
+        checkpoint=torch.load(parent_receipt['checkpoint']['path'],map_location='cpu',weights_only=True)
+        need(checkpoint_state_proof(checkpoint)==parent_receipt['state_proof'],'WINDOW_RESTORE_PUBLISHED_STATE_PROOF')
+        restored=restore_fit_checkpoint(model,optimizer,context,trajectory,trajectory_ref,checkpoint)
+        steps=list(parent_receipt['steps']);del checkpoint
+    need(restored<=stop_after_cursor<=len(batches),'WINDOW_RESTORED_CURSOR')
+    saved=[execution_start_receipt]if execution_start_receipt else[]
+    latest=execution_start_receipt;latest_body=read(latest)if latest else None;cursor=restored
+    def save():
+        nonlocal latest,latest_body
+        if latest_body is not None and latest_body['cursor']==cursor:return
+        need(all(parameter.grad is None for parameter in model.parameters()),'WINDOW_CHECKPOINT_GRADS_NOT_ZERO')
+        rng_before=state_sha(training_rng())
+        state=fit_checkpoint(model,optimizer,context,trajectory,trajectory_ref,cursor)
+        path=root/('INITIAL_STATE.pt'if cursor==0 else'CHECKPOINT_'+str(cursor).zfill(6)+'.pt')
+        if cursor==0:
+            # The exact fresh state was already published before restoring.
+            checkpoint_ref=initial_checkpoint
+            need(ref(path)==checkpoint_ref,'WINDOW_INITIAL_CHECKPOINT_BOOKEND')
+            proof=checkpoint_state_proof(state)
+            receipt={'schema_version':CHECKPOINT_RECEIPT_SCHEMA,'trajectory_plan':trajectory_ref,
+                'execution_plan':execution_ref,'execution_claim':claim,'checkpoint':checkpoint_ref,
+                'cursor':0,'schedule_position':state['schedule_position'],'state_proof':proof,
+                'source_base_commit':trajectory['source_base_commit'],'source_owners':trajectory['source_owners'],
+                'source_unchanged':fit_source_clean(trajectory),'steps':[],
+                'restored_prefix_updates':0,'current_window_counts':dict(model._native_fit_counts),
+                'logical_prefix_counts':checkpoint_prefix_counts(0),'process_identity':checkpoint_process_identity(),
+                'phase':'TRAIN_PREFIX','test_data_used':False,'inherited_checkpoint_receipt':None}
+            need(receipt['source_unchanged']is True,'WINDOW_INITIAL_SOURCE')
+            latest=publish(root/'CHECKPOINT_000000.json',receipt);latest_body=receipt
+        else:
+            latest,latest_body=publish_main_checkpoint(path,state,trajectory=trajectory,
+                trajectory_ref=trajectory_ref,execution_ref=execution_ref,claim=claim,steps=steps,
+                restored_cursor=restored,current_counts=model._native_fit_counts)
+        saved.append(latest)
+        need(state_sha(training_rng())==rng_before,'WINDOW_CHECKPOINT_PUBLICATION_RNG_MUTATION')
+    if restored==0:save()
+    reserve=trajectory['execution']['outer_seconds']-trajectory['execution']['internal_seconds']
+    need(reserve==30,'WINDOW_EXISTING_DEADLINE_RESERVE')
+    soft_stop=False
+    for index in range(restored,stop_after_cursor):
+        if time.monotonic()>=deadline-reserve:
+            soft_stop=True;break
+        started=time.monotonic()
+        step=fit_step(model,optimizer,context['provider'],context['cohorts']['TRAIN'],batches[index],trajectory)
+        torch.cuda.synchronize();step['elapsed_seconds']=time.monotonic()-started
+        steps.append(step);cursor=index+1
+        if cursor<=2:
+            need(step['heads_gradient_l2']>0 and(step['backbone_gradient_l2']==0 if cursor==1
+                else step['backbone_gradient_l2']>0),'WINDOW_GRADIENT_TRANSITION')
+        if cursor%256==0 or cursor==stop_after_cursor:save()
+    save()
+    complete=cursor==len(batches)and not soft_stop and time.monotonic()<deadline-reserve
+    scores=None;capture_ref=None;final_checkpoint=None
+    if complete:
+        scores,capture=checkpoint_window_score(model,context,panels,trajectory,deadline=deadline,reserve=reserve)
+        if scores is None:complete=False;soft_stop=True
+    if complete:
+        torch.cuda.synchronize()
+        publish(root/'SCORE_PASS_001.json',{'pass':1,'completed_updates':cursor,'scores':scores})
+        stream=io.BytesIO();np.savez_compressed(stream,**capture)
+        capture_ref=publish(root/'FINAL_CAPTURE.npz',stream.getvalue());stream.close();del capture
+        final_checkpoint=publish_checkpoint(root/'FINAL_STATE.pt',fit_checkpoint(model,optimizer,context,
+            trajectory,trajectory_ref,cursor))
+    counts=dict(model._native_fit_counts)
+    need(all(counts[k]<=limits[k]for k in limits),'WINDOW_CURRENT_COUNT_LIMITS')
+    if complete:need(counts==limits,'WINDOW_COMPLETED_COUNT_LIMITS')
+    need(fit_source_clean(trajectory)and len(steps)==cursor
+        and state_sha(context['normalization'])==normalization_body
+        and state_sha(_fit_source_binding(context['provider'],trajectory))==source_body
+        and ref(context['normalization_ref']['path'])==context['normalization_ref'],
+        'WINDOW_FINAL_SOURCE_PREFIX')
+    report={'status':'COMPLETE'if complete else'RESUMABLE','trajectory_plan':trajectory_ref,
+        'execution_plan':execution_ref,'completed_updates':cursor,'restored_prefix_updates':restored,
+        'current_window_updates':cursor-restored,'requested_stop_after_cursor':stop_after_cursor,
+        'soft_deadline_reached':soft_stop or time.monotonic()>=deadline-reserve,
+        'checkpoint_receipt':latest,'checkpoint':latest_body['checkpoint'],'checkpoint_receipts':saved,
+        'initial_checkpoint':initial_checkpoint,'final_checkpoint':final_checkpoint,
+        'initial_state_sha256':initial_sha,'final_state_sha256':canonical_model_state_sha256(model.state_dict()),
+        'state_proof':latest_body['state_proof'],'steps':steps,'actual_counts':counts,
+        'restored_prefix_counts':checkpoint_prefix_counts(restored),
+        'logical_prefix_counts':checkpoint_prefix_counts(cursor),
+        'logical_total_counts':{**checkpoint_prefix_counts(cursor),'model_forwards':cursor+
+            (sum(map(len,panels.values()))if complete else 0)},
+        'physical_work_after_parent_receipt':'UNKNOWN'if parent_receipt else'NO_PARENT',
+        'axis':context['axis'],'normalization':context['normalization_ref'],'prior':context['prior_ref'],
+        'normalization_population':context['normalization']['fit_population'],
+        'normalization_fits':0,'prior_fits':0,'selected_cohorts':selected_report,
+        'initial':initial,'final':scores,'prior_initialization':prior_initialization,
+        'initial_baseline_reused':True,'prepared_initial_parent':trajectory['metadata']['prepared']['result'],
+        'initial_score_artifact':trajectory['metadata']['prepared']['initial_score_artifact'],
+        'captures':{'INITIAL':trajectory['metadata']['prepared']['initial_capture'],'FINAL':capture_ref},
+        'checkpoints':[read(binding)['checkpoint']for binding in saved],
+        'canonical_optimizer_updates':cursor,'evaluation_batches_per_phase':sum(map(len,panels.values())),
+        'training_schedule':trajectory['training_schedule'],
+        'actual_source_row_schedule_sha256':digest(np.concatenate(batches[:cursor]))if cursor else digest(np.empty(0,np.int64)),
+        'train_batch_rows':recipe['batch_rows'],'score_batch_rows':recipe['score_batch_rows'],
+        'declared_passes':1,'qualification_weights_loaded':False,
+        'score_lane':'eval_no_grad_same_frozen_TRAIN_stats_qualified_execution_route',
+        'score_scope':'five_year_TRAIN_and_Jan_Jun2026_development_VAL_all_rows_including_unknown_tails',
+        'cuda_peak_allocated_bytes':torch.cuda.max_memory_allocated(),
+        'cuda_peak_reserved_bytes':torch.cuda.max_memory_reserved(),
+        'test_data_used':False,'economic_edge_proven':False}
+    need(report['cuda_peak_reserved_bytes']<=LARGER_VRAM_MAX,'WINDOW_VRAM_LIMIT')
+    return report
+
+
+def run_checkpoint_window(plan_path,plan_sha):
+    from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
+    began=time.monotonic();guard=require_guarded_cuda_trainer_execution();common.firewall_state()
+    plan,plan_ref,policy_ref=inspect_checkpoint_window(plan_path,plan_sha,admitted=True)
+    root=Path(plan['output_root']);root.mkdir(exist_ok=False)
+    claim=publish(root/'CLAIM.json',{'stage':plan['stage'],'status':'CLAIMED_ONE_USE','plan':plan_ref,
+        'policy_at_claim':policy_ref,'process_identity':checkpoint_process_identity(),
+        'max_invocations':1,'remaining_invocations':0,'test_data_used':False})
+    trajectory_ref=plan['inputs']['trajectory_plan'];trajectory=read(trajectory_ref)
+    deadline=began+plan['execution']['internal_seconds'];old=signal.getsignal(signal.SIGALRM)
+    result=None
+    def expired(*args):raise TimeoutError('NATIVE_M5_WINDOW_INTERNAL_LIMIT')
+    try:
+        signal.signal(signal.SIGALRM,expired);remaining=deadline-time.monotonic()
+        need(remaining>0,'WINDOW_TIME_BEFORE_INPUTS');signal.setitimer(signal.ITIMER_REAL,remaining)
+        start_receipt=None
+        if 'checkpoint_receipt'in plan['inputs']:
+            parent=read(plan['inputs']['checkpoint_receipt'])
+            start_receipt=consume_checkpoint_receipt(parent,plan['inputs']['checkpoint_receipt'],
+                execution_ref=plan_ref,claim=claim)
+        report=checkpoint_window_physical(trajectory,trajectory_ref,root,execution_ref=plan_ref,
+            claim=claim,limits=plan['limits'],stop_after_cursor=plan['recipe']['stop_after_cursor'],
+            deadline=deadline,checkpoint_receipt=plan['inputs'].get('checkpoint_receipt'),
+            execution_start_receipt=start_receipt)
+        need(larger_source_clean(plan)and ref(POLICY)==policy_ref and ref(plan_path)==plan_ref,
+            'WINDOW_SOURCE_POLICY_BOOKEND')
+        result=publish(root/'RESULT.json',{'stage':plan['stage'],'status':report['status'],
+            'plan':plan_ref,'claim':claim,'report':report,'guard':guard,'source_unchanged':True,
+            'test_data_used':False,'optimizer_steps':report['actual_counts']['optimizer_steps'],
+            'remaining_invocations':0,'relaunch_allowed':False,'elapsed_seconds':time.monotonic()-began,
+            'clean_process_io_firewall':common.firewall_state()})
+        terminal=publish(root/'TERMINAL.json',{'stage':plan['stage'],'status':report['status'],
+            'exit_code':0,'plan':plan_ref,'claim':claim,'result':result,
+            'checkpoint_receipt':report['checkpoint_receipt'],'remaining_invocations':0,
+            'relaunch_allowed':False,'source_unchanged':True,'test_data_used':False})
+        return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        publish(root/'TERMINAL.json',{'stage':plan['stage'],'status':'FAILED_CONSUMED','exit_code':1,
+            'plan':plan_ref,'claim':claim,'result':result,'error':type(error).__name__+':'+str(error)[:2000],
+            'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
+        raise
+    finally:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old)
+
+
+def checkpoint_window_cli(args):
+    _,_,root=checkpoint_window_paths(args.plan)
+    need(args.device=='cuda'and args.out_dir==str(root),'CHECKPOINT_WINDOW_CLI')
+    if args.preflight:
+        plan,plan_ref,policy_ref=inspect_checkpoint_window(args.plan,args.plan_sha256,admitted=False)
+        print(json.dumps({'status':'PREFLIGHT_CHECKPOINT_WINDOW_METADATA_ONLY','plan':plan_ref,
+            'policy':policy_ref,'claim_created':False,'model_constructions':0,'optimizer_steps':0,
+            'start_cursor':plan['recipe']['start_cursor'],'stop_after_cursor':plan['recipe']['stop_after_cursor']}))
+    else:print(json.dumps(run_checkpoint_window(args.plan,args.plan_sha256),sort_keys=True))
+
 
 if __name__=='__main__':main()

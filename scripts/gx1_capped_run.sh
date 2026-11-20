@@ -569,6 +569,9 @@ matches_bound_native_m5_full_gc_fit() {
     "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003.json")
       expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003.json"
       expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003 ;;
+    "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004.json")
+      expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004.json"
+      expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004 ;;
     "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_YEAR_PREPARE_20261120_001.json")
       expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_YEAR_PREPARE_20261120_001.json"
       expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_YEAR_PREPARE_20261120_001 ;;
@@ -587,12 +590,23 @@ matches_bound_native_m5_full_gc_fit() {
     "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002.json")
       expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002.json"
       expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002 ;;
+    "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_003.json")
+      expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_003.json"
+      expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_003 ;;
     "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json")
       expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json"
       expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001 ;;
     "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002.json")
       expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002.json"
       expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002 ;;
+    "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003.json")
+      expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003.json"
+      expected_output=/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003 ;;
+    "$REPO_ROOT"/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_*.json|"$REPO_ROOT"/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_CONTINUE_*.json)
+      local window_basename="${5##*/}"
+      [[ "$window_basename" =~ ^NATIVE_M5_TA_ATR03_FIVE_YEAR_(WINDOW|CONTINUE)_[0-9]{8}_[0-9]{3}\.json$ ]] || return 1
+      expected_plan="$REPO_ROOT/configs/research/$window_basename"
+      expected_output="/home/andre2/GX1_RUNS/${window_basename%.json}" ;;
     *) return 1 ;;
   esac
   if [[ $# -eq 12 ]]; then
@@ -1157,16 +1171,24 @@ validate_target_command() {
     fi
     TRAINER_DEVICE=cuda
     TRAINER_OUT_BUNDLE_DIR="${11}"
-    if [[ "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_PREPARE_20261120_001.json" ]]; then
+    if [[ "$5" =~ /NATIVE_M5_TA_ATR03_FIVE_YEAR_(WINDOW|CONTINUE)_[0-9]{8}_[0-9]{3}\.json$ ]]; then
+      local window_wall_seconds
+      if ! window_wall_seconds=$(/usr/bin/jq -er 'select(.schema_version == "gx1_native_m5_main_checkpoint_window_plan_v1") | .execution.outer_seconds | select(type == "number" and floor == . and (. == 1800 or . == 10800))' "$5"); then
+        echo "FATAL: checkpoint window has no exact supported execution deadline" >&2
+        exit 75
+      fi
+      TRAINER_MAX_WALL_SECONDS="$window_wall_seconds"
+      TRAINER_MODEL_MAX_WALL_SECONDS="$window_wall_seconds"
+    elif [[ "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_PREPARE_20261120_001.json" ]]; then
       TRAINER_MAX_WALL_SECONDS=5400
       TRAINER_MODEL_MAX_WALL_SECONDS=5400
-    elif [[ "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002.json" ]]; then
+    elif [[ "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003.json" ]]; then
       TRAINER_MAX_WALL_SECONDS=10800
       TRAINER_MODEL_MAX_WALL_SECONDS=10800
     elif [[ "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_YEAR_FIT_20261120_001.json" ]]; then
       TRAINER_MAX_WALL_SECONDS=3600
       TRAINER_MODEL_MAX_WALL_SECONDS=3600
-    elif [[ "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_002.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_MECHANICS_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIMARY_BACKBONE_FIT_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_MECHANICS_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIT_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_YEAR_PREPARE_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_YEAR_MECHANICS_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_002.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002.json" ]]; then
+    elif [[ "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_FIT_MECHANICS_20261119_002.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_MECHANICS_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_LEARNING_CURVE_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_PRIMARY_BACKBONE_FIT_20261119_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_MECHANICS_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIT_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_YEAR_PREPARE_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_YEAR_MECHANICS_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_002.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004.json" || "$5" == "$REPO_ROOT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_003.json" ]]; then
       TRAINER_MAX_WALL_SECONDS=1800
       TRAINER_MODEL_MAX_WALL_SECONDS=1800
     else

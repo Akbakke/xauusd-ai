@@ -7,9 +7,10 @@ Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 ## Konklusjon 20.11.2026
 
 Den bestilte fullprosjektrevisjonen er ferdig innen autorisert omfang, med
-uttrykkelige ubeviste grenser nedenfor. Det er ikke funnet en gjenstående konkret
-teknisk blokkering for den forberedte ene femårspassen. Ikke gjør nye generelle
-modell-/lossjusteringer uten målt begrunnelse fra læringsresultatet.
+uttrykkelige ubeviste grenser nedenfor. Den tidligere tekniske beredskapen gjaldt én
+pass med lagrede checkpoints og mekanikkens coldproof. Siste operatørbestilling
+avdekket at praktisk maincontinuation etter krasj/tidsgrense mangler. Hovedtrening
+er stengt mens dette rettes; ingen nye modell-/lossjusteringer er bestilt.
 
 Hovedtrening er IKKE innrømmet eller startet. Alle treningsporter er stengt,
 CLAIM=0, remaining=0 og outputroten finnes ikke. Neste steg krever egen engangs-
@@ -22,6 +23,33 @@ Samlet kvittering under `/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_0
 `TRAINING_READY_FULL_PROJECT_AUDIT001.json`, SHA
 `778872b2f141bf12d9f9e287ea387f061e08b62e5bd94719a239597519c24edc`.
 Eksakte øvrige referanser/SHA står i policy og disse kvitteringene.
+
+## Aktiv ekstra sikring før trening
+
+Praktisk mainresume mangler: cold_resume er kun mekanikk med levendeparent, samme
+boot/policy og cursor1→2. Main002 kan ikke selv gjenoppta etter krasj/3hcap.
+Originale PT-checkpoints er atomiske med fil- og katalog-fsync, men mangler varig
+per-checkpoint receipt/step-prefix og en ny engangscontinuationrute. Dette rettes
+nå i eksisterende eier. Cadence256 er valgt for ekstra sikring (~22PT/2,1GB på
+én epoke); bare fullførte optimizergrenser kan publiseres. Ingen nød-save midt
+under optimizer. Kilde er implementert og389fokustilfeller består:387uendredePASS gjenbrukt og
+to foreldede scope-ID-forventninger rettet til nye engangsidentiteter. Kjerne-
+funksjoner for modell, fit/score, RNG, optimizerrestore og batchschedule har
+uendret AST. To uavhengige kildepeer-reviews består; faktisk separat-prosess-/
+checkpointqual gjenstår. Ingen hovedtrening er startet.
+
+i9-10900K:10fysiske kjerner/20logiske tråder,19WSLvCPUer. Treneraffinity0–18 gir
+alleredetilgangtilalle19;8er numeriskpool. GPU250Wcap og målte korte topper179/190W
+gir ikke bevis for gevinst ved høyere watt/trådtall. CPUboost0 er tilsiktet stabilitetsprofil etter tidligere HyperV-krasj. Ingen
+etablert CPU-packagewatt/temperaturmåling finnes; sensorruten krever egen
+PawnIOdriver. CPUvakter er affinity/tråder/tasks/minne, ikke termisk/wattstop.
+Ingen driver-/boost-/wattendring er gjort. Brukeren har eksplisitt valgt én epoke først, deretter vurdering av inntilfem.
+Ingen femepoke-/earlystop-admisjon er gitt. Aktivt nattmål skal ferdigstille praktisk
+resume, innrømme og kjøre én kvalifisert fullpass og evaluere TRAIN/utviklingsVAL.
+Siste eksplisitte operatørvalg: stabil langkjøring følges opp hvert30.minutt.
+Eksisterende maskinvarevakter overvåker kontinuerlig. Ingen minuttvise modellrunder.
+
+Kvitteringer: `GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001`.
 
 ## Aktiv effektiviseringsbølge 20.11.2026
 

@@ -1,6 +1,7 @@
 """Exact YEAR and FIVE_YEAR routes only; shell extraction never launches guards, data or CUDA."""
 from __future__ import annotations
 import hashlib
+import json
 import shlex
 import subprocess
 from pathlib import Path
@@ -16,12 +17,24 @@ BASENAMES=('NATIVE_M5_TA_ATR03_YEAR_PREPARE_20261120_001',
     'NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001',
     'NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003',
     'NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002',
-    'NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002')
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002',
+    'NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004',
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_003',
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003',
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261120_001',
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_CONTINUE_20261120_001',
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261120_002',
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_CONTINUE_20261120_002')
 
 
 def _fixture(tmp_path,basename):
     folder=tmp_path/'configs/research';folder.mkdir(parents=True)
-    path=folder/(basename+'.json');path.write_text('{"test_only":true}\n')
+    path=folder/(basename+'.json')
+    if '_WINDOW_'in basename or '_CONTINUE_'in basename:
+        seconds=10800 if basename.endswith('_002')else 1800
+        path.write_text(json.dumps({'schema_version':'gx1_native_m5_main_checkpoint_window_plan_v1',
+            'execution':{'outer_seconds':seconds}})+'\n')
+    else:path.write_text('{"test_only":true}\n')
     python=str(tmp_path/'.venv/bin/python')
     args=[python,'-m','gx1.audit.qualify_native_m5_full_gc_direction_v1','--plan',str(path),
         '--plan-sha256',hashlib.sha256(path.read_bytes()).hexdigest(),'--device','cuda',
@@ -54,7 +67,7 @@ def test_native_year_route_is_literal_and_sha_bound(tmp_path,basename,variant):
     assert (result.returncode==0)==(variant in('valid','preflight')),result.stderr
 
 
-@pytest.mark.parametrize('basename,seconds',zip(BASENAMES,(1800,1800,3600,5400,1800,10800,1800,1800,10800)))
+@pytest.mark.parametrize('basename,seconds',zip(BASENAMES,(1800,1800,3600,5400,1800,10800,1800,1800,10800,1800,1800,10800,1800,1800,10800,10800)))
 def test_native_year_route_uses_existing_gpu_guards_and_exact_deadline(tmp_path,basename,seconds):
     _,args,prefix,source=_fixture(tmp_path,basename)
     signature='  if [[ "'+'$'+'{3:-}" == "$NATIVE_M5_FULL_GC_FIT_TRAINER_MODULE" ]]; then'
@@ -66,3 +79,19 @@ def test_native_year_route_uses_existing_gpu_guards_and_exact_deadline(tmp_path,
     result=subprocess.run(['bash','-c',shell],capture_output=True,text=True)
     assert result.returncode==0,result.stderr
     assert result.stdout.splitlines()==['cuda',args[10],str(seconds),str(seconds),'300','310','85']
+
+
+@pytest.mark.parametrize('schema,seconds',[
+    ('wrong',1800),('gx1_native_m5_main_checkpoint_window_plan_v1',0),
+    ('gx1_native_m5_main_checkpoint_window_plan_v1',1801),
+    ('gx1_native_m5_main_checkpoint_window_plan_v1',10801)])
+def test_checkpoint_window_rejects_unsupported_guard_deadline(tmp_path,schema,seconds):
+    path,args,prefix,source=_fixture(tmp_path,'NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261120_001')
+    path.write_text(json.dumps({'schema_version':schema,'execution':{'outer_seconds':seconds}}))
+    args[6]=hashlib.sha256(path.read_bytes()).hexdigest()
+    signature='  if [[ "'+'$'+'{3:-}" == "$NATIVE_M5_FULL_GC_FIT_TRAINER_MODULE" ]]; then'
+    branch=signature+source.split(signature,1)[1].split('\n  if ! is_direct_python',1)[0]
+    shell=prefix+'\nATTENDED_SMOKE=false\nCUDA_PRODUCER_GUARD=false\nvalidate_native_route() {\n'+branch+'\n}\n'
+    result=subprocess.run(['bash','-c',shell+'validate_native_route '+shlex.join(args)],capture_output=True,text=True)
+    assert result.returncode==75
+    assert 'exact supported execution deadline'in result.stderr
