@@ -1,6 +1,10 @@
 """One native M5/closed-MTF six-year physical TA cache; no learning or targets."""
 from __future__ import annotations
 import argparse
+import ast
+from datetime import datetime, timezone
+import os
+import resource
 import hashlib
 import json
 from pathlib import Path
@@ -29,16 +33,18 @@ from gx1.contracts.native_m5_direction_io_firewall_v1 import install_native_m5_d
 from gx1.features.volatility_squeeze_state_v1 import load_volatility_squeeze_artifact_manifest
 
 REPO=owner.REPO;POLICY=REPO/'NEXT_RUN_POLICY.json'
-STAGE='native_m5_ta_history_expansion_20261120_001'
-PLAN=REPO/'configs/research/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_001.json'
-ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_001')
+STAGE='native_m5_ta_history_expansion_20261120_002'
+PLAN=REPO/'configs/research/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_002.json'
+ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_002')
 START_NS=1538352000000000000  # 2018-10-01T00:00:00Z
 END_NS=1727740800000000000    # 2024-10-01T00:00:00Z
 INPUT_REFS={
     'ta_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_006/RESULT.json',
         'sha256':'5c015b3af8a17c8a16459be0eeba5ca017b7625db91e193aa84b101e664e7bca'},
     'ta_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_006/TERMINAL.json',
-        'sha256':'849bcda1483e088ca5fa2ec8671e8ed6b003654331a6556c70af53dcfc11c874'}}
+        'sha256':'849bcda1483e088ca5fa2ec8671e8ed6b003654331a6556c70af53dcfc11c874'},
+    'previous_exit_observation':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_001/OPERATOR_EXIT_OBSERVATION.json',
+        'sha256':'3a77d7ae4c9169891fcd8d85a6c9874a2ad27d7c3623b50a2153970b3fae1060'}}
 EXECUTION={'class':'producer','device':'cpu','memory':'12G','swap':'512M','tasks_max':64,
     'numerical_threads':1,'internal_seconds':3570,'external_wall_timeout_enforced':False}
 COUNTS={'model_constructions':0,'model_forwards':0,'autograd_calls':0,'optimizer_steps':0,
@@ -66,8 +72,83 @@ def publish_artifact(name,value):
     return {'path':str(path),'sha256':hashlib.sha256(raw).hexdigest()}
 
 
+_ALIAS_HELPER_SOURCE = """def _native_m5_alias_vector(m5,per_bar):
+    return m5.attrs['feats_np'][:,m5.columns.get_loc(per_bar)].astype(np.float32,copy=False)
+"""
+_ALIAS_OLD_EXPRESSION='m5[per_bar].to_numpy(np.float32,copy=False)'
+_ALIAS_NEW_EXPRESSION='_native_m5_alias_vector(m5,per_bar)'
+_ALIAS_EXCLUDED=('native_m5_feature_provider_contract','fit_native_m5_feature_normalization')
+
+
+def alias_layout_numeric_identity(source):
+    """Normalize only the proven Series-to-array alias access replacement."""
+    tree=ast.parse(source);helper=ast.parse(_ALIAS_HELPER_SOURCE).body[0]
+    helpers=[node for node in tree.body if isinstance(node,ast.FunctionDef)and node.name==helper.name]
+    need(len(helpers)==1 and ast.dump(helpers[0])==ast.dump(helper),'EXACT_ALIAS_HELPER_AST')
+    calls=[node for node in ast.walk(tree)if isinstance(node,ast.Call)
+        and isinstance(node.func,ast.Name)and node.func.id==helper.name]
+    expected=ast.dump(ast.parse(_ALIAS_NEW_EXPRESSION,mode='eval').body)
+    need(len(calls)==1 and ast.dump(calls[0])==expected,'EXACT_SINGLE_ALIAS_CALL')
+    builders=[node for node in tree.body if isinstance(node,ast.FunctionDef)
+        and node.name=='build_native_m5_feature_surfaces']
+    assignments=[node for node in ast.walk(builders[0])if isinstance(node,ast.Assign)
+        and len(node.targets)==1 and ast.dump(node.targets[0])==ast.dump(ast.parse('values[local]=None').body[0].targets[0])
+        and ast.dump(node.value)==expected]if len(builders)==1 else []
+    need(len(assignments)==1,'EXACT_ALIAS_ASSIGNMENT')
+    assignments[0].value=ast.parse(_ALIAS_OLD_EXPRESSION,mode='eval').body
+    tree.body.remove(helpers[0])
+    return owner.numeric_ast_identity(ast.unparse(tree),excluded_functions=_ALIAS_EXCLUDED)
+
+
+def numeric_owner_identities(old_plan):
+    identities={};bridge=None
+    relative='gx1/contracts/market_state_native_m5_feature_inputs_v1.py'
+    for name in owner.NUMERIC_OWNER_PATHS:
+        original=subprocess.check_output(['git','show',old_plan['source_base_commit']+':'+name],cwd=REPO)
+        if name in old_plan['source_owners']:
+            need(hashlib.sha256(original).hexdigest()==old_plan['source_owners'][name],'ORIGINAL_NUMERIC_SOURCE')
+        current=(REPO/name).read_text()
+        excluded=_ALIAS_EXCLUDED if name==relative else ()
+        before=owner.numeric_ast_identity(original.decode(),excluded_functions=excluded)
+        after=alias_layout_numeric_identity(current)if name==relative else owner.numeric_ast_identity(current)
+        need(before==after,'NUMERIC_OWNER_CHANGED:'+name)
+        identities[name]=after
+        if name==relative:
+            bridge={'schema_version':'gx1_native_m5_alias_array_access_bridge_v1','source_owner':name,
+                'original_sha256':hashlib.sha256(original).hexdigest(),'current_sha256':sha(REPO/name),
+                'helper_ast_sha256':hashlib.sha256(ast.dump(ast.parse(_ALIAS_HELPER_SOURCE).body[0]).encode()).hexdigest(),
+                'normalized_numeric_ast_sha256':after,'exact_replaced_alias_calls':1,
+                'scope':'identical_ordered_float32_column_bytes_without_pandas_Series_attrs_copy'}
+    return identities,bridge
+
+
+def previous_exit_metadata(inputs):
+    observation=read(inputs['previous_exit_observation'])
+    need(observation['schema_version']=='gx1_native_ta_cache_external_exit_observation_v1'
+        and observation['stage']=='native_m5_ta_history_expansion_20261120_001'
+        and observation['outer_exit_code']==137 and observation['native_RESULT_present']is False
+        and observation['native_TERMINAL_present']is False and observation['cache_artifacts_present']is False
+        and observation['durable_artifacts_before_observation']==['CLAIM.json']
+        and observation['source_policy_plan_unchanged_at_external_bookend']is True
+        and observation['scope_directly_recorded_in_claim']is False
+        and observation['independent_cache_qualification_passed']is False
+        and observation['training_started']is False and observation['test_data_used']is False
+        and observation['relaunch_allowed']is False,'CONSUMED_001_EXIT_OBSERVATION')
+    return {'observation':inputs['previous_exit_observation'],'plan':observation['plan'],'claim':observation['claim'],
+        'outer_exit_code':137,'native_RESULT_present':False,'native_TERMINAL_present':False,
+        'source_policy_plan_unchanged_at_external_bookend':True,
+        'failure_phase_unknown':observation['failure_phase_unknown'],'attribution_limit':observation['attribution_limit']}
+
+
+def phase(name):
+    return publish_artifact('PHASE_'+name+'.json',{'schema_version':'gx1_native_ta_cache_phase_v1',
+        'stage':STAGE,'phase':name,'timestamp_utc':datetime.now(timezone.utc).isoformat(),
+        'pid':os.getpid(),'ru_maxrss_kib':int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)})
+
+
 def metadata(inputs):
     need(type(inputs)is dict and inputs==INPUT_REFS,'EXACT_QUALIFIED_PARENT')
+    previous_exit=previous_exit_metadata(inputs)
     result,terminal=(read(inputs[key])for key in ('ta_result','ta_terminal'))
     plan,claim=read(result['plan']),read(result['claim'])
     need(result['status']=='COMPLETE_NATIVE_M5_PIPELINE_TECHNICAL_QUALIFICATION'
@@ -102,12 +183,14 @@ def metadata(inputs):
     dependencies.update({'native_part_'+str(i):{'path':p['path'],'sha256':p['sha256']}for i,p in enumerate(spec['parts'])})
     source_metadata={part['path']:owner.data.part_metadata(part)for part in spec['parts']}
     no_torch()
+    numeric_owners,alias_bridge=numeric_owner_identities(plan)
     return {'dependencies':dependencies,'feature_source_spec':spec,'feature_source_metadata':source_metadata,
         'parameter_inputs':{key:plan['inputs'][key]for key in ('prefitted_squeeze_manifest','prefitted_registry_constants',
             'squeeze_fit_plan','registry_fit_plan','native_source_plan')},
         'geometry':plan['geometry'],'parameter_reuse':parameters,'feature_contract':contract,
         'expected_full_source_binding':old_source,'reference_snapshot':snapshot_ref,'reference_archive':archive_ref,
-        'numeric_owner_identities':owner.numeric_owner_identities(plan)}
+        'numeric_owner_identities':numeric_owners,'alias_layout_bridge':alias_bridge,
+        'previous_consumed_invocation':previous_exit}
 
 
 def build_plan(*,inputs,source_base_commit=None):
@@ -235,23 +318,34 @@ def produce(plan):
     need(parameters==meta['parameter_reuse'],'PARAMETER_BOOKEND')
     squeeze=load_volatility_squeeze_artifact_manifest(Path(parameters['squeeze_manifest']['path']),
         expected_sha256=parameters['squeeze_manifest']['sha256'],clocks=features.TIMEFRAMES)
+    phases=[phase('01_BEFORE_RAW_READ')]
     native=owner.read_feature_source(meta)
+    phases.append(phase('02_AFTER_RAW_READ'))
     binding=features.bind_native_m5_feature_source(native,native_m5_manifest=meta['feature_source_spec']['manifest'],
         source_spec=meta['feature_source_spec'])
     need(binding==meta['expected_full_source_binding'],'FULL_PREFIX_BYTE_IDENTITY')
+    phases.append(phase('03_BEFORE_FEATURE_BUILD'))
     surfaces=features.build_native_m5_feature_surfaces(native,source_binding=binding,v29_registry_constants=constants,
         volatility_squeeze_artifacts=squeeze,issue_start_ns=START_NS,issue_end_ns=END_NS)
-    provider=features.NativeM5FeatureProvider(surfaces);del native,surfaces,constants,squeeze
+    phases.append(phase('04_AFTER_FEATURE_BUILD'))
+    phases.append(phase('05_BEFORE_PROVIDER_INIT'))
+    provider=features.NativeM5FeatureProvider(surfaces)
+    phases.append(phase('06_AFTER_PROVIDER_INIT'))
+    del native,surfaces,constants,squeeze
+    phases.append(phase('07_BEFORE_SNAPSHOT_PUBLISH'))
     snapshot=owner.publish_feature_snapshot(provider,publish_artifact=publish_artifact)
+    phases.append(phase('08_AFTER_SNAPSHOT_PUBLISH'))
     del provider
     import gc
     gc.collect()
+    phases.append(phase('09_BEFORE_SNAPSHOT_RELOAD'))
     provider=load_snapshot(snapshot)
+    phases.append(phase('10_AFTER_SNAPSHOT_RELOAD'))
     need(provider.surfaces['axes']['issue_start_ns']==START_NS and provider.surfaces['axes']['issue_end_ns']==END_NS
         and provider.surfaces['provider_contract']==meta['feature_contract'],'RELOADED_SCOPE_CONTRACT')
     annual=yearly_readiness(provider);parity=overlap_parity(provider,meta['reference_snapshot'],meta['reference_archive'])
     no_torch()
-    return {'snapshot':snapshot,'archive':read(snapshot)['archive'],'source_binding':binding,
+    return {'snapshot':snapshot,'archive':read(snapshot)['archive'],'source_binding':binding,'phases':phases,
         'source_axes':provider.surfaces['axes'],'yearly_readiness':annual,'overlap_parity':parity,
         'families':list(provider.profile['local_specialists']),'macro_fields':list(provider.profile['macro_context_fields']),
         'rows':len(provider.surfaces['retained_issue_rows']),'retained_local_rows':len(provider.retained_source_rows),
@@ -268,7 +362,9 @@ def run(plan_sha):
         and signal.getitimer(signal.ITIMER_REAL)==(0.,0.),'EXACT_CAP')
     plan,plan_ref,policy_ref=inspect(plan_sha,admitted=True);ROOT.mkdir(exist_ok=False)
     claim=publish_artifact('CLAIM.json',{'stage':STAGE,'status':'CLAIMED_ONE_USE','plan':plan_ref,
-        'policy_at_claim':policy_ref,'max_invocations':1,'remaining_invocations':0,'test_data_used':False})
+        'policy_at_claim':policy_ref,'max_invocations':1,'remaining_invocations':0,'test_data_used':False,
+        'timestamp_utc':datetime.now(timezone.utc).isoformat(),'pid':os.getpid(),
+        'capped_execution':cap,'lock_ancestry':lock,'cgroup_path':cap['cgroup_path']})
     old=signal.getsignal(signal.SIGALRM);result=None
     def expired(*args):raise TimeoutError('NATIVE_TA_CACHE_INTERNAL_3570S')
     try:

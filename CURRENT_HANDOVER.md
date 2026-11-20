@@ -90,8 +90,18 @@ userjournal14m48CPU; originalCLAIM mangler direkte cgroup/PID-binding.
 Ingen løpende arbeider;41source/plan/policy var uendret ved ekstern bookend.
 OPERATOR_EXIT_OBSERVATION.json og launcherlog er bevart, ingen original
 terminal er fabrikert. Planen er konsumert og ALLE porter stengt.
-Eksakt feilfase (bygging/serialisering) er ikke isolert. Neste steg er avgrenset
-minne-/kopilivsløpsrevisjon, uten relaunch, capøkning eller ny produksjon. CPU12G/512M,
+Eksakt feilfase er ikke isolert. En liten audit4G-måling med Pandas2.3.3/COW-off
+viste derimot at3kolonnevalg cachet3fulle attrs-matrisekopier (64→192B).
+Den aktive M5-aliasløkken bruker samme Series-kall med store featureattrs.
+Minste rettelse er direkte NumPy-kolonneview med identiske float32/NaN-bits;
+ingen HTF-/writerrefaktor eller capøkning. Kilden er kvalifisert med eksakt smal
+AST-bro/17numeriskeeiere og byte/NaN/view/itemcache-proofs:11ulike fokuserte
+cachetilfeller består påtversavbølger (5uendredegjenbrukt). Én nytest forventet
+feil exceptiontype; kun testforventningen ble rettet. Uavhengig source-review
+og genuin metadata utenrawdecode/Torch består. Ny002plan klargjøres. Workerens
+eksakte COW-setting/dødsfase er ukjent. NyCLAIM må binde cgroup/PID/cap, og
+små fase/maxRSS-kvitteringer skal lokalisere en eventuell ny hardkill.
+Ingen produksjon/trening er innrømmet;001 relanseres aldri. CPU12G/512M,
 1tråd/64tasks og internSIGALRM3570s beholdes; ingen eksternwallcap eller
 seksårs kjøretid/minne er påstått. Rapportert primary_matrix_bytes er
 delvolum; total27-arrayvolum må beregnes fra descriptorene.

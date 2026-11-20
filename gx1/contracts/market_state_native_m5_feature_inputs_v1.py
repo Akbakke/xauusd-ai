@@ -171,6 +171,10 @@ def bind_native_m5_feature_source(native_m5, *, native_m5_manifest, source_spec)
         'raw_columns':list(RAW_COLUMNS),'raw_values_sha256':_array_sha(values,'<f8')})
 
 
+def _native_m5_alias_vector(m5,per_bar):
+    return m5.attrs['feats_np'][:,m5.columns.get_loc(per_bar)].astype(np.float32,copy=False)
+
+
 def build_native_m5_feature_surfaces(native_m5, *, source_binding, v29_registry_constants,
                                       volatility_squeeze_artifacts,issue_start_ns,issue_end_ns):
     """Compute all full-TA fields from native M5 and declared as-of macro sources."""
@@ -213,7 +217,7 @@ def build_native_m5_feature_surfaces(native_m5, *, source_binding, v29_registry_
     m5=multi_tf['M5'];_need(m5.index.equals(source.index[local_rows]),'LOCAL_M5_AXIS')
     values={};lineage={}
     for local,per_bar in layers.model_native_m5_local_per_bar_exact_aliases():
-        values[local]=m5[per_bar].to_numpy(np.float32,copy=False)
+        values[local]=_native_m5_alias_vector(m5,per_bar)
         lineage[local]='same_native_M5_owner:'+per_bar
     from gx1.features.trendline_registry_v1 import compute_trendline_registry_features_v1
     trend_source=source.loc[:,['high','low','close']].copy()
