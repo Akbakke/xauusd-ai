@@ -98,7 +98,9 @@ ingen HTF-/writerrefaktor eller capøkning. Kilden er kvalifisert med eksakt sma
 AST-bro/17numeriskeeiere og byte/NaN/view/itemcache-proofs:11ulike fokuserte
 cachetilfeller består påtversavbølger (5uendredegjenbrukt). Én nytest forventet
 feil exceptiontype; kun testforventningen ble rettet. Uavhengig source-review
-og genuin metadata utenrawdecode/Torch består. Ny002plan klargjøres. Workerens
+og genuin metadata utenrawdecode/Torch består. Ny002plan er klargjort, egenidentitet og samme6år/12G/3570s;
+preflight/selvstendiginnrømming gjenstår. Obligatoriske precommit-kontrakter
+for modell-nativegrensen bestod også. Workerens
 eksakte COW-setting/dødsfase er ukjent. NyCLAIM må binde cgroup/PID/cap, og
 små fase/maxRSS-kvitteringer skal lokalisere en eventuell ny hardkill.
 Ingen produksjon/trening er innrømmet;001 relanseres aldri. CPU12G/512M,
