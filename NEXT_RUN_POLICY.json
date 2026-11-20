@@ -94693,8 +94693,8 @@
     "dependency_function_coverage_complete": false,
     "all_feature_numerical_coverage_complete": true,
     "retention_reachability_complete": true,
-    "cleanup_completed": false,
-    "deleted_bytes": 0,
+    "cleanup_completed": true,
+    "deleted_bytes": 35728601088,
     "monitor_interval_minutes": 30,
     "owners": {
       "integration_policy_storage_launch": "root",
@@ -94702,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Allnumerics/statsqualified. Unclaimedmain sourceguardFalse afterretentionutilitychanges; reboundONLYsource_base_commit tolatestcodecommit2cee, all53sources/inputs/recipe/initialstate unchanged, no traininggatesopened. Currentfeatureaudit refreshed; retentionplanreview/bytecoveragecontinue.",
+    "latest_observation": "SoleownerDELETE_COMPLETE8targets22files35.7286GBallocated afterfreshdryrun,source/policyunchanged341.747s. FreeWSLspace+35.7285GBobserved. Keeperspresent; finalpositivebyteauditwillrecheckretainedcopySHA. DefaultUID1000sessionCapEff/Amb0 aftertemporaryadminroute. Guardedfulltestcollectionthenfinalbyte/presealcoveragepending.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94727,7 +94727,7 @@
       "sha256": "b8f4b791f13a84eaa2b99ed0649fafb38534067ab7e2f7f9e1ad083493238a85"
     },
     "retention_owner_tests_passed": 170,
-    "retention_real_deletions": 0,
+    "retention_real_deletions": 8,
     "dependency_function_inventory_complete": true,
     "current_python_files": 1402,
     "current_function_definitions": 20251,
@@ -94838,7 +94838,16 @@
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/MAIN_REBOUND_PREFLIGHT001.log",
       "sha256": "5d8aaf1947192af8604a69005052240df569640d3419c6ae11ba7df6f1819c5c"
     },
-    "main_fresh_metadata_preflight_passed": true
+    "main_fresh_metadata_preflight_passed": true,
+    "retention_deleted_regular_files": 22,
+    "retention_execution": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_EXECUTION001/GX1_EVIDENCE_CLEANUP_EXECUTION_20261120T191602651775Z.json",
+      "sha256": "50ecbbf128efcf314a06c52b73784e54b640e07d0171606cf6d97f0a777a3635"
+    },
+    "retention_postdelete_metadata": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_POSTDELETE_METADATA001.json",
+      "sha256": "806ca19cb8087e5c57cbfaf2efb2bf8da8f39b6633396be4e9c2ac0443f3128a"
+    }
   },
   "full_project_current_native_feature_numeric_20261120_001": {
     "status": "COMPLETE_CONSUMED",
@@ -95382,16 +95391,16 @@
     }
   },
   "full_project_retention_cleanup_20261120_001": {
-    "status": "EXACT_OWNER_APPROVED_DRYRUN_THEN_EXECUTE_AUTHORIZED",
+    "status": "DELETE_COMPLETE_CONSUMED_EXACT_EIGHT_TARGETS",
     "user_deletion_authorization": "Explicit2026-11-20wholeprojectunnecessarystoragecleanup; soleexistingretentionowner only",
     "candidate_targets": 8,
     "candidate_allocated_payload_bytes": 35728601088,
-    "physical_deletions": 0,
-    "deleted_allocated_bytes": 0,
+    "physical_deletions": 8,
+    "deleted_allocated_bytes": 35728601088,
     "training_authorized": false,
     "test_authorized": false,
-    "cleanup_plan_authorized": true,
-    "cleanup_execute_authorized": true,
+    "cleanup_plan_authorized": false,
+    "cleanup_execute_authorized": false,
     "retention_owner": "gx1.scripts.cleanup_gx1_evidence_v1",
     "FD_guard_unchanged": true,
     "temporary_inspection_capabilities": [
@@ -95443,8 +95452,8 @@
       "sha256": "08349083e1d087c652a36be4936db2914601130c8a9a03f620d4eebf5f2f4765"
     },
     "execution_max_invocations": 1,
-    "execution_claimed_invocations": 0,
-    "execution_remaining_invocations": 1,
+    "execution_claimed_invocations": 1,
+    "execution_remaining_invocations": 0,
     "pipeline_worker": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_DRYRUN_EXECUTE_WORKER001.py",
       "sha256": "771cd3f3d0f9911e98cd69d1fcbb602ef46241c2d30ad743f5958017e8a979a3"
@@ -95456,6 +95465,43 @@
     "pipeline_output": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_PIPELINE001",
     "owner_execution_output": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_EXECUTION001",
     "fresh_owner_dry_run_must_precede_execute": true,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "regular_files_deleted": 22,
+    "deleted_logical_bytes": 35728523861,
+    "owner_execution": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_EXECUTION001/GX1_EVIDENCE_CLEANUP_EXECUTION_20261120T191602651775Z.json",
+      "sha256": "50ecbbf128efcf314a06c52b73784e54b640e07d0171606cf6d97f0a777a3635"
+    },
+    "pipeline_terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_PIPELINE001/TERMINAL.json",
+      "sha256": "38bbe98827e996db44e0e040e4c2ab00f810be7681626ae555466fa2ad0f9061"
+    },
+    "postdelete_metadata": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_POSTDELETE_METADATA001.json",
+      "sha256": "806ca19cb8087e5c57cbfaf2efb2bf8da8f39b6633396be4e9c2ac0443f3128a"
+    },
+    "default_session_effective_and_ambient_caps_zero": true
+  },
+  "full_project_guarded_test_collection_20261120_001": {
+    "status": "ADMITTED_COLLECTION_ONLY_NO_TEST_BODIES",
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/GUARDED_TEST_COLLECTION_WORKER001.py",
+      "sha256": "2e3b0f573ba93509218c4d0d251d57f0c7eb4fd3d0cc58b32dc0e12b02517286"
+    },
+    "output_root": "/tmp/GX1_GUARDED_TEST_COLLECTION_20261120",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "test_data_authorized": false,
+    "test_bodies_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "memory": "4G",
+    "swap": "512M",
+    "numerical_threads": 1,
+    "tasks_max": 64,
+    "outer_seconds": 600,
+    "limits": "Trusted-process hooks/named decoder entrances, not OSsandbox. Normal Torch models/optimizers/autograd/checkpoint loads and genuineDATA/RUNS/egress/writesoutsidefreshoutput are denied. Collection/import coverage only."
   }
 }
