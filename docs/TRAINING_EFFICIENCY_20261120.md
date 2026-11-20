@@ -1,13 +1,31 @@
 # GX1: effektivitet og kortere treningstid
 
-Dato: 20.11.2026. Lesende vurdering av CURRENT, branch `work/gx1-current`,
-kildegrunnlag `f1446337`. Dette er forslag til prioritering, ikke utførte
-ytelsesendringer, modellkvalifikasjoner eller ny treningsadmisjon.
+Dato:20.11.2026. Gjennomført i CURRENT, branch `work/gx1-current`,
+fryst kodebase `1a03fa47`. Hovedplan002 er klargjort; hovedtrening er ikke startet.
 
-Den eksisterende ene femårspassen er klargjort: 354550 TRAIN-issues,
-34934 utviklings-VAL-issues, B64, 5540 optimizeroppdateringer og 11626
-modellforwards. Av disse er 6086 sluttmåling på hele TRAIN og utviklings-VAL.
-10800 sekunder er hard kjøretidsgrense, ikke bevist ferdigtid.
+354550 TRAIN-issues og34934 utviklings-VAL-issues beholdes. TRAIN er fortsatt
+B64, én kronologisk pass og5540optimizerupdates. Kvalifisert B256/equalTF ved
+sluttscoring reduserer denne fra6086 til1522forwards; samlet main fra11626 til7062.
+10800sekunder er hardgrense, ikke dokumentert ferdigtid.
+
+## Gjennomført og kvalifisert på ekte data
+
+| Tiltak | Målt / bevist |
+|---|---|
+| Lokal bindingsvalidering | Én fersk validering fremfor to i hvert bindingkall. Samme kontraktberegning, ny mutasjonsnektelse og ingen varig cache. Uavhengig fullmodul-AST-restitusjon består. |
+| Grouped finite-forward | TRAIN/EVAL-B64 output/loss/gradient/RNG bitidentiske mot autentisert gammel kontrollflyt. Alle finitevakter ferdigstilles før loss. |
+| B256 + equal-length-TF-scoring | 256TRAIN-rader:2,110990→0,534416s, omtrent3,95ganger throughput i dette panelet. Ingen feature-/TF-/presisjonskutt. |
+| Reelle optimizersteg og cold resume | Mekanikk002:3updates/7forwards/6autograd; modell, optimizer, RNG, cursor, schedule og stegrapporter matcher original001eksakt. Kald gjenopptakelse i ny prosess er bitidentisk. |
+| Målrettede tester | 295uendrede/påvirkede tilfeller +8nye positive/negative porttester består; originale testfunksjoner og52andre kildeeiere er bevist uendret ved append. Obligatoriske pre-commit-kontrakter består. |
+| Maskinvarevakter | Diagnostikken holdt peak CUDA-reserved7331643392bytes under12GiB. Signerte47samples: maks50Ccore/48Cmem/179,28W. Mekanikkens67samples:50Ccore/50Cmem/189,58W. Ingen vakt svekket. |
+| Telemetri etter restart | Eksisterende portproxyregel manglet aktiv lytter38128. Eksakt etablert delete/add av samme private regel gjenopprettet signert transport. Sertifikat, brannmur og tjenester ble ikke endret. Årsaken til manglende runtime-lytter etter boot er ubevist. |
+
+B256/equalTF er **toleranseparitet**, ikke bitidentiske CUDA-resultater: største
+logitavvik1,1920929e-7, hidden2,6226044e-6, innen på forhånd bundet eksisterende
+`atol=1e-6, rtol=1e-5`. Tellinger, confusion og ties var eksakte; state/RNG
+uendret. Reell korttail består. Dette er panel256+tail2, ikke en full ny
+numerisk sammenligning av alle framtidige sluttoutputs. Ingen hovedfit,
+generalisering eller økonomisk edge er bevist av hastighetskvalifikasjonen.
 
 ## Behold det som allerede sparer arbeid
 
@@ -33,41 +51,34 @@ modellforwards. Av disse er 6086 sluttmåling på hele TRAIN og utviklings-VAL.
   Ny Session, også etter restart, gjør fortsatt nødvendig fersk fysisk og
   semantisk inputvalidering gjennom eksisterende eier.
 
-## Målt første kandidat: samle finite-kontroller i forward
+## Målt B64-trening med samme matematikk
 
-Eksisterende `model_finite_check_scope('grouped')` brukes i diagnostikken,
-men ikke rundt modellkallet i main eller sluttscoring. Kontroller beholdes;
-detached predikater samles og ferdigstilles før scope returnerer output.
-
-THROUGHPUT002 målte samme B64-panel uten optimizeroppdateringer:
+THROUGHPUT003 brukte den autentiserte originale bindingsmetoden og hovedrutens
+allerede aggregerte grad-/parametervakter som referanse. Gammel AST ble
+kompilert én gang før timerne. Seks forwards/backwards, ingen optimizerupdates:
 
 | Løp | Veggsekunder |
 |---|---:|
-| Referanse | 1,2806 / 1,2758 |
-| Grouped | 1,1399 / 1,1544 |
+| Referanse |1,131552 /1,111187|
+| Lokal binding + grouped-forward |1,054665 /1,063698|
 
-Output, loss, klippet gradient og RNG var byteidentiske. Vektene var uendret.
-Profilerte synkroniseringer falt fra1537 til208 og `item` fra1435 til106
-sammenlignet med THROUGHPUT001. Diagnostikken endret både forwardkontroller
-og gradient-/parameteraggregasjon; main har allerede sistnevnte. Hele
-tidsforskjellen kan derfor ikke tilskrives ubrukt forward-scope. Dette er
-ikke en målt AdamW- eller fullfitgevinst.
+Gjennomsnittlig paneltid falt1,121370→1,059182s, omtrent5,5prosent. Output,
+loss, klippet gradient og RNG er bitidentiske. Profilert løp på2,629148s brukes
+ikke i hastighetsberegningen. Dette er ikke målt AdamW- eller fullfitgevinst.
 
-**Prioritet1, foreslått kvalifikasjon:** Gjenbruk eksisterende scope i den
-aktive eieren; behold FP32, batchrekkefølge, dropout, RNG og alle vakter.
-Kvalifiser identisk output/loss/gradient/RNG, første ikke-finite feilmelding,
-nøstede scopes og feil før output når loss. Bevis deretter faktiske native
-updates, optimizer/state og kald resume. Integrator må binde eventuell ny
-kilde og plan; eksisterende konsumerte diagnostikkplaner relanseres ikke.
-Tiltaket er ikke gjennomført i denne bølgen.
+Ny mekanikk002, på samme B64TRAIN-oppskrift og kilde, kvalifiserte deretter
+faktiske updates og kald resume samt eksakt gammel modell-/optimizer-/RNG-bane.
+Gammel fullinitial på6086forwards gjenbrukes gjennom eksplisitt kildebro,
+uendrede modellberegninger og samme ferske initialstate. Kvalifiseringsvekter
+brukes ikke til main. Konsumerte planer relanseres ikke.
 
 ## Øvrige kandidater og minste nødvendige bevis
 
 | Prioritet | Tiltak | Status, konkret grense og kvalifikasjon |
 |---|---|---|
-| 2 | Samordne gjentatt bindingskontroll | `_require_binding` kostet0,387s kumulativt i én profilert B64-forward, inklusive nestede normaliserings-/inputkontroller. Isoler kostnaden; undersøk samordning av identiske kontroller innen samme forward. Behold kontroll av mutable buffere og alle kontraktsbindinger. Ingen persistent modell-/state-/checkpointcache. Krever feilinjeksjon og dynamisk paritet. |
-| 2 | Større scorebatch | B128/256 kan undersøkes separat for de6086 sluttmåleforwardene, med treningsbatch og5540updates beholdt. Krever eksakt raddekning, output-/score-/state-/RNG-paritet, målt VRAM og eksplisitt ny planbinding. Ingen målt gevinst. |
-| 3 | Samle like lange MTF-encodercall ved scoring | Eksisterende `batch_equal_length_mtf_eval_scope()` er avgrenset til eval/no_grad. H1/H4 har begge96barer. Hver sekvens beholder egne normaliserte/gatede inputs. Krever output-/scoreparitet og peakminnemåling. Ikke slå dette på i trening uten egen dropout-/RNG-/gradientkvalifikasjon. |
+| Utført | Lokal gjenbruk av bindingskontroll | Innført og kvalifisert. Fersk deep-copy valideres én gang per kall, fortsatt likhet kontrolleres før lokal gjenbruk. Alle mutable buffer-/normaliserings-/head-/prior-/checkpointkontroller beholdes. Ingen vedvarende cache. |
+| Utført | B256 ved sluttscoring | Valgt etter genuine output-/hidden-/score-/state-/RNG-paritet og målt VRAM/tid. B64TRAIN/5540updates beholdes. Hele TRAIN/VAL-raddekningen og ukjente haler beholdes. |
+| Utført | Equal-length MTF ved scoring | Kvalifisert bare i eval/no_grad sammen med B256. H1/H4s96barer samles langs batchaksen, og splittes tilbake uten padding eller featuretap. TRAIN/ONLINE-default uendret. |
 | 3 | Fused AdamW | Umålt. Profilér optimizer separat først. Krever eksplisitt recipe, faktisk update-/optimizerstate-/cold-resume-kvalifikasjon og kontroll av peakminne. Ikke forveksle dette med foreach som allerede kan være aktivt. |
 | 3 | Redusere små kernelkall / avgrenset kompilering | Én instrumentert B64-profil registrerte25961kernel-launches. Undersøk bare målte dominerende tensorblokker. Inkluder kompileringstid, graph breaks og minne; bevis output/loss/gradient/RNG/resume. Ingen ny rammeverks- eller helmodellombygging uten behov. |
 | 4 | Samle D2H-evidenskopier | Undersøk samlede kopier av små logits/counts fremfor mange synkroniseringer. Bevar samtlige verdier, hasher, finiteporter og kontrollrekkefølge. Mål kostnad før endring. |
@@ -109,7 +120,8 @@ fullfit-speedup eller ETA er dokumentert.
 Brukerbestilt restart gjøres én gang ved trygg jobbgrense. Restart har ingen
 målt ytelsesgevinst her. Bekreft ny Windows-boot, WSL/tilkobling, uendret kilde
 og intakte artefakter gjennom eksisterende vakter. Unngå rutineomstarter mellom
-kvalifiserte delsteg. VHD-komprimering er et separat lagringstiltak, ikke en
+kvalifiserte delsteg. Kontroller signert telemetritransport etter ny boot;
+kjørende Windows-oppgave alene beviser ikke aktiv WSL-portlytter. VHD-komprimering er et separat lagringstiltak, ikke en
 dokumentert treningsoptimalisering.
 
 Behold én tung CURRENT-jobb, capped-wrapper,20G RAM,512M swap,128tasks,
@@ -124,14 +136,16 @@ Lang stabil kjøring kontrolleres etter prosjektets avtalte intervall,
 omtrent15–30minutter eller sjeldnere ved stabil drift. Ingen minuttvis
 modellpolling, ekstra fits eller arbeid bare for å fylle ventetid.
 
-## Måling før neste endring
+## Gjenværende tiltak krever ny målt begrunnelse
 
 Bruk eksisterende profil-/trenereier til å skille oppstart/inputvalidering,
 modellkonstruksjon, gather/H2D, forward, backward, optimizer, evidenskopier,
 scoring og checkpoint. Registrer peak RSS/VRAM, faktisk disklesing mot logisk
 lesing og eventuelle guard-/throttlinghendelser. Profiler bare et avgrenset
 representativt panel under ny eksakt admisjon; de konsumerte001/002 relanseres
-ikke. Velg deretter ett tiltak etter målt dominerende kostnad.
+ikke. Velg deretter ett tiltak etter målt dominerende kostnad. Aktuelle målte rettelser
+er gjennomført; øvrige AMP/TF32/fused/compile/graphs/I/O-tiltak er ikke aktivert
+uten nødvendig matematikk-/lærings-/ressursbevis.
 
 Endringer begrenses til konkret målt flaskehals. Samme funksjon må bevises;
 endret ONLINE-funksjon krever fersk initialbaseline. Teknisk throughput,
@@ -139,20 +153,22 @@ TRAIN-læring, senere generalisering og økonomisk edge er separate spørsmål.
 
 ## Kilde- og målegrunnlag
 
-- `gx1/audit/qualify_native_m5_full_gc_direction_v1.py`:1185–1210
-  (presisjon/optimizer),1328–1370(fit),1373–1421(score/checkpoint),1481–1615
-  (hovedløype),2786–2842(profil),3060–3095(bundet recipe).
-- `gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py`:140–245
-  (finite-scope),303–358(aktiveringspolicy),1910(normaliseringsbinding),
-  2198–2217(FP64/asinh),2635–2750(evalsamling).
-- `gx1/contracts/market_state_ta_integrated_model_v1.py`:327–428;
-  `market_state_ta_integrated_objective_v1.py`:178;
-  `market_state_native_m5_feature_inputs_v1.py`:300,397;
-  `gx1/audit/build_native_m5_ta_feature_cache_v1.py`:286.
-- Eksisterende `RESULT.json` i `NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_001`,
-  `..._002`, `NATIVE_M5_TA_ATR03_FIVE_YEAR_PREPARE_20261120_001` og
-  `NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001` under GX1_RUNS.
+- `gx1/audit/qualify_native_m5_full_gc_direction_v1.py`: `native_fit_forward`,
+  `native_fit_score_forward`, `fit_step`, `fit_score`, `throughput_*`,
+  `qualified_runtime_throughput` og `runtime_mechanics_trajectory`.
+- `gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py`: finite-scope,
+  aktiveringspolicy, normaliseringsbinding, FP64/asinh og eksisterende evalsamling.
+- `gx1/contracts/market_state_ta_integrated_model_v1.py`: lokal bindingsvalidering;
+  `market_state_ta_integrated_objective_v1.py`: FP32-output/loss og float64-score;
+  `market_state_native_m5_feature_inputs_v1.py`: gather/kausalitet;
+  `gx1/audit/build_native_m5_ta_feature_cache_v1.py`: engangsloading.
+- `RESULT.json`/`TERMINAL.json` i `NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003`
+  og `NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002` under GX1_RUNS.
+- Fullinitial: `NATIVE_M5_TA_ATR03_FIVE_YEAR_PREPARE_20261120_001`.
+- Source-/unit-/telemetri-/sluttbevis:
+  `GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001`.
+  Eksakte aktuelle SHA-bindinger finnes i NEXT_RUN_POLICY.json.
 - Lokal installert PyTorch2.6.0-kilde kontrollerte foreach/SDPA-rutingen.
-  Offisiell versjonskilde: [AdamW2.6](https://github.com/pytorch/pytorch/blob/v2.6.0/torch/optim/adamw.py).
-  [CUDA graph-begrensninger](https://docs.pytorch.org/docs/stable/notes/cuda)
-  forklarer hvorfor synkronisering og dynamisk kontroll krever avgrensning.
+  [AdamW2.6](https://github.com/pytorch/pytorch/blob/v2.6.0/torch/optim/adamw.py)
+  og [CUDA graphs](https://docs.pytorch.org/docs/stable/notes/cuda) er
+  primærkildene for de oppgitte umålte bibliotekalternativene.

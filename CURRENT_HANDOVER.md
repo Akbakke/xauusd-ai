@@ -45,45 +45,31 @@ Ny mekanikk002 er COMPLETE_CONSUMED, SHA
 B64/7forwards/3updates/6autograd er fullført, exit0 og kilde uendret på boot668.
 Kald resume i ny prosess er bitidentisk; modell/optimizer/RNG/cursor/schedule og
 alle stegrapporter matcher original001eksakt. Alle treningsporter er stengt igjen.
-Main001 er uclaimet men supersederes ved kvalifisert002; ingen main er startet.
-B256/equalTF er målt kvalifisert i panelet, men ennå ikke valgt i ny mainplan.
+Main001 er supersedert uclaimet. Ny main002 er PREPARED_NOT_ADMITTED med B256/
+equalTF-sluttscoring,7062forwards hvorav1522score og5540uendrede TRAINupdates.
+Ny hovedplan er SHA9dfea62bd10a44fe0d2c579529360065779d7cf432d3afecd2217eb9ae4ab6e2;
+mainoutput finnes ikke. Siste metadata-preflight og readinesspublisering gjenstår.
 
 Kvitteringsrot: `GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001`.
 Original fullinitial gjenbrukes med eksplisitt kildebro; ingen originale kilde-
 vektorer eller konsumerte planer omskrives. Alle genuine features/TF, mål og
 FP32/B64TRAIN/5540updates beholdes. GPU-/kapasitetsvakter svekkes ikke.
 
-## Bestilt restart og effektivitet 20.11.2026
+## Verifisert restart og telemetri
 
-Fysisk Windows-restart er utført og målt: boot667→668, ny LastBootUpTime og
-WSLboot7b038f7e-eb6c-4140-a374-47bdd0add16a. SSH/WSL er tilbake. Fersk whole-host
-idle-/writer-/GPU-/låsobservasjon ble vurdert før restart; normale OS-/vaktoppgaver
-var tillatt, ingen prosjektjobb/skriver/lås. Fil- og katalog-fsync, filesystem sync
-og SHA-readback var fullført før kommandoen. Alle77kritiske filer og53kildeeiere,
-commit776852f6 og samtlige før-restartkvitteringer bestod etterkontroll.
+Windowsboot667→668 og ny WSLboot7b038f7e-eb6c-4140-a374-47bdd0add16a er målt;
+SSH/WSL kom tilbake. Whole-host idle/writer/lås/GPU, fil- og katalog-fsync,
+filesystem sync og SHA-readback var fullført før restart. Alle77kritiske filer
+og datidens53kildeeiere matchet etter boot, før den eksplisitte effektiviseringsbølgen.
+Originale kvitteringer: `GX1_FULL_PROJECT_AUDIT_20261120_001/RESTART_TRAINING_PREP_001`.
 
-Etter-boot metadata-preflight bestod exit0 gjennom capped4G/512M på boot668:
-0CLAIM,0rå-/featureverdidekoding,0modell og0optimizersteg. GPU var ledig ved
-etterkontrollen,250W-grensen og vertens effekt-/telemetrivakter kjørte.
-
-Kvitteringsrot: `GX1_FULL_PROJECT_AUDIT_20261120_001/RESTART_TRAINING_PREP_001`.
-Hovedplan og alle53kildeeiere beholdes; ingen treningsadmisjon, CLAIM eller modell.
-Effektivitet gjennomgås som konkrete forslag med målte og umålte tiltak adskilt;
-ingen nye presisjons-/batch-/modellendringer er kvalifisert for denne passen.
-
-[Effektivitetsrapport](docs/TRAINING_EFFICIENCY_20261120.md) samler alle aktuelle
-tiltak, målegrenser og kvalifikasjoner. Allerede gjenbrukt initialbaseline sparer
-2745,427s/6086forwards. Første foreslåtte nye tiltak er eksisterende grouped-forward;
-hele diagnostikkgevinsten kan ikke tilskrives denne alene. Gjentatt bindingsarbeid
-og større scorebatch følger. Ingen robust fullfit-ETA eller ny hastighetsgevinst
-er bevist. Hovedplanens10800s er en hardgrense. Ingen ytelsesendring ble slått på.
-
-`POSTBOOT_INTEGRITY.json` SHA:
-`e4b66f3723f90cb5c2aefbe0cf614aadbb85086ba49cef921b1ce113b82b7e01`.
-`MAIN_POSTBOOT_PREFLIGHT.log` SHA:
-`97a0f11746be86f46086ae352d72242e916cae5c9cf8d9a8b07b091cbfd3eb46`.
-Neste konkrete steg er integratorens eksakte engangsadmisjon av uendret main;
-brukeren har bestilt klargjøring i denne bølgen, hovedtrening er ikke startet.
+Første wrapperoppstart003 ble korrekt avvist før produsent/CLAIM/OUTPUT fordi
+Windows-portproxy38128 manglet aktiv lytter selv med korrekt regel. Planen var
+ikke invokert/forbrukt. Eksakt etablert delete/add av samme private regel rettet
+transporten; signert query og begge genuine kjøringers kontinuerlige vakter
+består. Ingen endret cert/brannmur/tjeneste eller svekket vakt. Hvorfor listeneren
+manglet etter boot er ubevist; kontroller signert query ved en senere reboot.
+Reparasjons- og avslagsevidens er i effektiviseringsroten.
 
 ## Gjeldende datasett og plan
 
@@ -99,18 +85,18 @@ indirekte via input, mål, masker, rader, normalisering, prior eller warmstart.
 Ingen live/paper, broker, ordre, spending eller promotion. Journalunntaket gjelder
 den navngitte D1/swing-ruten, ikke denne M5-modellen.
 
-`NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json` er PREPARED_NOT_ADMITTED,
-SHA `e8c865982bcce9ec60e4078640366276ef484ab53e191f349c0baf247088cb03`.
-Én kronologisk B64-pass: 5540 updates, 11626 forwards, maksimalt10800s.
-Kun source_base_commit ble metadata-rebundet til siste kodecommit2cee1dfe etter
-målt blokkering fra endret retention-/pensjonert utilitykode. Alle53aktive
-kildehashene, inputs, recipe, normalisering/prior og initialtilstand er uendret.
-Originalplan og gamle kvitteringer er bevart i Git/RUNS. Fersk metadata-preflight
-bestod med Windowsboot667 og0CLAIM/modell/optimizer/featureverdidekoding.
+`NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002.json` er PREPARED_NOT_ADMITTED,
+SHA `9dfea62bd10a44fe0d2c579529360065779d7cf432d3afecd2217eb9ae4ab6e2`.
+Én kronologisk B64TRAIN-pass med5540updates, B256/equalTF-eval med1522forwards,
+samlet7062forwards og10800s hardgrense. Ingen robust fullfit-/AdamW-ETA er bevist.
+Sourcebase1a03fa47;53kildeeiere er bundet. Seks eksplisitte ownerendringer er
+kilde-/test-/genuine-kvalifisert,47uendrede. Inputs, mål, norm/prior, FP32,
+initialstate og TRAIN-matematikk er uendret. Planen laster ingen kvalifiseringsvekter.
+Originale001planer/kvitteringer og fullinitial beholdes, ikke relanseres/omskrives.
 
 ## Målt kode-, input- og testdekning
 
-- Hele CURRENT:1402Pythonfiler,20251definisjoner,311888AST-kall,19693importsetninger.
+- Fullauditens snapshot av CURRENT:1402Pythonfiler,20251definisjoner,311888AST-kall,19693importsetninger.
   Fullt originalinventar og komplette utskiftninger av sju endrede moduler er
   bevart. Historiske/stored kildekopier er også inventert. Ingen manglende intern
   import-/symbolkandidat ble funnet; installerte direkte avhengigheter og pipcheck
@@ -133,7 +119,7 @@ bestod med Windowsboot667 og0CLAIM/modell/optimizer/featureverdidekoding.
 - Målrettet testkvalifikasjon:544tilfeller,527uendredePASS og alle17rettede feil
   består ved eksakt etterkontroll.170retention-tester består. Obligatoriske
   pre-commit Entry-kontrakter består. Ingen unødvendig fullsuite-repetisjon.
-- Hele testsamlingen:15058tilfeller samlet/importert med0feil. Ingen testkropper
+- Fullauditens testsamling:15058tilfeller samlet/importert med0feil. Ingen testkropper
   i denne innsamlingen. Normale modell-/optimizer-/genuine-data-/nettverkskall var
   sperret.18nektede operasjoner var egen kildeintrospeksjon/cachemkdir. Vakter er
   prosesslokale trusted-code hooks, ikke OS-sandbox. Ikke kall dette15058kjørte tester.
@@ -188,16 +174,3 @@ historiske flater er ikke bevist.0,3ATR er nettoendringsproxy, ikke bevist rolig
 prisbane/økonomisk FLAT. Juni2026 er gjenbrukt utvikling. TRAIN-fit, senere
 generalisering, referanseverdi og realisert økonomi holdes adskilt. Edge/profitt er
 fortsatt ubevist. Teknisk beredskap betyr ikke bedre handelsbeslutninger.
-
-Aktuell engangsadmisjon: throughput003,15forwards/6backwards/0updates,20G/512M,
-8tråder/128tasks/12GiBGPU/1800s, gjennom uendret eksisterende maskinvarevakter.
-Metadata-preflight exit0; ingen CLAIM/OUTPUT fra preflight. Boot668 er målt og
-GPUcompute ledig før admisjon. Global trening er fortsattfalse; hovedtrening
-starter ikke i denne diagnostikken. Ingen kilde-/policyendring under kjøringen.
-
-Wrapperoppstart003 ble avvist av telemetrivakten før produsent/CLAIM/OUTPUT,
-exit75 og0modell/forward/update. Planen var ikke invokert eller forbrukt.
-Windows hadde korrekt portproxyregel men ingen runtime-lytter38128 etterboot.
-Eksakt etablert owner delete/add av samme private regel gjenopprettet lytteren;
-signert query består32C/40C/250W. Ingen cert-/brannmur-/service-/kildevaktendring.
-Originale avslags- og reparasjonskvitteringer er bevart i effektiviseringsroten.
