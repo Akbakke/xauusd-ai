@@ -6,40 +6,14 @@ originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 ## Gjeldende status 20.11.2026
 
-Brukeren har avklart20.11: eksisterende FLAT betyr sideveis marked og
-inkluderer eksakt like priser. Brukeravklaringsblokkeringen er fjernet.
-Målet er ikke oppnådd; neste arbeid er korrekt kobling til markedsklasser.
-Seksårs TA-inputs er produsert og uavhengig kvalifisert.
-Brukeren bestiller nå0,3ATR-kobling og klargjøring til trening.
-Prosjektmålet i policy er oppdatert; sourceintegrasjon pågår med avgrensede
-eiere for target og modell/objective, én integrator for data/plan/launch.
-Ingen hovedfit er startet; fersk baseline og kald mekanikk skal kvalifiseres.
-Kildekobling er nå implementert opt-in:0,3ATR-datasetkontrakt, taskspesifikke
-masker og samme målidentitet i modell/prior/loss/score/checkpoint.38fokuserte
-saker og16nye guard-varianter består; faktisk metadata-build består utenCLAIM.
-Én ny producer er eksakt innrømmet etter CLI-preflight: alle preTEST-issues projiseres én gang,
-ny matched1536FIT-prior og fersk32forward-initialbaseline på1536FIT/512CONTROL.
-Eksakt006-provider og gammel whole24175TRAIN-norm gjenbrukes, ingen seksårs-
-metadatarebind. Deretter egen CUDA3update/cold-replay og ny hovedplan, utenfitlaunch.
-Dette kvalifiserer netto-støysone, ikke hele sideveis/path-FLAT eller edge.
-PREPARE001 produserte NOISE_TARGETS.json/.npz for1215513preTEST-issues,
-alle rågatherfelt byteidentiske. Deretter avviste gammel provider-loader den
-allerede kvalifiserte alias-minnefiksen i feature_inputs. Metadata-preflight
-hadde ikke kjørt akkurat denne lasteporten; den flyttes nå før nyCLAIM.
-Ingen modell/forward/fit ble startet.001er konsumert og relanseres aldri.
-Neste plan skal gjenbruke de ferdige målene og eksisterende eksakte AST-bro,
-ikke bygge historikken eller endre numerikk/normalisering på nytt.
-Den kanoniske provider-loaderen bruker nå eksisterende eksakt alias-AST-bro;
-alle andre numeriske eiere er fortsatt låst.2nye positive/negative tilfeller
-og4målrettede noise-/foldtilfeller består. Metadata-build for nyPREPARE002
-kjører den reelle provider-metadata-porten førCLAIM og består.002binder
-001feilterminal+plan+CLAIM, hele25-arrayinventaret, råtape003 og uendrede
-ATR-/targeteiere. Hele source_row og alle arrayhasher/typed noise-masker
-valideres førmodell. Ingen nyATR-/targetberegning.002er nå eksakt innrømmet etter vellykket CLI-preflight.
-ATR03_PREPARE001 er FAILED_CONSUMED før modellbygging; alle porter er stengt. Alle tidligere
-engangsplaner er konsumert og relanseres aldri. Ingen ny fit er innrømmet.
-M5-læringen bedret seg på valgt FIT, men senere CONTROL taper fortsatt prior.
-Dette er ingen dokumentert retningsedge, generalisering eller økonomi.
+Brukerens mål er oppdatert: kvalifiser nyttig OPP/NED/FLAT på M5/MTF,
+med0,3ATR som første netto-støysone. FLAT er små bevegelser som ikke er
+verdt å trade. Rå barfakta og separat lokal range-/aktivitetssemantikk består.
+ATR03-targets for alle1215513preTEST-issues, ny matchedTRAIN-prior og fersk
+32forward-initialbaseline er ferdige. Optimizer/kald replay bestod på84,434s
+med3tekniskeupdates,67forwards og6gradientprober. Ingen hovedfit startet.
+Alle porter er stengt mens den eksakte korte hovedplanen ferdigstilles.
+Målet om tilfredsstillende vekting, prediksjon og edge er fortsatt uoppnådd.
 
 M1 brukes ALDRI til retning: ingen input, fasit, metadataforelder, rader,
 prior, normalisering, evaluering eller warmstart. Bare senere oppfølging
@@ -292,17 +266,32 @@ Ikke gjenta eldre fullført retention/Windows-/cache-opprydding.
 Kode/docs/interne stier/aggregerte bevis kan pushes til autorisert branch;
 aldri rådata, vekter, hemmeligheter eller force-push.
 
-## ATR03 baseline ferdig — optimizerkvalifikasjon neste
+## ATR03-funksjon kvalifisert — hovedplan ferdigstilles
 
-PREPARE002 fullførte exit0 på203,807s: alle historiske25payloadarrays og
-hele native source_row valideres, eksisterende001-targets gjenbrukes uten
-reberegning. Eksakt006provider/norm bestod. Ny prior bruker1536FIT-issues,
-M5-close1535celler med470/611/454NED/nøytral/OPP. Fersk modell32forwards
-på1536FIT/512CONTROL hadde eksakt priorlogits,0updates og0M1-nektelser.
-InitialSHA6c9aca38468ed8137b3d2941b254aae6e1ae4b71fe591496efa542e416201315.
-CPU-baseline binder ny dataset-/modell-/objective-/prioridentitet.
-Ny ATR03_MECHANICS001 er eksakt innrømmet etter CLI/hardwarepreflight:3tekniskeupdates,67F,
-6autogradprober og kald neste-steg-replay. Hovedfit er ikke startet.
-Siste brukerpresisering: FLAT er små bevegelser vi ikke får utnyttet, altså
-støy det ikke er verdt å trade.0,3ATR er første netto-støyproxy; denne
-merkingen alene beviser ikke faktisk økonomisk uutnyttbarhet eller edge.
+PREPARE002 fullførte exit0 på203,807s: alle25historiske payloadarrays og
+hele native source_row valideres.001-targets gjenbrukes uten reberegning;
+001er FAILED_CONSUMED førmodell og relanseres aldri. Eksakt006provider og
+whole24175TRAIN-norm bestod med den kvalifiserte alias-AST-broen.
+Ny prior bruker1536FIT-issues; M5-close1535celler med470/611/454NED/nøytral/OPP.
+Fersk modell32forwards på1536FIT/512CONTROL hadde eksakt priorlogits,
+0updates og0M1-nektelser. InitialSHA6c9aca38468ed8137b3d2941b254aae6e1ae4b71fe591496efa542e416201315.
+Uavhengig metadata-/aggregatreview bestod; LL/Brier-sumavvik≤4,55e-13.
+M5initialLL/Brier:FIT1,089364/0,660331,CONTROL1,092974/0,662826.
+Disse er nye3klasse-noisemål og sammenlignes ikke direkte med gammelrawLL.
+
+ATR03_MECHANICS001 fullførte exit0 på84,434s:2ferske modellkonstruksjoner,
+67forwards,3tekniske optimizerupdates og6autogradprober. CPU- og CUDAinitial
+var identiske. M5sharedgradient etterførste headupdate positiv, aux→shared
+nøyaktig0, støttede auxhoderpositive. Nyprosesscoldreplay var bitidentisk.
+Kvalifikasjonsvekter gjenbrukes aldri som hovedfitvekter; samme frosneTRAIN-
+normalisering og nye prior kan gjenbrukes med fersk modell og optimizer.
+
+Hovedplanmetadata manglet selected_cohorts til eksisterende schedule-eier.
+Dette ble oppdaget utenCLAIM og rettet bare i planadapteren. Ny kildebro
+beholder alle importer og øvrig AST utenom de2navngitte metadatafunksjonene;
+alle andre sourceeiere er byteidentiske. Positive og3negative mutasjoner
+(modell, numerisk driver, import) består. Uavhengig kildereview girPASS;
+ingen ny modellrunde var nødvendig. Mainmetadata bygger4fastepass/384updates/
+544forwards med gamle kilde-ranker og PCG64-rekkefølge. CLI-preflight gjenstår.
+0,3ATR er en netto-støyproxy. Faktisk økonomisk uutnyttbarhet, helemarkedets
+path-FLAT, tilfredsstillende vekting og prediktiv edge er fortsatt ubevist.

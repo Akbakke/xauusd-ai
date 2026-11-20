@@ -2532,6 +2532,30 @@ def noise_prepare_cli(args):
     finally:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old)
 
 
+def noise_parent_source_compatible(parent):
+    """Reuse numeric qualification across this plan-metadata-only repair."""
+    driver='gx1/audit/qualify_native_m5_full_gc_direction_v1.py'
+    need(set(parent['source_owners'])==set(NOISE_SOURCE_PATHS)
+        and all(sha(REPO/name)==value for name,value in parent['source_owners'].items()if name!=driver),
+        'NOISE_PARENT_UNCHANGED_NUMERIC_OWNERS')
+    original=subprocess.check_output(['git','show',parent['source_base_commit']+':'+driver],cwd=REPO)
+    need(hashlib.sha256(original).hexdigest()==parent['source_owners'][driver],'NOISE_PARENT_ORIGINAL_DRIVER')
+    import ast
+    excluded=('build_noise_fit_plan','noise_parent_source_compatible')
+    def identity(source):
+        tree=ast.parse(source)
+        tree.body=[node for node in tree.body if not(isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef))and node.name in excluded)]
+        return hashlib.sha256(ast.dump(tree,include_attributes=False).encode()).hexdigest()
+    before=identity(original.decode());after=identity((REPO/driver).read_text())
+    need(before==after,'NOISE_PARENT_UNCHANGED_EXECUTABLE_DRIVER')
+    return {'schema_version':'gx1_native_m5_noise_plan_metadata_source_bridge_v1',
+        'original_source_base_commit':parent['source_base_commit'],
+        'original_driver_sha256':parent['source_owners'][driver],'current_driver_sha256':sha(REPO/driver),
+        'unchanged_executable_driver_ast_sha256':before,'all_other_source_owners_exact':True,
+        'only_excluded_orchestration_functions':list(excluded),
+        'scope':'selected_cohort_reference_adapter_and_its_source_validation_only_no_model_data_loss_optimizer_score_resume_change'}
+
+
 def build_noise_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
     need(mode in('ta_noise_mechanics','ta_noise_main'),'NOISE_FIT_MODE')
     proxy='ta_primary_mechanics'if mode=='ta_noise_mechanics'else'ta_primary_main'
@@ -2545,7 +2569,7 @@ def build_noise_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
         and last['claim']==done['claim']and last['plan']==done['plan']
         and done['source_unchanged']is True and inputs['matched_prior_reference']==report['prior']
         and report['all_selected_initial_logits_equal_new_noise_prior']is True
-        and report['optimizer_steps']==0 and prepared['source_owners']=={p:sha(REPO/p)for p in NOISE_SOURCE_PATHS},'NOISE_FIT_PREPARED')
+        and report['optimizer_steps']==0 and noise_parent_source_compatible(prepared),'NOISE_FIT_PREPARED')
     from gx1.contracts.market_state_ta_integrated_model_v1 import native_bar_model_contract
     from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_bar_train_prior
     prior=require_native_bar_train_prior(read(report['prior']),target_contract=prepared['metadata']['target_contract'])
@@ -2574,7 +2598,7 @@ def build_noise_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
             and proof['normalization_fits']==proof['prior_fits']==0
             and proof['primary_backbone_qualification']['auxiliary_shared_zero_all_steps']is True
             and proof['primary_backbone_qualification']['M5_shared_positive_after_first_head_update']is True
-            and parent['metadata']==meta and parent['source_owners']=={p:sha(REPO/p)for p in NOISE_SOURCE_PATHS},'NOISE_MAIN_MECHANICS')
+            and parent['metadata']==meta and noise_parent_source_compatible(parent),'NOISE_MAIN_MECHANICS')
         meta['mechanics']={'result':inputs['noise_mechanics_result'],'terminal':inputs['noise_mechanics_terminal'],
             'plan':r['plan'],'claim':r['claim'],'normalization':proof['normalization'],'prior':proof['prior'],
             'axis':proof['axis'],'initial_state_sha256':proof['initial_state_sha256'],
@@ -2586,7 +2610,10 @@ def build_noise_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
         'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
         'source_owners':{p:sha(REPO/p)for p in NOISE_SOURCE_PATHS},'inputs':inputs,'metadata':meta,
         'recipe':recipe,'cohort_selection':selection,
-        **({'training_schedule':ta_block_schedule(meta,recipe)}if mode=='ta_noise_main'else{}),
+        'source_compatibility':{'initial_preparation':noise_parent_source_compatible(prepared),
+            **({'optimizer_mechanics':noise_parent_source_compatible(parent)}if mode=='ta_noise_main'else{})},
+        **({'training_schedule':ta_block_schedule({**meta,'chronological_reference':{**meta['chronological_reference'],
+            'selected_cohorts':report['selected_cohorts']}},recipe)}if mode=='ta_noise_main'else{}),
         'backbone_gradient_policy':PRIMARY_BACKBONE_GRADIENT_POLICY,
         'execution':{'class':'trainer','device':'cuda','memory':'20G','swap':'512M','tasks_max':128,
             'numerical_threads':8,'outer_seconds':recipe['outer_seconds'],'internal_seconds':recipe['internal_seconds'],'kill_after_seconds':10},
