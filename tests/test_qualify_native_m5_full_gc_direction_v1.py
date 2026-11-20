@@ -1479,3 +1479,68 @@ def test_candidate_keeps_empty_all_true_but_empty_gradient_guard_false():
     assert original == candidate == []
     assert bool(candidate) is False
     assert owner.finite_all_per_device(iter(())) == all(()) is True
+
+
+def test_larger_fold_explicit_default_parity_and_independent_earlier_cutoffs(tmp_path,monkeypatch):
+    from tests.test_market_state_native_m5_targets_v1 import build,source
+    from gx1.contracts.market_state_native_m5_targets_v1 import noise_margin_dataset_contract
+    tape=build(*source(1000));contract=noise_margin_dataset_contract(.3)
+    truth=tape.gather_next_bar_noise_margin(tape.issue_ns,fold_upper_ns=tape.cutoff_ns,margin_atr=.3)
+    truth.pop('noise_margin_contract');arrays={**truth,'source_row':tape.source_row}
+    path=tmp_path/'noise.npz';np.savez_compressed(path,**arrays)
+    dataset={'arrays':owner.ref(path),'issue_rows':len(tape.issue_ns),'cutoff_ns':tape.cutoff_ns,
+        'headers':{k:{'dtype':a.dtype.str,'shape':list(a.shape),'sha256':owner.digest(a)}for k,a in arrays.items()}}
+    provider=SimpleNamespace(issue_ns=tape.issue_ns,source_row=tape.source_row,input_ready=np.ones(len(tape.issue_ns),bool))
+    default=tuple(int(tape.issue_ns[i])for i in (500,540,580))
+    for key,value in zip(('FIT_START_NS','FIT_END_NS','CONTROL_END_NS'),default):monkeypatch.setattr(owner,key,value)
+    old,old_axis=owner.noise_fit_axes(provider,dataset,contract)
+    explicit,explicit_axis=owner.noise_fit_axes(provider,dataset,contract,fold_bounds=default)
+    assert old_axis==explicit_axis
+    for split in old:
+        for key in old[split]:
+            if isinstance(old[split][key],dict):
+                for name,array in old[split][key].items():np.testing.assert_equal(array,explicit[split][key][name])
+            else:np.testing.assert_equal(old[split][key],explicit[split][key])
+    bounds=tuple(int(tape.issue_ns[i])for i in (420,480,520))
+    actual,axis=owner.noise_fit_axes(provider,dataset,contract,fold_bounds=bounds)
+    for split,lo,hi in (('TRAIN',bounds[0],bounds[1]),('CONTROL',bounds[1],bounds[2])):
+        ids=np.flatnonzero((tape.issue_ns>=lo)&(tape.issue_ns<hi))
+        np.testing.assert_array_equal(actual[split]['rows'],tape.source_row[ids])
+        expected=tape.gather_next_bar_noise_margin(tape.issue_ns[ids],fold_upper_ns=hi,margin_atr=.3)
+        expected.pop('noise_margin_contract')
+        for key,array in expected.items():np.testing.assert_equal(actual[split]['truth'][key],array)
+        assert actual[split]['upper_ns']==hi and axis[split]['end_exclusive_ns']==hi
+    # An alternate request must not mutate default clocks or immutable target bytes.
+    assert tuple(getattr(owner,k)for k in ('FIT_START_NS','FIT_END_NS','CONTROL_END_NS'))==default
+    assert owner.ref(path)==dataset['arrays']
+
+
+@pytest.mark.parametrize('bounds',[(1,2),(300.,600,900),(300,300,900),(600,300,900),(301,600,900)])
+def test_larger_invalid_fold_clocks_fail_before_target_decode(monkeypatch,bounds):
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('invalid clocks read target'))
+    with pytest.raises(ValueError,match='FOLD|CLOCK'):
+        owner.noise_fit_axes(None,{}, {},fold_bounds=bounds)
+
+
+@pytest.mark.parametrize('count',[128,129,191,192,193,257,70925])
+def test_larger_training_partition_keeps_unknown_source_tail_without_singletons(count):
+    rows=np.arange(1000,1000+count,dtype=np.int64)
+    chunks=owner.larger_batches(rows)
+    np.testing.assert_array_equal(np.concatenate(chunks),rows)
+    assert len(chunks)==(count+63)//64 and all(2<=len(x)<=64 for x in chunks)
+    if count%64==1:assert list(map(len,chunks[-2:]))==[63,2]
+    else:assert len(chunks[-1])==(count%64 or 64)
+
+
+def test_larger_mechanics_cold_cursor_replays_second_distinct_batch_within_pass():
+    rows=np.arange(900,1157,dtype=np.int64)
+    plan={'mode':'ta_larger_mechanics','recipe':{'fit_batches':2},'metadata':{'epoch_batches':2}}
+    plan['training_schedule']=owner.larger_schedule(rows,plan)
+    blocks=owner._ta_training_batches({'FIT':rows},plan)
+    assert len(blocks)==2 and all(len(x)==64 for x in blocks)
+    assert not np.intersect1d(*blocks).size
+    cursor=owner._ta_schedule_position(plan,1)
+    assert cursor['next_pass']==0 and cursor['next_batch_in_pass']==1
+    assert cursor['next_source_batch_sha256']==owner.digest(blocks[1])
+    end=owner._ta_schedule_position(plan,2)
+    assert end['next_pass']==1 and end['next_source_block']is None

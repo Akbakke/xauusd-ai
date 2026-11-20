@@ -38,8 +38,24 @@ Makroparseren får read_end-predikat før DataFrame-eksponering; den gamle
 resample-cutoffen er uendret.2syntetiske seal/journal-tilfeller består.
 Dette beviser ikke at Arrow aldri dekoder en blandet rowgroup fysisk.
 5closure/kvitteringskontroller,8nye guardvarianter og5profilkildetilfeller består.
-GPU0update-profil forB16/B64 er eksakt innrømmet etter CLI-preflight,8F/8back. Større test er ennå
-ikke klar; tidsbruk og nye TRAIN-stats/baseline må kvalifiseres først.
+To GPU-profiler er fullført med0optimizerupdates og eksakt samme logits, tap
+og klippede gradienter. Første profil målte B16=1,194s/B64=1,418s; det er
+3,37ganger flere rader/s på disse panelene, uten AdamW. Andre profil reduserte
+per-parameter finite-synkroniseringer: aten::item1435→106 og CUDAstreamSync1537→208.
+B64-referanser1,281/1,276s mot1,140/1,154s med per-device-bools; rundt10%
+computegevinst på samme panel, ikke bevist total treningsgevinst. Alle finite-vakter
+består; ingen loss-/optimizerformel eller sikkerhetsgrense er fjernet.
+Større test klargjøres foreløpig som ett helt input-TRAIN-år, én B64-pass
+og påfølgende septemberCONTROL. Nye TRAIN-stats/baseline må kvalifiseres først.
+Hovedtreningen er ikke startet; gammel kortplan skal ikke relanseres.
+Ny årsroute er kildeklar: TRAIN[2023-09-01,2024-09-01)=70935rader,
+CONTROL[2024-09-01,2024-10-01)=5789rader; B64gir1109updates/énpass.
+33literal-/SHA-/guardtester og16fold-/mask-/tail-/coldcursor-tester består.
+GPUforberedelse er1200forwards/0updates med ferske heleTRAIN-stats/prior.
+Tekniskmekanikk er to ulikeB64-batcher + kald replay:2modeller/7F/3updates/6prober.
+Hovedplanen skal ha1ferskmodell/2309F/1109updates, gjenbrukt faktisk initialscore,
+fullTRAIN+CONTROL-finalscore og3600s hardgrense. Ingenting av dette er ennå
+fysisk kvalifisert på årskohorten; baseline/mekanikk gjenstår før klarstatus.
 
 ## Ferdig seksårs inputgrunnlag
 

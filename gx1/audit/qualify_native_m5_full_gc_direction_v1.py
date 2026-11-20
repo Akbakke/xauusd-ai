@@ -472,6 +472,7 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument('--plan',required=True);parser.add_argument('--plan-sha256',required=True)
     parser.add_argument('--out-dir',required=True);parser.add_argument('--preflight',action='store_true');parser.add_argument('--device',choices=('cpu','cuda'))
     args=parser.parse_args();common.firewall_state()
+    if args.plan==str(LARGER_PREPARE_PLAN):return larger_prepare_cli(args)
     if args.plan==str(THROUGHPUT_PLAN):return throughput_cli(args)
     if args.plan==str(NOISE_PREPARE_PLAN):return noise_prepare_cli(args)
     if args.plan==str(SHARED_GRADIENT_PLAN):return shared_gradient_cli(args)
@@ -537,15 +538,15 @@ TA_FIT_SOURCE_PATHS=tuple(dict.fromkeys((*ta_audit.SOURCE_PATHS,
 
 
 def _ta_fit(plan):
-    return plan.get('mode') in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main','ta_noise_mechanics','ta_noise_main')
+    return plan.get('mode') in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main','ta_noise_mechanics','ta_noise_main','ta_larger_mechanics','ta_larger_main')
 
 
 def _ta_main(mode):
-    return mode in ('ta_main','ta_shuffle','ta_primary_main','ta_noise_main')
+    return mode in ('ta_main','ta_shuffle','ta_primary_main','ta_noise_main','ta_larger_main')
 
 
 def _mechanics(mode):
-    return mode in ('mechanics','ta_mechanics','ta_primary_mechanics','ta_noise_mechanics')
+    return mode in ('mechanics','ta_mechanics','ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics')
 
 
 def _ta_pool_axis(ta_plan,*,return_source_rows=False):
@@ -696,6 +697,8 @@ def ta_chronological_reference(inputs,metadata):
 
 
 def fit_recipe(value,mode):
+    if mode in LARGER_FIT_MODES:
+        need(False,'LARGER_RECIPE_REQUIRES_BOUND_METADATA')
     fields={'optimizer','gradient_clip_norm','scheduler','seed','batch_rows','score_batch_rows','fit_batches',
         'score_batches_per_split','checkpoint_every_updates','outer_seconds','internal_seconds',
         'required_windows_boot_id_greater_than'}
@@ -976,6 +979,7 @@ def prepare_matched_prior(context,fit_rows,plan,root):
 
 
 def fit_limits(recipe,mode,metadata=None):
+    if mode in LARGER_FIT_MODES:return larger_limits(recipe,mode,metadata)
     if mode in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main'):
         score=sum((item['rows']+recipe['score_batch_rows']-1)//recipe['score_batch_rows']
             for item in small_cohort_manifest(metadata)['cohorts'].values())
@@ -994,6 +998,7 @@ def fit_limits(recipe,mode,metadata=None):
 
 
 def build_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
+    if _larger_fit({'mode':mode}):return build_larger_fit_plan(inputs=inputs,recipe=recipe,mode=mode,source_base_commit=source_base_commit)
     if _noise_fit({'mode':mode}):return build_noise_fit_plan(inputs=inputs,recipe=recipe,mode=mode,source_base_commit=source_base_commit)
     need(mode in FIT_SCOPES,'FIT_MODE');recipe=fit_recipe(recipe,mode)
     stage,path,root=FIT_SCOPES[mode]
@@ -1024,6 +1029,7 @@ def build_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
 
 
 def fit_source_clean(plan):
+    if _larger_fit(plan):return larger_source_clean(plan)
     if _noise_fit(plan):return noise_source_clean(plan)
     if _primary_fit(plan):
         need(set(plan['source_owners'])==set(PRIMARY_FIT_SOURCE_PATHS),'PRIMARY_SOURCE_SET')
@@ -1081,7 +1087,7 @@ def fit_boot_state(plan,*,admitted):
     fresh=actual>threshold
     if admitted:
         need(fresh,'FIT_FRESH_PHYSICAL_BOOT')
-        if plan['mode']in('main','ta_main','ta_shuffle','ta_primary_main','ta_noise_main'):
+        if plan['mode']in('main','ta_main','ta_shuffle','ta_primary_main','ta_noise_main','ta_larger_main'):
             need(actual>=plan['metadata']['mechanics']['physical_windows_boot_id'],'FIT_MAIN_BOOT_LINEAGE')
     return {'actual_windows_boot_id':actual,'required_greater_than':threshold,'fresh':fresh}
 
@@ -1188,6 +1194,8 @@ def fresh_fit_model(provider,normalization,plan,*,train_prior=None):
     import torch
     from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_bar_direction_model
     seed_native_fit(plan['recipe']['seed'])
+    if _larger_fit(plan):
+        torch.cuda.set_per_process_memory_fraction(LARGER_VRAM_MAX/torch.cuda.get_device_properties(0).total_memory,0)
     kwargs={'train_prior':train_prior}if _ta_fit(plan)else{'gc_mtf_history':normalization['gc_mtf_history']}
     need(not _ta_fit(plan)or train_prior is not None,'TA_FIT_INITIAL_PRIOR')
     if _primary_fit(plan):
@@ -1212,6 +1220,7 @@ def fresh_fit_model(provider,normalization,plan,*,train_prior=None):
 def _ta_training_batches(selected,plan):
     # Mechanics crosses a pass boundary on one fixed source-only B16 panel.
     # The admitted main consumes all 96 frozen FIT batches once per declared pass.
+    if _larger_fit(plan):return larger_training_batches(selected,plan)
     base=all_score_batches(selected['FIT'],plan['recipe']['batch_rows'])
     if plan['mode']in('ta_mechanics','ta_primary_mechanics','ta_noise_mechanics'):base=base[:1]
     if plan['mode']in('ta_shuffle','ta_primary_main','ta_noise_main'):
@@ -1223,6 +1232,7 @@ def _ta_training_batches(selected,plan):
 
 
 def _ta_schedule_position(plan,cursor):
+    if _larger_fit(plan):return larger_schedule_position(plan,cursor)
     per_pass=1 if plan['mode']in('ta_mechanics','ta_primary_mechanics','ta_noise_mechanics')else 96
     need(type(cursor)is int and 0<=cursor<=plan['recipe']['fit_batches'],'TA_FIT_SCHEDULE_CURSOR')
     position={'completed_updates':cursor,'next_pass':cursor//per_pass,'next_batch_in_pass':cursor%per_pass,
@@ -1286,6 +1296,7 @@ def prepare_ta_native_fit(plan,root,*,reload_normalization=None,reload_prior=Non
 
 
 def prepare_native_fit(plan,root,*,reload_normalization=None,reload_prior=None):
+    if _larger_fit(plan):return prepare_larger_native_fit(plan,root,reload_normalization=reload_normalization,reload_prior=reload_prior)
     if _noise_fit(plan):return prepare_noise_native_fit(plan,root,reload_normalization=reload_normalization,reload_prior=reload_prior)
     if _primary_fit(plan):return prepare_primary_native_fit(plan,root,reload_normalization=reload_normalization,reload_prior=reload_prior)
     if _ta_fit(plan):
@@ -1329,15 +1340,15 @@ def fit_step(model,optimizer,provider,cohort,rows,plan):
     model.train();optimizer.zero_grad(set_to_none=True)
     raw=provider.gather(rows,max_rows=plan['recipe']['batch_rows'])
     features={key:torch.from_numpy(value).to(next(model.parameters()).device)for key,value in raw.items()}
-    if plan.get('mode')in('ta_primary_mechanics','ta_noise_mechanics'):
+    if plan.get('mode')in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics'):
         for value in features.values():
             if value.is_floating_point():value.requires_grad_(True)
     truth=slice_truth(cohort,rows,fit=True)
     output=model(features)
-    loss=native_bar_direction_loss(model_output=output,truth=truth,fold_upper_ns=FIT_END_NS,
+    loss=native_bar_direction_loss(model_output=output,truth=truth,fold_upper_ns=plan['metadata']['fit_end_ns']if _larger_fit(plan)else FIT_END_NS,
         target_contract_sha256=plan['metadata']['target_contract']['contract_sha256'],**noise_target_kwargs(plan))
     need(not loss['skip_update']and bool(torch.isfinite(loss['loss'])),'FIT_SUPERVISED_FINITE_LOSS')
-    primary_probe=primary_backbone_probe(model,loss,features)if plan.get('mode')in('ta_primary_mechanics','ta_noise_mechanics')else{}
+    primary_probe=primary_backbone_probe(model,loss,features)if plan.get('mode')in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics')else{}
     loss['loss'].backward()
     model._native_fit_counts['backward_calls']+=1
     gradients=[p for p in model.parameters()if p.grad is not None]
@@ -1459,10 +1470,12 @@ def _ta_initial_prior_proof(model,context,captures,plan=None):
         for key,value in expected.items():
             need(np.array_equal(captures[name+'__'+key],value.astype(np.float32)),'TA_FIT_INITIAL_PRIOR_LOGITS:'+name+':'+key)
         counts[name]=len(rows)
-    need(counts=={'TRAIN':1536,'CONTROL':512},'TA_FIT_INITIAL_SCORE_POPULATION')
+    expected_counts=({'TRAIN':plan['metadata']['selected_cohorts']['FIT']['rows'],
+        'CONTROL':plan['metadata']['selected_cohorts']['CONTROL']['rows']}if _larger_fit(plan or{})else{'TRAIN':1536,'CONTROL':512})
+    need(counts==expected_counts,'TA_FIT_INITIAL_SCORE_POPULATION')
     return {'all_selected_initial_logits_equal_prior':True,'rows':counts,
         'prior_sha256':context['prior']['contract_sha256'],'model_initialization':model.research_objective['initialization'],
-        'reference_role':'matched_1536_FIT_predictive_cell_Laplace1_no_CONTROL_fit'}
+        'reference_role':('whole_input_TRAIN_predictive_cell_Laplace1_no_CONTROL_fit'if _larger_fit(plan or{})else'matched_1536_FIT_predictive_cell_Laplace1_no_CONTROL_fit')}
 
 
 def fit_physical(plan,plan_ref,root):
@@ -1476,10 +1489,11 @@ def fit_physical(plan,plan_ref,root):
     ta_only=_ta_fit(plan)
     selected_report=None;pool_prior_ref=context['prior_ref']
     if ta_only:
-        selected,selected_report=selected_small_cohorts(plan,context)
+        selected,selected_report=larger_selected(context,plan)if _larger_fit(plan)else selected_small_cohorts(plan,context)
         batches=_ta_training_batches(selected,plan)
-        panels={'TRAIN':all_score_batches(selected['FIT'],recipe['score_batch_rows']),
-            'CONTROL':all_score_batches(selected['CONTROL'],recipe['score_batch_rows'])}
+        score_selected=({k:v[:64]for k,v in selected.items()}if plan['mode']=='ta_larger_mechanics'else selected)
+        panels={'TRAIN':all_score_batches(score_selected['FIT'],recipe['score_batch_rows']),
+            'CONTROL':all_score_batches(score_selected['CONTROL'],recipe['score_batch_rows'])}
     elif plan['mode']=='main':
         selected,selected_report=selected_small_cohorts(plan,context)
         batches=all_score_batches(selected['FIT'],recipe['batch_rows'])
@@ -1498,18 +1512,26 @@ def fit_physical(plan,plan_ref,root):
     if _noise_fit(plan):need(initial_sha==plan['metadata']['prepared']['initial_state_sha256'],'NOISE_FRESH_CUDA_MATCHES_CPU_INITIAL')
     statistics_parent=(plan['metadata'].get('mechanics')if ta_only else
         plan['metadata']['mechanics']if plan['mode']=='main'else plan['metadata']['statistics_parent'])
-    if statistics_parent is not None and plan['mode']not in('ta_primary_mechanics','ta_noise_mechanics'):
+    if statistics_parent is not None and plan['mode']not in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics'):
         need(initial_sha==statistics_parent['initial_state_sha256'],'FIT_FRESH_MAIN_INITIAL')
-    score_started=time.monotonic();initial,capture_initial=fit_score(model,context,panels,plan)
-    torch.cuda.synchronize();initial_score_seconds=time.monotonic()-score_started
-    prior_initialization=_ta_initial_prior_proof(model,context,capture_initial,plan)if ta_only else None
-    initial_score_ref=publish(root/'INITIAL_SCORE.json',{'axis':context['axis'],
-        'axis_role':'original_source_and_normalization_pools','selected_cohorts':selected_report,'scores':initial,
-        'model_state_sha256':initial_sha,'normalization':context['normalization_ref'],'prior':context['prior_ref']})
-    stream=io.BytesIO();np.savez_compressed(stream,**capture_initial)
-    capture_initial_ref=publish(root/'INITIAL_CAPTURE.npz',stream.getvalue());stream.close()
+    score_started=time.monotonic()
+    if plan['mode']=='ta_larger_main':
+        initial,capture_initial,prior_initialization=load_larger_initial(model,context,plan)
+        initial_score_ref=plan['metadata']['prepared']['initial_score_artifact']
+        capture_initial_ref=plan['metadata']['prepared']['initial_capture'];initial_score_seconds=0.
+    else:
+        initial,capture_initial=fit_score(model,context,panels,plan)
+        torch.cuda.synchronize();initial_score_seconds=time.monotonic()-score_started
+        prior_initialization=_ta_initial_prior_proof(model,context,capture_initial,plan)if ta_only else None
+        initial_score_ref=publish(root/'INITIAL_SCORE.json',{'axis':context['axis'],
+            'axis_role':'original_source_and_normalization_pools','selected_cohorts':selected_report,'scores':initial,
+            'model_state_sha256':initial_sha,'normalization':context['normalization_ref'],'prior':context['prior_ref']})
+        stream=io.BytesIO();np.savez_compressed(stream,**capture_initial)
+        capture_initial_ref=publish(root/'INITIAL_CAPTURE.npz',stream.getvalue());stream.close()
+    del capture_initial
     initial_checkpoint=publish_checkpoint(root/'INITIAL_STATE.pt',fit_checkpoint(model,optimizer,context,plan,plan_ref,0))
     steps=[];checkpoint_refs=[];mechanics_checkpoint=None;curve=[]
+    epoch_batches=plan['metadata']['epoch_batches']if _larger_fit(plan)else 96
     for cursor,rows in enumerate(batches):
         started=time.monotonic();step=fit_step(model,optimizer,provider,context['cohorts']['TRAIN'],rows,plan)
         torch.cuda.synchronize();step['elapsed_seconds']=time.monotonic()-started
@@ -1517,7 +1539,7 @@ def fit_physical(plan,plan_ref,root):
         if ta_only and cursor<2:
             need(step['heads_gradient_l2']>0 and(step['backbone_gradient_l2']==0 if cursor==0
                 else step['backbone_gradient_l2']>0),'TA_FIT_ZERO_HEAD_GRADIENT_TRANSITION')
-        if plan['mode']in('ta_primary_mechanics','ta_noise_mechanics'):
+        if plan['mode']in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics'):
             proof=step['primary_gradient_routing']
             need(proof['M5_head_gradient_l2']>0 and(proof['M5_shared_gradient_l2']==0 if cursor==0
                 else proof['M5_shared_gradient_l2']>0),'PRIMARY_M5_GRADIENT_TRANSITION')
@@ -1527,10 +1549,10 @@ def fit_physical(plan,plan_ref,root):
         if (cursor+1)%recipe['checkpoint_every_updates']==0 or cursor+1==len(batches):
             checkpoint_refs.append(publish_checkpoint(root/('CHECKPOINT_'+str(cursor+1).zfill(6)+'.pt'),
                 fit_checkpoint(model,optimizer,context,plan,plan_ref,cursor+1)))
-        if _ta_main(plan['mode'])and(cursor+1)%96==0:
+        if _ta_main(plan['mode'])and(cursor+1)%epoch_batches==0:
             score_started=time.monotonic();pass_scores,pass_capture=fit_score(model,context,panels,plan)
             torch.cuda.synchronize();elapsed=time.monotonic()-score_started
-            number=(cursor+1)//96;score_ref=publish(root/('SCORE_PASS_'+str(number).zfill(3)+'.json'),
+            number=(cursor+1)//epoch_batches;score_ref=publish(root/('SCORE_PASS_'+str(number).zfill(3)+'.json'),
                 {'pass':number,'completed_updates':cursor+1,'scores':pass_scores,'elapsed_seconds':elapsed})
             stream=io.BytesIO();np.savez_compressed(stream,**pass_capture)
             capture_ref=publish(root/('CAPTURE_PASS_'+str(number).zfill(3)+'.npz'),stream.getvalue());stream.close()
@@ -1552,8 +1574,9 @@ def fit_physical(plan,plan_ref,root):
         'normalization':context['normalization_ref'],
         'normalization_population':context['normalization']['fit_population'],'prior':context['prior_ref'],
         'normalization_fits':context.get('normalization_fits',0),'prior_fits':context.get('prior_fits',1 if plan['mode']=='main'else 0),
-        **({'label_only_prior_reference':plan['inputs']['matched_prior_reference']}if ta_only else
-            {'original_TRAIN_pool_prior':pool_prior_ref}),'prior_scope':'matched_1536_FIT_predictive_cells'if plan['mode']=='main'or ta_only else'original_TRAIN_pool',
+        **({'label_only_prior_reference':context['prior_ref']if _larger_fit(plan)else plan['inputs']['matched_prior_reference']}if ta_only else
+            {'original_TRAIN_pool_prior':pool_prior_ref}),'prior_scope':('whole_input_TRAIN_predictive_cells'if _larger_fit(plan)else
+                'matched_1536_FIT_predictive_cells'if plan['mode']=='main'or ta_only else'original_TRAIN_pool'),
         'selected_cohorts':selected_report,'statistics_parent':statistics_parent['result']if statistics_parent else None,
         **({'prior_initialization':prior_initialization,'feature_requalification':context['feature_requalification'],
             'declared_passes':recipe['passes'],'learning_curve':curve,
@@ -1566,7 +1589,7 @@ def fit_physical(plan,plan_ref,root):
                 'auxiliary_shared_zero_all_steps':all(x['primary_gradient_routing']['auxiliary_shared_gradient_l2']==0 for x in steps),
                 'M5_shared_positive_after_first_head_update':steps[1]['primary_gradient_routing']['M5_shared_gradient_l2']>0,
                 'supported_auxiliary_heads_positive_all_steps':all(x['primary_gradient_routing']['auxiliary_head_gradient_l2']>0
-                    for x in steps if x['primary_gradient_routing']['auxiliary_predictive_cells']>0)}}if plan['mode']in('ta_primary_mechanics','ta_noise_mechanics')else{}),
+                    for x in steps if x['primary_gradient_routing']['auxiliary_predictive_cells']>0)}}if plan['mode']in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics')else{}),
             'gradient_transition':{'first_backbone_gradient_l2':steps[0]['backbone_gradient_l2'],
                 'second_backbone_gradient_l2':steps[1]['backbone_gradient_l2'],
                 'zero_first_gradient_is_expected_from_zero_readout_weights':True,
@@ -1579,10 +1602,15 @@ def fit_physical(plan,plan_ref,root):
         'cuda_peak_allocated_bytes':torch.cuda.max_memory_allocated(),'cuda_peak_reserved_bytes':torch.cuda.max_memory_reserved(),
         'steps':steps,
         'canonical_optimizer_updates':len(batches),'evaluation_batches_per_phase':sum(len(value)for value in panels.values()),
-        'actual_counts':dict(model._native_fit_counts),'score_scope':('fixed_source_only_mechanics_panels_not_full_population'if plan['mode']=='mechanics'
+        'actual_counts':dict(model._native_fit_counts),
+        **({'initial_baseline_reused':plan['mode']=='ta_larger_main','prepared_initial_parent':plan['metadata']['prepared']['result'],
+            'training_schedule':plan['training_schedule'],'actual_source_row_schedule_sha256':digest(np.concatenate(batches))}if _larger_fit(plan)else{}),
+        'score_scope':('whole_year_TRAIN_and_later_CONTROL_all_rows_including_unknown_tails'if plan['mode']=='ta_larger_main'else
+            'first_64_TRAIN_and_first_64_CONTROL_technical_panels'if plan['mode']=='ta_larger_mechanics'else'fixed_source_only_mechanics_panels_not_full_population'if plan['mode']=='mechanics'
             else'all_source_selected_1536_FIT_and_512_CONTROL_rows_including_unknown_last_CONTROL_row'),
         'score_lane':'eval_no_grad_same_batch_geometry_and_frozen_TRAIN_stats',
         'qualification_weights_loaded':False,'test_data_used':False,'economic_edge_proven':False}
+    if _larger_fit(plan):need(torch.cuda.max_memory_reserved()<=LARGER_VRAM_MAX,'LARGER_VRAM_LIMIT')
     if _mechanics(plan['mode']):
         expected=publish(root/'UNINTERRUPTED_PROOF.json',fit_state_proof(model,optimizer,2,steps[-1]))
         report['_cold_authority']={'checkpoint':mechanics_checkpoint,'expected':expected,
@@ -1612,10 +1640,11 @@ def cold_resume_fit(plan_ref):
     need(ref(authority['checkpoint']['path'])==authority['checkpoint'],'FIT_COLD_CHECKPOINT_HASH')
     checkpoint=torch.load(authority['checkpoint']['path'],map_location='cpu',weights_only=True)
     cursor=restore_fit_checkpoint(model,optimizer,context,plan,plan_ref,checkpoint)
-    batches=(_ta_training_batches(selected_small_cohorts(plan,context)[0],plan)if _ta_fit(plan)else
+    batches=(_ta_training_batches((larger_selected(context,plan)if _larger_fit(plan)else selected_small_cohorts(plan,context))[0],plan)if _ta_fit(plan)else
         selected_batches(context['cohorts']['TRAIN']['fit_rows'],plan['recipe']['fit_batches']))
     need(cursor==1 and len(batches)==2,'FIT_COLD_CURSOR')
-    if _ta_fit(plan):need(checkpoint['schedule_position']['next_pass']==1
+    if _larger_fit(plan):need(checkpoint['schedule_position']==larger_schedule_position(plan,1),'LARGER_COLD_EXACT_CURSOR')
+    if _ta_fit(plan)and not _larger_fit(plan):need(checkpoint['schedule_position']['next_pass']==1
         and checkpoint['schedule_position']['next_batch_in_pass']==0,'TA_FIT_COLD_PASS_BOUNDARY')
     step=fit_step(model,optimizer,context['provider'],context['cohorts']['TRAIN'],batches[cursor],plan)
     actual=fit_state_proof(model,optimizer,cursor+1,step)
@@ -1676,7 +1705,9 @@ def run_native_fit(plan_sha,mode):
         need(fit_source_clean(plan)and ref(POLICY)==policy_ref and ref(path)==plan_ref,'FIT_SOURCE_POLICY_BOOKEND')
         updates=3 if _mechanics(mode)else plan['recipe']['fit_batches']
         result=publish(root/'RESULT.json',{'stage':stage,
-            'status':('COMPLETE_NATIVE_M5_TA_ATR03_MECHANICS'if mode=='ta_noise_mechanics'else
+            'status':('COMPLETE_NATIVE_M5_TA_ATR03_YEAR_MECHANICS'if mode=='ta_larger_mechanics'else
+                'COMPLETE_NATIVE_M5_TA_ATR03_YEAR_FIT'if mode=='ta_larger_main'else
+                'COMPLETE_NATIVE_M5_TA_ATR03_MECHANICS'if mode=='ta_noise_mechanics'else
                 'COMPLETE_NATIVE_M5_TA_ATR03_FIT'if mode=='ta_noise_main'else
                 'COMPLETE_NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS'if mode=='ta_primary_mechanics'else
                 'COMPLETE_NATIVE_M5_TA_PRIMARY_BACKBONE_FIT'if mode=='ta_primary_main'else
@@ -2026,7 +2057,7 @@ PRIMARY_FIT_SOURCE_PATHS=tuple(dict.fromkeys((*TA_FIT_SOURCE_PATHS,'tests/test_m
 
 
 def _primary_fit(plan):
-    return plan.get('mode')in('ta_primary_mechanics','ta_primary_main','ta_noise_mechanics','ta_noise_main')
+    return plan.get('mode')in('ta_primary_mechanics','ta_primary_main','ta_noise_mechanics','ta_noise_main','ta_larger_mechanics','ta_larger_main')
 
 
 def primary_model_source_identity(source):
@@ -2256,7 +2287,7 @@ FIT_SCOPES.update({
 
 
 def _noise_fit(plan):
-    return plan.get('mode')in('ta_noise_mechanics','ta_noise_main')
+    return plan.get('mode')in('ta_noise_mechanics','ta_noise_main','ta_larger_mechanics','ta_larger_main','ta_larger_prepare')
 
 
 def noise_target_kwargs(plan):
@@ -2342,10 +2373,14 @@ def noise_fold_truth(truth,upper):
     return value
 
 
-def noise_fit_axes(provider,dataset,dataset_contract):
+def noise_fit_axes(provider,dataset,dataset_contract,*,fold_bounds=None):
     from gx1.contracts.market_state_ta_integrated_objective_v1 import _native_truth
+    bounds=(FIT_START_NS,FIT_END_NS,CONTROL_END_NS)if fold_bounds is None else fold_bounds
+    need(type(bounds)is tuple and len(bounds)==3 and all(type(x)is int and x>0 and x%300_000_000_000==0 for x in bounds)
+        and bounds[0]<bounds[1]<bounds[2],'NOISE_FOLD_BOUNDS')
+    start,cut,stop=bounds
     need(ref(dataset['arrays']['path'])==dataset['arrays'],'NOISE_DATASET_HASH')
-    wanted=np.flatnonzero((provider.issue_ns>=FIT_START_NS)&(provider.issue_ns<CONTROL_END_NS))
+    wanted=np.flatnonzero((provider.issue_ns>=start)&(provider.issue_ns<stop))
     with np.load(dataset['arrays']['path'],allow_pickle=False)as archive:
         need(set(archive.files)==set(dataset_contract['required_array_fields'])|{'source_row'},'NOISE_ARRAY_INVENTORY')
         times=archive['issue_ns'];sources=archive['source_row'];at=np.searchsorted(times,provider.issue_ns[wanted])
@@ -2366,7 +2401,7 @@ def noise_fit_axes(provider,dataset,dataset_contract):
         target_contract_sha256=dataset_contract['contract_sha256'],target_contract=dataset_contract)
     truth={key:value[at]for key,value in truth.items()}
     cohorts={};report={}
-    for name,start,end in [('TRAIN',FIT_START_NS,FIT_END_NS),('CONTROL',FIT_END_NS,CONTROL_END_NS)]:
+    for name,start,end in [('TRAIN',start,cut),('CONTROL',cut,stop)]:
         chosen=(provider.issue_ns[wanted]>=start)&(provider.issue_ns[wanted]<end)
         positions=wanted[chosen];ready=provider.input_ready[positions]
         full=noise_fold_truth({key:value[chosen]for key,value in truth.items()},end)
@@ -2898,5 +2933,607 @@ def throughput_cli(args):
         raise
     finally:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,previous)
 
+
+
+
+LARGER_FIT_MODES=('ta_larger_mechanics','ta_larger_main')
+LARGER_VRAM_MAX=12*1024**3
+LARGER_SOURCE_PATHS=tuple(dict.fromkeys((*NOISE_SOURCE_PATHS,'gx1/audit/build_native_m5_ta_feature_cache_v1.py','tests/test_gx1_capped_run_native_year_contract.py')))
+def prepare_larger_input_train_fold(*, snapshot_ref, noise_dataset_ref,
+                                    fold_bounds, margin_atr):
+    """Reload existing 27 arrays; fit fresh stats on the entire input-TRAIN axis.
+
+    fold_bounds: exactly (train_start_ns, train_end_ns, control_end_ns), Python
+    ints on the 300s grid. No chosen dates or defaults are present here.
+    """
+    import numpy as np
+    from gx1.audit import build_native_m5_ta_feature_cache_v1 as cache
+    from gx1.contracts import market_state_native_m5_feature_inputs_v1 as features
+    from gx1.contracts import market_state_native_m5_targets_v1 as targets
+
+    need(type(fold_bounds) is tuple and len(fold_bounds) == 3
+         and all(type(t) is int and t > 0 and t % targets.TICK_NS == 0
+                 for t in fold_bounds), 'LARGER_EXPLICIT_FOLD_CLOCKS')
+    start, cut, stop = fold_bounds
+    need(start < cut < stop, 'LARGER_CHRONOLOGICAL_FOLD')
+    header = read(snapshot_ref)
+    need(len(header['arrays']) == 27, 'LARGER_PHYSICAL_ARRAY_INVENTORY')
+    # Owner verifies all 27 dtype/shape/byte hashes, full archive bookends and
+    # reconstructed provider axes/readiness, keeping ORIGINAL global source IDs.
+    provider = cache.load_snapshot(snapshot_ref)
+    axes = provider.surfaces['axes']
+    need(axes == header['surfaces_metadata']['axes']
+         and provider.source_axes_sha256 == axes['contract_sha256']
+         and axes['issue_start_ns'] <= start < stop <= axes['issue_end_ns'],
+         'LARGER_RELOADED_SOURCE_AXES')
+    spec = targets.noise_margin_dataset_contract(margin_atr)
+    dataset = read(noise_dataset_ref)
+    need(dataset['schema_version'] == 'gx1_native_m5_noise_dataset_artifact_v1'
+         and dataset['contract'] == spec and dataset['raw_fields_byte_identical'] is True
+         and dataset['test_data_used'] is False, 'LARGER_NOISE_DATASET_IDENTITY')
+    # Requires ONLY the small explicit fold_bounds extension documented above.
+    # The same existing reader validates the entire immutable historical payload,
+    # joins issue_ns AND source_row, then rematures each TF at the actual fold end.
+    cohorts, axis = noise_fit_axes(
+        provider, dataset, spec, fold_bounds=fold_bounds)
+    positions = np.flatnonzero((provider.issue_ns >= start) & (provider.issue_ns < cut))
+    train_rows = cohorts['TRAIN']['rows']
+    need(provider.input_ready[positions].all()
+         and train_rows.dtype == np.int64
+         and np.array_equal(train_rows, provider.source_row[positions]),
+         'LARGER_NO_TARGET_FILTER_ON_INPUT_TRAIN_AXIS')
+    # Deliberately use every declared input-TRAIN row, NOT fit_rows/eligible.
+    # Last labels may be immature: their source inputs remain causal TRAIN data.
+    normalization = features.fit_native_m5_feature_normalization(
+        provider, fit_source_rows=train_rows, cutoff_ns=cut)
+    population = normalization['fit_population']
+    need(population['issue_rows'] == len(train_rows)
+         and population['context_rows'] == len(train_rows)
+         and population['cutoff_ns'] == cut
+         and population['selected_source_rows_sha256'] == digest(train_rows),
+         'LARGER_WHOLE_INPUT_TRAIN_NORMALIZATION')
+    binding = provider.input_binding(normalization)
+    need(binding['source_axes_sha256'] == axes['contract_sha256'],
+         'LARGER_FRESH_STATS_SOURCE_AXES')
+    truth = cohorts['TRAIN']['truth']
+    predictive = (truth['noise_open_eligible'] | truth['noise_close_eligible']).any(1)
+    report = {
+        'snapshot': snapshot_ref, 'archive': header['archive'],
+        'noise_dataset': noise_dataset_ref, 'fold_bounds': list(fold_bounds),
+        'source_axes_sha256': axes['contract_sha256'],
+        'source_binding_sha256': provider.surfaces['source_binding']['contract_sha256'],
+        'input_binding': binding, 'fit_population': population,
+        'physical_array_count': 27, 'normalization_fits': 1, 'prior_fits': 0,
+        'input_TRAIN_rows': len(train_rows),
+        'normalization_rows_selected_by_future_masks': False,
+        'input_TRAIN_rows_with_predictive_labels': int(predictive.sum()),
+        'input_TRAIN_rows_with_only_immature_or_unknown_labels': int((~predictive).sum()),
+        'per_tf_mature_counts': truth['mature'].sum(0).tolist(),
+        'per_tf_noise_open_predictive': truth['noise_open_eligible'].sum(0).tolist(),
+        'per_tf_noise_close_predictive': truth['noise_close_eligible'].sum(0).tolist(),
+        'CONTROL_used_for_statistics_or_selection': False,
+    }
+    need(cache.ref(header['archive']['path']) == header['archive']
+         and ref(dataset['arrays']['path']) == dataset['arrays'],
+         'LARGER_INPUT_ARCHIVE_BOOKENDS')
+    return {'provider': provider, 'cohorts': cohorts, 'axis': axis,
+            'normalization': normalization, 'dataset_contract': spec,
+            'train_input_rows': train_rows, 'report': report}
+
+
+def fit_larger_noise_prior(prepared, *, fit_source_rows):
+    """Fit the prior on EXACT explicit FIT IDs, after whole-TRAIN input stats.
+
+    Caller supplies a prebound source-only policy (root may choose full TRAIN).
+    This function does not sample and does not infer a policy from outcomes.
+    """
+    import numpy as np
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+
+    rows = fit_source_rows
+    train = prepared['train_input_rows']
+    need(isinstance(rows, np.ndarray) and rows.dtype == np.int64
+                and rows.ndim == 1 and len(rows) > 0
+                and np.all(np.diff(rows) > 0), 'LARGER_EXPLICIT_FIT_SOURCE_ROWS')
+    at = np.searchsorted(train, rows)
+    need(np.all(at < len(train)) and np.array_equal(train[at], rows),
+                'LARGER_FIT_ROWS_SUBSET_OF_INPUT_TRAIN')
+    cohort = prepared['cohorts']['TRAIN']
+    truth = slice_truth(cohort, rows)
+    spec = prepared['dataset_contract']
+    prior = objective.fit_native_bar_train_prior(
+        truth=truth, fold_upper_ns=cohort['upper_ns'],
+        target_contract_sha256=spec['contract_sha256'], target_contract=spec)
+    need(prior['fit_population']['issue_rows'] == len(rows)
+                and prior['fit_population']['cutoff_ns'] == cohort['upper_ns'],
+                'LARGER_EXACT_FIT_PRIOR_POPULATION')
+    return {'prior': prior, 'FIT_source_rows_sha256': digest(rows),
+            'FIT_rows': len(rows), 'prior_fits': 1, 'normalization_fits': 0,
+            'target_contract_sha256': spec['contract_sha256'],
+            'normalization_contract_sha256': prepared['normalization']['contract_sha256']}
+
+
+
+
+def _larger_fit(plan):
+    return plan.get('mode') in LARGER_FIT_MODES
+
+def larger_recipe(value, mode, metadata):
+    fields = {'optimizer','gradient_clip_norm','scheduler','seed','batch_rows',
+        'score_batch_rows','fit_batches','score_batches_per_split',
+        'checkpoint_every_updates','outer_seconds','internal_seconds',
+        'required_windows_boot_id_greater_than','passes'}
+    need(type(value) is dict and set(value) == fields, 'LARGER_RECIPE_FIELDS')
+    need(mode in LARGER_FIT_MODES and value['optimizer'] == ADAMW_RECIPE
+        and value['gradient_clip_norm'] == 1. and value['scheduler'] is None
+        and value['seed'] == 20260911 and value['batch_rows'] == 64
+        and value['score_batch_rows'] == 64 and value['passes'] == 1
+        and value['score_batches_per_split'] is None
+        and type(value['required_windows_boot_id_greater_than']) is int
+        and value['required_windows_boot_id_greater_than'] == 666,
+        'LARGER_UNCHANGED_NUMERIC_RECIPE')
+    for key in ('fit_batches','checkpoint_every_updates','outer_seconds',
+                'internal_seconds'):
+        need(type(value[key]) is int and value[key] > 0, 'LARGER_INTEGER:'+key)
+    n = metadata['prepared']['full_selected_cohorts']['FIT']['rows']
+    mechanics = mode == 'ta_larger_mechanics'
+    epoch = 2 if mechanics else (n + 63) // 64
+    need(type(n) is int and n >= 128 and metadata['epoch_batches'] == epoch,
+         'LARGER_WHOLE_INPUT_TRAIN_EPOCH')
+    need(value['fit_batches'] == (2 if mechanics else epoch)
+        and value['checkpoint_every_updates'] == (1 if mechanics else epoch)
+        and value['outer_seconds'] == (1800 if mechanics else 3600)
+        and value['internal_seconds'] == value['outer_seconds'] - 30,
+        'LARGER_EXPLICIT_ONE_PASS_BUDGET')
+    return dict(value)
+
+def larger_batches(rows):
+    """Source-only partition; unknown last labels never select/exclude rows."""
+    need(isinstance(rows, np.ndarray) and rows.dtype == np.int64
+        and rows.ndim == 1 and len(rows) >= 128 and np.all(np.diff(rows) > 0),
+        'LARGER_CHRONOLOGICAL_SOURCE_ROWS')
+    blocks = all_score_batches(rows, 64)
+    if len(rows) % 64 == 1:
+        blocks[-2:] = [rows[-65:-2], rows[-2:]]
+    need(len(blocks) == (len(rows)+63)//64
+        and all(2 <= len(x) <= 64 for x in blocks)
+        and np.array_equal(np.concatenate(blocks), rows),
+        'LARGER_NO_DROPPED_OR_DUPLICATE_INPUT')
+    return blocks
+
+def larger_schedule(rows, plan):
+    blocks = larger_batches(rows)
+    if plan['mode'] == 'ta_larger_mechanics': blocks = blocks[:2]
+    body = {'schema_version':'gx1_native_m5_ta_larger_source_schedule_v1',
+        'selection':'all_chronological_input_TRAIN_no_target_filter',
+        'passes':1,'batch_rows':64,'tail_rule':'singleton_tail_63_plus_2',
+        'population_source_rows_sha256':digest(rows),'population_rows':len(rows),
+        'consumed_rows':sum(map(len,blocks)),
+        'batch_sizes':[len(x) for x in blocks],
+        'batch_source_rows_sha256':[digest(x) for x in blocks]}
+    return {**body, 'contract_sha256':hashlib.sha256(
+        json.dumps(body,sort_keys=True).encode()).hexdigest()}
+
+def larger_selected(context, plan):
+    train = context['cohorts']['TRAIN']; control = context['cohorts']['CONTROL']
+    selected = {'FIT':train['rows'], 'CONTROL':control['rows']}
+    mech = plan['mode'] == 'ta_larger_mechanics'
+    def identity(rows, cohort):
+        return {'rows':len(rows),'source_rows_sha256':digest(rows),
+                'issue_ns_sha256':digest(slice_truth(cohort,rows)['issue_ns'])}
+    full = {name:identity(rows, train if name == 'FIT' else control)
+            for name,rows in selected.items()}
+    scored = {name:identity(rows[:64] if mech else rows,
+              train if name == 'FIT' else control) for name,rows in selected.items()}
+    need(all(all(v == plan['metadata']['prepared']['full_selected_cohorts'][k][f]
+                 for f,v in item.items()) for k,item in full.items())
+        and all(all(v == plan['metadata']['selected_cohorts'][k][f]
+                    for f,v in item.items()) for k,item in scored.items()),
+        'LARGER_SOURCE_AND_SCORE_POPULATIONS')
+    need(context['normalization']['fit_population']['issue_rows'] == len(train['rows'])
+        and context['prior']['fit_population']['issue_rows'] == len(train['rows'])
+        and train['upper_ns'] == plan['metadata']['fit_end_ns']
+        and control['upper_ns'] == plan['metadata']['control_end_ns']
+        and np.array_equal(train['fit_rows'],train['rows']), 'LARGER_ALL_TRAIN_FOLD')
+    schedule = larger_schedule(selected['FIT'],plan)
+    need(schedule == plan['training_schedule']
+        and len(schedule['batch_sizes']) == plan['metadata']['epoch_batches'],
+        'LARGER_EXACT_SOURCE_ONLY_SCHEDULE')
+    for batch in larger_training_batches(selected,plan):
+        truth = slice_truth(train,batch)
+        need(bool((truth['noise_open_eligible'] | truth['noise_close_eligible']).any()),
+             'LARGER_DECLARED_BATCH_HAS_NO_PREDICTIVE_CELL')
+    return selected, scored
+
+def larger_training_batches(selected, plan):
+    batches = larger_batches(selected['FIT'])
+    if plan['mode'] == 'ta_larger_mechanics':
+        need(len(batches) >= 2 and all(len(x) == 64 for x in batches[:2]), 'LARGER_TWO_DISTINCT_B64')
+        return batches[:2]
+    return batches
+
+def larger_schedule_position(plan, cursor):
+    need(type(cursor) is int and 0 <= cursor <= plan['recipe']['fit_batches'],
+         'LARGER_CURSOR')
+    schedule = plan['training_schedule']; epoch = plan['metadata']['epoch_batches']
+    body = {k:v for k,v in schedule.items() if k != 'contract_sha256'}
+    need(schedule['contract_sha256'] == hashlib.sha256(
+        json.dumps(body,sort_keys=True).encode()).hexdigest()
+        and len(schedule['batch_sizes']) == epoch, 'LARGER_CURSOR_SCHEDULE')
+    block = cursor if cursor < plan['recipe']['fit_batches'] else None
+    return {'completed_updates':cursor,'next_pass':cursor//epoch,
+        'next_batch_in_pass':cursor%epoch,'batches_per_pass':epoch,
+        'declared_passes':1,'training_schedule_sha256':schedule['contract_sha256'],
+        'next_source_block':block,'next_source_batch_sha256':
+            schedule['batch_source_rows_sha256'][block] if block is not None else None}
+
+def larger_limits(recipe, mode, metadata):
+    mech = mode == 'ta_larger_mechanics'; updates = 3 if mech else recipe['fit_batches']
+    final_score = sum((v['rows']+63)//64 for v in metadata['selected_cohorts'].values())
+    return {'model_constructions':2 if mech else 1,
+        'model_forwards':updates+(4 if mech else final_score),
+        'backward_calls':updates,'optimizer_steps':updates,
+        'autograd_calls':6 if mech else 0}
+
+def larger_initial_reuse(model, context, plan, prepared, score_record, captures):
+    """Called only after root verifies immutable COMPLETE prepare/source refs."""
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    need(plan['mode'] == 'ta_larger_main'
+        and canonical_model_state_sha256(model.state_dict()) == prepared['initial_state_sha256']
+        and prepared['axis'] == context['axis']
+        and prepared['normalization'] == context['normalization_ref']
+        and prepared['prior'] == context['prior_ref']
+        and prepared['input_binding'] == context['provider'].input_binding(context['normalization'])
+        and prepared['model_contract'] == model.research_objective
+        and prepared['dataset_contract'] == plan['metadata']['target_contract'],
+        'LARGER_REUSE_EXACT_FRESH_INITIAL_IDENTITY')
+    model.require_prior_initialization_state()
+    reports = score_record['scores']
+    for split, label in (('TRAIN','FIT'),('CONTROL','CONTROL')):
+        expected = plan['metadata']['selected_cohorts'][label]
+        rows = captures[split+'__source_row']
+        need(reports[split]['rows'] == expected['rows'] == len(rows)
+            and reports[split]['source_rows_sha256'] == expected['source_rows_sha256'] == digest(rows)
+            and digest(captures[split+'__truth_issue_ns']) == expected['issue_ns_sha256']
+            and np.array_equal(rows,context['cohorts'][split]['rows']),
+            'LARGER_REUSE_ALLPOOL_INITIAL:'+split)
+        truth = slice_truth(context['cohorts'][split],rows)
+        need(all(np.array_equal(captures[split+'__truth_'+k],v,equal_nan=True)
+                 for k,v in truth.items()), 'LARGER_REUSE_IDENTICAL_TRUTH:'+split)
+    # Existing FP32-prior-logit comparison, with expected counts from metadata.
+    proof = _ta_initial_prior_proof(model,context,captures,plan)
+    return reports, captures, proof
+
+
+LARGER_PREPARE_STAGE='native_m5_ta_atr03_year_prepare_20261120_001'
+LARGER_PREPARE_PLAN=REPO/'configs/research/NATIVE_M5_TA_ATR03_YEAR_PREPARE_20261120_001.json'
+LARGER_PREPARE_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_YEAR_PREPARE_20261120_001')
+LARGER_FOLD_BOUNDS=(1693526400000000000,1725148800000000000,1727740800000000000)
+
+
+def larger_clock_metadata(snapshot_ref,fold_bounds,*,return_source_rows=False):
+    saved=read(snapshot_ref);archive=saved['archive']
+    need(ref(archive['path'])==archive,'LARGER_CLOCK_ARCHIVE_HASH')
+    with np.load(archive['path'],allow_pickle=False)as z:
+        arrays={key:z[key]for key in ('bar_start_ns','retained_issue_rows')}
+    for key,a in arrays.items():
+        h=saved['arrays'][key];need(a.dtype==np.int64 and a.ndim==1 and a.dtype.str==h['dtype']
+            and list(a.shape)==h['shape']and digest(a)==h['sha256'],'LARGER_CLOCK_BYTES:'+key)
+    starts=arrays['bar_start_ns'];rows=arrays['retained_issue_rows'];times=starts[rows]+300_000_000_000
+    a,b,c=fold_bounds;axis={};selected={}
+    for name,low,high in [('TRAIN',a,b),('CONTROL',b,c)]:
+        pick=(times>=low)&(times<high);source=rows[pick];issues=times[pick];selected[name]=source
+        need(len(source)>128 and np.all(np.diff(source)>0),'LARGER_CLOCK_POPULATION')
+        axis[name]={'start_ns':low,'end_exclusive_ns':high,'input_ready_rows':len(source),
+            'input_not_ready_rows':0,'source_rows_sha256':digest(source),'issue_ns_sha256':digest(issues)}
+    return (axis,selected)if return_source_rows else axis
+
+
+def build_larger_prepare_plan(*,inputs,fold_bounds,margin_atr,source_base_commit=None):
+    from gx1.contracts.market_state_native_m5_targets_v1 import noise_margin_dataset_contract
+    fields={'cache_qualification','cache_result','cache_terminal','snapshot','noise_dataset','base_fit_plan'}
+    need(type(inputs)is dict and set(inputs)==fields and tuple(fold_bounds)==LARGER_FOLD_BOUNDS
+        and margin_atr==0.3,'LARGER_PREPARE_INPUT_SCOPE')
+    q,r,t=(read(inputs[k])for k in ('cache_qualification','cache_result','cache_terminal'))
+    need(q['result']==inputs['cache_result']and q['terminal']==inputs['cache_terminal']and q['snapshot']==inputs['snapshot']
+        and q['all_issue_rows_ready']is True and q['all61_macro_fields_observed_on_all_issue_rows']is True
+        and t['status']=='COMPLETE'and t['exit_code']==0 and t['result']==inputs['cache_result']
+        and r['source_unchanged']is True and r['report']['snapshot']==inputs['snapshot']
+        and r['report']['archive']==q['archive'] and q['GC_used']is q['M1_used']is q['test_data_used']is False,'LARGER_QUALIFIED_CACHE')
+    dataset=read(inputs['noise_dataset']);target=noise_margin_dataset_contract(margin_atr)
+    need(dataset['contract']==target and dataset['raw_fields_byte_identical']is True,'LARGER_QUALIFIED_NOISE')
+    old=read(inputs['base_fit_plan']);saved=read(inputs['snapshot']);axis=larger_clock_metadata(inputs['snapshot'],tuple(fold_bounds))
+    meta={'source_snapshot':inputs['snapshot'],'noise_dataset':inputs['noise_dataset'],'fold_bounds':list(fold_bounds),
+        'fit_start_ns':fold_bounds[0],'fit_end_ns':fold_bounds[1],'control_end_ns':fold_bounds[2],
+        'source_pool':{'result':inputs['cache_result'],'axis':axis},'target_contract':target,
+        'source_axes_sha256':saved['surfaces_metadata']['axes']['contract_sha256'],
+        'architecture':old['metadata']['architecture'],'seed':old['recipe']['seed'],
+        'dependencies':{'cache_archive':saved['archive'],'noise_arrays':dataset['arrays']},
+        'scope':'all_ready_input_TRAIN_year_no_target_filter_full_initialbaseline_and_later_reused_development_CONTROL'}
+    forwards=sum((v['input_ready_rows']+63)//64 for v in axis.values())
+    return {'schema_version':'gx1_native_m5_larger_prepare_plan_v1','stage':LARGER_PREPARE_STAGE,'mode':'ta_larger_prepare',
+        'status':'PREPARED_NOT_ADMITTED','output_root':str(LARGER_PREPARE_ROOT),'inputs':inputs,'metadata':meta,
+        'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
+        'source_owners':{n:sha(REPO/n)for n in LARGER_SOURCE_PATHS},'margin_atr':margin_atr,
+        'recipe':{'score_batch_rows':64,'seed':meta['seed']},
+        'execution':{'class':'trainer','device':'cuda','memory':'20G','swap':'512M','numerical_threads':8,'tasks_max':128,
+            'outer_seconds':1800,'internal_seconds':1770,'cuda_peak_reserved_bytes_max':LARGER_VRAM_MAX},
+        'limits':{'model_constructions':1,'model_forwards':forwards,'normalization_fits':1,'prior_fits':1,'optimizer_steps':0},
+        'training_authorized':False,'test_data_used':False,'economic_edge_proven':False}
+
+
+def larger_prepare_physical(plan):
+    import torch
+    from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_bar_direction_model
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_train_prior_logits
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    meta=plan['metadata'];root=LARGER_PREPARE_ROOT;began=time.monotonic()
+    data=prepare_larger_input_train_fold(snapshot_ref=meta['source_snapshot'],noise_dataset_ref=meta['noise_dataset'],
+        fold_bounds=tuple(meta['fold_bounds']),margin_atr=plan['margin_atr'])
+    context=larger_standard_context(data)
+    prior=fit_larger_noise_prior(data,fit_source_rows=data['train_input_rows'])['prior']
+    norm_ref=publish(root/'NORMALIZATION.json',data['normalization']);prior_ref=publish(root/'MATCHED_FIT_PRIOR.json',prior)
+    context.update(normalization_ref=norm_ref,prior_ref=prior_ref,prior=prior)
+    for name,v in meta['source_pool']['axis'].items():
+        need(all(context['axis'][name][k]==x for k,x in v.items()),'LARGER_ACTUAL_SOURCE_AXIS:'+name)
+    for rows in larger_batches(context['cohorts']['TRAIN']['rows']):
+        truth=slice_truth(context['cohorts']['TRAIN'],rows,fit=True)
+        need(bool((truth['noise_open_eligible']|truth['noise_close_eligible']).any()),'LARGER_EACH_UPDATE_HAS_PREDICTIVE_CELLS')
+    data_seconds=time.monotonic()-began;provider=context['provider'];seed_native_fit(meta['seed'])
+    torch.cuda.set_per_process_memory_fraction(plan['execution']['cuda_peak_reserved_bytes_max']/torch.cuda.get_device_properties(0).total_memory,0)
+    model=build_native_bar_direction_model(input_normalization=context['normalization'],input_binding=provider.input_binding(context['normalization']),
+        architecture=meta['architecture'],device=torch.device('cuda',0),train_prior=prior,
+        backbone_gradient_policy=PRIMARY_BACKBONE_GRADIENT_POLICY,target_contract=meta['target_contract'])
+    model.require_prior_initialization_state();initial=canonical_model_state_sha256(model.state_dict());calls=[0]
+    def count(module,args):calls[0]+=1;need(calls[0]<=plan['limits']['model_forwards'],'LARGER_INITIAL_FORWARD_LIMIT')
+    hook=model.register_forward_pre_hook(count)
+    panels={name:all_score_batches(c['rows'],64)for name,c in context['cohorts'].items()}
+    rng_before=state_sha(training_rng())
+    scores,captures=fit_score(model,context,panels,plan);hook.remove()
+    need(state_sha(training_rng())==rng_before,'LARGER_INITIAL_RNG_BOOKEND')
+    need(torch.cuda.max_memory_reserved()<=LARGER_VRAM_MAX,'LARGER_PREPARE_VRAM_LIMIT')
+    need(calls[0]==plan['limits']['model_forwards']and canonical_model_state_sha256(model.state_dict())==initial,'LARGER_FRESH_STATE_BOOKEND')
+    selected={}
+    for name,key in [('TRAIN','FIT'),('CONTROL','CONTROL')]:
+        rows=captures[name+'__source_row'];expected=native_bar_train_prior_logits(prior,rows=len(rows),target_contract=meta['target_contract'])
+        need(all(np.array_equal(captures[name+'__'+k],v)for k,v in expected.items()),'LARGER_FULL_INITIAL_PRIOR_LOGITS')
+        selected[key]={'rows':len(rows),'source_rows_sha256':digest(rows),'issue_ns_sha256':digest(provider.issue_ns[rows])}
+    score_ref=publish(root/'INITIAL_SCORE.json',{'scores':scores,'selected_cohorts':selected,'model_state_sha256':initial,
+        'normalization':norm_ref,'prior':prior_ref,'target_contract':meta['target_contract']})
+    stream=io.BytesIO();np.savez_compressed(stream,**captures);capture=publish(root/'INITIAL_CAPTURE.npz',stream.getvalue());stream.close()
+    stream=io.BytesIO();torch.save(model.state_dict(),stream);state=publish(root/'INITIAL_MODEL.pt',stream.getvalue());stream.close()
+    return {'axis':context['axis'],'data_report':data['report'],'normalization':norm_ref,'prior':prior_ref,
+        'normalization_population':context['normalization']['fit_population'],'normalization_fits':1,'prior_fits':1,
+        'initial_state_sha256':initial,'initial_score_artifact':score_ref,'initial_capture':capture,'initial_checkpoint':state,
+        'input_binding':provider.input_binding(context['normalization']),'model_contract':model.research_objective,
+        'full_selected_cohorts':selected,'dataset_contract':meta['target_contract'],
+        'initial_score_rng_unchanged':True,'initial_rng_sha256':rng_before,'model_constructions':1,'model_forwards':calls[0],'optimizer_steps':0,
+        'all_full_initial_logits_equal_prior':True,'data_prepare_seconds':data_seconds,
+        'cuda_peak_reserved_bytes':torch.cuda.max_memory_reserved(),'test_data_used':False,'economic_edge_proven':False}
+
+
+def inspect_larger_prepare(plan_sha,*,admitted):
+    need(Path.cwd().resolve()==REPO and not LARGER_PREPARE_ROOT.exists(),'LARGER_PREPARE_CWD_OUTPUT')
+    pr={'path':str(LARGER_PREPARE_PLAN),'sha256':plan_sha};plan=read(pr)
+    need(plan==build_larger_prepare_plan(inputs=plan['inputs'],fold_bounds=tuple(plan['metadata']['fold_bounds']),margin_atr=plan['margin_atr'],
+        source_base_commit=plan['source_base_commit'])and larger_source_clean(plan),'LARGER_PREPARE_SOURCE')
+    policy_ref=ref(POLICY);p=read(policy_ref);g=p.get(LARGER_PREPARE_STAGE,{})
+    need(all(p.get(k)is False for k in ta_audit.data.CLOSED_FLAGS)and g.get('plan')==pr
+        and g.get('status')==('ADMITTED_ONE_USE'if admitted else'PREPARED_NOT_ADMITTED')
+        and g.get('output_root')==str(LARGER_PREPARE_ROOT)and g.get('execution_authorized')is admitted
+        and g.get('remaining_invocations')==(1 if admitted else 0)and g.get('max_invocations')==1
+        and g.get('claimed_invocations')==g.get('completed_invocations')==0 and g.get('relaunch_allowed')is False
+        and g.get('training_authorized')is False and g.get('test_authorized')is False,'LARGER_PREPARE_GATE')
+    checked_inputs(plan);return plan,pr,policy_ref
+
+
+def larger_prepare_cli(args):
+    need(args.plan==str(LARGER_PREPARE_PLAN)and args.out_dir==str(LARGER_PREPARE_ROOT)and args.device=='cuda','LARGER_PREPARE_CLI')
+    if args.preflight:
+        _,pr,p=inspect_larger_prepare(args.plan_sha256,admitted=False)
+        print(json.dumps({'status':'PREFLIGHT_LARGER_PREPARATION_NO_MODEL','plan':pr,'policy':p,'claim_created':False}));return
+    from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
+    began=time.monotonic();guard=require_guarded_cuda_trainer_execution();plan,pr,p=inspect_larger_prepare(args.plan_sha256,admitted=True)
+    LARGER_PREPARE_ROOT.mkdir(exist_ok=False)
+    common.firewall_state()
+    claim=publish(LARGER_PREPARE_ROOT/'CLAIM.json',{'stage':LARGER_PREPARE_STAGE,'plan':pr,'policy':p,'status':'CLAIMED_ONE_USE','guard':guard,'remaining_invocations':0,'max_invocations':1,'test_data_used':False})
+    old=signal.getsignal(signal.SIGALRM);result=None
+    def expired(*args):raise TimeoutError('LARGER_PREPARE_INTERNAL_LIMIT')
+    try:
+        remaining=plan['execution']['internal_seconds']-(time.monotonic()-began);need(remaining>0,'LARGER_PREPARE_TIME_BEFORE_INPUTS')
+        signal.signal(signal.SIGALRM,expired);signal.setitimer(signal.ITIMER_REAL,remaining)
+        report=larger_prepare_physical(plan);checked_inputs(plan)
+        need(larger_source_clean(plan)and ref(POLICY)==p and ref(LARGER_PREPARE_PLAN)==pr
+            and common.firewall_state()['denied_attempts']==0,'LARGER_PREPARE_BOOKEND')
+        result=publish(LARGER_PREPARE_ROOT/'RESULT.json',{'stage':LARGER_PREPARE_STAGE,'status':'COMPLETE_LARGER_TRAIN_INITIAL_PREPARATION',
+            'plan':pr,'claim':claim,'report':report,'guard':guard,'source_unchanged':True,'optimizer_steps':0,'training_authorized':False,'test_data_used':False,
+            'elapsed_seconds':time.monotonic()-began,'clean_process_io_firewall':common.firewall_state()})
+        terminal=publish(LARGER_PREPARE_ROOT/'TERMINAL.json',{'stage':LARGER_PREPARE_STAGE,'status':'COMPLETE','exit_code':0,'plan':pr,
+            'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
+        print(json.dumps({'result':result,'terminal':terminal}))
+    except BaseException as error:
+        publish(LARGER_PREPARE_ROOT/'TERMINAL.json',{'stage':LARGER_PREPARE_STAGE,'status':'FAILED_CONSUMED','exit_code':1,'plan':pr,'claim':claim,
+            'result':result,'error':type(error).__name__+':'+str(error)[:2000],'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
+        raise
+    finally:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old)
+
+
+def larger_standard_context(data):
+    cohorts=data['cohorts'];axis=data['axis']
+    for name,c in cohorts.items():
+        c['fit_rows']=c['rows'];c['fit_truth']=c['truth']
+        axis[name].update(fit_rows=len(c['rows']),fit_source_rows_sha256=digest(c['rows']),fit_issue_ns_sha256=digest(c['truth']['issue_ns']),fit_row_policy='all_input_TRAIN_no_target_filter'if name=='TRAIN'else'all_input_CONTROL')
+    return {**data,'feature_requalification':data['report'],'normalization_fits':1,'prior_fits':0}
+
+
+def prepare_larger_native_fit(plan,root,*,reload_normalization=None,reload_prior=None):
+    from gx1.audit import build_native_m5_ta_feature_cache_v1 as cache
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    meta=plan['metadata'];p=meta['prepared'];provider=cache.load_snapshot(meta['source_snapshot'])
+    dataset=read(meta['noise_dataset']);need(dataset['contract']==meta['target_contract'],'LARGER_REUSED_TARGET_CONTRACT')
+    cohorts,axis=noise_fit_axes(provider,dataset,meta['target_contract'],fold_bounds=tuple(meta['fold_bounds']))
+    context=larger_standard_context({'provider':provider,'cohorts':cohorts,'axis':axis,'report':{}})
+    need(axis==p['axis'],'LARGER_REUSED_AXES')
+    norm=read(p['normalization']);provider.input_binding(norm)
+    need(norm['fit_population']==p['normalization_population']and norm['fit_population']['cutoff_ns']==meta['fit_end_ns']and norm['fit_population']['selected_source_rows_sha256']==digest(cohorts['TRAIN']['rows']),
+        'LARGER_EXACT_STATS_POPULATION')
+    prior=objective.require_native_bar_train_prior(read(p['prior']),target_contract=meta['target_contract'])
+    need(prior['fit_population']['issue_rows']==len(cohorts['TRAIN']['rows'])
+        and prior['fit_population']['cutoff_ns']==meta['fit_end_ns']
+        and prior['fit_population']['issue_ns_sha256']==digest(cohorts['TRAIN']['truth']['issue_ns']),'LARGER_EXACT_PRIOR_POPULATION')
+    need(reload_normalization in(None,p['normalization'])and reload_prior in(None,p['prior']),'LARGER_COLD_STATS')
+    context.update(normalization=norm,normalization_ref=p['normalization'],prior=prior,prior_ref=p['prior'],normalization_fits=0,prior_fits=0)
+    return context
+
+
+def larger_source_clean(plan):
+    need(set(plan['source_owners'])==set(LARGER_SOURCE_PATHS),'LARGER_SOURCE_SET')
+    adapted={**plan,'source_owners':{k:plan['source_owners'][k]for k in NOISE_SOURCE_PATHS}}
+    return noise_source_clean(adapted)and all(sha(REPO/k)==v for k,v in plan['source_owners'].items())
+
+
+def load_larger_initial(model,context,plan):
+    saved=plan['metadata']['prepared']
+    scores=read(saved['initial_score_artifact'])
+    need(scores['model_state_sha256']==saved['initial_state_sha256']
+        and scores['normalization']==context['normalization_ref']
+        and scores['prior']==context['prior_ref']
+        and scores['target_contract']==plan['metadata']['target_contract']
+        and scores['selected_cohorts']==saved['full_selected_cohorts'],
+        'LARGER_REUSED_SCORE_BINDINGS')
+    need(ref(saved['initial_capture']['path'])==saved['initial_capture'],'LARGER_INITIAL_CAPTURE_HASH')
+    with np.load(saved['initial_capture']['path'],allow_pickle=False)as archive:
+        captures={key:archive[key]for key in archive.files}
+    expected={split+'__'+key for split in ('TRAIN','CONTROL')for key in
+        ('source_row','open_logits','close_logits',*('truth_'+k for k in context['cohorts'][split]['truth']))}
+    need(set(captures)==expected,'LARGER_INITIAL_CAPTURE_FIELDS')
+    return larger_initial_reuse(model,context,plan,saved,scores,captures)
+
+
+def larger_prepared_metadata(inputs):
+    required={'prepare_result','prepare_terminal'}
+    need(required<=set(inputs),'LARGER_PREPARED_INPUTS')
+    result,last=read(inputs['prepare_result']),read(inputs['prepare_terminal'])
+    parent=read(result['plan']);claim=read(result['claim']);report=result['report']
+    need(result['stage']==last['stage']==parent['stage']==claim['stage']==LARGER_PREPARE_STAGE
+        and result['status']=='COMPLETE_LARGER_TRAIN_INITIAL_PREPARATION'
+        and last['status']=='COMPLETE'and last['exit_code']==0
+        and last['result']==inputs['prepare_result']and last['plan']==result['plan']==claim['plan']
+        and last['claim']==result['claim']and result['source_unchanged']is True
+        and result['optimizer_steps']==report['optimizer_steps']==0
+        and report['normalization_fits']==report['prior_fits']==1
+        and report['model_constructions']==1 and report['model_forwards']==parent['limits']['model_forwards']
+        and report['all_full_initial_logits_equal_prior']is True
+        and report['initial_score_rng_unchanged']is True
+        and report['dataset_contract']==parent['metadata']['target_contract']
+        and report['cuda_peak_reserved_bytes']<=LARGER_VRAM_MAX
+        and result['test_data_used']is last['test_data_used']is False
+        and result['clean_process_io_firewall']['denied_attempts']==0,'LARGER_COMPLETE_PREPARATION')
+    need(set(parent['source_owners'])==set(LARGER_SOURCE_PATHS)
+        and all(sha(REPO/k)==v for k,v in parent['source_owners'].items()),
+        'LARGER_PREPARED_IDENTICAL_SOURCE')
+    from gx1.contracts.entry_model_native_input_normalization_v1 import require_native_m5_input_normalization_contract
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_bar_train_prior
+    from gx1.contracts.market_state_ta_integrated_model_v1 import native_bar_model_contract
+    norm=require_native_m5_input_normalization_contract(read(report['normalization']))
+    prior=require_native_bar_train_prior(read(report['prior']),target_contract=report['dataset_contract'])
+    binding=report['input_binding'];cut=parent['metadata']['fit_end_ns']
+    need(norm['fit_population']==report['normalization_population']
+        and norm['fit_population']['cutoff_ns']==prior['fit_population']['cutoff_ns']==cut
+        and norm['fit_population']['issue_rows']==prior['fit_population']['issue_rows']==report['full_selected_cohorts']['FIT']['rows']
+        and prior['fit_population']['issue_ns_sha256']==report['full_selected_cohorts']['FIT']['issue_ns_sha256']
+        and norm['fit_population']['selected_source_rows_sha256']==report['full_selected_cohorts']['FIT']['source_rows_sha256']
+        and binding['source_axes_sha256']==norm['source_axes_sha256']==parent['metadata']['source_axes_sha256']
+        and binding['input_normalization_sha256']==norm['contract_sha256']
+        and report['model_contract']==native_bar_model_contract(binding,train_prior=prior,
+            backbone_gradient_policy=PRIMARY_BACKBONE_GRADIENT_POLICY,target_contract=report['dataset_contract']),
+        'LARGER_PREPARED_INPUT_STATS_MODEL_IDENTITY')
+    fields=('axis','normalization','prior','normalization_population','initial_state_sha256',
+        'initial_score_artifact','initial_capture','input_binding','model_contract','full_selected_cohorts','dataset_contract')
+    prepared={key:report[key]for key in fields}
+    prepared.update(result=inputs['prepare_result'],terminal=inputs['prepare_terminal'],plan=result['plan'],claim=result['claim'])
+    metadata={**parent['metadata'],'dependencies':{**parent['metadata']['dependencies'],
+        'prepared_plan':result['plan'],'prepared_claim':result['claim'],
+        'train_normalization':report['normalization'],'train_prior':report['prior'],
+        'initial_scores':report['initial_score_artifact'],'initial_capture':report['initial_capture']},
+        'prepared':prepared,'raw_gradient_design_evidence':{
+            'role':'same_qualified_primary_backbone_policy_fresh_year_mechanics_required'}}
+    return metadata
+
+
+def build_larger_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
+    need(mode in LARGER_FIT_MODES,'LARGER_FIT_MODE')
+    fields={'prepare_result','prepare_terminal'}|({'mechanics_result','mechanics_terminal'}if mode=='ta_larger_main'else set())
+    need(type(inputs)is dict and set(inputs)==fields,'LARGER_FIT_INPUT_ROLES')
+    metadata=larger_prepared_metadata(inputs)
+    clocks,sources=larger_clock_metadata(metadata['source_snapshot'],tuple(metadata['fold_bounds']),return_source_rows=True)
+    full=metadata['prepared']['full_selected_cohorts']
+    need(all(clocks[split]['source_rows_sha256']==full[label]['source_rows_sha256']
+        and clocks[split]['issue_ns_sha256']==full[label]['issue_ns_sha256']
+        and clocks[split]['input_ready_rows']==full[label]['rows']
+        for split,label in [('TRAIN','FIT'),('CONTROL','CONTROL')]),'LARGER_EXACT_FULL_SOURCE_POPULATIONS')
+    mechanics=mode=='ta_larger_mechanics';selected={}
+    for split,label in [('TRAIN','FIT'),('CONTROL','CONTROL')]:
+        rows=sources[split][:64]if mechanics else sources[split]
+        # Source-only issue clock; no labels are loaded to select score cohorts.
+        if mechanics:
+            snapshot=read(metadata['source_snapshot'])
+            with np.load(snapshot['archive']['path'],allow_pickle=False)as archive:
+                issues=archive['bar_start_ns'][rows]+300_000_000_000
+            item={'rows':len(rows),'source_rows_sha256':digest(rows),'issue_ns_sha256':digest(issues)}
+        else:item=dict(full[label])
+        selected[label]=item
+    metadata.update(selected_cohorts=selected,epoch_batches=2 if mechanics else(len(sources['TRAIN'])+63)//64)
+    recipe=larger_recipe(recipe,mode,metadata)
+    schedule=larger_schedule(sources['TRAIN'],{'mode':mode})
+    if not mechanics:
+        done,last=read(inputs['mechanics_result']),read(inputs['mechanics_terminal'])
+        parent=read(done['plan']);claim=read(done['claim']);proof=done['report']
+        need(done['stage']==last['stage']==parent['stage']==claim['stage']==FIT_SCOPES['ta_larger_mechanics'][0]
+            and done['status']=='COMPLETE_NATIVE_M5_TA_ATR03_YEAR_MECHANICS'
+            and last['status']=='COMPLETE'and last['exit_code']==0
+            and last['result']==inputs['mechanics_result']and last['plan']==done['plan']==claim['plan']
+            and last['claim']==done['claim']and done['source_unchanged']is True
+            and done['test_data_used']is last['test_data_used']is False
+            and done['clean_process_io_firewall']['denied_attempts']==0
+            and done['optimizer_steps']==3 and proof['actual_counts']==parent['limits']
+            and proof['actual_counts']['autograd_calls']==6 and proof['cold_resume']['bitexact']is True
+            and proof['normalization_fits']==proof['prior_fits']==0
+            and proof['primary_backbone_qualification']['auxiliary_shared_zero_all_steps']is True
+            and proof['primary_backbone_qualification']['M5_shared_positive_after_first_head_update']is True
+            and proof['initial_state_sha256']==metadata['prepared']['initial_state_sha256']
+            and all(proof[k]==metadata['prepared'][k]for k in ('axis','normalization','prior','normalization_population'))
+            and parent['metadata']['prepared']==metadata['prepared']
+            and set(parent['source_owners'])==set(LARGER_SOURCE_PATHS)
+            and all(sha(REPO/k)==v for k,v in parent['source_owners'].items()),'LARGER_MAIN_QUALIFIED_MECHANICS')
+        metadata['mechanics']={'result':inputs['mechanics_result'],'terminal':inputs['mechanics_terminal'],
+            'plan':done['plan'],'claim':done['claim'],'initial_state_sha256':proof['initial_state_sha256'],
+            'physical_windows_boot_id':done['physical_windows_boot_id']}
+        metadata['dependencies'].update(mechanics_plan=done['plan'],mechanics_claim=done['claim'])
+    stage,path,root=FIT_SCOPES[mode]
+    return {'schema_version':'gx1_native_m5_ta_atr03_year_fit_plan_v1','stage':stage,'mode':mode,
+        'status':'PREPARED_NOT_ADMITTED','output_root':str(root),'inputs':inputs,'metadata':metadata,
+        'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
+        'source_owners':{name:sha(REPO/name)for name in LARGER_SOURCE_PATHS},'recipe':recipe,
+        'training_schedule':schedule,'backbone_gradient_policy':PRIMARY_BACKBONE_GRADIENT_POLICY,
+        'execution':{'class':'trainer','device':'cuda','memory':'20G','swap':'512M','tasks_max':128,'numerical_threads':8,
+            'outer_seconds':recipe['outer_seconds'],'internal_seconds':recipe['internal_seconds'],'kill_after_seconds':10,
+            'cuda_peak_reserved_bytes_max':LARGER_VRAM_MAX},
+        'fit_order':'first_two_distinct_source_B64_technical'if mechanics else'all_chronological_input_TRAIN_once_singleton_tail_63_plus_2',
+        'score_order':'first64_each_split_technical_only'if mechanics else'all_TRAIN_and_CONTROL_rows_including_unknown_tails',
+        'normalization_axis':'all_input_TRAIN_before_prior_and_optimizer_no_target_filter',
+        'GC_used':False,'statistics_fits':{'normalization':0,'matched_TRAIN_prior':0},
+        'limits':larger_limits(recipe,mode,metadata),'qualification_weights_loaded':False,
+        'scheduler_state':None,'EMA_state':None,'training_authorized':True,'test_data_used':False,'economic_edge_proven':False}
+
+
+
+FIT_SCOPES.update({
+    'ta_larger_mechanics':('native_m5_ta_atr03_year_mechanics_20261120_001',
+        REPO/'configs/research/NATIVE_M5_TA_ATR03_YEAR_MECHANICS_20261120_001.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_YEAR_MECHANICS_20261120_001')),
+    'ta_larger_main':('native_m5_ta_atr03_year_fit_20261120_001',
+        REPO/'configs/research/NATIVE_M5_TA_ATR03_YEAR_FIT_20261120_001.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_YEAR_FIT_20261120_001'))})
 
 if __name__=='__main__':main()
