@@ -8,8 +8,8 @@ Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 Full revisjon av prosjektets avhengigheter, funksjoner, features, koblinger og
 lagring før trening. Numerikk, TRAIN-statistikk og kvalifisert opprydding er
-ferdige. Avsluttende testinnsamling, positiv bytekontroll og samlet sluttkontroll
-gjenstår. Status eies av `full_project_dependency_feature_storage_audit_20261120_001`.
+ferdige. Hel testsamling er importert/samlet uten feil. Positiv bytekontroll og samlet
+sluttkontroll gjenstår. Status eies av `full_project_dependency_feature_storage_audit_20261120_001`.
 
 Hovedtrening er ikke innrømmet eller startet. Alle treningsporter er stengt;
 main-planen er uclaimet, og outputroten finnes ikke. Ingen live/paper, broker,
@@ -120,3 +120,8 @@ Testinnsamling001 stoppet før innsamling fordi pytest åpnet /dev/null som logg
 Ny002 bruker eksplisitt logg i privat output; alle vakter er uendret. Integrert
 smoke samlet én generert test med exit0/ingen blokkerte operasjoner. Faktisk
 repo-collection002 er innrømmet, uten testkropper eller nye modell-/datarettigheter.
+
+Faktisk collection002 er fullført:15058tilfeller,0innsamlingsfeil,17,954s,
+uendret policy og ingen testkropper.18nektede operasjoner var bare egen
+auditkildeintrospeksjon og cachemkdir, ingen genuine payload-/modellforsøk.
+Dette er import/innsamlingsdekning;544tilfeller er kjørt separat, ikke15058.

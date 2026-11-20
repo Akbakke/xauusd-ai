@@ -94702,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Guardcollection001 stoppedatpytestlogging/dev/null (0items), originalpreserved. New002guardsidentical+privateoutputlog; realPytestgeneratedsmokecollect1/exit0/no blockedops. Actualfullcollection002admittedonly; finalbyteauditpending.",
+    "latest_observation": "Fulltestscollection15058items/0errors in17.954s; sourcepolicyunchanged, no testbodies/model/payloaddecodes.18blockedops onlyownworkerreadintrospection/privatecachemkdir; guardsunchanged. Finalpositivepreseal/codebyteauditpreparingafterexactcleanup22files.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94847,7 +94847,15 @@
     "retention_postdelete_metadata": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_POSTDELETE_METADATA001.json",
       "sha256": "806ca19cb8087e5c57cbfaf2efb2bf8da8f39b6633396be4e9c2ac0443f3128a"
-    }
+    },
+    "guarded_full_test_collection_complete": true,
+    "guarded_full_test_collection": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/GUARDED_COLLECTION002_SUMMARY.json",
+      "sha256": "4e7cc4f417d8bfdda6e8d4e03f2574384e016c9501020f0cf7bc8b3442dcdbf6"
+    },
+    "collected_test_items": 15058,
+    "collection_errors": 0,
+    "test_bodies_executed_in_collection": 0
   },
   "full_project_current_native_feature_numeric_20261120_001": {
     "status": "COMPLETE_CONSUMED",
@@ -95509,19 +95517,19 @@
     }
   },
   "full_project_guarded_test_collection_20261120_002": {
-    "status": "ADMITTED_COLLECTION_ONLY_FIXED_PRIVATE_LOG_SINK",
+    "status": "COMPLETE_CONSUMED_15058_ITEMS_ZERO_COLLECTION_ERRORS_NO_TEST_BODIES",
     "worker": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/GUARDED_TEST_COLLECTION_WORKER002.py",
       "sha256": "aed98a852ae744e1870501988e726ee2f28f10be423bbc72b5a9c74d958fb15b"
     },
     "output_root": "/tmp/GX1_GUARDED_TEST_COLLECTION_20261120_002",
-    "execution_authorized": true,
+    "execution_authorized": false,
     "training_authorized": false,
     "test_data_authorized": false,
     "test_bodies_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "memory": "4G",
     "swap": "512M",
@@ -95533,6 +95541,17 @@
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/GUARDED_COLLECTION002_INTEGRATION_SMOKE.json",
       "sha256": "9d4fba274f8487e766ff1c2c01fd4319142313a964e9df3af8a699898b750b92"
     },
-    "scope": "Exact private log sink added; no /dev/null exception or relaxed data/model/filesystem/network guard. No test bodies."
+    "scope": "Exact private log sink added; no /dev/null exception or relaxed data/model/filesystem/network guard. No test bodies.",
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/GUARDED_COLLECTION002_SUMMARY.json",
+      "sha256": "4e7cc4f417d8bfdda6e8d4e03f2574384e016c9501020f0cf7bc8b3442dcdbf6"
+    },
+    "items": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/GUARDED_COLLECTION002_ITEMS.json",
+      "sha256": "35a3758758c28c7b922ef51edcc1257db5cc68ecf217a24b29d803de5253d487"
+    },
+    "collected_items": 15058,
+    "collection_errors": 0,
+    "blocked_cache_or_own_source_operations": 18
   }
 }
