@@ -224,3 +224,10 @@ Bare source_base_commit endres; alle53modellkilder/inputs/recipe/initialtilstand
 er byteuendret. Gamle kvitteringer er urørt og originalplanen finnes i Git.
 Fersk preflight gjenstår; ingen treningsport åpnes. docs/FEATURE_AUDIT.md viser
 nå faktisk1731feltdekning og ærlige konsum-/gradient-/generaliseringsgrenser.
+
+Eksakt ownerplan9e974cd0… og uavhengig planreview består:åtte mål/22filer,
+35728523861logiske bytes (35728601088allokerte payloadbytes). Beholdte kopier
+og source050signal er uendret/beskyttet. Ownergodkjenning innrømmes under
+brukerens eksplisitte vedtak; etterpå fersk dry-run og særskilt eksakt execute.
+Ny hovedplanpreflight består med nyeSHAe8c86598…, kilde-/parent-/portkontroll,
+fersk Windowsboot667 og0CLAIM/modell/optimizer/featureverdidekoding. Trening stengt.

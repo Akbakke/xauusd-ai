@@ -94730,9 +94730,9 @@
     "retention_real_deletions": 0,
     "dependency_function_inventory_complete": true,
     "current_python_files": 1402,
-    "current_function_definitions": 20249,
-    "current_AST_call_expressions": 311896,
-    "current_import_statements": 19692,
+    "current_function_definitions": 20251,
+    "current_AST_call_expressions": 311888,
+    "current_import_statements": 19693,
     "dependency_inventory_archive": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CODE_AND_FEATURE_INVENTORY_ARCHIVE.json",
       "sha256": "529f8c6caf6856a83a134c0fabb5933a33d13e81abae04a7e7ce2ae619941c6d"
@@ -94825,7 +94825,20 @@
     "unclaimed_main_plan_source_rebind": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/MAIN_PLAN_SOURCE_REBIND001.json",
       "sha256": "dd63ff4850cf5be5e1899358aea5f929d40ee04f0d8292b4a73125c2d56f1da7"
-    }
+    },
+    "final_static_index": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CURRENT_CODE_FINAL_STATIC_INDEX001.json",
+      "sha256": "1607c61245e9f4a038c4eea9d5c72412a6e6f8a202dc42c973c76c75539d265d"
+    },
+    "final_static_module_replacements": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CURRENT_CODE_FINAL_MODULE_REPLACEMENTS001.json.gz",
+      "sha256": "ae9bdc551b4a9c3826394c6e6232675f9ae2b9f1ffa3b0746872faf108fb7dfa"
+    },
+    "main_fresh_metadata_preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/MAIN_REBOUND_PREFLIGHT001.log",
+      "sha256": "5d8aaf1947192af8604a69005052240df569640d3419c6ae11ba7df6f1819c5c"
+    },
+    "main_fresh_metadata_preflight_passed": true
   },
   "full_project_current_native_feature_numeric_20261120_001": {
     "status": "COMPLETE_CONSUMED",
@@ -95369,7 +95382,7 @@
     }
   },
   "full_project_retention_cleanup_20261120_001": {
-    "status": "ADMIN_CAPPED_ROUTE_PROVED_PLAN_ADMITTED",
+    "status": "EXACT_PLAN_AND_PEER_REVIEW_PASS_APPROVAL_AUTHORIZED",
     "user_deletion_authorization": "Explicit2026-11-20wholeprojectunnecessarystoragecleanup; soleexistingretentionowner only",
     "candidate_targets": 8,
     "candidate_allocated_payload_bytes": 35728601088,
@@ -95405,6 +95418,25 @@
       "path": "/tmp/gx1_retention_owner_plan_20261120_001.sh",
       "sha256": "575ad9f795f282c62d2581ccaf89743942b1c9e5863e6971d4e837ab089cd51c"
     },
-    "cleanup_plan_output": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_PLAN001"
+    "cleanup_plan_output": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_PLAN001",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_PLAN001/GX1_EVIDENCE_RETENTION_CLEANUP_PLAN_20261120T185459626803Z.json",
+      "sha256": "9e974cd055a44f2682b1a685dfb1cd29b45432537deeaf1b1aed22641566453f"
+    },
+    "plan_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_PLAN_PEER_REVIEW001.json",
+      "sha256": "21cbbfccf14a37a327a218948a362a127a0bd9ff59edebc6d1cd432910c800d7"
+    },
+    "exact_targets": 8,
+    "exact_files": 22,
+    "planned_logical_bytes": 35728523861,
+    "planned_allocated_payload_bytes": 35728601088,
+    "approval_launch": {
+      "path": "/tmp/gx1_retention_owner_approve_20261120_001.sh",
+      "sha256": "47ed054e77328e3e72e7373fa38706a2fd9e1665e42f01dd15e62c2106bea85d"
+    },
+    "approval_output": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_APPROVAL001",
+    "user_confirmation_required": false,
+    "approval_basis": "Explicit user20Nov request, exact byte parity and consumed-scratch proof, sole-owner plan and independent peer. No new user approval needed."
   }
 }

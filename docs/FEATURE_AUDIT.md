@@ -65,7 +65,11 @@ kald bitlik gjenopptakelse, forventet auxiliary detach og positiv samlet M5-
 backbone-gradient etter første head-oppdatering. Den beviser ikke nytte eller
 gradient fra hvert felt. Alle 53 bundne aktive kildehashene er uendret.
 
-Konsumkart og bevisgrenser finnes i `CURRENT_FEATURE_CONSUMPTION_CLAIMS001.json`;
+Det opprinnelige konsumkartet finnes i `CURRENT_FEATURE_CONSUMPTION_CLAIMS001.json`;
+dets tidligere auditstatus er historisk. De tre COMPLETE-kvitteringene ovenfor
+gir dagens numeriske kvalifikasjon. `CURRENT_CODE_FINAL_STATIC_INDEX001.json`
+og sju komplette modulutskiftninger gir dagens kildeinventar:311888 AST-kall
+og19693importer, inkludert2538definisjonsheaderkall.
 komprimerte funksjons-/avhengighetsregistre finnes via
 `CODE_AND_FEATURE_INVENTORY_ARCHIVE.json` under bevisroten. Datert
 `FEATURE_AUDIT_INVENTORY_20261017.json` beholdes uendret som historisk kildebevis,
