@@ -38,7 +38,7 @@ Makroparseren får read_end-predikat før DataFrame-eksponering; den gamle
 resample-cutoffen er uendret.2syntetiske seal/journal-tilfeller består.
 Dette beviser ikke at Arrow aldri dekoder en blandet rowgroup fysisk.
 5closure/kvitteringskontroller,8nye guardvarianter og5profilkildetilfeller består.
-GPU0update-profil forB16/B64 er kildeklart, ikke utført. Større test er ennå
+GPU0update-profil forB16/B64 er eksakt innrømmet etter CLI-preflight,8F/8back. Større test er ennå
 ikke klar; tidsbruk og nye TRAIN-stats/baseline må kvalifiseres først.
 
 ## Ferdig seksårs inputgrunnlag
