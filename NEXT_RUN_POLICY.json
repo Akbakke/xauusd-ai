@@ -94702,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "SoleownerDELETE_COMPLETE8targets22files35.7286GBallocated afterfreshdryrun,source/policyunchanged341.747s. FreeWSLspace+35.7285GBobserved. Keeperspresent; finalpositivebyteauditwillrecheckretainedcopySHA. DefaultUID1000sessionCapEff/Amb0 aftertemporaryadminroute. Guardedfulltestcollectionthenfinalbyte/presealcoveragepending.",
+    "latest_observation": "Guardcollection001 stoppedatpytestlogging/dev/null (0items), originalpreserved. New002guardsidentical+privateoutputlog; realPytestgeneratedsmokecollect1/exit0/no blockedops. Actualfullcollection002admittedonly; finalbyteauditpending.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -95483,12 +95483,38 @@
     "default_session_effective_and_ambient_caps_zero": true
   },
   "full_project_guarded_test_collection_20261120_001": {
-    "status": "ADMITTED_COLLECTION_ONLY_NO_TEST_BODIES",
+    "status": "FAILED_CONSUMED_PYTEST_LOGGING_SINK_BLOCKED_BEFORE_COLLECTION",
     "worker": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/GUARDED_TEST_COLLECTION_WORKER001.py",
       "sha256": "2e3b0f573ba93509218c4d0d251d57f0c7eb4fd3d0cc58b32dc0e12b02517286"
     },
     "output_root": "/tmp/GX1_GUARDED_TEST_COLLECTION_20261120",
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_data_authorized": false,
+    "test_bodies_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "memory": "4G",
+    "swap": "512M",
+    "numerical_threads": 1,
+    "tasks_max": 64,
+    "outer_seconds": 600,
+    "limits": "Trusted-process hooks/named decoder entrances, not OSsandbox. Normal Torch models/optimizers/autograd/checkpoint loads and genuineDATA/RUNS/egress/writesoutsidefreshoutput are denied. Collection/import coverage only.",
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/GUARDED_COLLECTION001_FAILED_SUMMARY.json",
+      "sha256": "e745763f06bc8ecbe434d40162ccc1115f5f6e8a9fb33d00928268d086fb9bb0"
+    }
+  },
+  "full_project_guarded_test_collection_20261120_002": {
+    "status": "ADMITTED_COLLECTION_ONLY_FIXED_PRIVATE_LOG_SINK",
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/GUARDED_TEST_COLLECTION_WORKER002.py",
+      "sha256": "aed98a852ae744e1870501988e726ee2f28f10be423bbc72b5a9c74d958fb15b"
+    },
+    "output_root": "/tmp/GX1_GUARDED_TEST_COLLECTION_20261120_002",
     "execution_authorized": true,
     "training_authorized": false,
     "test_data_authorized": false,
@@ -95499,9 +95525,14 @@
     "relaunch_allowed": false,
     "memory": "4G",
     "swap": "512M",
-    "numerical_threads": 1,
     "tasks_max": 64,
+    "numerical_threads": 1,
     "outer_seconds": 600,
-    "limits": "Trusted-process hooks/named decoder entrances, not OSsandbox. Normal Torch models/optimizers/autograd/checkpoint loads and genuineDATA/RUNS/egress/writesoutsidefreshoutput are denied. Collection/import coverage only."
+    "same_guards_as001": true,
+    "generated_pytest_configuration_smoke": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/GUARDED_COLLECTION002_INTEGRATION_SMOKE.json",
+      "sha256": "9d4fba274f8487e766ff1c2c01fd4319142313a964e9df3af8a699898b750b92"
+    },
+    "scope": "Exact private log sink added; no /dev/null exception or relaxed data/model/filesystem/network guard. No test bodies."
   }
 }

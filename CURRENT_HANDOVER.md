@@ -115,3 +115,8 @@ historisk vendor-/revisjonsledger og per-felt gradient/nytte er ikke bevist.
 Juni 2026 er gjenbrukt utvikling. TRAIN-fit, senere generalisering, referanseverdi
 og realisert økonomi holdes adskilt. Retning, generalisering og edge er fortsatt
 ubevist; ingen handels-/profittpåstand følger av tekniske PASS.
+
+Testinnsamling001 stoppet før innsamling fordi pytest åpnet /dev/null som logg.
+Ny002 bruker eksplisitt logg i privat output; alle vakter er uendret. Integrert
+smoke samlet én generert test med exit0/ingen blokkerte operasjoner. Faktisk
+repo-collection002 er innrømmet, uten testkropper eller nye modell-/datarettigheter.
