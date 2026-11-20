@@ -207,7 +207,13 @@ Ferske dokument-/canonicalvern nektet ingen av de åtte kvalifiserte målene,
 men ulesbare root-prosessers FD-tabeller stenger korrekt sletteporten. Dette
 undersøkes med legitim midlertidig administrativ inspeksjon uten å svekke vernet.
 
-Neste retention-steg:kontroller midlertidig CAP_SYS_PTRACE+DAC_READ_SEARCH
+Retentions inspeksjonsrute er målt PASS:midlertidig CAP_SYS_PTRACE+DAC_READ_SEARCH
 med alle UID-felt1000 gjennom uendret capped audit4GiB/512MiB/1tråd/64tasks
 og samme canonical FD9-prosjektlås. Ingen permanent privilegie-/filendring.
 Slettevakten skal faktisk lese alle FD-tabeller; ingen permission-skip tillates.
+
+Faktisk capped-probe bekrefter UID1000, kun de to lese-capabilities, uendret
+4GiB/512MiB/1tråd/64tasks og canonical FD9 dev78/inode35. Uendret writer-guard
+består med PID1-tabellen lesbar. Ny eksakt retention-plan for åtte kvalifiserte
+mål er innrømmet; plan/approve/dryrun/execute skjer bare gjennom eksisterende eier.
+Ingen sletting før konkret plan er validert og godkjent etter brukerens vedtak.

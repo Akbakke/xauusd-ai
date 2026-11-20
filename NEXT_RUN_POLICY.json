@@ -95365,7 +95365,7 @@
     }
   },
   "full_project_retention_cleanup_20261120_001": {
-    "status": "QUALIFYING_TEMPORARY_READONLY_ADMIN_FD_ACCESS_BEFORE_PLAN",
+    "status": "ADMIN_CAPPED_ROUTE_PROVED_PLAN_ADMITTED",
     "user_deletion_authorization": "Explicit2026-11-20wholeprojectunnecessarystoragecleanup; soleexistingretentionowner only",
     "candidate_targets": 8,
     "candidate_allocated_payload_bytes": 35728601088,
@@ -95391,6 +95391,16 @@
       "path": "/tmp/gx1_retention_admin_launch_probe_20261120.sh",
       "sha256": "7e7bafb1f0f81cf4b2fd4993c9aa1ed9e0a6ed9335932d3e5234bafdad9f0711"
     },
-    "admin_scope_probe_output": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_CAPPED_ADMIN_FD_PROBE_20261120_001"
+    "admin_scope_probe_output": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_CAPPED_ADMIN_FD_PROBE_20261120_001",
+    "admin_scope_probe_result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_CAPPED_ADMIN_FD_PROBE_20261120_001/RESULT.json",
+      "sha256": "fbd73ebd044d47d50a66cd27a3419f45b3376ea650ceb13dd9067101a4f07e8a"
+    },
+    "admin_scope_proof_complete": true,
+    "cleanup_plan_launch": {
+      "path": "/tmp/gx1_retention_owner_plan_20261120_001.sh",
+      "sha256": "575ad9f795f282c62d2581ccaf89743942b1c9e5863e6971d4e837ab089cd51c"
+    },
+    "cleanup_plan_output": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_PLAN001"
   }
 }
