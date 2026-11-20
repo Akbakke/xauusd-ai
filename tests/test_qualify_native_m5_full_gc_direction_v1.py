@@ -1400,8 +1400,8 @@ def test_throughput_metadata_role_gate_precedes_any_receipt_or_model_io(monkeypa
 
 
 def test_throughput_profile_contract_has_zero_optimizer_and_bounded_rows_and_memory():
-    assert owner.THROUGHPUT_LIMITS=={'model_constructions':1,'checkpoint_loads':1,'model_forwards':8,
-        'backward_calls':8,'autograd_calls':0,'optimizer_constructions':0,'optimizer_steps':0}
+    assert owner.THROUGHPUT_LIMITS=={'model_constructions':1,'checkpoint_loads':1,'model_forwards':6,
+        'backward_calls':6,'autograd_calls':0,'optimizer_constructions':0,'optimizer_steps':0}
     assert owner.THROUGHPUT_EXECUTION['cuda_peak_reserved_bytes_max']==12*1024**3
     assert owner.THROUGHPUT_EXECUTION['internal_seconds']<owner.THROUGHPUT_EXECUTION['outer_seconds']==1800
     assert owner.THROUGHPUT_EXECUTION['memory']=='20G'and owner.THROUGHPUT_EXECUTION['numerical_threads']==8
@@ -1447,3 +1447,35 @@ def test_throughput_success_and_failure_publish_consumed_terminal(tmp_path,monke
     assert terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False
     assert terminal['claim']==real_ref(root/'CLAIM.json')and terminal['plan']==binding
     assert (terminal['result']is None)==fail
+
+
+def _old_dense_finite_all(tensors):
+    return all((bool(torch.isfinite(tensor).all()) for tensor in tensors))
+
+def test_candidate_matches_old_finite_dense_dtypes_shapes_and_empty_tensors():
+    values = [torch.tensor(True), torch.tensor([True, False]), torch.tensor([1, -2], dtype=torch.int64), torch.empty(0), torch.ones(2, 3, dtype=torch.float16), torch.ones(2, dtype=torch.float32), torch.ones(2, dtype=torch.float64), torch.tensor([1 + 2j, -3 + 0j], dtype=torch.complex64), torch.tensor([1 + 2j], dtype=torch.complex128)]
+    assert _old_dense_finite_all(values) is True
+    assert owner.finite_all_per_device(iter(values)) is True
+
+def test_candidate_rejects_nan_and_signed_inf_in_middle_and_last_tensor():
+    for bad in (float('nan'), float('inf'), -float('inf')):
+        for position in (1, 3):
+            for element in (2, 4):
+                values = [torch.ones(5) for _ in range(4)]
+                values[position][element] = bad
+                assert _old_dense_finite_all(values) is False
+                assert owner.finite_all_per_device(iter(values)) is False
+    for bad in (complex(float('nan'), 0), complex(0, float('inf')), complex(0, -float('inf'))):
+        values = [torch.ones(2), torch.tensor([bad], dtype=torch.complex128)]
+        assert owner.finite_all_per_device(values) == _old_dense_finite_all(values) is False
+
+def test_candidate_keeps_empty_all_true_but_empty_gradient_guard_false():
+    assert _old_dense_finite_all([]) is True
+    assert owner.finite_all_per_device([]) is True
+    assert owner.finite_all_per_device(iter(())) is True
+    gradients = []
+    original = gradients and all((bool(torch.isfinite(p.grad).all()) for p in gradients))
+    candidate = gradients and owner.finite_all_per_device((p.grad for p in gradients))
+    assert original == candidate == []
+    assert bool(candidate) is False
+    assert owner.finite_all_per_device(iter(())) == all(()) is True

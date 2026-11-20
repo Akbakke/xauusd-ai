@@ -320,3 +320,14 @@ outputrot finnes ikke. TRAINING_READY.json binder hele kvalifikasjonen.
 Estimert omtrent10minutter, ikke et resultat eller tidsløfte for den nye runden.
 0,3ATR er en netto-støyproxy. Faktisk økonomisk uutnyttbarhet, helemarkedets
 path-FLAT, tilfredsstillende vekting og prediktiv edge er fortsatt ubevist.
+
+## Målt fart før større test
+
+THROUGHPUT001 fullførte58,397s med8F/8back/0optimizer, eksakt like logits,
+loss og clippedgradients påsammeRNG. Vekter/stats uendret, RNGtilbake,gradNone.
+B16reference1,193801s;B64reference1,418211s,3,37ganger flere rader/s på disse
+faste panelene. Dette er ikke faktiskAdamW-throughput eller robustspeedup.
+Forward-onlygrouping ga≤1prosentforskjell. ProfilertB64 hadde1435item/
+skalarsynkroniseringer; gjentatte grad-/parameterfinitekontroller er konkret
+arbeid som nå samler sammepredikaterperdevice. CPUnegativeparitet består;
+nyB64-zero-updateparitet/fart måmåles før nye treningsvalg låses.

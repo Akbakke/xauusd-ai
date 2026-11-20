@@ -1314,6 +1314,15 @@ def prepare_native_fit(plan,root,*,reload_normalization=None,reload_prior=None):
         'normalization_ref':normalization_ref,'prior':prior,'prior_ref':prior_ref}
 
 
+def finite_all_per_device(tensors):
+    """Same finite predicate; at most one bool synchronization per participating device."""
+    import torch
+    flags_by_device = {}
+    for tensor in tensors:
+        flag = torch.isfinite(tensor).all()
+        flags_by_device.setdefault(flag.device, []).append(flag)
+    return all((bool(torch.stack(flags).all()) for flags in flags_by_device.values()))
+
 def fit_step(model,optimizer,provider,cohort,rows,plan):
     import torch
     from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_direction_loss
@@ -1332,7 +1341,7 @@ def fit_step(model,optimizer,provider,cohort,rows,plan):
     loss['loss'].backward()
     model._native_fit_counts['backward_calls']+=1
     gradients=[p for p in model.parameters()if p.grad is not None]
-    need(gradients and all(bool(torch.isfinite(p.grad).all())for p in gradients),'FIT_FINITE_GRADIENTS')
+    need(gradients and finite_all_per_device(p.grad for p in gradients),'FIT_FINITE_GRADIENTS')
     gradient_proof={}
     if _ta_fit(plan)and model._native_fit_counts['optimizer_steps']<2:
         for group,prefix in [('backbone','backbone.'),('heads',None)]:
@@ -1343,7 +1352,7 @@ def fit_step(model,optimizer,provider,cohort,rows,plan):
         gradient_proof['role']='actual_loss_gradient_before_clip_not_AdamW_weight_decay'
     norm=torch.nn.utils.clip_grad_norm_(gradients,plan['recipe']['gradient_clip_norm'],error_if_nonfinite=True)
     optimizer.step();model._native_fit_counts['optimizer_steps']+=1;optimizer.zero_grad(set_to_none=True)
-    need(all(bool(torch.isfinite(p).all())for p in model.parameters()),'FIT_FINITE_PARAMETERS')
+    need(finite_all_per_device(model.parameters()),'FIT_FINITE_PARAMETERS')
     return {'loss':float(loss['loss'].detach()),'gradient_norm':float(norm),'source_rows_sha256':digest(rows),
         **gradient_proof,**primary_probe,
         'predictive_counts':{key:value.detach().cpu().tolist()for key,value in loss['counts'].items()},
@@ -2644,16 +2653,16 @@ def prepare_noise_native_fit(plan,root,*,reload_normalization=None,reload_prior=
 
 
 # PRIVATE integration fragment. Add main() dispatch before fit_cli; do not run standalone.
-THROUGHPUT_STAGE='native_m5_ta_atr03_throughput_20261120_001'
-THROUGHPUT_PLAN=REPO/'configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_001.json'
-THROUGHPUT_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_001')
+THROUGHPUT_STAGE='native_m5_ta_atr03_throughput_20261120_002'
+THROUGHPUT_PLAN=REPO/'configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_002.json'
+THROUGHPUT_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_002')
 THROUGHPUT_INPUTS={
     'mechanics_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_MECHANICS_20261120_001/RESULT.json',
         'sha256':'0cec57bd2de0de21d4d201249cdbc6a70feb8a06e80b2dbbdb45ab068f760334'},
     'mechanics_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_MECHANICS_20261120_001/TERMINAL.json',
         'sha256':'cbf99bb810a204f57c1491841c993214d8c6f45176114d0e07db38085bca22f1'}}
-THROUGHPUT_LIMITS={'model_constructions':1,'checkpoint_loads':1,'model_forwards':8,
-    'backward_calls':8,'autograd_calls':0,'optimizer_constructions':0,'optimizer_steps':0}
+THROUGHPUT_LIMITS={'model_constructions':1,'checkpoint_loads':1,'model_forwards':6,
+    'backward_calls':6,'autograd_calls':0,'optimizer_constructions':0,'optimizer_steps':0}
 THROUGHPUT_EXECUTION={'class':'trainer','device':'cuda','memory':'20G','swap':'512M','tasks_max':128,
     'numerical_threads':8,'outer_seconds':1800,'internal_seconds':1770,'kill_after_seconds':10,
     'cuda_peak_reserved_bytes_max':12*1024**3}
@@ -2698,8 +2707,9 @@ def build_throughput_plan(*,inputs,source_base_commit=None):
             'analysis_parent':r['plan'],'normalization':proof['normalization'],'prior':proof['prior'],
             'initial_state_sha256':proof['initial_state_sha256'],'final_state_sha256':proof['final_state_sha256']},
         'execution':THROUGHPUT_EXECUTION,'limits':THROUGHPUT_LIMITS,
-        'panel_rule':'first_frozen_TRAIN_B16_block_and_first_four_frozen_TRAIN_B16_blocks_concatenated_B64',
-        'lanes':['warmup_immediate','reference_immediate','grouped_uninstrumented','grouped_profiled'],
+        'panel_rule':'first_four_frozen_TRAIN_B16_blocks_concatenated_B64',
+        'lanes':['warmup_immediate','reference_immediate','grouped_uninstrumented','reference_repeat','grouped_repeat','grouped_profiled'],
+        'candidate_finite_guard':'same_dense_predicates_one_scalar_sync_per_device_plus_existing_grouped_forward_scope',
         'model_mode':'train','same_rng_per_lane':True,'analysis_weights_only':True,
         'training_authorized':False,'test_data_used':False,'GC_used':False,'economic_edge_proven':False}
 
@@ -2767,12 +2777,12 @@ def throughput_lane(model,context,rows,parent,*,grouped,profiled,rng):
         need(not loss['skip_update']and bool(torch.isfinite(loss['loss'])),'THROUGHPUT_FINITE_LOSS')
         phase('backward',lambda:loss['loss'].backward())
         gradients=[p for p in model.parameters()if p.grad is not None]
-        phase('finite_gradients',lambda:need(gradients and all(bool(torch.isfinite(p.grad).all())
-            for p in gradients),'THROUGHPUT_FINITE_GRADIENTS'))
+        phase('finite_gradients',lambda:need(gradients and (finite_all_per_device(p.grad for p in gradients)if grouped
+            else all(bool(torch.isfinite(p.grad).all())for p in gradients)),'THROUGHPUT_FINITE_GRADIENTS'))
         norm=phase('clip_grad_norm',lambda:torch.nn.utils.clip_grad_norm_(gradients,
             parent['recipe']['gradient_clip_norm'],error_if_nonfinite=True))
-        phase('finite_parameters',lambda:need(all(bool(torch.isfinite(p).all())for p in model.parameters()),
-            'THROUGHPUT_FINITE_PARAMETERS'))
+        phase('finite_parameters',lambda:need(finite_all_per_device(model.parameters())if grouped else
+            all(bool(torch.isfinite(p).all())for p in model.parameters()),'THROUGHPUT_FINITE_PARAMETERS'))
         if profiled:cpu.disable()
     torch.cuda.synchronize();elapsed=time.perf_counter()-started
     for name,a,b in events:phases[name]['cuda_stream_elapsed_ms']=a.elapsed_time(b)
@@ -2824,14 +2834,15 @@ def throughput_physical(plan):
     need(canonical_model_state_sha256(model.state_dict())==meta['final_state_sha256'],'THROUGHPUT_TRAINED_IDENTITY')
     before=state_sha(model.state_dict());norm_sha=state_sha(context['normalization']);prior_sha=state_sha(context['prior'])
     rng=training_rng();rng_sha=state_sha(rng);reports={};counts={'forwards':0,'backwards':0}
-    def count(module,args):counts['forwards']+=1;need(counts['forwards']<=8,'THROUGHPUT_FORWARD_LIMIT')
+    def count(module,args):counts['forwards']+=1;need(counts['forwards']<=6,'THROUGHPUT_FORWARD_LIMIT')
     hook=model.register_forward_pre_hook(count)
     selected,_=selected_small_cohorts(parent,context);blocks=all_score_batches(selected['FIT'],16)
     try:
-        for size,rows in [(16,blocks[0]),(64,np.concatenate(blocks[:4]))]:
+        for size,rows in [(64,np.concatenate(blocks[:4]))]:
             lanes={}
             for name,grouped,profiled in [('warmup_immediate',False,False),('reference_immediate',False,False),
-                ('grouped_uninstrumented',True,False),('grouped_profiled',True,True)]:
+                ('grouped_uninstrumented',True,False),('reference_repeat',False,False),
+                ('grouped_repeat',True,False),('grouped_profiled',True,True)]:
                 lanes[name]=throughput_lane(model,context,rows,parent,grouped=grouped,profiled=profiled,rng=rng)
                 counts['backwards']+=1
             reference=lanes['reference_immediate']['identity']
@@ -2839,7 +2850,7 @@ def throughput_physical(plan):
             reports[str(size)]={'source_rows_sha256':digest(rows),'issue_ns_sha256':digest(provider.issue_ns[rows]),'lanes':lanes}
             need(torch.cuda.max_memory_reserved()<=plan['execution']['cuda_peak_reserved_bytes_max'],'THROUGHPUT_VRAM_LIMIT')
     finally:hook.remove();model.zero_grad(set_to_none=True);restore_training_rng(rng)
-    need(counts=={'forwards':8,'backwards':8}and state_sha(model.state_dict())==before
+    need(counts=={'forwards':6,'backwards':6}and state_sha(model.state_dict())==before
         and state_sha(context['normalization'])==norm_sha and state_sha(context['prior'])==prior_sha
         and state_sha(training_rng())==rng_sha and all(p.grad is None for p in model.parameters()),'THROUGHPUT_IMMUTABLE_BOOKEND')
     return {'panels':reports,'actual_counts':plan['limits'],'prepare_seconds':prep_seconds,
