@@ -2,174 +2,156 @@
 
 Arbeidssted: /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
 Les GX1_RULES.md helt. NEXT_RUN_POLICY.json er eneste arbeidsstatus;
-original prosess/terminalkvittering overstyrer prosa. Historikk finnes i Git.
+originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git.
 
 ## Gjeldende status 20.11.2026
 
 Det vedvarende OPP/NED/FLAT-målet er aktivt, ikke oppnådd.
-PRIMARY_BACKBONE_FIT001 er fullført og uavhengig vurdert, exit0 på578,831s
-(9m39):1fersk modell/4fastepass/384updates/544forwards/0autograd-prober.
-Kilde/policy var uendret. Alle trenings-/kjøringsporter er stengt; cache003 er fullført og konsumert.
-Alle tidligere engangsplaner er konsumert. Ingen aktiv modelljobb eller ny fit. CACHE_EXPANSION001 er konsumert etter ytre exit137; ingen cache ble produsert.
-Siste målte GPU-idle etter terminal: P8,24,72W,37C,78MiB,0prosentutnyttelse.
+Seksårs TA-inputs er produsert og uavhengig kvalifisert.
+Ingen aktiv jobb. ALLE trenings-/kjøringsporter er stengt. Alle tidligere
+engangsplaner er konsumert og relanseres aldri. Ingen ny fit er innrømmet.
+M5-læringen bedret seg på valgt FIT, men senere CONTROL taper fortsatt prior.
+Dette er ingen dokumentert retningsedge, generalisering eller økonomi.
 
-Aldri M1 til retning: verken input, fasit, metadataforelder, rader, prior,
-normalisering, evaluering eller warmstart. M1 er bare til senere oppfølging av
-åpnet trade. GC er utsatt etter brukerens vedtak; kode/data beholdes.
-TEST fra01.07.2026, Entry/Exit, broker, paper/live, ordre, spending og promotion
-er stengt. Juni2026 og øvrige gjenbrukte perioder er utvikling, ikke urørt test.
+M1 brukes ALDRI til retning: ingen input, fasit, metadataforelder, rader,
+prior, normalisering, evaluering eller warmstart. Bare senere oppfølging
+av allerede åpnet trade. M5 med lukket M15/H1/H4/D1 er retningsgrunnlaget.
+GC er utsatt; eksisterende kode/data beholdes. TEST fra01.07.2026,
+Entry/Exit, broker, paper/live, ordre, spending og promotion er stengt.
+Juni2026 og øvrige gjenbrukte perioder er utvikling, ikke urørt test.
 
-## Gjort: målt årsaksspørsmål og minste endring
+## Ferdig seksårs inputgrunnlag
 
-1. Kronologisk TA-main001 hadde M5 CONTROL-OPP argmax509/511; faktisk243/511.
-2. BLOCK_ORDER001 endret bare hele TRAIN-blokkers rekkefølge via lokal
-   PCG64(20260911). OPP-argmax falt til368/511, men M5 tapte fortsatt prior.
-3. SHARED_GRADIENT001 brukte4fasteTRAIN-paneler og0updates. Aux/M5 shared-
-   gradientnorm24,91, cosinus−0,28891, g5·joint−0,00193489; motarbeid i3/4.
-   Dette er rå evalgradient ved én tilstand, ikke historisk AdamW-årsaksbevis.
-4. Optional m5_close_only_backbone_v1 lar M5-close styre fellesdelen.
-   Øvrige ni hoder lærer fra detached hidden. Default-ruten, alle inputs,
-   fem TF, fasit, native tapsvekter/Ntotal og optimizer er beholdt.
-   Ny modell/state-policy er strengt bundet; ingen klassekvote er innført.
-5. Fokuserte modell-/driver-/guardtilfeller og uavhengig source-review bestod.
-   Fersk PRIMARY_MECHANICS001 kvalifiserte baseline, genuine gradientruter og
-   bit-identisk kald replay på77,059s:2modeller/67forwards/3updates/6prober.
-   M5-fellesgradient0→0,0012441275; aux→felles eksakt0. Alle8flytende
-   inputflater og støttede aux-hoder har positiv gradient.
-6. Ny main brukte ferske vekter og samme1536FIT/512CONTROL, norm/prior og
-   PCG64-schedule som BLOCK_ORDER. Ingen tekniske/gamle vekter eller statsrefit.
-   Fast pass4 er slutt; intet best-pass-/seedvalg fra CONTROL.
+NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003 fullførte exit0 på1181,156s
+(19m41), CPU12G/512M/1tråd/64tasks. Source/policy var uendret.
+Issuevindu[2018-10-01,2024-10-01):425320issues/425415lokalrader,
+samme fulle kausale native2009-prefiks og frosne2013-parametre.
+Alle8TA-familier,61D1/makrofelt,5TF og9modellinputflater beholdes.
+Signal318,ctx132+1kategorisk,MTF256. Ingen modell/norm/paramfit/targetdecode.
+Ny seksårs modellbaseline eller læring er IKKE målt.
 
-## Resultat: bedre FIT-læring, fortsatt ingen M5-edge
+| År | Inputklare issues | Manglende |
+|---|---:|---:|
+|2018, fra oktober|17788|0|
+|2019|70692|0|
+|2020|71033|0|
+|2021|70855|0|
+|2022|70881|0|
+|2023|70684|0|
+|2024, til oktober|53387|0|
+|Sum|425320|0|
 
-M5 framtidig sluttretning. Lavere logloss/Brier er bedre.
+Alle61makrofelt er finite på alle425320issues, med gjeldende kausale
+publiserings-/asofregler. Fysiske verdier/NaN og ekte readiness bevares.
+Dette viser inputdekning, ikke hvert felts prediktive verdi.
 
-| Fast referanse | FIT logloss | CONTROL logloss | CONTROL Brier | CONTROL AUC |
+Én uavhengig NumPy/stdlib-audit under audit4G bestod exit0 på16,377s,
+peakRSS875,09MiB: alle27arraydtype/shape/SHA, globaleM5/TF-eier-IDer,
+tilgjengelighetsklokker/vindusunioner,132kontekstaliaser og rullende
+readiness er kontrollert. Ingen Torch/provider/modell/norm/target/råpriser.
+Alle27gamle mai–september2024-overlappsarrays er byteeksakte,
+inkludert NaNs/klokker/globalIDer og29964issues.41source/policy/artifact-
+bookends var uendret. CACHE_QUALIFICATION.json og original audit/script
+er hashbundet i policy; originalproduksjonskvitteringer er urørt.
+Fullt27arrayvolum1563164006B, arkiv614460598B.
+primary_matrix_bytes1533220514B er delsum, ikke totalvolum.
+Fasekvitteringer målte7054,47MiB maxRSS gjennom reload; dette er ikke
+påstått som måling av alle etterfølgende revisjons-/årsrapportfaser.
+
+## Målte blokkeringer som er rettet
+
+Gammel aktiv inputcache dekket bare mai–september2024; full kildeakse
+var ikke ferdig featuredekning. Native råhistorikk fantes allerede.
+CACHE001 ble drept med ytre137 uten NPZ/RESULT/nativeTERMINAL; kernel-
+OOM i kjøreperioden, men gammelCLAIM manglet direkte cgroup/PID-binding.
+OriginalCLAIM og ekstern OPERATOR_EXIT_OBSERVATION er bevart, ingen
+terminal er fabrikert. Gammel dødsfase/COW-setting er ukjent.
+
+En liten audit4G-probe viste Pandas2.3.3/COW-off som cachet3fulle attrs-
+matriser ved3kolonnevalg (64→192B). Den aktive M5-aliasløkken hadde
+samme Series-kall med store featureattrs. Nå leses samme float32kolonne
+som NumPyview, uten Series/itemcache/attrs-deepcopies. Bytes/NaN,
+navn/rekkefølge/lineage og view-eierskap er bevart. Eksakt helper+ett
+RHS-bytte normaliseres i smalASTbro; øvrige17numeriske eiere er uendret.
+Ingen HTF-/writerrefaktor eller capøkning ble gjort.
+
+CACHE002 passerte aliasløkken, men feilet ved makro._research sin eager
+learner/model_free-import til walkforward/direction_decision/Torch.
+Native FAILED_CONSUMED-exit1 og ekstern kildebookend er bevart separat;
+terminalens manglende sourcefelt ble aldri diktet. Kalenderen var ikke
+årsaken. Kun to importgrupper i research_ta_campaign er flyttet til14
+runtimebrukere. Makro-/asof-/fit-/porteføljemattematikk er uendret.
+Testreferanser til importerte implementasjonsnavn peker nå faktiske eiere.
+
+11fokuserte cachetilfeller fra alias-/livsløpsbølgen og3nye import-/002-
+tilfeller består;9berørte research-regresjoner og obligatoriske modell-
+native precommit-kontrakter består. Tidligere beståtte kontroller gjenbrukes.
+Ren fresh-process makro/asof under Torch-nekt bestod uten datalesing.
+Uavhengige kilde-/planreviews og eksakte CLI-preflight bestod før hver
+engangsinnrømming.003 bevarte12G/3570s og har cap/cgroup/PID iCLAIM
+samt10små immutable før/etter-fasekvitteringer.001/002relanseres aldri.
+
+## M5-resultat før seksårsutvidelsen
+
+Alle følgende målinger bruker samme faste1536FIT/512senere september2024-
+CONTROL; gjenbrukt utvikling, ikke uavhengig test. Fast pass4 er slutt.
+
+| Referanse | FIT logloss | CONTROL logloss | CONTROL Brier | CONTROL AUC |
 |---|---:|---:|---:|---:|
-| Matchet TRAIN-prior |0,709405|0,716887|0,504676|0,500000|
-| BLOCK_ORDER001 |0,708095|0,720930|0,506435|0,476531|
-| PRIMARY_BACKBONE_FIT001 |0,679772|0,732819|0,520350|0,478913|
+|Matchet TRAIN-prior|0,709405|0,716887|0,504676|0,500000|
+|BLOCK_ORDER001|0,708095|0,720930|0,506435|0,476531|
+|M5-primary-backbone|0,679772|0,732819|0,520350|0,478913|
 
-Ny FIT Brier0,474310 og AUC0,653148. M5 lærer nå tydeligere på FIT, men
-samme faste senere CONTROL blir svakere. Gjennomsnittlig CONTROL
-P(NED/LIK/OPP)=49,7707/0,2336/49,9957prosent; argmaxOPP256/511.
-Nær50/50-gjennomsnitt beviser verken kalibrering eller retningsverdi.
+Rekkefølgeforsøket endret bare hele TRAIN-blokkers lokalePCG64-rekkefølge.
+Shared-gradientdiagnosen målte aux/M5-norm24,91 ogcosinus−0,28891 på4
+fasteTRAIN-paneler,0updates. Dette var rå evalgradient, ikke historisk
+AdamW-årsaksbevis. Optional m5_close_only_backbone_v1 lar M5-close styre
+fellesdelen, mens øvrige9hoder fortsatt lærer fra detached hidden.
+Alleinputs/5TF/fasit/native loss/Ntotal/optimizer beholdes; default-ruten
+er uendret. Fersk baseline/gradient/cold-resume var genuint kvalifisert.
 
-Alle4nyere høyere-TF-close-hoder slår prior på begge CONTROL proper scores,
-men omfatter bare175/48/18/12unike M15/H1/H4/D1-mål. Åpningshodene slår
-prior, men er svakere enn BLOCK_ORDER. D1-open har0prediktivstøtte.
-Kjent-open og ukjent CONTROL-tail er bevart og får ingen falsk læringskreditt.
-Uavhengig NumPy gjenskapte alle lagrede faser/heads/model+prior/masker/counts/
-globaleunike med maksavvik0. Alle384faktiske batchhashes matcher schedule.
-MATCHED_PRIMARY_RESULT_REVIEW.json er hashbundet i policy.
-Ingen Torch/checkpointdecode ble brukt i den uavhengige kontrollen.
+M5-primarymain:1fersk modell/4fastepass/384updates/544forwards på578,831s,
+ingen norm-/priorrefit, gamle vekter eller CONTROL-basert best-passvalg.
+FIT Brier0,474310/AUC0,653148; senere M5 taper fortsatt prior.
+CONTROL-meanP(NED/LIK/OPP)=49,7707/0,2336/49,9957prosent,
+argmaxOPP256/511 mot faktisk243/511. Nær50/50 er ikke kalibrering/edge.
+Andre4TF-close slår prior, men bare175/48/18/12unike CONTROL-mål.
+D1-open har0prediktivstøtte. Ingen falsk kreditt fra kjent-open/ukjent-tail.
+Uavhengig scorekontroll av alle faser/hoder og384batchhashes ga maksavvik0.
+Source/policy var uendret og originalcheckpoint/captures er bevart.
 
-## Gjenværende semantikk og neste steg
+## Neste nødvendige avklaring
 
-Dagens nullklasse er eksakt LIK endpointpris, ikke sideveis marked:
-M5-close har bare4FIT og2CONTROL-likheter. Minimal endring er OPP/NED.
-M5-close ved issue t er sign(nesteobserverteclose−nettopplukketclose),
-normalt én neste5minbar, lengre ved gap. M5-open er åpning-til-åpning.
-Dette er korrekt native barfasit, men ingen egen vedvarende markedsregimefasit.
-Originale prisfakta skal beholdes. Brukerens avklaring om separat FLAT er
-fortsatt ubesvart; ingen markedsflatterskel, klassevekt eller fasitendring er gjort.
-Usikkerhet og ukjent er heller ikke FLAT.
+FLAT-semantikken er fortsatt ubesvart. Dagens nullklasse er eksakt LIK
+endpointpris, ikke sideveis marked; gamle M5-cohorter har bare4FIT/2CONTROL
+likheter. Minimal prisendring er OPP/NED, usikkerhet/ukjent er ikke FLAT.
+M5-close er sign(nesteobserverteclose−nettopplukketclose), normalt neste5minbar;
+M5-open er åpning-til-åpning. Dette er korrekt prisfasit, ikke egen vedvarende
+bullish/bearish/sideveis markedsfasit. Ingen ny terskel, klassekvote, vekt
+eller fasitendring er gjort. Originale prisfakta skal beholdes.
 
-Neste arbeid: avklar ønsket FLAT-semantikk, og metadata er kontrollert: aktiv dependencykjede
-har bare mai–september2024-inputs, ikke full kildeakse som featuredekning.
-Minste nye cache-only produsent for fast6år[2018-10-01,2024-10-01) designes
-fra eksisterende native reader/builder/snapshot. Ny308linjers adapter og gjenbrukt writer er kildekvalifisert:6fokuserte NumPy-
-tester under audit4G og uavhengig statiskreview består. Første ordinære pytest
-importerteTorch via eksisterende autouse-conftest; renCLI+--noconftest består,
-og produksjonsvakten er beholdt. Eksakt seksårsplan er nå klargjort med41kildeeiere og107bindingsrefs;
-metadata-/CLI-preflight bestod med0decode/fit/modell og ingenCLAIM.
-Uavhengig metadatareview verifiserte41kildehasher/23JSONavhengigheter/107refs.
-Produksjonen er nå avsluttet med ytre exit137 og bareCLAIM, uten native
-RESULT/TERMINAL/cache. Kernel viser cgroup-OOM12GiB i kjøreperioden, og
-userjournal14m48CPU; originalCLAIM mangler direkte cgroup/PID-binding.
-Ingen løpende arbeider;41source/plan/policy var uendret ved ekstern bookend.
-OPERATOR_EXIT_OBSERVATION.json og launcherlog er bevart, ingen original
-terminal er fabrikert. Planen er konsumert og ALLE porter stengt.
-Eksakt feilfase er ikke isolert. En liten audit4G-måling med Pandas2.3.3/COW-off
-viste derimot at3kolonnevalg cachet3fulle attrs-matrisekopier (64→192B).
-Den aktive M5-aliasløkken bruker samme Series-kall med store featureattrs.
-Minste rettelse er direkte NumPy-kolonneview med identiske float32/NaN-bits;
-ingen HTF-/writerrefaktor eller capøkning. Kilden er kvalifisert med eksakt smal
-AST-bro/17numeriskeeiere og byte/NaN/view/itemcache-proofs:11ulike fokuserte
-cachetilfeller består påtversavbølger (5uendredegjenbrukt). Én nytest forventet
-feil exceptiontype; kun testforventningen ble rettet. Uavhengig source-review
-og genuin metadata utenrawdecode/Torch består. Ny002plan er klargjort, egenidentitet og samme6år/12G/3570s;
-eksaktCLI-preflight bestod med0decode/modell/fit/CLAIM/Torch.
-Uavhengig metadatareview bekreftet41kildehasher/17valueowners/107refs.
-Cache002 var innrømmet én gang og er nå konsumert etter feilterminal.
-Kilde/policy var fryst til terminal; ingen aktivjobb og alleporter stengt. Obligatoriske precommit-kontrakter
-for modell-nativegrensen bestod også. Workerens
-eksakte COW-setting/dødsfase er ukjent. NyCLAIM må binde cgroup/PID/cap, og
-små fase/maxRSS-kvitteringer skal lokalisere en eventuell ny hardkill.
-Cache002 er nå nativeFAILED_CONSUMED exit1, ingenRESULT/NPZ/cache.
-Feilsporet er makro._research→research_ta_campaign sin eager modellfit-import
-→walkforward→direction_decision→Torch. Kalenderen er ikke årsaken.
-Aliasløkken er passert før denne importfeilen. Native terminal mangler source-
-felt; ekstern OPERATOR_FAILURE_BOOKEND bekrefter41source/plan/policyuendret.
-Originalkvitteringer er bevart. Alleporterer stengt,001/002relanseresaldri.
-Neste minste kildekontroll er å gjøre kun learnerimporten lazy for makrobruk;
-alle61makroformler/asofregler ogcaps skal bevares. Ren genuin macroimport skal
-prøves utenrådata før eventuellny003, ingen nyfullbygger for bareimporttest. CPU12G/512M,
-1tråd/64tasks og internSIGALRM3570s beholdes; ingen eksternwallcap eller
-seksårs kjøretid/minne er påstått. Rapportert primary_matrix_bytes er
-delvolum; total27-arrayvolum må beregnes fra descriptorene.
-Frosne parametre er tilgjengelige fra2013-01-01T22Z; ingen refit. Ikke gjenta flere epoker eller
-kandidatvalg fra CONTROL. Enhver ny tung plan krever målt begrunnelse,
-fersk eksakt engangsinnrømming og uendrede vakter. Stabile kjøringer følges
-omtrent hver30.minutt; ingen minuttvise modellrunder eller ventefyll.
-Målet avsluttes aldri av teknisk PASS eller én liten gjenbrukt utviklingstest.
+Avklar om FLAT skal være separat markedsregime, før neste target-/fitkontrakt.
+Deretter trengs forhåndsbundet TRAIN-fold, TRAIN-only normalisering og
+genuin fersk initialbaseline for den nye seksårscachen før en ny kort fit.
+Ingen ny trening/produksjon er innrømmet og ingen automatisk epoke-/seedserie.
+Det vedvarende målet avsluttes aldri av teknisk PASS eller én liten fit.
+Stabile kjøringer kontrolleres omtrent hver30.minutt, ingen minuttvise runder.
 
-Makro-importrettelsen er nå kildekvalifisert: kun to importgrupper er flyttet
-til14faktiske runtimefunksjoner i research_ta_campaign; ingen kalender-, makro-
-eller asof-formel er endret. Én fit_hgb-testmonkeypatch og8testkonstruksjoner
-peker til faktiske eiere.3nye cachekontroller og9berørte regresjonstilfeller
-består under audit4G. Ren fresh-process _research/asof under Torch-nekt
-består utenrådata/modell. Hel research-AST er identisk bortsett fra bare de
-to navngitte importgruppene;17numeriskeeiere/aliasbro er fortsatt kvalifisert.
-Uavhengig lesereview og genuinmetadata består. Ny cache003 er klargjort med
-samme6år/12G/3570s og egneporter;001/002forblirkonsumert. EksaktCLI-preflight
-og uavhengigmetadatareview består (41source/17numeric/110refs),0rawdecode/
-modell/fit/Torch/CLAIM. Cache003 fullførte exit0 på1181,156s (19m41),425320issues/425415lokalrader.
-Alleporter er nå stengt, planen konsumert, source/policyuendret. Alle27arrays
-matcher gammelcache ioverlappen ifølgeproduksjonskvitteringen; uavhengig NumPy-
-readback/overlappsreview gjenstår. Ingen modell/norm/paramfit eller targetdecode.
+## Bevart grunnlag og oppryddingsgrense
 
-
-## Bevart datagrunnlag og ubeviste grenser
-
-Hele native prisfakta2009–2026 før TEST er merket, alle76arrays tidligere
-uavhengig gjenskapt. Antall M5/M15/H1/H4/D1-barer:
-1215513/406109/102354/26427/4417. Første bar perTF uten forgjenger er ukjent;
-gap annoteres uten å slette kjent fasit. Råbar som slutter01.07.2026 er utelatt.
-Dette er prisfasit, ikke bevis for ferdige modellinputs på alle disse årene.
-
-Aktuelle TA-inputs har9flater: seq_x/snap_x/ctx_cont/ctx_cat og5nativeTF,
-signal318,ctx132+1kategorisk,MTF256; alle8familier og61D1/makrofelt beholdes.
-Nåværende konkrete inputcache dekker mai–september2024. TRAIN-pool24175
-før01.09; senere septemberpool5789. Fast fit1536/control512 er delutvalg.
-Fersk TRAIN-only norm og label-only Laplace1-prior gjenbrukes. TA006-norm med
-september er ikke brukt i denne splitten. Initial med ny policy7aaf0461… er
-genuint kvalifisert på hele valgt1536/512; full24175/5789baseline er ikke målt.
-Alle initialcapturer matcher eksakt FP32logprior. Sjeldne LIK-celler kvalifiserer
-ikke robust tredjeklasselæring. Uavhengig generalisering/økonomi er ubevist.
-
-26måneders MBP/GC-korpus og femTF-pakke er bevart, ikke brukt i denne TA-runden.
-Gammel M1-avhengig EMA/S/F-evidens er historisk og gir ingen retningsberedskap.
-Entry-v3 er dokumentert kontrakt, ingen kjørbar ny fit eller handelsautorisasjon.
+Hele native prisfasit2009–2026 før TEST er tidligere merket og alle76arrays
+uavhengig gjenskapt; M5/M15/H1/H4/D1-barer1215513/406109/102354/26427/4417.
+Første uten forgjenger perTF er ukjent, gap annoteres, bar som lukker på
+TEST-sealet utelates. Denne faktahistorikken er større enn seksårsinputene.
+26måneders MBP/GC-korpus/femTF-pakke beholdes, ikke brukt i TA-runden.
+M1-avhengig EMA/S/F-evidens er historisk og gir ingen retningsberedskap.
+Entry-v3 er dokumentert kontrakt, ingen ny kjørbar fit/handelsautorisasjon.
 Ingen fast tapsgrense/maksimalholdetid er innført.
 
-## Oppryddingsgrense
-
-Ingen kildekode er bevist frakoblet i denne bølgen; ingenting slettes på mistanke.
-Referanse-/import-/test-/eierskapskontroll kreves før repo-sletting. DATA/RUNS,
-originalkvitteringer, capturer og checkpoints bevares; bare retention-eieren kan
-rydde etter GX1_RULES regel9 med alle referanser og åpne filer kontrollert.
-Ikke gjenta tidligere fullført retention/Windows-/cache-opprydding. Historiske
-detaljer er i Git; policy beholder originale bindingsreferanser.
-Kode/docs/interne stier/aggregerte bevis kan pushes til autorisert work/gx1-current;
+Ingen repo-/DATA-/RUNS-filer er slettet i denne bølgen. Ingen kode slettes på
+mistanke; referanse-/import-/test-/eierskapskontroll kreves. Bare retention-
+eieren rydder DATA/RUNS etter GX1_RULESregel9 med alle referanser/åpne filer
+kontrollert. Alle originalkvitteringer, caches og checkpoints bevares.
+Ikke gjenta eldre fullført retention/Windows-/cache-opprydding.
+Kode/docs/interne stier/aggregerte bevis kan pushes til autorisert branch;
 aldri rådata, vekter, hemmeligheter eller force-push.
