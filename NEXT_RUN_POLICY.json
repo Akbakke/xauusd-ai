@@ -94159,5 +94159,28 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_001/TERMINAL.json",
       "sha256": "e036833fa246e5b8d9b206b35b4ddadc69985ff31c24f9629ba2aca473a8da24"
     }
+  },
+  "native_m5_ta_atr03_throughput_20261120_002": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_002.json",
+      "sha256": "be25bd49f6ab50d0ce85988934ac7a1ec6ba6189f228cfa1e59f9aab03eec55a"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_002",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "autograd_calls": 0,
+    "backward_calls": 6,
+    "checkpoint_loads": 1,
+    "model_constructions": 1,
+    "model_forwards": 6,
+    "optimizer_constructions": 0,
+    "optimizer_steps": 0
   }
 }
