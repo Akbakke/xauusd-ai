@@ -94702,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "42.320GB read-onlyhash:bothTRAINVALpairs identicaltooriginaldeclaredSHA/stablebookends. No deletion. Stats003oneexplicitmeasuredD1+0vs-0representationexception;1729strictcenters/allscales/extremastrict, no parameterchanges, freshfullverificationadmitted. CleanupownerFDpermissionblockunderlegitimateadminlaunchinvestigation; no guardbypass.",
+    "latest_observation": "AllfrozenTRAINstatisticsqualifiedexit0/20.582s:1730numeric+1category,1729centerbits+1measuredsignedzero,allscale/extremabits/domains/populations. No parameterfit/change. Legal2readcapabilitysameUID/canonicalcaproutepreflightnext; no retentionguardbypass or permanentpermissions.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94779,7 +94779,7 @@
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_MACRO_NUMERIC001/TERMINAL.json",
       "sha256": "1e642633ff2e5962774b8341c7523a609f81ec4b35c8b5abe1a3ab9aa42174e2"
     },
-    "frozen_TRAIN_statistics_verified": false,
+    "frozen_TRAIN_statistics_verified": true,
     "retention_JSON_document_guard_fixed": true,
     "hermetic_legacy_design_test_reads_migrated": 10,
     "focused_test_qualification": {
@@ -94805,7 +94805,23 @@
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/DUPLICATE_BYTE_PARITY001/TERMINAL.json",
       "sha256": "d23040bd739f7f0960075a64f081fb04db00ee3ce68e077182b176196817e0e7"
     },
-    "verified_duplicate_candidate_reclaim_bytes": 21160194048
+    "verified_duplicate_candidate_reclaim_bytes": 21160194048,
+    "frozen_TRAIN_statistics_result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS003/RESULT.json",
+      "sha256": "9bad9f4f688d5a86a61b8112549dd61be0fd7aa8316396e982d71433a2777847"
+    },
+    "frozen_TRAIN_statistics_terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS003/TERMINAL.json",
+      "sha256": "0c6a99df755cb80b31406a13d01587c4346a1acaf5972bbceac098fb6b09dd52"
+    },
+    "center_float32_bit_exact_field_records": 1729,
+    "center_signed_zero_equivalent_field_records": 1,
+    "all_scale_and_extrema_bits_exact": true,
+    "root_owned_metadata_permission_gap_resolved": true,
+    "root_owned_metadata_resolution": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/ROOT_OBSERVATION_METADATA_RESOLUTION001.json",
+      "sha256": "e4b8431a09392e828b30c31d5e0f6640bb5852ca33fb0f5c756c336c52706222"
+    }
   },
   "full_project_current_native_feature_numeric_20261120_001": {
     "status": "COMPLETE_CONSUMED",
@@ -95316,20 +95332,20 @@
     }
   },
   "full_project_current_native_frozen_train_stats_numeric_20261120_003": {
-    "status": "ADMITTED_FROZEN_STATS_NUMERIC_VERIFICATION_ONE_BOUND_SIGNED_ZERO_CENTER",
+    "status": "COMPLETE_CONSUMED_FROZEN_TRAIN_STATS_VERIFIED_ONE_SIGNED_ZERO_CENTER",
     "contract": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/TRAIN_STATS_CONTRACT003.json",
       "sha256": "6e37f3f1c410c1a1c3ccd28030ac157b10cde41fe97bf3495d3adcc5e614829c"
     },
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS003",
-    "execution_authorized": true,
+    "execution_authorized": false,
     "training_authorized": false,
     "test_authorized": false,
     "parameter_fit_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "memory": "4G",
     "swap": "512M",
@@ -95338,6 +95354,43 @@
     "outer_seconds": 3600,
     "internal_seconds": 3570,
     "preflight_synthetic_checks_passed": 72,
-    "comparison_scope": "1729 float32 center bytes exact and one diagnostic-bound named D1 positive-zero versus stored-negative-zero center numerically equal; all scales byte exact; scale-source/domain/population hashes exact; stored float64 transformed extrema bytes exact using unchanged stored center for the one qualified zero representation; category counts exact"
+    "comparison_scope": "1729 float32 center bytes exact and one diagnostic-bound named D1 positive-zero versus stored-negative-zero center numerically equal; all scales byte exact; scale-source/domain/population hashes exact; stored float64 transformed extrema bytes exact using unchanged stored center for the one qualified zero representation; category counts exact",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS003/RESULT.json",
+      "sha256": "9bad9f4f688d5a86a61b8112549dd61be0fd7aa8316396e982d71433a2777847"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS003/TERMINAL.json",
+      "sha256": "0c6a99df755cb80b31406a13d01587c4346a1acaf5972bbceac098fb6b09dd52"
+    }
+  },
+  "full_project_retention_cleanup_20261120_001": {
+    "status": "QUALIFYING_TEMPORARY_READONLY_ADMIN_FD_ACCESS_BEFORE_PLAN",
+    "user_deletion_authorization": "Explicit2026-11-20wholeprojectunnecessarystoragecleanup; soleexistingretentionowner only",
+    "candidate_targets": 8,
+    "candidate_allocated_payload_bytes": 35728601088,
+    "physical_deletions": 0,
+    "deleted_allocated_bytes": 0,
+    "training_authorized": false,
+    "test_authorized": false,
+    "cleanup_plan_authorized": true,
+    "cleanup_execute_authorized": false,
+    "retention_owner": "gx1.scripts.cleanup_gx1_evidence_v1",
+    "FD_guard_unchanged": true,
+    "temporary_inspection_capabilities": [
+      "CAP_SYS_PTRACE",
+      "CAP_DAC_READ_SEARCH"
+    ],
+    "all_UID_fields_must_remain": 1000,
+    "canonical_shared_project_lock": "/run/user/1000/gx1-current-heavy-job.lock",
+    "admin_scope_probe_worker": {
+      "path": "/tmp/gx1_retention_admin_fd_scope_probe_20261120.py",
+      "sha256": "576440fa36fe96e059fce7b65264313f29ab2b4e2bc8306bfd92b06b74c253e2"
+    },
+    "admin_scope_probe_launch": {
+      "path": "/tmp/gx1_retention_admin_launch_probe_20261120.sh",
+      "sha256": "7e7bafb1f0f81cf4b2fd4993c9aa1ed9e0a6ed9335932d3e5234bafdad9f0711"
+    },
+    "admin_scope_probe_output": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_CAPPED_ADMIN_FD_PROBE_20261120_001"
   }
 }

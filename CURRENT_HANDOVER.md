@@ -63,20 +63,15 @@ ingen nativeTEST-fil eller etterforseglede makroverdier inngikk i feltberegninge
 Dermed er alle1731råfeltposter kontrollert uavhengig. Vendorrevisjoner og hele
 historiske publiseringsledgeren er fortsatt ikke fullstendig bevist.
 
-Frosne heleTRAIN-statistikker er ennå ikke ferdig uavhengig verifisert.
-Audit001 feilet på auditørens tuple/list-sammenligning; originalen er bevart.
-Korrigert002 fullførte signal318/kontekst132 og alle256felt på M5/M15/H1/H4,
-men stoppet på eksakt centerbit i D1 geomline_bars_since_break_signed.
-Lagret center er negativ null. Faktisk D1-diagnose er nå fullført:én +0/-0-centerrepresentasjon, ingen
-numerisk forskjell i noen av256D1-statistikker. Scalar/32-kolonners NumPy-kvartiler
-[-2,-0,1] samsvarer med den frosne statistikken, skala3. Korrigertverifikator003
-er innrømmet:TRAIN_STATS_CONTRACT003.json,72syntetiske kontroller/preflight PASS.
-Bare målt navngitt D1-center +0→lagret-0 er numerisk ekvivalent; øvrige1729
-centerbits/alle skala-/ekstrembits er strenge. Ingen frosne parametre endres.
-En ny D1-only diagnose er innrømmet:1542TRAIN-rader/256statistikkfelt,
-D1_STATS_DIAG_CONTRACT001.json, audit4GiB/512MiB/1tråd/64tasks,110/120s.
-Ingen gammel engangsplan relanseres, ingen modell/fit/target/TEST/parameterendring.
-Kilde/policy fryses under kjøringen. Eksakt nåværende kontroll er ikke svekket.
+Frosne heleTRAIN-statistikker er nå uavhengig kvalifisert på20,582s,
+peakRSS748472KiB. Alle1730numeriske felt+1kategori, populasjonsvinduer,
+skalaeiere/domener og132aliaser består.1729centerbits er eksakte; ett målt,
+navngitt D1-center er numerisk likt +0/-0. Alle skala-/float64-ekstrembits er
+like ved uendret faktisk frosset center. Ingen fit-API/parametere/modell/targets.
+Originale001/002FAILED og målrettet D1-diagnose er bevart; ingen relaunch.
+RESULT/TERMINAL for003 er SHA-bundet i policy. To root-eide historiske JSON-
+observasjoner er også lest strengt via legitim WSL-administrativ lesing uten
+chmod/eierskifte; begge SHA/identiteter og fravær av DATA/RUNS-litteraler består.
 
 En andre målt retention-mangel rettes:docs/*.json inngår nå i dokumentvernet.
 Fire konsumerte GC-dokumenter har eksplisitt pensjonert sine scratch-lagringskrav;
@@ -211,3 +206,8 @@ Mulig allokert frigjøring21160194048bytes; ingen DATA/RUNS-sletting ennå.
 Ferske dokument-/canonicalvern nektet ingen av de åtte kvalifiserte målene,
 men ulesbare root-prosessers FD-tabeller stenger korrekt sletteporten. Dette
 undersøkes med legitim midlertidig administrativ inspeksjon uten å svekke vernet.
+
+Neste retention-steg:kontroller midlertidig CAP_SYS_PTRACE+DAC_READ_SEARCH
+med alle UID-felt1000 gjennom uendret capped audit4GiB/512MiB/1tråd/64tasks
+og samme canonical FD9-prosjektlås. Ingen permanent privilegie-/filendring.
+Slettevakten skal faktisk lese alle FD-tabeller; ingen permission-skip tillates.
