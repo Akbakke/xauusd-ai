@@ -6,16 +6,16 @@ originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 ## Gjeldende status 20.11.2026
 
-Brukerens mål er nyttig OPP/NED/FLAT på M5/MTF, med0,3ATR som første
-netto-støysone. FLAT betyr små bevegelser som ikke er verdt å trade; rå barfakta
-bevares separat. Bred kilde-/pipelineaudit er gjennomført og konkrete feil er
-rettet. HeleTRAIN-året70935rader har ny normalisering/prior og faktisk fersk
-1200forward-baseline. B64optimizer/kaldreplay består bitidentisk.
-Større YEAR_FIT001 er teknisk klar etter metadata-preflight:1år/1pass/B64,
-1109updates og full5789rader septemberCONTROL, med3600s hardgrense.
-Ingen hovedfit startet. Alle treningsporter er stengt; planen er uclaimet.
-Tidligere kortplan er supersedert og skal aldri relanseres.
-Målet om tilfredsstillende vekting, prediksjon og edge er fortsatt uoppnådd.
+Nytt brukerbestilt mål: bygg og klargjør stor test med TRAIN[2021-01-01,2026-01-01)
+og utviklingsVAL[2026-01-01,2026-07-01). Kontroller hele den aktive pipelinen
+kritisk underveis og ved slutt, og meld brukeren ved startstreken. Selve
+stortreningen skal IKKE startes i dette arbeidet. Appmålet og policy-målet er aktive.
+Kvalifisert cache003 stopper2024-10-01. Utvidet kilde/inputgrunnlag, ferske
+helefemårsTRAIN-stats/prior/full initialbaseline, B64optimizer/kaldreplay og
+én eksakt hovedplan må kvalifiseres. NativeTEST er fortsatt forseglet.
+Tidligere YEAR_FIT001 er supersedert utenCLAIM og skal ikke relanseres;
+årskvalifikasjon/profiler er bevart som historisk omfangsbundet evidens.
+Alle globale treningsporter står stengt. Ingen ny tung jobb eller storfit startet.
 
 M1 brukes ALDRI til retning: ingen input, fasit, metadataforelder, rader,
 prior, normalisering, evaluering eller warmstart. Bare senere oppfølging

@@ -1,4 +1,4 @@
-"""Exact YEAR routes only; shell extraction never launches guards, data or CUDA."""
+"""Exact YEAR and FIVE_YEAR routes only; shell extraction never launches guards, data or CUDA."""
 from __future__ import annotations
 import hashlib
 import shlex
@@ -10,7 +10,10 @@ REPO=Path(__file__).resolve().parents[1]
 RUNNER=REPO/'scripts/gx1_capped_run.sh'
 BASENAMES=('NATIVE_M5_TA_ATR03_YEAR_PREPARE_20261120_001',
     'NATIVE_M5_TA_ATR03_YEAR_MECHANICS_20261120_001',
-    'NATIVE_M5_TA_ATR03_YEAR_FIT_20261120_001')
+    'NATIVE_M5_TA_ATR03_YEAR_FIT_20261120_001',
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_PREPARE_20261120_001',
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001',
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001')
 
 
 def _fixture(tmp_path,basename):
@@ -35,7 +38,7 @@ def test_native_year_route_is_literal_and_sha_bound(tmp_path,basename,variant):
     path,args,prefix,_=_fixture(tmp_path,basename)
     if variant=='preflight':args.append('--preflight')
     elif variant=='wrong_device':args[8]='cpu'
-    elif variant=='cross_output':args[10]='/home/andre2/GX1_RUNS/'+BASENAMES[(BASENAMES.index(basename)+1)%3]
+    elif variant=='cross_output':args[10]='/home/andre2/GX1_RUNS/'+BASENAMES[(BASENAMES.index(basename)+1)%len(BASENAMES)]
     elif variant=='wrong_sha':args[6]='0'*64
     elif variant=='unregistered_plan':args[4]=str(path.with_name(path.stem[:-3]+'099.json'))
     elif variant=='extra_flag':args.append('--cold-resume')
@@ -48,7 +51,7 @@ def test_native_year_route_is_literal_and_sha_bound(tmp_path,basename,variant):
     assert (result.returncode==0)==(variant in('valid','preflight')),result.stderr
 
 
-@pytest.mark.parametrize('basename,seconds',zip(BASENAMES,(1800,1800,3600)))
+@pytest.mark.parametrize('basename,seconds',zip(BASENAMES,(1800,1800,3600,5400,1800,10800)))
 def test_native_year_route_uses_existing_gpu_guards_and_exact_deadline(tmp_path,basename,seconds):
     _,args,prefix,source=_fixture(tmp_path,basename)
     signature='  if [[ "'+'$'+'{3:-}" == "$NATIVE_M5_FULL_GC_FIT_TRAINER_MODULE" ]]; then'

@@ -116,8 +116,8 @@ def test_exact_parent_and_cli_gates_precede_io_and_torch_is_forbidden(monkeypatc
     monkeypatch.setattr(cache.sys,'argv',args)
     with pytest.raises(ValueError,match='CLI_SCOPE'):cache.main()
     with pytest.raises(RuntimeError,match='TORCH_FORBIDDEN'):cache._reject_torch('import',('torch',))
-    assert cache.START_NS==int(pd.Timestamp('2018-10-01',tz='UTC').value)
-    assert cache.END_NS==int(pd.Timestamp('2024-10-01',tz='UTC').value)
+    assert cache.START_NS==int(pd.Timestamp('2021-01-01',tz='UTC').value)
+    assert cache.END_NS==int(pd.Timestamp('2026-07-01',tz='UTC').value)
     assert cache.EXECUTION['internal_seconds']==3570 and cache.EXECUTION['external_wall_timeout_enforced']is False
     assert all(value==0 for value in cache.COUNTS.values())
 
@@ -227,23 +227,6 @@ def test_numeric_bridge_accepts_only_exact_alias_layout_and_preserves_other_owne
         cache.numeric_owner_identities(old_plan)
 
 
-def test_consumed_001_observation_is_not_a_native_terminal_or_relaunch(monkeypatch):
-    observation={'schema_version':'gx1_native_ta_cache_external_exit_observation_v1',
-        'stage':'native_m5_ta_history_expansion_20261120_001','outer_exit_code':137,
-        'native_RESULT_present':False,'native_TERMINAL_present':False,'cache_artifacts_present':False,
-        'durable_artifacts_before_observation':['CLAIM.json'],'source_policy_plan_unchanged_at_external_bookend':True,
-        'scope_directly_recorded_in_claim':False,'independent_cache_qualification_passed':False,
-        'training_started':False,'test_data_used':False,'relaunch_allowed':False,
-        'plan':{'path':'oldplan','sha256':'1'*64},'claim':{'path':'oldclaim','sha256':'2'*64},
-        'failure_phase_unknown':'no progress receipt','attribution_limit':'original claim lacks cgroup/PID'}
-    monkeypatch.setattr(cache,'read',lambda binding:copy.deepcopy(observation))
-    proof=cache.previous_exit_metadata(cache.INPUT_REFS)
-    assert proof['outer_exit_code']==137 and proof['native_TERMINAL_present']is False
-    assert cache.STAGE.endswith('_003')and cache.ROOT.name.endswith('_003')
-    observation['native_TERMINAL_present']=True
-    with pytest.raises(ValueError,match='CONSUMED_001_EXIT_OBSERVATION'):cache.previous_exit_metadata(cache.INPUT_REFS)
-    observation['native_TERMINAL_present']=False;observation['source_policy_plan_unchanged_at_external_bookend']=False
-    with pytest.raises(ValueError,match='CONSUMED_001_EXIT_OBSERVATION'):cache.previous_exit_metadata(cache.INPUT_REFS)
 
 
 def test_phase_receipt_is_immutable_small_and_records_process_peak_rss(tmp_path,monkeypatch):
@@ -263,7 +246,7 @@ def test_produce_phase_witnesses_bracket_only_existing_operations(monkeypatch):
     provider.surfaces['axes']={**provider.surfaces['axes'],'issue_start_ns':cache.START_NS,'issue_end_ns':cache.END_NS}
     parameters={'squeeze_manifest':{'path':'/unit/params.json','sha256':'1'*64}}
     meta={'parameter_inputs':{},'geometry':{},'parameter_reuse':parameters,
-        'feature_source_spec':{'manifest':{}},'expected_full_source_binding':{},
+        'feature_source_spec':{'manifest':{}},'expected_source_rows':400,'expected_issue_rows_by_year':{},
         'feature_contract':provider.surfaces['provider_contract'],'reference_snapshot':{},'reference_archive':{}}
     def event(name,value):
         events.append(name);return value
@@ -271,7 +254,7 @@ def test_produce_phase_witnesses_bracket_only_existing_operations(monkeypatch):
     monkeypatch.setattr(cache,'load_volatility_squeeze_artifact_manifest',lambda *a,**k:None)
     monkeypatch.setattr(cache,'phase',lambda name:event(name,{'phase':name}))
     monkeypatch.setattr(cache.owner,'read_feature_source',lambda *a:event('RAW_READ',object()))
-    monkeypatch.setattr(features,'bind_native_m5_feature_source',lambda *a,**k:{})
+    monkeypatch.setattr(features,'bind_native_m5_feature_source',lambda *a,**k:{'source_spec':meta['feature_source_spec'],'native_m5_manifest':{},'rows':400})
     monkeypatch.setattr(features,'build_native_m5_feature_surfaces',lambda *a,**k:event('FEATURE_BUILD',provider.surfaces))
     monkeypatch.setattr(features,'NativeM5FeatureProvider',lambda *a:event('PROVIDER_INIT',provider))
     monkeypatch.setattr(cache.owner,'publish_feature_snapshot',lambda *a,**k:event('SNAPSHOT_PUBLISH',{}))
@@ -323,13 +306,15 @@ def test_research_bridge_strips_only_two_import_sources_and_rejects_body_or_macr
         'from '+second+' import ResearchFinancingCurve, portfolio_path\n'
         'import math\n'
         'def pure_macro(x):\n    return x+1\n'
+        "def load_oanda_panel_d1(spec):\n    return pd.read_parquet(path, columns=['time','open','high','low','close'])\n"
         'def fit(x):\n    return fit_hgb(x)\n'
         'def portfolio(x):\n    return portfolio_path(x)\n')
     new=('import math\n'
         'def pure_macro(x):\n    return x+1\n'
+        "def load_oanda_panel_d1(spec):\n    return pd.read_parquet(path, columns=['time','open','high','low','close'], filters=[('time','<',sealed_period_read_end(spec))])\n"
         'def fit(x):\n    from '+first+' import fit_hgb\n    return fit_hgb(x)\n'
         'def portfolio(x):\n    from '+second+' import portfolio_path\n    return portfolio_path(x)\n')
-    assert cache.research_import_numeric_identity(old)==cache.research_import_numeric_identity(new)
+    assert cache.research_import_numeric_identity(old)==cache.research_read_end_numeric_identity(new)
     path=tmp_path/cache.RESEARCH_SOURCE_PATH;path.parent.mkdir(parents=True);path.write_text(new)
     monkeypatch.setattr(cache,'REPO',tmp_path)
     monkeypatch.setattr(cache.subprocess,'check_output',lambda *a,**k:old.encode())
@@ -345,27 +330,57 @@ def test_research_bridge_strips_only_two_import_sources_and_rejects_body_or_macr
     with pytest.raises(ValueError,match='ORIGINAL_RESEARCH_SOURCE'):cache.research_import_bridge(plan)
 
 
-def test_consumed_002_binding_uses_original_failure_terminal_without_inventing_source_fields(monkeypatch):
-    stage='native_m5_ta_history_expansion_20261120_002'
-    plan={'path':'oldplan','sha256':'1'*64};claim_ref={'path':'oldclaim','sha256':'2'*64}
-    terminal_ref={'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_002/TERMINAL.json',
-        'sha256':'949c05791e322f5a7300d8396dc46becf25b91abe68346f0359d54b3ad298a12'}
-    observation={'schema_version':'gx1_native_ta_cache_import_failure_bookend_v1','stage':stage,
-        'terminal':terminal_ref,'outer_exit_code':1,'native_exit_code':1,'native_status':'FAILED_CONSUMED',
-        'native_RESULT_present':False,'native_terminal_source_unchanged_field_present':False,
-        'source_policy_plan_unchanged_at_external_bookend':True,'alias_loop_was_passed_before_this_failure':True,
-        'cache_artifacts_present':False,'training_started':False,'test_data_used':False,'relaunch_allowed':False,
-        'model_constructions':0,'optimizer_steps':0,'plan':plan,'claim':claim_ref}
-    terminal={'stage':stage,'status':'FAILED_CONSUMED','exit_code':1,
-        'error':'RuntimeError:NATIVE_TA_CACHE_TORCH_FORBIDDEN','result':None,'plan':plan,'claim':claim_ref,
-        'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False}
-    values={cache.INPUT_REFS['previous_import_failure']['path']:observation,
-        terminal_ref['path']:terminal,claim_ref['path']:{'stage':stage,'plan':plan}}
-    monkeypatch.setattr(cache,'read',lambda binding:copy.deepcopy(values[binding['path']]))
-    proof=cache.previous_import_failure_metadata(cache.INPUT_REFS)
-    assert proof['native_status']=='FAILED_CONSUMED'and proof['terminal']==terminal_ref
-    assert proof['native_terminal_source_unchanged_field_present']is False
-    observation['native_RESULT_present']=True
-    with pytest.raises(ValueError,match='CONSUMED_002_IMPORT_FAILURE'):cache.previous_import_failure_metadata(cache.INPUT_REFS)
-    observation['native_RESULT_present']=False;terminal['source_unchanged']=True
-    with pytest.raises(ValueError,match='ORIGINAL_002_NATIVE_FAILURE'):cache.previous_import_failure_metadata(cache.INPUT_REFS)
+
+
+def test_research_read_end_bridge_rejects_other_predicate_columns_or_reader_changes():
+    valid=("def load_oanda_panel_d1(spec):\n"
+        "    return pd.read_parquet(path, columns=['time','open','high','low','close'], "
+        "filters=[('time','<',sealed_period_read_end(spec))])\n")
+    cache.research_read_end_numeric_identity(valid)
+    for changed in (valid.replace("'<'","'<='"),
+                    valid.replace('sealed_period_read_end(spec)','spec["read_end"]'),
+                    valid.replace("'high','low'","'high','volume'"),
+                    valid.replace('load_oanda_panel_d1','different_reader')):
+        with pytest.raises(ValueError,match='EXACT_PANEL_READ_END_PREDICATE'):
+            cache.research_read_end_numeric_identity(changed)
+
+
+def test_new_cache_parent_is_qualified_success_and_scope_never_relabels_old_prefix():
+    assert set(cache.INPUT_REFS)=={'cache_qualification','cache_result','cache_terminal'}
+    assert all('/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003/'in v['path']for v in cache.INPUT_REFS.values())
+    assert cache.START_NS==int(pd.Timestamp('2021-01-01',tz='UTC').value)
+    assert cache.END_NS==int(pd.Timestamp('2026-07-01',tz='UTC').value)
+    assert cache.EXECUTION['memory']=='12G'and cache.EXECUTION['internal_seconds']==3570
+    assert all(value==0 for value in cache.COUNTS.values())
+
+
+def test_overlap_uses_shared_global_rows_and_checks_old_clock_prefix_after_append(tmp_path):
+    original=_provider()
+    snapshot=cache.owner.publish_feature_snapshot(original,publish_artifact=_publisher(tmp_path))
+    saved=cache.read(snapshot)
+    candidate=copy.copy(original);candidate.surfaces=dict(original.surfaces)
+    candidate.bar_start_ns=np.r_[original.bar_start_ns,
+        original.bar_start_ns[-1]+features.BAR_NS*np.arange(1,11,dtype=np.int64)]
+    candidate.issue_ns=candidate.bar_start_ns+features.BAR_NS
+    candidate.retained_source_rows=original.retained_source_rows[120:]
+    candidate.surfaces['retained_source_rows']=candidate.retained_source_rows
+    candidate.surfaces['retained_issue_rows']=original.surfaces['retained_issue_rows'][120:]
+    for key in ('signal','ctx_cont','ctx_cat','observed'):
+        candidate.surfaces[key]=original.surfaces[key][120:].copy()
+    frames={}
+    for tf,frame in original.surfaces['multi_tf_sources'].items():
+        values=frame.attrs['feats_np'][20:]
+        kept=pd.DataFrame(values,index=frame.index[20:],columns=frame.columns,copy=False)
+        kept.attrs={key:value[20:]if isinstance(value,np.ndarray)else value for key,value in frame.attrs.items()}
+        frames[tf]=kept
+    candidate.surfaces['multi_tf_sources']=frames
+    proof=cache.overlap_parity(candidate,snapshot,saved['archive'])
+    assert proof['array_count']==27 and proof['reference_issues']==185 and proof['shared_local_rows']==280
+    assert proof['original_full_bar_axis_is_exact_prefix']is True
+    candidate.surfaces['signal'][0,0]+=1
+    with pytest.raises(ValueError,match='OVERLAP_EXACT:signal'):
+        cache.overlap_parity(candidate,snapshot,saved['archive'])
+    candidate.surfaces['signal'][0,0]-=1
+    candidate.bar_start_ns=candidate.bar_start_ns.copy();candidate.bar_start_ns[0]+=features.BAR_NS
+    with pytest.raises(ValueError,match='OVERLAP_EXACT:bar_start_ns'):
+        cache.overlap_parity(candidate,snapshot,saved['archive'])

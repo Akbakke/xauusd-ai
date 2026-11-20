@@ -472,7 +472,7 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument('--plan',required=True);parser.add_argument('--plan-sha256',required=True)
     parser.add_argument('--out-dir',required=True);parser.add_argument('--preflight',action='store_true');parser.add_argument('--device',choices=('cpu','cuda'))
     args=parser.parse_args();common.firewall_state()
-    if args.plan==str(LARGER_PREPARE_PLAN):return larger_prepare_cli(args)
+    if args.plan in(str(LARGER_PREPARE_PLAN),str(FIVE_YEAR_PREPARE_PLAN)):return larger_prepare_cli(args)
     if args.plan==str(THROUGHPUT_PLAN):return throughput_cli(args)
     if args.plan==str(NOISE_PREPARE_PLAN):return noise_prepare_cli(args)
     if args.plan==str(SHARED_GRADIENT_PLAN):return shared_gradient_cli(args)
@@ -538,15 +538,15 @@ TA_FIT_SOURCE_PATHS=tuple(dict.fromkeys((*ta_audit.SOURCE_PATHS,
 
 
 def _ta_fit(plan):
-    return plan.get('mode') in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main','ta_noise_mechanics','ta_noise_main','ta_larger_mechanics','ta_larger_main')
+    return plan.get('mode') in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main','ta_noise_mechanics','ta_noise_main','ta_larger_mechanics','ta_larger_main','ta_five_year_mechanics','ta_five_year_main')
 
 
 def _ta_main(mode):
-    return mode in ('ta_main','ta_shuffle','ta_primary_main','ta_noise_main','ta_larger_main')
+    return mode in ('ta_main','ta_shuffle','ta_primary_main','ta_noise_main','ta_larger_main','ta_five_year_main')
 
 
 def _mechanics(mode):
-    return mode in ('mechanics','ta_mechanics','ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics')
+    return mode in ('mechanics','ta_mechanics','ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics','ta_five_year_mechanics')
 
 
 def _ta_pool_axis(ta_plan,*,return_source_rows=False):
@@ -1087,7 +1087,7 @@ def fit_boot_state(plan,*,admitted):
     fresh=actual>threshold
     if admitted:
         need(fresh,'FIT_FRESH_PHYSICAL_BOOT')
-        if plan['mode']in('main','ta_main','ta_shuffle','ta_primary_main','ta_noise_main','ta_larger_main'):
+        if plan['mode']in('main','ta_main','ta_shuffle','ta_primary_main','ta_noise_main','ta_larger_main','ta_five_year_main'):
             need(actual>=plan['metadata']['mechanics']['physical_windows_boot_id'],'FIT_MAIN_BOOT_LINEAGE')
     return {'actual_windows_boot_id':actual,'required_greater_than':threshold,'fresh':fresh}
 
@@ -1340,7 +1340,7 @@ def fit_step(model,optimizer,provider,cohort,rows,plan):
     model.train();optimizer.zero_grad(set_to_none=True)
     raw=provider.gather(rows,max_rows=plan['recipe']['batch_rows'])
     features={key:torch.from_numpy(value).to(next(model.parameters()).device)for key,value in raw.items()}
-    if plan.get('mode')in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics'):
+    if plan.get('mode')in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics','ta_five_year_mechanics'):
         for value in features.values():
             if value.is_floating_point():value.requires_grad_(True)
     truth=slice_truth(cohort,rows,fit=True)
@@ -1348,7 +1348,7 @@ def fit_step(model,optimizer,provider,cohort,rows,plan):
     loss=native_bar_direction_loss(model_output=output,truth=truth,fold_upper_ns=plan['metadata']['fit_end_ns']if _larger_fit(plan)else FIT_END_NS,
         target_contract_sha256=plan['metadata']['target_contract']['contract_sha256'],**noise_target_kwargs(plan))
     need(not loss['skip_update']and bool(torch.isfinite(loss['loss'])),'FIT_SUPERVISED_FINITE_LOSS')
-    primary_probe=primary_backbone_probe(model,loss,features)if plan.get('mode')in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics')else{}
+    primary_probe=primary_backbone_probe(model,loss,features)if plan.get('mode')in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics','ta_five_year_mechanics')else{}
     loss['loss'].backward()
     model._native_fit_counts['backward_calls']+=1
     gradients=[p for p in model.parameters()if p.grad is not None]
@@ -1491,7 +1491,7 @@ def fit_physical(plan,plan_ref,root):
     if ta_only:
         selected,selected_report=larger_selected(context,plan)if _larger_fit(plan)else selected_small_cohorts(plan,context)
         batches=_ta_training_batches(selected,plan)
-        score_selected=({k:v[:64]for k,v in selected.items()}if plan['mode']=='ta_larger_mechanics'else selected)
+        score_selected=({k:v[:64]for k,v in selected.items()}if _larger_fit(plan)and _mechanics(plan['mode'])else selected)
         panels={'TRAIN':all_score_batches(score_selected['FIT'],recipe['score_batch_rows']),
             'CONTROL':all_score_batches(score_selected['CONTROL'],recipe['score_batch_rows'])}
     elif plan['mode']=='main':
@@ -1512,10 +1512,10 @@ def fit_physical(plan,plan_ref,root):
     if _noise_fit(plan):need(initial_sha==plan['metadata']['prepared']['initial_state_sha256'],'NOISE_FRESH_CUDA_MATCHES_CPU_INITIAL')
     statistics_parent=(plan['metadata'].get('mechanics')if ta_only else
         plan['metadata']['mechanics']if plan['mode']=='main'else plan['metadata']['statistics_parent'])
-    if statistics_parent is not None and plan['mode']not in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics'):
+    if statistics_parent is not None and plan['mode']not in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics','ta_five_year_mechanics'):
         need(initial_sha==statistics_parent['initial_state_sha256'],'FIT_FRESH_MAIN_INITIAL')
     score_started=time.monotonic()
-    if plan['mode']=='ta_larger_main':
+    if _larger_main(plan):
         initial,capture_initial,prior_initialization=load_larger_initial(model,context,plan)
         initial_score_ref=plan['metadata']['prepared']['initial_score_artifact']
         capture_initial_ref=plan['metadata']['prepared']['initial_capture'];initial_score_seconds=0.
@@ -1539,7 +1539,7 @@ def fit_physical(plan,plan_ref,root):
         if ta_only and cursor<2:
             need(step['heads_gradient_l2']>0 and(step['backbone_gradient_l2']==0 if cursor==0
                 else step['backbone_gradient_l2']>0),'TA_FIT_ZERO_HEAD_GRADIENT_TRANSITION')
-        if plan['mode']in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics'):
+        if plan['mode']in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics','ta_five_year_mechanics'):
             proof=step['primary_gradient_routing']
             need(proof['M5_head_gradient_l2']>0 and(proof['M5_shared_gradient_l2']==0 if cursor==0
                 else proof['M5_shared_gradient_l2']>0),'PRIMARY_M5_GRADIENT_TRANSITION')
@@ -1589,7 +1589,7 @@ def fit_physical(plan,plan_ref,root):
                 'auxiliary_shared_zero_all_steps':all(x['primary_gradient_routing']['auxiliary_shared_gradient_l2']==0 for x in steps),
                 'M5_shared_positive_after_first_head_update':steps[1]['primary_gradient_routing']['M5_shared_gradient_l2']>0,
                 'supported_auxiliary_heads_positive_all_steps':all(x['primary_gradient_routing']['auxiliary_head_gradient_l2']>0
-                    for x in steps if x['primary_gradient_routing']['auxiliary_predictive_cells']>0)}}if plan['mode']in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics')else{}),
+                    for x in steps if x['primary_gradient_routing']['auxiliary_predictive_cells']>0)}}if plan['mode']in('ta_primary_mechanics','ta_noise_mechanics','ta_larger_mechanics','ta_five_year_mechanics')else{}),
             'gradient_transition':{'first_backbone_gradient_l2':steps[0]['backbone_gradient_l2'],
                 'second_backbone_gradient_l2':steps[1]['backbone_gradient_l2'],
                 'zero_first_gradient_is_expected_from_zero_readout_weights':True,
@@ -1603,11 +1603,13 @@ def fit_physical(plan,plan_ref,root):
         'steps':steps,
         'canonical_optimizer_updates':len(batches),'evaluation_batches_per_phase':sum(len(value)for value in panels.values()),
         'actual_counts':dict(model._native_fit_counts),
-        **({'initial_baseline_reused':plan['mode']=='ta_larger_main','prepared_initial_parent':plan['metadata']['prepared']['result'],
+        **({'initial_baseline_reused':_larger_main(plan),'prepared_initial_parent':plan['metadata']['prepared']['result'],
             'training_schedule':plan['training_schedule'],'actual_source_row_schedule_sha256':digest(np.concatenate(batches))}if _larger_fit(plan)else{}),
-        'score_scope':('whole_year_TRAIN_and_later_CONTROL_all_rows_including_unknown_tails'if plan['mode']=='ta_larger_main'else
-            'first_64_TRAIN_and_first_64_CONTROL_technical_panels'if plan['mode']=='ta_larger_mechanics'else'fixed_source_only_mechanics_panels_not_full_population'if plan['mode']=='mechanics'
+        'score_scope':('five_year_TRAIN_and_Jan_Jun2026_development_VAL_all_rows_including_unknown_tails'if plan['mode']=='ta_five_year_main'else
+            'whole_year_TRAIN_and_later_CONTROL_all_rows_including_unknown_tails'if _larger_main(plan)else
+            'first_64_TRAIN_and_first_64_CONTROL_technical_panels'if _larger_fit(plan)and _mechanics(plan['mode'])else'fixed_source_only_mechanics_panels_not_full_population'if plan['mode']=='mechanics'
             else'all_source_selected_1536_FIT_and_512_CONTROL_rows_including_unknown_last_CONTROL_row'),
+        **({'later_split_role':plan['metadata']['later_split_role']}if plan['mode']in('ta_five_year_mechanics','ta_five_year_main')else{}),
         'score_lane':'eval_no_grad_same_batch_geometry_and_frozen_TRAIN_stats',
         'qualification_weights_loaded':False,'test_data_used':False,'economic_edge_proven':False}
     if _larger_fit(plan):need(torch.cuda.max_memory_reserved()<=LARGER_VRAM_MAX,'LARGER_VRAM_LIMIT')
@@ -1705,7 +1707,9 @@ def run_native_fit(plan_sha,mode):
         need(fit_source_clean(plan)and ref(POLICY)==policy_ref and ref(path)==plan_ref,'FIT_SOURCE_POLICY_BOOKEND')
         updates=3 if _mechanics(mode)else plan['recipe']['fit_batches']
         result=publish(root/'RESULT.json',{'stage':stage,
-            'status':('COMPLETE_NATIVE_M5_TA_ATR03_YEAR_MECHANICS'if mode=='ta_larger_mechanics'else
+            'status':('COMPLETE_NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS'if mode=='ta_five_year_mechanics'else
+                'COMPLETE_NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT'if mode=='ta_five_year_main'else
+                'COMPLETE_NATIVE_M5_TA_ATR03_YEAR_MECHANICS'if mode=='ta_larger_mechanics'else
                 'COMPLETE_NATIVE_M5_TA_ATR03_YEAR_FIT'if mode=='ta_larger_main'else
                 'COMPLETE_NATIVE_M5_TA_ATR03_MECHANICS'if mode=='ta_noise_mechanics'else
                 'COMPLETE_NATIVE_M5_TA_ATR03_FIT'if mode=='ta_noise_main'else
@@ -2057,7 +2061,7 @@ PRIMARY_FIT_SOURCE_PATHS=tuple(dict.fromkeys((*TA_FIT_SOURCE_PATHS,'tests/test_m
 
 
 def _primary_fit(plan):
-    return plan.get('mode')in('ta_primary_mechanics','ta_primary_main','ta_noise_mechanics','ta_noise_main','ta_larger_mechanics','ta_larger_main')
+    return plan.get('mode')in('ta_primary_mechanics','ta_primary_main','ta_noise_mechanics','ta_noise_main','ta_larger_mechanics','ta_larger_main','ta_five_year_mechanics','ta_five_year_main')
 
 
 def primary_model_source_identity(source):
@@ -2287,7 +2291,7 @@ FIT_SCOPES.update({
 
 
 def _noise_fit(plan):
-    return plan.get('mode')in('ta_noise_mechanics','ta_noise_main','ta_larger_mechanics','ta_larger_main','ta_larger_prepare')
+    return plan.get('mode')in('ta_noise_mechanics','ta_noise_main','ta_larger_mechanics','ta_larger_main','ta_larger_prepare','ta_five_year_prepare','ta_five_year_mechanics','ta_five_year_main')
 
 
 def noise_target_kwargs(plan):
@@ -2936,7 +2940,7 @@ def throughput_cli(args):
 
 
 
-LARGER_FIT_MODES=('ta_larger_mechanics','ta_larger_main')
+LARGER_FIT_MODES=('ta_larger_mechanics','ta_larger_main','ta_five_year_mechanics','ta_five_year_main')
 LARGER_VRAM_MAX=12*1024**3
 LARGER_SOURCE_PATHS=tuple(dict.fromkeys((*NOISE_SOURCE_PATHS,'gx1/audit/build_native_m5_ta_feature_cache_v1.py','tests/test_gx1_capped_run_native_year_contract.py')))
 def prepare_larger_input_train_fold(*, snapshot_ref, noise_dataset_ref,
@@ -3076,13 +3080,15 @@ def larger_recipe(value, mode, metadata):
                 'internal_seconds'):
         need(type(value[key]) is int and value[key] > 0, 'LARGER_INTEGER:'+key)
     n = metadata['prepared']['full_selected_cohorts']['FIT']['rows']
-    mechanics = mode == 'ta_larger_mechanics'
+    mechanics = _mechanics(mode)
     epoch = 2 if mechanics else (n + 63) // 64
     need(type(n) is int and n >= 128 and metadata['epoch_batches'] == epoch,
          'LARGER_WHOLE_INPUT_TRAIN_EPOCH')
     need(value['fit_batches'] == (2 if mechanics else epoch)
-        and value['checkpoint_every_updates'] == (1 if mechanics else epoch)
-        and value['outer_seconds'] == (1800 if mechanics else 3600)
+        and value['checkpoint_every_updates'] == (1 if mechanics else 1024 if _larger_spec(mode)['scope']=='five_year'else epoch)
+        and value['checkpoint_every_updates'] <= value['fit_batches']
+        and (value['outer_seconds']==1800 if mechanics else
+            value['outer_seconds']==_larger_spec(mode)['main_seconds_max']if _larger_spec(mode)['scope']=='five_year'else value['outer_seconds']==3600)
         and value['internal_seconds'] == value['outer_seconds'] - 30,
         'LARGER_EXPLICIT_ONE_PASS_BUDGET')
     return dict(value)
@@ -3103,7 +3109,7 @@ def larger_batches(rows):
 
 def larger_schedule(rows, plan):
     blocks = larger_batches(rows)
-    if plan['mode'] == 'ta_larger_mechanics': blocks = blocks[:2]
+    if _mechanics(plan['mode']): blocks = blocks[:2]
     body = {'schema_version':'gx1_native_m5_ta_larger_source_schedule_v1',
         'selection':'all_chronological_input_TRAIN_no_target_filter',
         'passes':1,'batch_rows':64,'tail_rule':'singleton_tail_63_plus_2',
@@ -3117,7 +3123,7 @@ def larger_schedule(rows, plan):
 def larger_selected(context, plan):
     train = context['cohorts']['TRAIN']; control = context['cohorts']['CONTROL']
     selected = {'FIT':train['rows'], 'CONTROL':control['rows']}
-    mech = plan['mode'] == 'ta_larger_mechanics'
+    mech = _mechanics(plan['mode'])
     def identity(rows, cohort):
         return {'rows':len(rows),'source_rows_sha256':digest(rows),
                 'issue_ns_sha256':digest(slice_truth(cohort,rows)['issue_ns'])}
@@ -3147,7 +3153,7 @@ def larger_selected(context, plan):
 
 def larger_training_batches(selected, plan):
     batches = larger_batches(selected['FIT'])
-    if plan['mode'] == 'ta_larger_mechanics':
+    if _mechanics(plan['mode']):
         need(len(batches) >= 2 and all(len(x) == 64 for x in batches[:2]), 'LARGER_TWO_DISTINCT_B64')
         return batches[:2]
     return batches
@@ -3168,7 +3174,7 @@ def larger_schedule_position(plan, cursor):
             schedule['batch_source_rows_sha256'][block] if block is not None else None}
 
 def larger_limits(recipe, mode, metadata):
-    mech = mode == 'ta_larger_mechanics'; updates = 3 if mech else recipe['fit_batches']
+    mech = _mechanics(mode); updates = 3 if mech else recipe['fit_batches']
     final_score = sum((v['rows']+63)//64 for v in metadata['selected_cohorts'].values())
     return {'model_constructions':2 if mech else 1,
         'model_forwards':updates+(4 if mech else final_score),
@@ -3178,7 +3184,7 @@ def larger_limits(recipe, mode, metadata):
 def larger_initial_reuse(model, context, plan, prepared, score_record, captures):
     """Called only after root verifies immutable COMPLETE prepare/source refs."""
     from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
-    need(plan['mode'] == 'ta_larger_main'
+    need(_larger_main(plan)
         and canonical_model_state_sha256(model.state_dict()) == prepared['initial_state_sha256']
         and prepared['axis'] == context['axis']
         and prepared['normalization'] == context['normalization_ref']
@@ -3210,6 +3216,60 @@ LARGER_PREPARE_PLAN=REPO/'configs/research/NATIVE_M5_TA_ATR03_YEAR_PREPARE_20261
 LARGER_PREPARE_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_YEAR_PREPARE_20261120_001')
 LARGER_FOLD_BOUNDS=(1693526400000000000,1725148800000000000,1727740800000000000)
 
+FIVE_YEAR_PREPARE_STAGE='native_m5_ta_atr03_five_year_prepare_20261120_001'
+FIVE_YEAR_PREPARE_PLAN=REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_PREPARE_20261120_001.json'
+FIVE_YEAR_PREPARE_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_PREPARE_20261120_001')
+FIVE_YEAR_FOLD_BOUNDS=(1609459200000000000,1767225600000000000,1782864000000000000)
+LARGER_SCOPE_SPECS={
+    'year':{'scope':'year','prepare_mode':'ta_larger_prepare','mechanics_mode':'ta_larger_mechanics','main_mode':'ta_larger_main',
+        'prepare_stage':LARGER_PREPARE_STAGE,'prepare_plan':LARGER_PREPARE_PLAN,'prepare_root':LARGER_PREPARE_ROOT,
+        'fold_bounds':LARGER_FOLD_BOUNDS,'main_seconds_max':3600,
+        'prepare_status':'COMPLETE_LARGER_TRAIN_INITIAL_PREPARATION',
+        'mechanics_status':'COMPLETE_NATIVE_M5_TA_ATR03_YEAR_MECHANICS'},
+    'five_year':{'scope':'five_year','prepare_mode':'ta_five_year_prepare','mechanics_mode':'ta_five_year_mechanics','main_mode':'ta_five_year_main',
+        'prepare_stage':FIVE_YEAR_PREPARE_STAGE,'prepare_plan':FIVE_YEAR_PREPARE_PLAN,'prepare_root':FIVE_YEAR_PREPARE_ROOT,
+        'fold_bounds':FIVE_YEAR_FOLD_BOUNDS,'main_seconds_max':10800,
+        'prepare_status':'COMPLETE_NATIVE_M5_TA_ATR03_FIVE_YEAR_PREPARATION',
+        'mechanics_status':'COMPLETE_NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS'}}
+
+
+def _larger_spec(value):
+    mode=value.get('mode')if type(value)is dict else value
+    for key,spec in LARGER_SCOPE_SPECS.items():
+        if mode==key or mode in(spec['prepare_mode'],spec['mechanics_mode'],spec['main_mode']):return spec
+    need(False,'LARGER_EXPLICIT_SCOPE')
+
+
+def _larger_main(plan):
+    return _larger_fit(plan)and _ta_main(plan['mode'])
+
+
+def _larger_prepare_execution(spec,outer_seconds):
+    if spec['scope']=='year':
+        need(outer_seconds in(None,1800),'LARGER_YEAR_FIXED_PREPARE_BUDGET');outer_seconds=1800
+    else:
+        need(type(outer_seconds)is int and outer_seconds==5400,'FIVE_YEAR_EXPLICIT_PREPARE_BUDGET')
+    return {'class':'trainer','device':'cuda','memory':'20G','swap':'512M','numerical_threads':8,'tasks_max':128,
+        'outer_seconds':outer_seconds,'internal_seconds':outer_seconds-30,'cuda_peak_reserved_bytes_max':LARGER_VRAM_MAX}
+
+
+def _require_five_year_cache(inputs,q,result,terminal):
+    parent=read(result['plan']);claim=read(result['claim']);snapshot=read(inputs['snapshot'])
+    expected='native_m5_ta_five_year_cache_20261120_001'
+    need(q['schema_version']=='gx1_native_m5_five_year_TA_input_qualification_v1'
+        and result['stage']==terminal['stage']==parent['stage']==claim['stage']==expected
+        and terminal['plan']==result['plan']==claim['plan']and terminal['claim']==result['claim']
+        and result['test_data_used']is terminal['test_data_used']is False
+        and result['training_authorized']is False
+        and q['independent_qualified_arrays']==27 and q['source_policy_artifact_bookends_unchanged']is True
+        and q['normalization_fits']==q['optimizer_steps']==q['model_constructions_or_forwards']==0
+        and snapshot['archive']==q['archive']and ref(snapshot['archive']['path'])==snapshot['archive']
+        and snapshot['surfaces_metadata']['axes']['issue_start_ns']==FIVE_YEAR_FOLD_BOUNDS[0]
+        and snapshot['surfaces_metadata']['axes']['issue_end_ns']==FIVE_YEAR_FOLD_BOUNDS[2],
+        'FIVE_YEAR_INDEPENDENTLY_QUALIFIED_CACHE')
+
+
+
 
 def larger_clock_metadata(snapshot_ref,fold_bounds,*,return_source_rows=False):
     saved=read(snapshot_ref);archive=saved['archive']
@@ -3229,10 +3289,11 @@ def larger_clock_metadata(snapshot_ref,fold_bounds,*,return_source_rows=False):
     return (axis,selected)if return_source_rows else axis
 
 
-def build_larger_prepare_plan(*,inputs,fold_bounds,margin_atr,source_base_commit=None):
+def build_larger_prepare_plan(*,inputs,fold_bounds,margin_atr,source_base_commit=None,scope='year',outer_seconds=None):
     from gx1.contracts.market_state_native_m5_targets_v1 import noise_margin_dataset_contract
+    selected=_larger_spec(scope);execution=_larger_prepare_execution(selected,outer_seconds)
     fields={'cache_qualification','cache_result','cache_terminal','snapshot','noise_dataset','base_fit_plan'}
-    need(type(inputs)is dict and set(inputs)==fields and tuple(fold_bounds)==LARGER_FOLD_BOUNDS
+    need(type(inputs)is dict and set(inputs)==fields and tuple(fold_bounds)==selected['fold_bounds']
         and margin_atr==0.3,'LARGER_PREPARE_INPUT_SCOPE')
     q,r,t=(read(inputs[k])for k in ('cache_qualification','cache_result','cache_terminal'))
     need(q['result']==inputs['cache_result']and q['terminal']==inputs['cache_terminal']and q['snapshot']==inputs['snapshot']
@@ -3240,6 +3301,7 @@ def build_larger_prepare_plan(*,inputs,fold_bounds,margin_atr,source_base_commit
         and t['status']=='COMPLETE'and t['exit_code']==0 and t['result']==inputs['cache_result']
         and r['source_unchanged']is True and r['report']['snapshot']==inputs['snapshot']
         and r['report']['archive']==q['archive'] and q['GC_used']is q['M1_used']is q['test_data_used']is False,'LARGER_QUALIFIED_CACHE')
+    if scope=='five_year':_require_five_year_cache(inputs,q,r,t)
     dataset=read(inputs['noise_dataset']);target=noise_margin_dataset_contract(margin_atr)
     need(dataset['contract']==target and dataset['raw_fields_byte_identical']is True,'LARGER_QUALIFIED_NOISE')
     old=read(inputs['base_fit_plan']);saved=read(inputs['snapshot']);axis=larger_clock_metadata(inputs['snapshot'],tuple(fold_bounds))
@@ -3250,14 +3312,19 @@ def build_larger_prepare_plan(*,inputs,fold_bounds,margin_atr,source_base_commit
         'architecture':old['metadata']['architecture'],'seed':old['recipe']['seed'],
         'dependencies':{'cache_archive':saved['archive'],'noise_arrays':dataset['arrays']},
         'scope':'all_ready_input_TRAIN_year_no_target_filter_full_initialbaseline_and_later_reused_development_CONTROL'}
+    if scope=='five_year':
+        need(saved['surfaces_metadata']['axes']['issue_start_ns']==selected['fold_bounds'][0]
+            and saved['surfaces_metadata']['axes']['issue_end_ns']==selected['fold_bounds'][2]
+            and q['qualified_issue_rows']==sum(v['input_ready_rows']for v in axis.values()),'FIVE_YEAR_FULL_CACHE_ISSUE_SCOPE')
+        meta.update(research_scope='five_year',later_split_role='development_VAL_Jan_Jun2026_reused_not_sealed_TEST',
+            scope='whole_2021_2025_input_TRAIN_fresh_stats_prior_fullinitial_then_Jan_Jun2026_development_VAL')
     forwards=sum((v['input_ready_rows']+63)//64 for v in axis.values())
-    return {'schema_version':'gx1_native_m5_larger_prepare_plan_v1','stage':LARGER_PREPARE_STAGE,'mode':'ta_larger_prepare',
-        'status':'PREPARED_NOT_ADMITTED','output_root':str(LARGER_PREPARE_ROOT),'inputs':inputs,'metadata':meta,
+    return {'schema_version':'gx1_native_m5_larger_prepare_plan_v1','stage':selected['prepare_stage'],'mode':selected['prepare_mode'],
+        'status':'PREPARED_NOT_ADMITTED','output_root':str(selected['prepare_root']),'inputs':inputs,'metadata':meta,
         'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
         'source_owners':{n:sha(REPO/n)for n in LARGER_SOURCE_PATHS},'margin_atr':margin_atr,
         'recipe':{'score_batch_rows':64,'seed':meta['seed']},
-        'execution':{'class':'trainer','device':'cuda','memory':'20G','swap':'512M','numerical_threads':8,'tasks_max':128,
-            'outer_seconds':1800,'internal_seconds':1770,'cuda_peak_reserved_bytes_max':LARGER_VRAM_MAX},
+        'execution':execution,
         'limits':{'model_constructions':1,'model_forwards':forwards,'normalization_fits':1,'prior_fits':1,'optimizer_steps':0},
         'training_authorized':False,'test_data_used':False,'economic_edge_proven':False}
 
@@ -3267,7 +3334,7 @@ def larger_prepare_physical(plan):
     from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_bar_direction_model
     from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_train_prior_logits
     from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
-    meta=plan['metadata'];root=LARGER_PREPARE_ROOT;began=time.monotonic()
+    meta=plan['metadata'];root=Path(plan['output_root']);began=time.monotonic()
     data=prepare_larger_input_train_fold(snapshot_ref=meta['source_snapshot'],noise_dataset_ref=meta['noise_dataset'],
         fold_bounds=tuple(meta['fold_bounds']),margin_atr=plan['margin_atr'])
     context=larger_standard_context(data)
@@ -3312,15 +3379,17 @@ def larger_prepare_physical(plan):
         'cuda_peak_reserved_bytes':torch.cuda.max_memory_reserved(),'test_data_used':False,'economic_edge_proven':False}
 
 
-def inspect_larger_prepare(plan_sha,*,admitted):
-    need(Path.cwd().resolve()==REPO and not LARGER_PREPARE_ROOT.exists(),'LARGER_PREPARE_CWD_OUTPUT')
-    pr={'path':str(LARGER_PREPARE_PLAN),'sha256':plan_sha};plan=read(pr)
+def inspect_larger_prepare(plan_sha,*,admitted,scope='year'):
+    selected=_larger_spec(scope);path=selected['prepare_plan'];root=selected['prepare_root']
+    need(Path.cwd().resolve()==REPO and not root.exists(),'LARGER_PREPARE_CWD_OUTPUT')
+    pr={'path':str(path),'sha256':plan_sha};plan=read(pr)
     need(plan==build_larger_prepare_plan(inputs=plan['inputs'],fold_bounds=tuple(plan['metadata']['fold_bounds']),margin_atr=plan['margin_atr'],
-        source_base_commit=plan['source_base_commit'])and larger_source_clean(plan),'LARGER_PREPARE_SOURCE')
-    policy_ref=ref(POLICY);p=read(policy_ref);g=p.get(LARGER_PREPARE_STAGE,{})
+        source_base_commit=plan['source_base_commit'],scope=scope,
+        outer_seconds=plan['execution']['outer_seconds']if scope=='five_year'else None)and larger_source_clean(plan),'LARGER_PREPARE_SOURCE')
+    policy_ref=ref(POLICY);p=read(policy_ref);g=p.get(selected['prepare_stage'],{})
     need(all(p.get(k)is False for k in ta_audit.data.CLOSED_FLAGS)and g.get('plan')==pr
         and g.get('status')==('ADMITTED_ONE_USE'if admitted else'PREPARED_NOT_ADMITTED')
-        and g.get('output_root')==str(LARGER_PREPARE_ROOT)and g.get('execution_authorized')is admitted
+        and g.get('output_root')==str(root)and g.get('execution_authorized')is admitted
         and g.get('remaining_invocations')==(1 if admitted else 0)and g.get('max_invocations')==1
         and g.get('claimed_invocations')==g.get('completed_invocations')==0 and g.get('relaunch_allowed')is False
         and g.get('training_authorized')is False and g.get('test_authorized')is False,'LARGER_PREPARE_GATE')
@@ -3328,31 +3397,33 @@ def inspect_larger_prepare(plan_sha,*,admitted):
 
 
 def larger_prepare_cli(args):
-    need(args.plan==str(LARGER_PREPARE_PLAN)and args.out_dir==str(LARGER_PREPARE_ROOT)and args.device=='cuda','LARGER_PREPARE_CLI')
+    selected=_larger_spec('five_year'if args.plan==str(FIVE_YEAR_PREPARE_PLAN)else'year')
+    path=selected['prepare_plan'];root=selected['prepare_root']
+    need(args.plan==str(path)and args.out_dir==str(root)and args.device=='cuda','LARGER_PREPARE_CLI')
     if args.preflight:
-        _,pr,p=inspect_larger_prepare(args.plan_sha256,admitted=False)
+        _,pr,p=inspect_larger_prepare(args.plan_sha256,admitted=False,scope=selected['scope'])
         print(json.dumps({'status':'PREFLIGHT_LARGER_PREPARATION_NO_MODEL','plan':pr,'policy':p,'claim_created':False}));return
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
-    began=time.monotonic();guard=require_guarded_cuda_trainer_execution();plan,pr,p=inspect_larger_prepare(args.plan_sha256,admitted=True)
-    LARGER_PREPARE_ROOT.mkdir(exist_ok=False)
+    began=time.monotonic();guard=require_guarded_cuda_trainer_execution();plan,pr,p=inspect_larger_prepare(args.plan_sha256,admitted=True,scope=selected['scope'])
+    root.mkdir(exist_ok=False)
     common.firewall_state()
-    claim=publish(LARGER_PREPARE_ROOT/'CLAIM.json',{'stage':LARGER_PREPARE_STAGE,'plan':pr,'policy':p,'status':'CLAIMED_ONE_USE','guard':guard,'remaining_invocations':0,'max_invocations':1,'test_data_used':False})
+    claim=publish(root/'CLAIM.json',{'stage':selected['prepare_stage'],'plan':pr,'policy':p,'status':'CLAIMED_ONE_USE','guard':guard,'remaining_invocations':0,'max_invocations':1,'test_data_used':False})
     old=signal.getsignal(signal.SIGALRM);result=None
     def expired(*args):raise TimeoutError('LARGER_PREPARE_INTERNAL_LIMIT')
     try:
         remaining=plan['execution']['internal_seconds']-(time.monotonic()-began);need(remaining>0,'LARGER_PREPARE_TIME_BEFORE_INPUTS')
         signal.signal(signal.SIGALRM,expired);signal.setitimer(signal.ITIMER_REAL,remaining)
         report=larger_prepare_physical(plan);checked_inputs(plan)
-        need(larger_source_clean(plan)and ref(POLICY)==p and ref(LARGER_PREPARE_PLAN)==pr
+        need(larger_source_clean(plan)and ref(POLICY)==p and ref(path)==pr
             and common.firewall_state()['denied_attempts']==0,'LARGER_PREPARE_BOOKEND')
-        result=publish(LARGER_PREPARE_ROOT/'RESULT.json',{'stage':LARGER_PREPARE_STAGE,'status':'COMPLETE_LARGER_TRAIN_INITIAL_PREPARATION',
+        result=publish(root/'RESULT.json',{'stage':selected['prepare_stage'],'status':selected['prepare_status'],
             'plan':pr,'claim':claim,'report':report,'guard':guard,'source_unchanged':True,'optimizer_steps':0,'training_authorized':False,'test_data_used':False,
             'elapsed_seconds':time.monotonic()-began,'clean_process_io_firewall':common.firewall_state()})
-        terminal=publish(LARGER_PREPARE_ROOT/'TERMINAL.json',{'stage':LARGER_PREPARE_STAGE,'status':'COMPLETE','exit_code':0,'plan':pr,
+        terminal=publish(root/'TERMINAL.json',{'stage':selected['prepare_stage'],'status':'COMPLETE','exit_code':0,'plan':pr,
             'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
         print(json.dumps({'result':result,'terminal':terminal}))
     except BaseException as error:
-        publish(LARGER_PREPARE_ROOT/'TERMINAL.json',{'stage':LARGER_PREPARE_STAGE,'status':'FAILED_CONSUMED','exit_code':1,'plan':pr,'claim':claim,
+        publish(root/'TERMINAL.json',{'stage':selected['prepare_stage'],'status':'FAILED_CONSUMED','exit_code':1,'plan':pr,'claim':claim,
             'result':result,'error':type(error).__name__+':'+str(error)[:2000],'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
         raise
     finally:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old)
@@ -3414,9 +3485,9 @@ def larger_prepared_metadata(inputs):
     required={'prepare_result','prepare_terminal'}
     need(required<=set(inputs),'LARGER_PREPARED_INPUTS')
     result,last=read(inputs['prepare_result']),read(inputs['prepare_terminal'])
-    parent=read(result['plan']);claim=read(result['claim']);report=result['report']
-    need(result['stage']==last['stage']==parent['stage']==claim['stage']==LARGER_PREPARE_STAGE
-        and result['status']=='COMPLETE_LARGER_TRAIN_INITIAL_PREPARATION'
+    parent=read(result['plan']);claim=read(result['claim']);report=result['report'];selected=_larger_spec(parent)
+    need(result['stage']==last['stage']==parent['stage']==claim['stage']==selected['prepare_stage']
+        and result['status']==selected['prepare_status']
         and last['status']=='COMPLETE'and last['exit_code']==0
         and last['result']==inputs['prepare_result']and last['plan']==result['plan']==claim['plan']
         and last['claim']==result['claim']and result['source_unchanged']is True
@@ -3463,16 +3534,17 @@ def larger_prepared_metadata(inputs):
 
 def build_larger_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
     need(mode in LARGER_FIT_MODES,'LARGER_FIT_MODE')
-    fields={'prepare_result','prepare_terminal'}|({'mechanics_result','mechanics_terminal'}if mode=='ta_larger_main'else set())
+    fields={'prepare_result','prepare_terminal'}|({'mechanics_result','mechanics_terminal'}if _larger_main({'mode':mode})else set())
     need(type(inputs)is dict and set(inputs)==fields,'LARGER_FIT_INPUT_ROLES')
-    metadata=larger_prepared_metadata(inputs)
+    metadata=larger_prepared_metadata(inputs);selected_scope=_larger_spec(mode)
+    need(metadata['prepared']['plan']['path']==str(selected_scope['prepare_plan']),'LARGER_SAME_PREPARED_SCOPE')
     clocks,sources=larger_clock_metadata(metadata['source_snapshot'],tuple(metadata['fold_bounds']),return_source_rows=True)
     full=metadata['prepared']['full_selected_cohorts']
     need(all(clocks[split]['source_rows_sha256']==full[label]['source_rows_sha256']
         and clocks[split]['issue_ns_sha256']==full[label]['issue_ns_sha256']
         and clocks[split]['input_ready_rows']==full[label]['rows']
         for split,label in [('TRAIN','FIT'),('CONTROL','CONTROL')]),'LARGER_EXACT_FULL_SOURCE_POPULATIONS')
-    mechanics=mode=='ta_larger_mechanics';selected={}
+    mechanics=_mechanics(mode);selected={}
     for split,label in [('TRAIN','FIT'),('CONTROL','CONTROL')]:
         rows=sources[split][:64]if mechanics else sources[split]
         # Source-only issue clock; no labels are loaded to select score cohorts.
@@ -3489,8 +3561,8 @@ def build_larger_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
     if not mechanics:
         done,last=read(inputs['mechanics_result']),read(inputs['mechanics_terminal'])
         parent=read(done['plan']);claim=read(done['claim']);proof=done['report']
-        need(done['stage']==last['stage']==parent['stage']==claim['stage']==FIT_SCOPES['ta_larger_mechanics'][0]
-            and done['status']=='COMPLETE_NATIVE_M5_TA_ATR03_YEAR_MECHANICS'
+        need(done['stage']==last['stage']==parent['stage']==claim['stage']==FIT_SCOPES[selected_scope['mechanics_mode']][0]
+            and done['status']==selected_scope['mechanics_status']and parent['mode']==selected_scope['mechanics_mode']
             and last['status']=='COMPLETE'and last['exit_code']==0
             and last['result']==inputs['mechanics_result']and last['plan']==done['plan']==claim['plan']
             and last['claim']==done['claim']and done['source_unchanged']is True
@@ -3511,7 +3583,7 @@ def build_larger_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
             'physical_windows_boot_id':done['physical_windows_boot_id']}
         metadata['dependencies'].update(mechanics_plan=done['plan'],mechanics_claim=done['claim'])
     stage,path,root=FIT_SCOPES[mode]
-    return {'schema_version':'gx1_native_m5_ta_atr03_year_fit_plan_v1','stage':stage,'mode':mode,
+    return {'schema_version':('gx1_native_m5_ta_atr03_five_year_fit_plan_v1'if selected_scope['scope']=='five_year'else'gx1_native_m5_ta_atr03_year_fit_plan_v1'),'stage':stage,'mode':mode,
         'status':'PREPARED_NOT_ADMITTED','output_root':str(root),'inputs':inputs,'metadata':metadata,
         'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
         'source_owners':{name:sha(REPO/name)for name in LARGER_SOURCE_PATHS},'recipe':recipe,
@@ -3535,5 +3607,14 @@ FIT_SCOPES.update({
     'ta_larger_main':('native_m5_ta_atr03_year_fit_20261120_001',
         REPO/'configs/research/NATIVE_M5_TA_ATR03_YEAR_FIT_20261120_001.json',
         Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_YEAR_FIT_20261120_001'))})
+
+
+FIT_SCOPES.update({
+    'ta_five_year_mechanics':('native_m5_ta_atr03_five_year_mechanics_20261120_001',
+        REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001')),
+    'ta_five_year_main':('native_m5_ta_atr03_five_year_fit_20261120_001',
+        REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001'))})
 
 if __name__=='__main__':main()

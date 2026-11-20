@@ -1544,3 +1544,110 @@ def test_larger_mechanics_cold_cursor_replays_second_distinct_batch_within_pass(
     assert cursor['next_source_batch_sha256']==owner.digest(blocks[1])
     end=owner._ta_schedule_position(plan,2)
     assert end['next_pass']==1 and end['next_source_block']is None
+
+
+def test_five_year_explicit_scope_routes_preserve_year_and_require_own_prepare_budget(monkeypatch):
+    five=owner._larger_spec('five_year');year=owner._larger_spec('year')
+    assert five['fold_bounds']==(1609459200000000000,1767225600000000000,1782864000000000000)
+    assert year['fold_bounds']==owner.LARGER_FOLD_BOUNDS
+    assert owner._larger_prepare_execution(year,None)['outer_seconds']==1800
+    execution=owner._larger_prepare_execution(five,5400)
+    assert execution['internal_seconds']==5370 and execution['memory']=='20G'
+    assert execution['cuda_peak_reserved_bytes_max']==12*1024**3
+    for budget in (None,1800,5400.,10800):
+        with pytest.raises(ValueError,match='FIVE_YEAR_EXPLICIT_PREPARE_BUDGET'):
+            owner._larger_prepare_execution(five,budget)
+    for phase in ('prepare','mechanics','main'):
+        mode=five[phase+'_mode']
+        assert owner._noise_fit({'mode':mode})
+        assert owner._larger_spec({'mode':mode})is five
+        assert owner._ta_fit({'mode':mode})is(phase!='prepare')
+        if phase!='prepare':
+            assert owner._primary_fit({'mode':mode})
+            stage,path,root=owner.FIT_SCOPES[mode]
+            assert stage=='native_m5_ta_atr03_five_year_'+('fit'if phase=='main'else phase)+'_20261120_001'
+            assert path.stem==root.name
+    # Missing explicit five-year budget rejects before any artifact/model access.
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('artifact read before explicit budget'))
+    with pytest.raises(ValueError,match='FIVE_YEAR_EXPLICIT_PREPARE_BUDGET'):
+        owner.build_larger_prepare_plan(inputs={},fold_bounds=five['fold_bounds'],margin_atr=.3,scope='five_year')
+
+
+def test_five_year_recipe_requires_single_pass_periodic_checkpoints_and_fixed_native_caps():
+    n=64*5500-10;epoch=(n+63)//64
+    meta={'prepared':{'full_selected_cohorts':{'FIT':{'rows':n}}},'epoch_batches':epoch}
+    recipe={**_ta_recipe('ta_main',1),'batch_rows':64,'fit_batches':epoch,
+        'checkpoint_every_updates':1024,'outer_seconds':10800,'internal_seconds':10770}
+    assert owner.larger_recipe(recipe,'ta_five_year_main',meta)==recipe
+    for change in ({'checkpoint_every_updates':epoch},{'outer_seconds':10801,'internal_seconds':10771},
+                   {'outer_seconds':3600,'internal_seconds':3570},{'passes':2}):
+        with pytest.raises(ValueError,match='LARGER_'):
+            owner.larger_recipe({**recipe,**change},'ta_five_year_main',meta)
+    mechanics={**recipe,'fit_batches':2,'checkpoint_every_updates':1,
+        'outer_seconds':1800,'internal_seconds':1770}
+    assert owner.larger_recipe(mechanics,'ta_five_year_mechanics',{**meta,'epoch_batches':2})==mechanics
+    limits=owner.larger_limits(recipe,'ta_five_year_main',{'selected_cohorts':{'FIT':{'rows':n},'CONTROL':{'rows':91}}})
+    assert limits=={'model_constructions':1,'model_forwards':epoch*2+2,
+        'backward_calls':epoch,'optimizer_steps':epoch,'autograd_calls':0}
+    # Existing YEAR recipe/cadence and guard values retain their original contract.
+    year={**recipe,'checkpoint_every_updates':epoch,'outer_seconds':3600,'internal_seconds':3570}
+    assert owner.larger_recipe(year,'ta_larger_main',meta)==year
+
+
+def test_five_year_checkpoint_at_arbitrary_main_cursor_binds_actual_next_source_batch(monkeypatch):
+    provider,_,context,plan,fresh=_training_unit(monkeypatch)
+    rows=np.arange(1000,1000+64*1026+1,dtype=np.int64)
+    epoch=(len(rows)+63)//64
+    plan.update(mode='ta_five_year_main')
+    plan['recipe']={**_ta_recipe('ta_main',1),'batch_rows':64,'fit_batches':epoch,
+        'checkpoint_every_updates':1024,'outer_seconds':10800,'internal_seconds':10770}
+    plan['metadata']['epoch_batches']=epoch
+    plan['training_schedule']=owner.larger_schedule(rows,plan)
+    actual_batches=owner.larger_training_batches({'FIT':rows},plan)
+    torch.manual_seed(21);model,opt=fresh();model.research_objective={'unit_five_year_contract':True}
+    # Small synthetic optimizer state; this checks cursor/state closure, not a fit.
+    sum(parameter.square().sum()for parameter in model.parameters()).backward();opt.step();opt.zero_grad(set_to_none=True)
+    ref={'path':'synthetic_five_year_plan','sha256':'3'*64}
+    checkpoint=copy.deepcopy(owner.fit_checkpoint(model,opt,context,plan,ref,1024))
+    assert checkpoint['schedule_position']['next_source_batch_sha256']==owner.digest(actual_batches[1024])
+    assert checkpoint['schedule_position']['next_pass']==0
+    assert checkpoint['schedule_position']['next_batch_in_pass']==1024
+    cold,other=fresh();cold.research_objective=copy.deepcopy(model.research_objective)
+    assert owner.restore_fit_checkpoint(cold,other,context,plan,ref,checkpoint)==1024
+    assert owner.state_sha(cold.state_dict())==owner.state_sha(checkpoint['model_state'])
+    assert owner.state_sha(other.state_dict())==owner.state_sha(checkpoint['optimizer_state'])
+    with torch.no_grad():next(cold.parameters()).add_(.25)
+    before=owner.state_sha(cold.state_dict())
+    bad=copy.deepcopy(checkpoint);bad['schedule_position']['next_source_batch_sha256']='0'*64
+    with pytest.raises(ValueError,match='TA_FIT_CHECKPOINT_PASS_CURSOR'):
+        owner.restore_fit_checkpoint(cold,other,context,plan,ref,bad)
+    assert owner.state_sha(cold.state_dict())==before
+    changed=copy.deepcopy(plan);schedule=changed['training_schedule']
+    schedule['batch_source_rows_sha256'][1024]='0'*64
+    body={k:v for k,v in schedule.items()if k!='contract_sha256'}
+    schedule['contract_sha256']=owner.hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest()
+    with pytest.raises(ValueError,match='TA_FIT_CHECKPOINT_PASS_CURSOR'):
+        owner.restore_fit_checkpoint(cold,other,context,changed,ref,checkpoint)
+    assert owner.state_sha(cold.state_dict())==before
+
+
+@pytest.mark.parametrize('mode',['ta_larger_main','ta_five_year_main'])
+def test_larger_main_exact_four_input_roles_reach_prepared_validator_before_any_io(monkeypatch,mode):
+    inputs={name:{'path':'synthetic_'+name,'sha256':'1'*64}for name in
+        ('prepare_result','prepare_terminal','mechanics_result','mechanics_terminal')}
+    calls=[]
+    def prepared(value):
+        calls.append(copy.deepcopy(value))
+        raise RuntimeError('REACHED_PREPARED_METADATA_VALIDATOR')
+    monkeypatch.setattr(owner,'larger_prepared_metadata',prepared)
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('receipt IO before exact role gate'))
+    with pytest.raises(RuntimeError,match='REACHED_PREPARED_METADATA_VALIDATOR'):
+        owner.build_larger_fit_plan(inputs=inputs,recipe={},mode=mode)
+    assert calls==[inputs]
+    missing={k:v for k,v in inputs.items()if k!='mechanics_terminal'}
+    wrong={('noise_mechanics_result'if k=='mechanics_result'else k):v for k,v in inputs.items()}
+    extra={**inputs,'matched_prior_reference':{'path':'synthetic_old_prior','sha256':'2'*64}}
+    for bad in (missing,wrong,extra):
+        with pytest.raises(ValueError,match='LARGER_FIT_INPUT_ROLES'):
+            owner.build_larger_fit_plan(inputs=bad,recipe={},mode=mode)
+    assert calls==[inputs]

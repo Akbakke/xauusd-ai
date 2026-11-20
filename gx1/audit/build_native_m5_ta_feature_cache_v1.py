@@ -1,4 +1,4 @@
-"""One native M5/closed-MTF six-year physical TA cache; no learning or targets."""
+"""One native M5/closed-MTF TRAIN/development-VAL TA cache; no learning."""
 from __future__ import annotations
 import argparse
 import ast
@@ -26,6 +26,7 @@ if __name__ == '__main__':
 
 import numpy as np
 import pandas as pd
+from pyarrow import types as arrow_types
 from gx1.audit import qualify_market_state_native_m5_pipeline_v1 as owner
 from gx1.contracts import market_state_native_m5_feature_inputs_v1 as features
 from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
@@ -33,20 +34,18 @@ from gx1.contracts.native_m5_direction_io_firewall_v1 import install_native_m5_d
 from gx1.features.volatility_squeeze_state_v1 import load_volatility_squeeze_artifact_manifest
 
 REPO=owner.REPO;POLICY=REPO/'NEXT_RUN_POLICY.json'
-STAGE='native_m5_ta_history_expansion_20261120_003'
-PLAN=REPO/'configs/research/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003.json'
-ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003')
-START_NS=1538352000000000000  # 2018-10-01T00:00:00Z
-END_NS=1727740800000000000    # 2024-10-01T00:00:00Z
+STAGE='native_m5_ta_five_year_cache_20261120_001'
+PLAN=REPO/'configs/research/NATIVE_M5_TA_FIVE_YEAR_CACHE_20261120_001.json'
+ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_CACHE_20261120_001')
+START_NS=1609459200000000000  # 2021-01-01T00:00:00Z
+END_NS=1782864000000000000    # 2026-07-01T00:00:00Z
 INPUT_REFS={
-    'ta_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_006/RESULT.json',
-        'sha256':'5c015b3af8a17c8a16459be0eeba5ca017b7625db91e193aa84b101e664e7bca'},
-    'ta_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_PIPELINE_20261119_006/TERMINAL.json',
-        'sha256':'849bcda1483e088ca5fa2ec8671e8ed6b003654331a6556c70af53dcfc11c874'},
-    'previous_exit_observation':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_001/OPERATOR_EXIT_OBSERVATION.json',
-        'sha256':'3a77d7ae4c9169891fcd8d85a6c9874a2ad27d7c3623b50a2153970b3fae1060'},
-    'previous_import_failure':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_002/OPERATOR_FAILURE_BOOKEND.json',
-        'sha256':'25b3d3b99bef9ad5f6234f0976bf802a14e05565f2acfeb24841c43beda16957'}}
+    'cache_qualification':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003/CACHE_QUALIFICATION.json',
+        'sha256':'5c35042f655709e5b7d7366f5e761bb5988b8cd0173dd0eb4ce5b0833bd07e27'},
+    'cache_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003/RESULT.json',
+        'sha256':'1caaee7e6a6267b5af8aea453556afb272f7512bfbd7f596aa1386ce82b4c2fd'},
+    'cache_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003/TERMINAL.json',
+        'sha256':'4252b29e0c3a6c79941471d1c755c1da69547cee82788d84c68dc1bebbdc3d1c'}}
 EXECUTION={'class':'producer','device':'cpu','memory':'12G','swap':'512M','tasks_max':64,
     'numerical_threads':1,'internal_seconds':3570,'external_wall_timeout_enforced':False}
 COUNTS={'model_constructions':0,'model_forwards':0,'autograd_calls':0,'optimizer_steps':0,
@@ -136,62 +135,35 @@ def research_import_numeric_identity(source):
     return hashlib.sha256(ast.dump(ImportOnly().visit(ast.parse(source)),include_attributes=False).encode()).hexdigest()
 
 
+def research_read_end_numeric_identity(source):
+    """Normalize only the qualified panel-row exposure predicate, never math."""
+    tree=ast.parse(source)
+    functions=[n for n in tree.body if isinstance(n,ast.FunctionDef)and n.name=='load_oanda_panel_d1']
+    expected=ast.parse("pd.read_parquet(path, columns=['time','open','high','low','close'], "
+        "filters=[('time','<',sealed_period_read_end(spec))])",mode='eval').body
+    calls=[n for n in ast.walk(functions[0])if isinstance(n,ast.Call)
+        and ast.dump(n.func)==ast.dump(expected.func)]if len(functions)==1 else []
+    need(len(calls)==1 and ast.dump(calls[0])==ast.dump(expected),'EXACT_PANEL_READ_END_PREDICATE')
+    calls[0].keywords=[kw for kw in calls[0].keywords if kw.arg!='filters']
+    return research_import_numeric_identity(ast.unparse(tree))
+
+
 def research_import_bridge(old_plan):
     original=subprocess.check_output(['git','show',old_plan['source_base_commit']+':'+RESEARCH_SOURCE_PATH],cwd=REPO)
     original_sha=hashlib.sha256(original).hexdigest()
     need(original_sha==old_plan['source_owners'][RESEARCH_SOURCE_PATH],'ORIGINAL_RESEARCH_SOURCE')
     before=research_import_numeric_identity(original.decode())
-    after=research_import_numeric_identity((REPO/RESEARCH_SOURCE_PATH).read_text())
+    after=research_read_end_numeric_identity((REPO/RESEARCH_SOURCE_PATH).read_text())
     need(before==after,'RESEARCH_NON_IMPORT_AST_CHANGED')
-    return {'schema_version':'gx1_native_m5_macro_research_lazy_import_bridge_v1',
+    return {'schema_version':'gx1_native_m5_macro_research_qualified_read_end_bridge_v1',
         'source_owner':RESEARCH_SOURCE_PATH,'original_sha256':original_sha,'current_sha256':sha(REPO/RESEARCH_SOURCE_PATH),
         'import_only_normalized_ast_sha256':after,'relocated_import_sources':list(RESEARCH_LAZY_IMPORTS),
+        'qualified_panel_reader_change':'load_oanda_panel_d1.pd.read_parquet strict time<sealed_period_read_end(spec)',
         'all_other_module_statements_and_macro_function_bodies_unchanged':True}
 
 
-def previous_import_failure_metadata(inputs):
-    observation=read(inputs['previous_import_failure'])
-    terminal_ref={'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_002/TERMINAL.json',
-        'sha256':'949c05791e322f5a7300d8396dc46becf25b91abe68346f0359d54b3ad298a12'}
-    need(observation['schema_version']=='gx1_native_ta_cache_import_failure_bookend_v1'
-        and observation['stage']=='native_m5_ta_history_expansion_20261120_002'
-        and observation['terminal']==terminal_ref and observation['outer_exit_code']==observation['native_exit_code']==1
-        and observation['native_status']=='FAILED_CONSUMED'and observation['native_RESULT_present']is False
-        and observation['native_terminal_source_unchanged_field_present']is False
-        and observation['source_policy_plan_unchanged_at_external_bookend']is True
-        and observation['alias_loop_was_passed_before_this_failure']is True
-        and observation['cache_artifacts_present']is False and observation['training_started']is False
-        and observation['test_data_used']is False and observation['relaunch_allowed']is False
-        and observation['model_constructions']==observation['optimizer_steps']==0,'CONSUMED_002_IMPORT_FAILURE')
-    terminal=read(terminal_ref);claim=read(observation['claim'])
-    need(terminal['stage']==claim['stage']==observation['stage']and terminal['status']=='FAILED_CONSUMED'
-        and terminal['exit_code']==1 and terminal['error']=='RuntimeError:NATIVE_TA_CACHE_TORCH_FORBIDDEN'
-        and terminal['result']is None and terminal['plan']==claim['plan']==observation['plan']
-        and terminal['claim']==observation['claim']and terminal['remaining_invocations']==0
-        and terminal['relaunch_allowed']is False and terminal['test_data_used']is False
-        and 'source_unchanged'not in terminal,'ORIGINAL_002_NATIVE_FAILURE')
-    return {'observation':inputs['previous_import_failure'],'terminal':terminal_ref,'claim':observation['claim'],
-        'plan':observation['plan'],'native_status':'FAILED_CONSUMED','native_exit_code':1,'native_RESULT_present':False,
-        'native_terminal_source_unchanged_field_present':False,'source_policy_plan_unchanged_at_external_bookend':True,
-        'error':terminal['error']}
 
 
-def previous_exit_metadata(inputs):
-    observation=read(inputs['previous_exit_observation'])
-    need(observation['schema_version']=='gx1_native_ta_cache_external_exit_observation_v1'
-        and observation['stage']=='native_m5_ta_history_expansion_20261120_001'
-        and observation['outer_exit_code']==137 and observation['native_RESULT_present']is False
-        and observation['native_TERMINAL_present']is False and observation['cache_artifacts_present']is False
-        and observation['durable_artifacts_before_observation']==['CLAIM.json']
-        and observation['source_policy_plan_unchanged_at_external_bookend']is True
-        and observation['scope_directly_recorded_in_claim']is False
-        and observation['independent_cache_qualification_passed']is False
-        and observation['training_started']is False and observation['test_data_used']is False
-        and observation['relaunch_allowed']is False,'CONSUMED_001_EXIT_OBSERVATION')
-    return {'observation':inputs['previous_exit_observation'],'plan':observation['plan'],'claim':observation['claim'],
-        'outer_exit_code':137,'native_RESULT_present':False,'native_TERMINAL_present':False,
-        'source_policy_plan_unchanged_at_external_bookend':True,
-        'failure_phase_unknown':observation['failure_phase_unknown'],'attribution_limit':observation['attribution_limit']}
 
 
 def phase(name):
@@ -202,51 +174,69 @@ def phase(name):
 
 def metadata(inputs):
     need(type(inputs)is dict and inputs==INPUT_REFS,'EXACT_QUALIFIED_PARENT')
-    previous_exit=previous_exit_metadata(inputs)
-    previous_import_failure=previous_import_failure_metadata(inputs)
-    result,terminal=(read(inputs[key])for key in ('ta_result','ta_terminal'))
-    plan,claim=read(result['plan']),read(result['claim'])
-    need(result['status']=='COMPLETE_NATIVE_M5_PIPELINE_TECHNICAL_QUALIFICATION'
-        and result['stage']==terminal['stage']==plan['stage']==claim['stage']=='native_m5_pipeline_20261119_006'
-        and terminal['status']=='COMPLETE'and terminal['exit_code']==0 and terminal['result']==inputs['ta_result']
-        and terminal['plan']==result['plan']==claim['plan']and terminal['claim']==result['claim']
-        and result['source_unchanged']is terminal['source_unchanged']is True
-        and result['test_data_used']is terminal['test_data_used']is False
-        and result['optimizer_steps']==0 and result['clean_process_io_firewall']['denied_attempts']==0,'COMPLETE_PARENT')
-    snapshot_ref=plan['inputs']['candidate_snapshot'];archive_ref=plan['inputs']['candidate_archive']
-    saved=read(snapshot_ref);admission_ref=result['report']['feature_inputs_requalification'];admission=read(admission_ref)
-    need(saved['schema_version']=='gx1_native_m5_bounded_feature_snapshot_v1'and saved['archive']==archive_ref
-        and len(saved['arrays'])==27 and saved['reload_all_arrays_dtype_shape_equal_nan_and_bytes_sha256']is True
-        and admission['candidate_snapshot']==snapshot_ref and admission['candidate_archive']==archive_ref
-        and admission['all_array_bytes_dtype_shape_exact']is True
-        and admission['ordered_fields_aliases_and_formula_lineage_equal']is True,'QUALIFIED_REFERENCE_CACHE')
-    spec=plan['feature_source_spec'];old_source=saved['surfaces_metadata']['source_binding']
+    qualification,result,terminal=(read(inputs[k])for k in ('cache_qualification','cache_result','cache_terminal'))
+    parent=read(result['plan']);claim=read(result['claim'])
+    need(qualification['schema_version']=='gx1_native_m5_six_year_TA_input_qualification_v1'
+        and qualification['result']==terminal['result']==inputs['cache_result']
+        and qualification['terminal']==inputs['cache_terminal']
+        and result['stage']==terminal['stage']==parent['stage']==claim['stage']=='native_m5_ta_history_expansion_20261120_003'
+        and result['status']=='COMPLETE_NATIVE_M5_TA_FEATURE_CACHE'and terminal['status']=='COMPLETE'
+        and terminal['exit_code']==0 and terminal['plan']==claim['plan']==result['plan']
+        and terminal['claim']==result['claim']and result['source_unchanged']is terminal['source_unchanged']is True
+        and qualification['all_issue_rows_ready']is qualification['all61_macro_fields_observed_on_all_issue_rows']is True
+        and all(qualification[k]is False for k in ('M1_used','GC_used','test_data_used'))
+        and result['test_data_used']is terminal['test_data_used']is False,'COMPLETE_QUALIFIED_CACHE_PARENT')
+    snapshot_ref=qualification['snapshot'];archive_ref=qualification['archive'];saved=read(snapshot_ref)
+    need(snapshot_ref==result['report']['snapshot']and archive_ref==result['report']['archive']==saved['archive']
+        and saved['schema_version']=='gx1_native_m5_bounded_feature_snapshot_v1'and len(saved['arrays'])==27
+        and saved['reload_all_arrays_dtype_shape_equal_nan_and_bytes_sha256']is True,'QUALIFIED_REFERENCE_CACHE')
+    previous=parent['metadata'];plan_ref=previous['dependencies']['qualified_plan'];plan=read(plan_ref)
+    parameter_inputs=previous['parameter_inputs'];source_ref=parameter_inputs['native_source_plan'];source=read(source_ref)
+    facts_ref=plan['inputs']['target_result'];facts_terminal_ref=plan['inputs']['target_terminal']
+    facts,facts_terminal=read(facts_ref),read(facts_terminal_ref)
+    need(facts['plan']==facts_terminal['plan']==source_ref and facts_terminal['result']==facts_ref
+        and facts_terminal['status']=='COMPLETE'and facts_terminal['exit_code']==0
+        and facts['source_unchanged']is facts_terminal['source_unchanged']is True
+        and facts['source_spec']==source['source_spec']and facts['test_data_used']is facts_terminal['test_data_used']is False,
+        'COMPLETE_NATIVE_SOURCE_PREFIX')
+    original=source['source_spec']
+    need(original['cutoff_ns']==END_NS and original['issue_start_ns']<START_NS
+        and len(original['parts'])==18 and original['manifest']==saved['surfaces_metadata']['source_binding']['native_m5_manifest'],
+        'FULL_NATIVE_PREFIX_SCOPE')
+    spec={key:original[key]for key in ('manifest','parts','cutoff_ns')}
+    parameters,_=owner.parameter_artifact_metadata(parameter_inputs,previous['geometry'])
     contract=features.native_m5_feature_provider_contract()
-    need(spec['cutoff_ns']==END_NS and spec==old_source['source_spec']and spec['manifest']==old_source['native_m5_manifest']
-        and plan['feature_contract']==contract and old_source['rows']==1091836
-        and spec['parts'][0]['path'].endswith('/year=2009/part-000.parquet')and len(spec['parts'])==16,'SAME_FULL_SOURCE_PREFIX')
-    parameters,_=owner.parameter_artifact_metadata(plan['inputs'],plan['geometry'])
-    need(parameters==plan['parameter_reuse']and saved['surfaces_metadata']['parameter_available_ns']<=START_NS,
-        'FROZEN_NATIVE_PARAMETERS')
-    macro_dependencies=owner.macro_metadata(plan['inputs']['macro_source_plan'])
+    need(parameters==previous['parameter_reuse']and contract==saved['surfaces_metadata']['provider_contract']
+        and saved['surfaces_metadata']['parameter_available_ns']<=START_NS,'FROZEN_NATIVE_PARAMETERS')
+    macro_ref=previous['dependencies']['macro_source_plan'];macro_dependencies=owner.macro_metadata(macro_ref)
     dependencies={**macro_dependencies,**parameters['parameter_dependencies'],
-        'qualified_plan':result['plan'],'qualified_claim':result['claim'],'qualified_snapshot':snapshot_ref,
-        'qualified_archive':archive_ref,'qualified_admission':admission_ref,
+        'qualified_cache_plan':result['plan'],'qualified_cache_claim':result['claim'],
+        'qualified_snapshot':snapshot_ref,'qualified_archive':archive_ref,'qualified_origin_plan':plan_ref,
+        'native_source_plan':source_ref,'native_facts_result':facts_ref,'native_facts_terminal':facts_terminal_ref,
         'registry':parameters['registry_artifact'],'squeeze_manifest':parameters['squeeze_manifest'],
-        'native_manifest':spec['manifest'],'macro_source_plan':plan['inputs']['macro_source_plan'],
-        'squeeze_fit_plan':plan['inputs']['squeeze_fit_plan'],'registry_fit_plan':plan['inputs']['registry_fit_plan']}
-    dependencies.update({'native_part_'+str(i):{'path':p['path'],'sha256':p['sha256']}for i,p in enumerate(spec['parts'])})
-    dependencies.update({'previous_import_failure_'+key:previous_import_failure[key]for key in ('plan','claim','terminal')})
+        'native_manifest':spec['manifest'],'macro_source_plan':macro_ref,
+        'squeeze_fit_plan':parameter_inputs['squeeze_fit_plan'],'registry_fit_plan':parameter_inputs['registry_fit_plan']}
+    dependencies.update({'native_part_'+str(i):{'path':part['path'],'sha256':part['sha256']}for i,part in enumerate(spec['parts'])})
     source_metadata={part['path']:owner.data.part_metadata(part)for part in spec['parts']}
-    no_torch()
-    numeric_owners,alias_bridge=numeric_owner_identities(plan)
+    need(source_metadata==source['source_metadata'],'FULL_PREFIX_METADATA_UNCHANGED')
+    source_arrow_schema={}
+    for part in spec['parts']:
+        schema=owner.pq.ParquetFile(part['path']).schema_arrow
+        columns=['time',*features.RAW_COLUMNS]
+        need(all(name in schema.names for name in columns),'SOURCE_ARROW_COLUMNS')
+        clock=schema.field('time').type
+        need(arrow_types.is_timestamp(clock)and clock.tz=='UTC'
+            and all(arrow_types.is_floating(schema.field(name).type)or arrow_types.is_integer(schema.field(name).type)
+                    for name in features.RAW_COLUMNS),'SOURCE_ARROW_TYPES')
+        source_arrow_schema[part['path']]={name:str(schema.field(name).type)for name in columns}
+
+    expected_years={str(y):facts['report']['issue_rows_by_year'][str(y)]for y in range(2021,2027)}
+    no_torch();numeric_owners,alias_bridge=numeric_owner_identities(plan)
     return {'dependencies':dependencies,'feature_source_spec':spec,'feature_source_metadata':source_metadata,
-        'parameter_inputs':{key:plan['inputs'][key]for key in ('prefitted_squeeze_manifest','prefitted_registry_constants',
-            'squeeze_fit_plan','registry_fit_plan','native_source_plan')},
-        'geometry':plan['geometry'],'parameter_reuse':parameters,'feature_contract':contract,
-        'expected_full_source_binding':old_source,'reference_snapshot':snapshot_ref,'reference_archive':archive_ref,
-        'numeric_owner_identities':numeric_owners,'alias_layout_bridge':alias_bridge,
-        'previous_consumed_invocation':previous_exit,'previous_import_failure':previous_import_failure,
+        'source_arrow_schema':source_arrow_schema,'parameter_inputs':parameter_inputs,'geometry':previous['geometry'],'parameter_reuse':parameters,
+        'feature_contract':contract,'expected_source_rows':facts['report']['source_rows'],
+        'expected_issue_rows_by_year':expected_years,'reference_snapshot':snapshot_ref,'reference_archive':archive_ref,
+        'qualified_parent':inputs,'numeric_owner_identities':numeric_owners,'alias_layout_bridge':alias_bridge,
         'research_import_bridge':research_import_bridge(plan)}
 
 
@@ -350,23 +340,31 @@ def overlap_parity(provider,snapshot_ref,archive_ref):
         def equal(name,current,previous):
             need(current.dtype==previous.dtype and current.shape==previous.shape and digest(current)==digest(previous),'OVERLAP_EXACT:'+name)
             compared[name]={'shape':list(current.shape),'sha256':digest(current)}
-        local=get('retained_source_rows');at=np.searchsorted(provider.retained_source_rows,local)
-        need(np.all(at<len(provider.retained_source_rows))and np.array_equal(provider.retained_source_rows[at],local),'OVERLAP_GLOBAL_M5_IDS')
-        for key in ('signal','ctx_cont','ctx_cat','observed'):equal(key,provider.surfaces[key][at],get(key))
-        equal('retained_source_rows',provider.retained_source_rows[at],local)
-        issues=get('retained_issue_rows');present=np.searchsorted(provider.surfaces['retained_issue_rows'],issues)
-        equal('retained_issue_rows',provider.surfaces['retained_issue_rows'][present],issues)
-        equal('bar_start_ns',provider.bar_start_ns,get('bar_start_ns'))
+        def shared(current,previous,reason):
+            ids,left,right=np.intersect1d(current,previous,assume_unique=True,return_indices=True)
+            need(len(ids)>0,reason)
+            return ids,left,right
+        local,at,before=shared(provider.retained_source_rows,get('retained_source_rows'),'OVERLAP_GLOBAL_M5_IDS')
+        for key in ('signal','ctx_cont','ctx_cat','observed'):
+            equal(key,provider.surfaces[key][at],get(key)[before])
+        equal('retained_source_rows',provider.retained_source_rows[at],get('retained_source_rows')[before])
+        issues,present,previous=shared(provider.surfaces['retained_issue_rows'],get('retained_issue_rows'),'OVERLAP_ISSUE_IDS')
+        equal('retained_issue_rows',provider.surfaces['retained_issue_rows'][present],get('retained_issue_rows')[previous])
+        original_starts=get('bar_start_ns')
+        need(len(provider.bar_start_ns)>=len(original_starts),'OVERLAP_FULL_SOURCE_PREFIX')
+        equal('bar_start_ns',provider.bar_start_ns[:len(original_starts)],original_starts)
         need(provider.input_ready[issues].all(),'OVERLAP_PREVIOUSLY_READY')
         for tf in features.TIMEFRAMES:
-            frame=provider.surfaces['multi_tf_sources'][tf];ids=get('tf_'+tf+'_owner_row_indices')
-            positions=np.searchsorted(frame.attrs['owner_row_indices'],ids)
-            need(np.all(positions<len(frame))and np.array_equal(frame.attrs['owner_row_indices'][positions],ids),'OVERLAP_GLOBAL_TF_IDS:'+tf)
+            frame=provider.surfaces['multi_tf_sources'][tf]
+            ids,positions,previous=shared(frame.attrs['owner_row_indices'],get('tf_'+tf+'_owner_row_indices'),
+                'OVERLAP_GLOBAL_TF_IDS:'+tf)
             for key in ('owner_row_indices','ts_int64','feats_np','model_native_mtf_scalars_np_v4'):
-                equal('tf_'+tf+'_'+key,frame.attrs[key][positions],get('tf_'+tf+'_'+key))
+                equal('tf_'+tf+'_'+key,frame.attrs[key][positions],get('tf_'+tf+'_'+key)[previous])
     need(len(compared)==27 and ref(archive_ref['path'])==archive_ref,'OVERLAP_BOOKEND')
     return {'array_count':27,'exact_dtype_shape_bytes_and_global_owner_clocks':True,'arrays':compared,
-        'reference_snapshot':snapshot_ref,'reference_archive':archive_ref,'reference_issues':len(issues)}
+        'reference_snapshot':snapshot_ref,'reference_archive':archive_ref,'reference_issues':len(issues),
+        'shared_local_rows':len(local),'original_full_bar_axis_is_exact_prefix':True,
+        'overlap_first_issue_ns':int(provider.issue_ns[issues[0]]),'overlap_last_issue_ns':int(provider.issue_ns[issues[-1]])}
 
 
 def produce(plan):
@@ -380,7 +378,9 @@ def produce(plan):
     phases.append(phase('02_AFTER_RAW_READ'))
     binding=features.bind_native_m5_feature_source(native,native_m5_manifest=meta['feature_source_spec']['manifest'],
         source_spec=meta['feature_source_spec'])
-    need(binding==meta['expected_full_source_binding'],'FULL_PREFIX_BYTE_IDENTITY')
+    need(binding['source_spec']==meta['feature_source_spec']
+        and binding['native_m5_manifest']==meta['feature_source_spec']['manifest']
+        and binding['rows']==meta['expected_source_rows'],'FULL_PREFIX_SOURCE_IDENTITY')
     phases.append(phase('03_BEFORE_FEATURE_BUILD'))
     surfaces=features.build_native_m5_feature_surfaces(native,source_binding=binding,v29_registry_constants=constants,
         volatility_squeeze_artifacts=squeeze,issue_start_ns=START_NS,issue_end_ns=END_NS)
@@ -400,7 +400,9 @@ def produce(plan):
     phases.append(phase('10_AFTER_SNAPSHOT_RELOAD'))
     need(provider.surfaces['axes']['issue_start_ns']==START_NS and provider.surfaces['axes']['issue_end_ns']==END_NS
         and provider.surfaces['provider_contract']==meta['feature_contract'],'RELOADED_SCOPE_CONTRACT')
-    annual=yearly_readiness(provider);parity=overlap_parity(provider,meta['reference_snapshot'],meta['reference_archive'])
+    annual=yearly_readiness(provider)
+    need({year:value['rows']for year,value in annual.items()}==meta['expected_issue_rows_by_year'],'ISSUE_YEAR_COUNTS')
+    parity=overlap_parity(provider,meta['reference_snapshot'],meta['reference_archive'])
     no_torch()
     return {'snapshot':snapshot,'archive':read(snapshot)['archive'],'source_binding':binding,'phases':phases,
         'source_axes':provider.surfaces['axes'],'yearly_readiness':annual,'overlap_parity':parity,
