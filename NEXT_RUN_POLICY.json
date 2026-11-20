@@ -3913,7 +3913,7 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Requested smallSHORT_FIT002 completed/consumed and independentlyreviewed. No training/execution, automaticextra fit, full epoch, TEST, Entry/Exit, broker, trading, spending or promotion. Futurework uses preserved outputs first; everynewrun needs its own exactunconsumedadmission. M1neverfordirection.",
@@ -39217,7 +39217,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -95889,7 +95889,7 @@
     "superseded_by": "native_m5_ta_atr03_five_year_fit_20261120_003"
   },
   "native_m5_ta_resilient_training_preparation_20261120_001": {
-    "status": "ADMITTED_AWAITING_LAUNCH_NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002",
+    "status": "QUALIFICATION_RESUMABLE_CONSUMED_NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002",
     "operator_request": "Sikre ekstra med mellomlagring om noe skulle skje; vurder watt/GPU/CPU og5epoker/earlystop",
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001",
     "observed_gap": "Main002 checkpointbytes durable but no admissible practical maincontinuation after hard interruption/timecap; only mechanics coldproof",
@@ -96071,18 +96071,18 @@
     "scope": "Technical first-prefix/uninterrupted checkpoint qualification only; weights must never warmstart the fullmain"
   },
   "native_m5_ta_atr03_five_year_window_20261121_002": {
-    "status": "ADMITTED_ONE_USE",
+    "status": "RESUMABLE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002.json",
       "sha256": "db8035b3e2b4ff99a98af120d26dab5561aff893d7f03170109a9e10a0fa002c"
     },
     "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
-    "execution_authorized": true,
-    "training_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
     "test_authorized": false,
     "relaunch_allowed": false,
     "model_constructions": 1,
@@ -96094,6 +96094,18 @@
     "preflight": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002_PREFLIGHT001.log",
       "sha256": "55f240f3249867dcbf23e43ea903a941918e8bb03c9d17419d74f8baf357016e"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002/RESULT.json",
+      "sha256": "0dd22156a7c7144224b8d509bdfba833fc0eafeea87a8708531eb85ba3524938"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002/TERMINAL.json",
+      "sha256": "ac26199669d890a9a8002979ac41ccf7dc27c872d684ddbb0e48591df57bce43"
+    },
+    "checkpoint_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002/CHECKPOINT_000002.json",
+      "sha256": "94bdebea569dbf8c6467963b2b60145904dcd847c389069c77de8391d07c28d1"
     }
   }
 }
