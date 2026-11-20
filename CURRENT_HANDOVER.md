@@ -8,8 +8,8 @@ Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 Full revisjon av prosjektets avhengigheter, funksjoner, features, koblinger og
 lagring før trening. Numerikk, TRAIN-statistikk og kvalifisert opprydding er
-ferdige. Hel testsamling er importert/samlet uten feil. Positiv bytekontroll og samlet
-sluttkontroll gjenstår. Status eies av `full_project_dependency_feature_storage_audit_20261120_001`.
+ferdige. Hel testsamling er importert/samlet uten feil. Positiv bytekontroll er ferdig. Nytt fysisk sluttinventar og samlet
+beredskapskvittering gjenstår. Status eies av `full_project_dependency_feature_storage_audit_20261120_001`.
 
 Hovedtrening er ikke innrømmet eller startet. Alle treningsporter er stengt;
 main-planen er uclaimet, og outputroten finnes ikke. Ingen live/paper, broker,
@@ -134,3 +134,12 @@ For denne finnes ingen opprinnelig forventet mmap-SHA:kun fersk stabil checksum/
 lesbarhet kan bevises. UNKNOWN/MIXED/SEALED og51makroårs-filer får ingen ny
 generell adgang; de offentlige makrokildene er allerede kontrollert separat.
 14syntetiske kontroller består; kilde/policy fryses under faktisk byteaudit.
+
+Siste byteaudit002 bestod:34441fysiske filer/94198463861logiske bytes,
+255,225s, peakRSS184144KiB.81513799539bytes matcher opprinnelig forventet SHA;
+12684664322bytes har kun fersk stabil checksum/lesbarhet. Ingen bytefeil,
+arraydekoding, modeller, fit eller nativeTEST-lesing. Beholdte TRAIN/VAL-kopier
+matcher SHA også etter sletting; source050signal er lesbar/stabil (ingen originalSHA).
+Alle opprinnelige filer+tilføyelser er metadataført;22slettede er eieravstemt.
+Regel106/764/812 stenger også blind lesing av nativeTEST; ukvalifisert/mikset
+materiale forblir uten innholdspåstand. Fersk fysisk21rotsnapshot følger nå.

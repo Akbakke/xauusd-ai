@@ -94702,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Byte002metadataqualified:34441physicalinodes/94.198GBlogical positivepreseal+code, exactoldset+source050signal;23008expectedSHA and11433freshchecksumonly.22ownerdeletedfilesfullyreconciled. Allnew/outside/unknown/mixed/sealedclassifiedandexcluded; noarray/modeldecodes. Source/docsfrozenbeforeprep, onlypolicygateadded.",
+    "latest_observation": "Byte002COMPLETE34441inodes94.198GB/255.225s,81.514GBexpectedSHA match and12.685GBfreshchecksumreadabilityonly;0failures/decoders/models/TEST. Postdeletekeepersverified. NativeTESTnotopenedperGX1_RULES106/764/812; genericblanketallbytesnotauthorized. Finalsame21rootmetadatasnapshotadmittednext.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94872,7 +94872,24 @@
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_PREP002/CONTRACT.json",
       "sha256": "9cc791a493fa5ec2356aa34b573713a9d89ec493e6071cbebf2d08a77431c802"
     },
-    "final_byte_stage": "full_project_preseal_code_byte_audit_20261120_002"
+    "final_byte_stage": "full_project_preseal_code_byte_audit_20261120_002",
+    "positive_preseal_code_byte_audit_complete": true,
+    "positive_byte_audit_result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_AUDIT002/RESULT.json",
+      "sha256": "8cb03804ef7b3a58ca5366b8288af0198aa2458f288c49553b633403c8a05f32"
+    },
+    "positive_byte_audit_terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_AUDIT002/TERMINAL.json",
+      "sha256": "0029f4ae97d7c508a81d2110cb14432782dd66f36320c62f84aa0ee64b29d906"
+    },
+    "positive_byte_readable_logical_bytes": 94198463861,
+    "positive_byte_original_expected_SHA_matched_logical_bytes": 81513799539,
+    "positive_byte_fresh_checksum_only_logical_bytes": 12684664322,
+    "postdelete_retained_input_byte_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETAINED_INPUTS_POSTDELETE_BYTE_QUALIFICATION001.json",
+      "sha256": "93c3905b2ad902a067d2ef71ae91c5fc92f79a4f56ef9908194b95b92a544928"
+    },
+    "all_historical_function_behavior_proved": false
   },
   "full_project_current_native_feature_numeric_20261120_001": {
     "status": "COMPLETE_CONSUMED",
@@ -95572,21 +95589,21 @@
     "blocked_cache_or_own_source_operations": 18
   },
   "full_project_preseal_code_byte_audit_20261120_002": {
-    "status": "ADMITTED_ONE_USE_POSITIVE_PRESEAL_CODE_BYTES_ONLY",
+    "status": "COMPLETE_CONSUMED_POSITIVE_BYTE_READABILITY_AND_EXPECTED_SHA",
     "contract": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_PREP002/CONTRACT.json",
       "sha256": "9cc791a493fa5ec2356aa34b573713a9d89ec493e6071cbebf2d08a77431c802"
     },
     "prep_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_PREP002",
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_AUDIT002",
-    "execution_authorized": true,
+    "execution_authorized": false,
     "positive_whitelist_byte_hashing_authorized": true,
     "training_authorized": false,
     "test_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "memory": "4G",
     "swap": "512M",
@@ -95603,6 +95620,36 @@
       "sha256": "dc80882ae6ec9b0ce0b7d85ae5d637896c60317bcec3015009b3e77cdf0b7815"
     },
     "native_TEST_files_authorized": false,
-    "all_UNKNOWN_MIXED_SEALED_aliases_excluded": true
+    "all_UNKNOWN_MIXED_SEALED_aliases_excluded": true,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_AUDIT002/RESULT.json",
+      "sha256": "8cb03804ef7b3a58ca5366b8288af0198aa2458f288c49553b633403c8a05f32"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_AUDIT002/TERMINAL.json",
+      "sha256": "0029f4ae97d7c508a81d2110cb14432782dd66f36320c62f84aa0ee64b29d906"
+    }
+  },
+  "full_project_final_storage_metadata_20261120_002": {
+    "status": "ADMITTED_ONE_USE_FRESH_ALL_ROOT_METADATA_ONLY",
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_STORAGE_METADATA_WORKER002.py",
+      "sha256": "553e663e80978904eafffd285eeea1d3e2d307bfc95124c0c5598e5728dd49ed"
+    },
+    "output_root": "/tmp/gx1_full_storage_inventory_20261120_002",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "test_payload_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "memory": "4G",
+    "swap": "512M",
+    "tasks_max": 64,
+    "numerical_threads": 1,
+    "outer_seconds": 600,
+    "same_root_discovery_and_schema_as_initial": true,
+    "must_have_zero_inventory_errors_before_qualification": true
   }
 }
