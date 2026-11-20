@@ -191,3 +191,10 @@ Aktuell engangsadmisjon: throughput003,15forwards/6backwards/0updates,20G/512M,
 Metadata-preflight exit0; ingen CLAIM/OUTPUT fra preflight. Boot668 er målt og
 GPUcompute ledig før admisjon. Global trening er fortsattfalse; hovedtrening
 starter ikke i denne diagnostikken. Ingen kilde-/policyendring under kjøringen.
+
+Wrapperoppstart003 ble avvist av telemetrivakten før produsent/CLAIM/OUTPUT,
+exit75 og0modell/forward/update. Planen var ikke invokert eller forbrukt.
+Windows hadde korrekt portproxyregel men ingen runtime-lytter38128 etterboot.
+Eksakt etablert owner delete/add av samme private regel gjenopprettet lytteren;
+signert query består32C/40C/250W. Ingen cert-/brannmur-/service-/kildevaktendring.
+Originale avslags- og reparasjonskvitteringer er bevart i effektiviseringsroten.

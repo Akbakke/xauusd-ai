@@ -4751,7 +4751,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "One-use zero-update throughput003 admitted after exact preflight; source and policy freeze at launch",
+    "current_activity": "Zero-update throughput003 still unclaimed; native telemetry guard transport repaired and signature verified; proceed to first producer invocation",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -95743,6 +95743,10 @@
     "source_compatibility": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/SOURCE_COMPATIBILITY001.json",
       "sha256": "4d245b9a6a755d56216d901021f7cdfc09f911685169a3248cf56be0a38eb6b4"
+    },
+    "postboot_telemetry_transport_repaired": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/POSTBOOT_PORTPROXY_REAPPLY001.json",
+      "sha256": "cff9c3b08471a1d2ee8c678a0e1c272a6bfe3be9aa88b6f4e8f5be6687965a06"
     }
   },
   "native_m5_ta_atr03_throughput_20261120_003": {
@@ -95772,6 +95776,10 @@
     "preflight": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/THROUGHPUT003_PREFLIGHT001.log",
       "sha256": "2a0c2a27083f07e036270090e7e9e56daf779a766c8d6e757a3dc5296d786eec"
+    },
+    "guard_preflight_rejection_before_producer": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/GUARD_PREFLIGHT_REJECTION_AND_REPAIR001.json",
+      "sha256": "e30cbae04a6486644b633d11177b8ee2d95aebce0f3a0221ce6e530b5add9818"
     }
   }
 }
