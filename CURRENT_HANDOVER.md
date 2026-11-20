@@ -48,7 +48,9 @@ alle stegrapporter matcher original001eksakt. Alle treningsporter er stengt igje
 Main001 er supersedert uclaimet. Ny main002 er PREPARED_NOT_ADMITTED med B256/
 equalTF-sluttscoring,7062forwards hvorav1522score og5540uendrede TRAINupdates.
 Ny hovedplan er SHA9dfea62bd10a44fe0d2c579529360065779d7cf432d3afecd2217eb9ae4ab6e2;
-mainoutput finnes ikke. Siste metadata-preflight og readinesspublisering gjenstår.
+mainoutput finnes ikke. Siste eksakte metadata-preflight bestod exit0 på boot668 med0CLAIM/0modell/
+0updates; readiness er publisert og bundet i policy. Teknisk klar til ny
+engangsadmisjon; hovedtrening er ikke startet.
 
 Kvitteringsrot: `GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001`.
 Original fullinitial gjenbrukes med eksplisitt kildebro; ingen originale kilde-
