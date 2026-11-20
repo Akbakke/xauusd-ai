@@ -21,6 +21,20 @@ Target/output/loss/prior/score skal følge samme markedsklasser. Rå barfakta
 beholdes som selvstendig kjent prisinformasjon og må ikke snevres inn av
 markedets aktivitets-/sidemasker.
 
+En liten støymargin kan brukes som en egen nøytralsone for netto
+prisendring. Den rå barfasiten bevares. Noise-marginens eksplisitte
+ATR-forhold og målidentitet må bindes samlet til target, modell, prior,
+tap og skår før fit. Ingen gjettet standardverdi eller klassekvote brukes.
+Target-eierens noise_margin_contract og producer-only
+gather_next_bar_noise_margin utvider eksisterende gather uten å endre
+noen rå felt. Canonical WilderATR14 velges fra siste lukkede TF ved issue;
+hver TF bruker sin egen skala. Beregn/persister dette én gang før batchbruk.
+Absolutt endring strengt innenfor båndet er nøytral, lik grense beholder
+fortegn; eksakt null med kjente endpoints er kjent nøytral. Ikke-null uten
+kjent margin er ukjent, aldri en gjettet FLAT. Kjent åpning holdes separat.
+Dette er netto-nøytralitet, ikke bevis for en rolig prisbane; lokal
+range-/aktivitetssemantikk og genuine observasjonsmasker beholdes.
+
 Gjeldende barfasit er to separate sammenligninger på hver tidsramme:
 
 - åpning nå minus forrige observerte bars åpning

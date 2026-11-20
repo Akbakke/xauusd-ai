@@ -159,6 +159,37 @@ beholdes. Første /tmp-scriptstart manglet repo i sys.path og stoppet før
 data; canonical importrute ble rettet, deretter én fullført lesning.
 Ingen prisarrays/modell/fit, ny klassevekt/prior/fold eller fasitendring.
 
+## Liten støymargin — målprodusent kvalifisert
+
+Brukeren ber om en liten bunnmargin for støy. Target-eieren har nå en
+separat eksplisitt ATR-nøytralsone for netto åpning-/sluttendringer.
+Ingen standardkoeffisient er gjettet eller valgt. Vanlig build, dataclass,
+råkontrakt og gather er urørt; hele opprinnelige AST og råfeltbytes er
+bevist uendret. Ny producer-only gather legger til noise_sign/known/
+predictive-eligible/delta og kausal ATR-/marginmetadata, aldri modellinput.
+
+19nye testtilfeller under audit4G og uavhengig statiskreview består.
+En genuin24175-issueTRAIN-projeksjon bestod på2,934s/RSS487,77MiB:
+uavhengig WilderATR-orakel på alle5TF, alle nye masker/tegn/delta,
+asof<=issue og hver rågatherbytes er kontrollert. Beregning dekodet hele
+lagrede preTEST-prefix; bare kausale TRAIN-asofverdier ble brukt.
+0.5 var teknisk kvalifikasjonsverdi fra gammel valgt eier, IKKE valgt
+produksjonsverdi for denne lille marginen. Ingen nytt targetdatasett,
+modell, prior, loss- eller scorekobling er kvalifisert ennå.
+
+Readonly TRAIN-deskriptorer målte gammel FNET:.5ATR gav59,8995prosent
+nettonøytrale M5-utfall av24087eksakte issue+5min-endpoints; medianbånd
+0,75995USD. Dette er ikke range-FLAT eller den nye neste-TF-bar-projeksjonen.
+Alle24175TRAIN-issues hadde positive faktiske nativebid/ask-spreader,
+median0,40USD, median spread/ATR0,257713. En hel observert quote-spread
+gav35,1642prosent nettonøytrale utfall i samme gamle FNET-domene.
+Quote-spreaden er ikke dokumentert statistisk støygrense eller realisert
+kostnad. Ingen koeffisient er valgt fra disse klasseandelene, og ingen
+CONTROL/TEST-basert utvelging er gjort. Script/aggregataritmetikk er
+leserevidert uten nyarraydekoding. Alle audits/script/log/proofs er
+immutable og hashbundet i NOISE_MARGIN_SOURCE_QUALIFICATION/policy.
+Alle trenings-/kjøringsporter er fortsatt stengt.
+
 ## Neste tekniske kobling etter avklaringen20.11
 
 Brukeren bekrefter FLAT=sideveis marked og at eksakt like priser inngår.

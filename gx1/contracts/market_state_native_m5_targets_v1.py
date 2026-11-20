@@ -10,6 +10,8 @@ from types import MappingProxyType
 import numpy as np
 import pandas as pd
 
+from gx1.features.technical_indicators_v1 import EMA50_200_ATR_PERIOD, wilder_atr
+
 from gx1.features.htf_features import (
     MULTI_TF_RESAMPLE_ORIGIN_CONTRACT, MULTI_TF_SHIFT, MULTI_TF_TIMEFRAMES,
     _resample_ohlc_for_model_native_scalars, multi_tf_resample,
@@ -52,6 +54,34 @@ def contract():
         'gathered_metadata': 'future_time_index_eligibility_and_labels_are_target_only_never_features',
         'future_eligibility': 'target_present_and_mature_and_observed_previous',
         'immature_target_storage': 'target_row_minus_one_zero_signs_and_false_observed_previous',
+    }
+    raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+    return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
+
+
+def noise_margin_contract(margin_atr):
+    """Explicit net-change neutral zone; neither a path nor whole-market FLAT label."""
+    _need(type(margin_atr) in (int, float) and np.isfinite(margin_atr) and margin_atr > 0,
+          'NOISE_MARGIN_ATR')
+    value = {
+        'schema_version': 'gx1_native_m5_bar_net_change_noise_margin_v1',
+        'raw_target_contract_sha256': contract()['contract_sha256'],
+        'margin_atr': float(margin_atr), 'timeframes': list(TIMEFRAMES),
+        'delta': 'current_observed_TF_open_or_close_minus_previous_observed_same_price',
+        'atr_owner': 'gx1.features.technical_indicators_v1.wilder_atr',
+        'atr_period': EMA50_200_ATR_PERIOD, 'atr_source': 'entire_stored_observed_TF_bar_prefix',
+        'atr_asof': 'last_TF_available_ns_le_issue_ns_never_target_or_future_ATR',
+        'margin_price': 'explicit_margin_atr_times_issue_asof_ATR14',
+        'neutral_net_change': 'abs(delta)_strictly_less_than_margin_price_or_exact_zero',
+        'boundary': 'abs(delta)_equal_to_margin_price_keeps_nonzero_delta_sign',
+        'unknown_ATR': 'nonzero_delta_unknown_exact_zero_with_known_endpoints_known',
+        'known': 'raw_eligible_endpoints_and_exact_zero_or_finite_nonnegative_margin',
+        'open_eligible': 'noise_open_known_and_not_raw_open_known_at_issue',
+        'close_eligible': 'noise_close_known',
+        'gaps': 'raw_source_gap_facts_and_observed_previous_comparisons_retained',
+        'meaning': 'neutral_zone_for_net_price_change_not_quiet_path_or_whole_market_FLAT',
+        'usage': 'producer_only_once_per_whole_cohort_then_persist_before_model_batches',
+        'metadata_as_model_input': False,
     }
     raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
     return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
@@ -132,6 +162,59 @@ class NativeM5Targets:
             'open_sign': open_sign, 'close_sign': close_sign,
             'm5_count': count, 'source_gap': gap,
         }
+
+
+    def gather_next_bar_noise_margin(self, issue_ns, *, fold_upper_ns, margin_atr):
+        """Producer-only whole-cohort augmentation; persist before model batching.
+
+        No mutable ATR cache or default-build state is added. This one producer
+        call computes each TF's full-prefix canonical ATR14 once and joins only
+        the last already closed TF bar. Every original gather key is untouched.
+        """
+        margin_contract = noise_margin_contract(margin_atr)
+        out = self.gather_next_bar(issue_ns, fold_upper_ns=fold_upper_ns)
+        shape = out['target_row'].shape
+        atr = np.full(shape, np.nan, np.float64)
+        margin = np.full(shape, np.nan, np.float64)
+        asof_row = np.full(shape, -1, np.int64)
+        asof_available = np.full(shape, -1, np.int64)
+        delta = {task: np.full(shape, np.nan, np.float64) for task in ('open', 'close')}
+        signs = {task: np.zeros(shape, np.int8) for task in ('open', 'close')}
+        known = {task: np.zeros(shape, np.bool_) for task in ('open', 'close')}
+        for j, tf in enumerate(TIMEFRAMES):
+            bars = self.bars_by_timeframe[tf]
+            frame = pd.DataFrame(bars.ohlc, columns=('open', 'high', 'low', 'close'), copy=False)
+            full_atr = wilder_atr(frame['high'], frame['low'], frame['close'], EMA50_200_ATR_PERIOD).to_numpy(np.float64)
+            closed = np.searchsorted(bars.available_ns, issue_ns, side='right') - 1
+            observed = closed >= 0
+            asof_row[observed, j] = closed[observed]
+            asof_available[observed, j] = bars.available_ns[closed[observed]]
+            atr[observed, j] = full_atr[closed[observed]]
+            with np.errstate(over='ignore', invalid='ignore'):
+                raw_margin = atr[:, j] * margin_contract['margin_atr']
+            margin_known = np.isfinite(raw_margin) & (raw_margin >= 0)
+            margin[margin_known, j] = raw_margin[margin_known]
+            endpoints = out['eligible'][:, j]
+            selected = out['target_row'][endpoints, j]
+            for task, column, previous in (
+                    ('open', 0, bars.previous_open), ('close', 3, bars.previous_close)):
+                delta[task][endpoints, j] = bars.ohlc[selected, column] - previous[selected]
+                values = delta[task][:, j]
+                zero = values == 0
+                known[task][:, j] = endpoints & np.isfinite(values) & (zero | margin_known)
+                directional = known[task][:, j] & ~zero & (np.abs(values) >= margin[:, j])
+                signs[task][directional, j] = np.sign(values[directional]).astype(np.int8)
+        out.update({
+            'noise_margin_contract': margin_contract,
+            'noise_margin_price': margin, 'noise_atr14_asof': atr,
+            'noise_atr_asof_row': asof_row, 'noise_atr_asof_available_ns': asof_available,
+            'noise_open_delta': delta['open'], 'noise_close_delta': delta['close'],
+            'noise_open_sign': signs['open'], 'noise_close_sign': signs['close'],
+            'noise_open_known': known['open'], 'noise_close_known': known['close'],
+            'noise_open_eligible': known['open'] & ~out['open_known_at_issue'],
+            'noise_close_eligible': known['close'],
+        })
+        return out
 
 
 def _bar_directions(frame, source_gap_frame, tf, cutoff_ns):
