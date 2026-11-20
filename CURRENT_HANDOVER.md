@@ -12,7 +12,7 @@ verdt å trade. Rå barfakta og separat lokal range-/aktivitetssemantikk består
 ATR03-targets for alle1215513preTEST-issues, ny matchedTRAIN-prior og fersk
 32forward-initialbaseline er ferdige. Optimizer/kald replay bestod på84,434s
 med3tekniskeupdates,67forwards og6gradientprober. Ingen hovedfit startet.
-Alle porter er stengt mens den eksakte korte hovedplanen ferdigstilles.
+Den eksakte korte hovedplanen er klar og preflightbestått; alle porter er stengt.
 Målet om tilfredsstillende vekting, prediksjon og edge er fortsatt uoppnådd.
 
 M1 brukes ALDRI til retning: ingen input, fasit, metadataforelder, rader,
@@ -174,8 +174,8 @@ uavhengig WilderATR-orakel på alle5TF, alle nye masker/tegn/delta,
 asof<=issue og hver rågatherbytes er kontrollert. Beregning dekodet hele
 lagrede preTEST-prefix; bare kausale TRAIN-asofverdier ble brukt.
 0.5 var teknisk kvalifikasjonsverdi fra gammel valgt eier, IKKE valgt
-produksjonsverdi for denne lille marginen. Ingen nytt targetdatasett,
-modell, prior, loss- eller scorekobling er kvalifisert ennå.
+produksjonsverdi for denne lille marginen. Den påfølgende ATR03-ruten har nå egen persistert målidentitet og
+kvalifisert modell/prior/loss/score/checkpointkobling, se gjeldende status.
 
 Readonly TRAIN-deskriptorer målte gammel FNET:.5ATR gav59,8995prosent
 nettonøytrale M5-utfall av24087eksakte issue+5min-endpoints; medianbånd
@@ -215,11 +215,12 @@ Dette er netto-prisendringsnøytralitet, ikke bevis på rolig prisbane eller
 hele markedets sideveis-FLAT. Ingen seksårs marginmåling eller modellfit.
 ATR_MARGIN_03_04_TRAIN_COMPARISON.py/.log/.json og lesereview er immutable
 i cache003-root og hashbundet i policy. Uavhengig script-/aggregatreview
-bestod uten nyarraydekoding. Produksjonsmargin er fortsatt null; target-
-datasett, modellkontrakt, prior, loss og score må kobles sammen og få
-fersk initialbaseline før ny trening. Alle kjøringsporter forblir stengt.
+bestod uten nyarraydekoding. Den valgte treningsmarginen er nå0,3;
+persistens, modell/prior/loss/score og fersk initialbaseline/kald mekanikk
+er kvalifisert for den korte ruten nedenfor. Ingen serving-/handelsmargin
+er innført. Alle kjøringsporter er stengt.
 
-## Neste tekniske kobling etter avklaringen20.11
+## Gjenværende full markeds-FLAT-grense
 
 Brukeren bekrefter FLAT=sideveis marked og at eksakt like priser inngår.
 Dette viderefører eksisterende forståelse; ingen ny lokal range-terskel er valgt.
@@ -229,8 +230,8 @@ Ikke spør om samme betydning igjen. Rå åpning-/sluttfakta beholdes fullt.
 Kilderevisjon bekrefter et mål-mismatch i den siste barretningstesten:
 native target bruker np.sign, objective labels=raw_sign+1 og samme tegn
 går til prior/score. Modellens tre logits beskriver da pris-NED/LIK/OPP,
-ikke hele sideveis-FLAT-målet. Det er denne koblingen som skal rettes;
-gamle EQUAL-vekter/resultater ommerkes ikke til marked-FLAT.
+ikke hele sideveis-FLAT-målet. ATR03-ruten bruker nå egne noise-fortegn og sanne taskmasker gjennom
+hele kjeden; gamle EQUAL-vekter/resultater ommerkes ikke til marked-FLAT.
 
 Tidligere valgt lokal aktivitet er R<0,5ATR14=FLAT, R≥=AKTIV, med egne
 sannferdige sidemasker. En ren nativeM5-v1-eier er bevart i Git og
@@ -241,12 +242,12 @@ Dette er eksisterende definisjoner, ingen ny parameterbestilling.
 
 Gammel nativev1 resetter span på ethvert5min-gap og hadde0kompletteD1-span.
 Dekning/gap og framtidsreferanse kan derfor ikke ommerkes som kvalifisert.
-Neste minste arbeid er å gjenbruke riktig native eier og samordne
-market-target/output/prior/loss/score, med eksisterende dokumenterte
-pause-/ukjentregler, mens alle rå barfakta beholdes. Alle8TA-familier,
+Full range-/markeds-FLAT utover netto-støyproxyen krever fortsatt riktig
+native eier og dokumenterte pause-/ukjentregler. Rå barfakta beholdes. Alle8TA-familier,
 61makro og femTF består; GC utsatt og M1 aldri til retning.
-Ingen ny fit/produksjon er innrømmet. Endret markedsfunksjon krever
-genuin fersk initialbaseline og eksakt ny engangsadmisjon før kort trening.
+Ingen hovedfit er innrømmet. ATR03-nettofunksjonens ferske initialbaseline
+og kaldmekanikk er kvalifisert. Den korte hovedplanen krever fortsatt
+egen eksakt engangsadmisjon; den starter ikke som del av klargjøringen.
 ## Bevart grunnlag og oppryddingsgrense
 
 Hele native prisfasit2009–2026 før TEST er tidligere merket og alle76arrays
@@ -266,7 +267,7 @@ Ikke gjenta eldre fullført retention/Windows-/cache-opprydding.
 Kode/docs/interne stier/aggregerte bevis kan pushes til autorisert branch;
 aldri rådata, vekter, hemmeligheter eller force-push.
 
-## ATR03-funksjon kvalifisert — hovedplan ferdigstilles
+## ATR03 klar til kort trening — hovedfit ikke startet
 
 PREPARE002 fullførte exit0 på203,807s: alle25historiske payloadarrays og
 hele native source_row valideres.001-targets gjenbrukes uten reberegning;
@@ -292,6 +293,11 @@ beholder alle importer og øvrig AST utenom de2navngitte metadatafunksjonene;
 alle andre sourceeiere er byteidentiske. Positive og3negative mutasjoner
 (modell, numerisk driver, import) består. Uavhengig kildereview girPASS;
 ingen ny modellrunde var nødvendig. Mainmetadata bygger4fastepass/384updates/
-544forwards med gamle kilde-ranker og PCG64-rekkefølge. CLI-preflight gjenstår.
+544forwards med frosne kilde-ranker og PCG64-rekkefølge. Eksakt CLI-preflight
+inkludert kilde-/kvitterings-/input-/checkpointidentitet og hardware/boot667
+bestod,0modell/updates/CLAIM. Hovedplanbff73ed6…20b7d er PREPARED_NOT_ADMITTED;
+outputrot finnes ikke. TRAINING_READY.json binder hele kvalifikasjonen.
+30minuttersramme; gammel sammegeometri544F/384updates brukte578,831s.
+Estimert omtrent10minutter, ikke et resultat eller tidsløfte for den nye runden.
 0,3ATR er en netto-støyproxy. Faktisk økonomisk uutnyttbarhet, helemarkedets
 path-FLAT, tilfredsstillende vekting og prediktiv edge er fortsatt ubevist.
