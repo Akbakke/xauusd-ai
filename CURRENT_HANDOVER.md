@@ -35,7 +35,7 @@ og4målrettede noise-/foldtilfeller består. Metadata-build for nyPREPARE002
 kjører den reelle provider-metadata-porten førCLAIM og består.002binder
 001feilterminal+plan+CLAIM, hele25-arrayinventaret, råtape003 og uendrede
 ATR-/targeteiere. Hele source_row og alle arrayhasher/typed noise-masker
-valideres førmodell. Ingen nyATR-/targetberegning.002er ennå ikke innrømmet.
+valideres førmodell. Ingen nyATR-/targetberegning.002er nå eksakt innrømmet etter vellykket CLI-preflight.
 ATR03_PREPARE001 er FAILED_CONSUMED før modellbygging; alle porter er stengt. Alle tidligere
 engangsplaner er konsumert og relanseres aldri. Ingen ny fit er innrømmet.
 M5-læringen bedret seg på valgt FIT, men senere CONTROL taper fortsatt prior.
