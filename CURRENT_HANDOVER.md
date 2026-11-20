@@ -223,3 +223,7 @@ modell-/forward-/optimizergrenser. Main er fortsatt ustartet under kvalifisering
 Aktuell admisjon: `NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_003`, eksakt planSHAa27fb443e18f2f6d38e329c7ef7d63713fb32f494d308fe55973913ad938178c.
 Kilde/policy fryses ved launch; denne admisjonen bruker bare planens egne
 modell-/forward-/optimizergrenser. Main er fortsatt ustartet under kvalifisering.
+
+Aktuell admisjon: `NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002`, eksakt planSHAdb8035b3e2b4ff99a98af120d26dab5561aff893d7f03170109a9e10a0fa002c.
+Kilde/policy fryses ved launch; denne admisjonen bruker bare planens egne
+modell-/forward-/optimizergrenser. Main er fortsatt ustartet under kvalifisering.
