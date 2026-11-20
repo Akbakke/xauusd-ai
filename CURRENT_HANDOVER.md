@@ -217,3 +217,7 @@ fortsatt ubevist. Teknisk beredskap betyr ikke bedre handelsbeslutninger.
 Aktuell admisjon: `NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004`, eksakt planSHA4c14a547dd05873d8b3db292f71053351f93fd062aaeb6b07c93ec15795a3f7d.
 Kilde/policy fryses ved launch; denne admisjonen bruker bare planens egne
 modell-/forward-/optimizergrenser. Main er fortsatt ustartet under kvalifisering.
+
+Aktuell admisjon: `NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_003`, eksakt planSHAa27fb443e18f2f6d38e329c7ef7d63713fb32f494d308fe55973913ad938178c.
+Kilde/policy fryses ved launch; denne admisjonen bruker bare planens egne
+modell-/forward-/optimizergrenser. Main er fortsatt ustartet under kvalifisering.
