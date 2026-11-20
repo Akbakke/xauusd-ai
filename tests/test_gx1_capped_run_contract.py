@@ -1391,6 +1391,8 @@ def test_alternate_xdg_cannot_start_a_second_top_level_job(tmp_path: Path) -> No
     "NATIVE_M5_TA_PRIOR_BLOCK_ORDER_20261119_001",
     "NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS_20261119_001",
     "NATIVE_M5_TA_PRIMARY_BACKBONE_FIT_20261119_001",
+    "NATIVE_M5_TA_ATR03_MECHANICS_20261120_001",
+    "NATIVE_M5_TA_ATR03_FIT_20261120_001",
 ])
 @pytest.mark.parametrize("variant", [
     "valid", "preflight", "wrong_device", "wrong_output", "wrong_sha",

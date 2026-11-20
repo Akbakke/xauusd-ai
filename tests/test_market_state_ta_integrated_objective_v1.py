@@ -199,3 +199,107 @@ def test_native_train_prior_is_frozen_for_control_and_rejects_unmatched_or_futur
     bad_truth={key:value[::-1].copy()for key,value in truth.items()}
     with pytest.raises(ValueError,match='ISSUE_ORDER'):
         owner.fit_native_bar_train_prior(truth=bad_truth,fold_upper_ns=1_200_000_000_000,target_contract_sha256=target_sha)
+
+
+def _native_noise_truth_fixture():
+    from gx1.contracts.market_state_native_m5_targets_v1 import noise_margin_dataset_contract
+    spec=noise_margin_dataset_contract(.3);truth=_native_bar_truth();shape=truth['target_row'].shape
+    truth['open_sign'][0,0]=0;truth['close_sign'][0,2]=0
+    truth.update(m5_count=truth['mature'].astype(np.int64),source_gap=np.zeros(shape,np.bool_),
+        noise_atr14_asof=np.ones(shape,np.float64),
+        noise_atr_asof_row=np.broadcast_to(np.arange(3,dtype=np.int64)[:,None],shape).copy(),
+        noise_atr_asof_available_ns=np.broadcast_to(truth['issue_ns'][:,None],shape).copy(),
+        noise_margin_contract=spec['noise_margin_contract'])
+    truth['noise_atr14_asof'][0,[0,2]]=np.nan
+    truth['noise_margin_price']=.3*truth['noise_atr14_asof']
+    for task in ('open','close'):
+        delta=truth[task+'_sign'].astype(np.float64)*np.array([.2,.5,1.])[:,None]
+        delta[~truth['eligible']]=np.nan
+        truth['noise_'+task+'_delta']=delta
+        sign=np.zeros(shape,np.int8);sign[1]=truth[task+'_sign'][1]
+        truth['noise_'+task+'_sign']=sign
+        known=truth['eligible'].copy();known[0,0 if task=='close'else 2]=False
+        truth['noise_'+task+'_known']=known
+        truth['noise_'+task+'_eligible']=known.copy()if task=='close'else known&~truth['open_known_at_issue']
+    return truth,spec
+
+
+def test_noise_objective_prior_and_score_use_per_task_masks_and_neutral_class():
+    from copy import deepcopy
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as owner
+    truth,spec=_native_noise_truth_fixture();before=deepcopy(truth)
+    output={key:torch.zeros(3,5,3,requires_grad=True)for key in ('open_logits','close_logits')}
+    args={'truth':truth,'fold_upper_ns':1_200_000_000_000,
+        'target_contract_sha256':spec['contract_sha256'],'target_contract':spec}
+    result=owner.native_bar_direction_loss(model_output=output,**args)
+    assert result['counts']['open'].tolist()==[2,0,0,0,0]
+    assert result['counts']['close'].tolist()==[1,2,2,2,2]
+    assert float(result['loss'])==pytest.approx(np.log(3))
+    result['loss'].backward()
+    assert torch.count_nonzero(output['close_logits'].grad[0,0])==0
+    assert output['open_logits'].grad[0,0,1]<0  # Exact zero is known without ATR.
+    assert torch.count_nonzero(output['open_logits'].grad[:,1:])==0
+    assert torch.count_nonzero(output['close_logits'].grad[2])==0
+    score=owner.native_bar_direction_score_sums(model_output=output,**args)
+    assert score['class_names']==['DOWN','NEUTRAL_NET','UP']
+    assert score['per_task']['close']['M15']['unique_target_rows']==1
+    assert score['per_task']['open_known']['H1']['count']==1
+    assert score['per_task']['close']['M5']['brier_sum']==pytest.approx(2/3)
+    prior=owner.fit_native_bar_train_prior(**args)
+    assert prior['per_task']['close']['M5']['class_counts']==[0,1,0]
+    assert prior['per_task']['open']['M5']['class_counts']==[0,2,0]
+    assert prior['per_task']['close']['M15']['class_counts']==[0,1,1]
+    assert prior['per_task']['open']['D1']['train_observations_available']is False
+    assert owner.require_native_bar_train_prior(prior,target_contract=spec)==prior
+    logits=owner.native_bar_train_prior_logits(prior,rows=3,target_contract=spec)
+    scored=owner.native_bar_direction_score_sums(model_output=logits,**args)
+    assert scored['class_names_sha256']==prior['class_names_sha256']
+    assert scored['per_task']['close']['M5']['log_loss_sum']==pytest.approx(np.log(2),abs=1e-7)
+    for name,value in before.items():
+        if isinstance(value,np.ndarray):assert truth[name].tobytes()==value.tobytes()
+        else:assert truth[name]==value
+
+
+@pytest.mark.parametrize('field,index,value,reason',[
+    ('noise_close_known',(0,0),True,'MASKS_close'),
+    ('noise_close_sign',(1,1),0,'SIGNS_close'),
+    ('noise_open_eligible',(0,1),True,'MASKS_open'),
+    ('noise_atr_asof_available_ns',(0,0),600_000_000_000,'ATR_ASOF'),
+    ('noise_margin_price',(1,1),.2,'MARGIN_VALUES'),
+    ('noise_close_delta',(2,0),0.,'IMMATURE_DELTA_close'),
+])
+def test_noise_objective_rejects_false_labels_masks_future_scale_and_uncensored_tail(field,index,value,reason):
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as owner
+    truth,spec=_native_noise_truth_fixture();truth[field][index]=value
+    output={key:torch.zeros(3,5,3)for key in ('open_logits','close_logits')}
+    with pytest.raises(ValueError,match='NOISE_'+reason):
+        owner.native_bar_direction_loss(model_output=output,truth=truth,fold_upper_ns=1_200_000_000_000,
+            target_contract_sha256=spec['contract_sha256'],target_contract=spec)
+
+
+def test_noise_contract_prior_and_raw_defaults_never_alias_equal_or_other_margin():
+    from copy import deepcopy
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as owner
+    from gx1.contracts.market_state_native_m5_targets_v1 import noise_margin_dataset_contract,contract
+    truth,spec=_native_noise_truth_fixture();upper=1_200_000_000_000
+    raw=owner.fit_native_bar_train_prior(truth=truth,fold_upper_ns=upper,target_contract_sha256=contract()['contract_sha256'])
+    prior=owner.fit_native_bar_train_prior(truth=truth,fold_upper_ns=upper,
+        target_contract_sha256=spec['contract_sha256'],target_contract=spec)
+    assert owner.native_bar_objective_contract()==owner.native_bar_objective_contract(target_contract=None)
+    assert owner.native_bar_train_prior_contract()==owner.native_bar_train_prior_contract(target_contract=None)
+    assert 'class_names'not in raw and 'target_contract'not in raw
+    assert raw['target_contract_sha256']!=prior['target_contract_sha256']
+    for value,target in ((raw,spec),(prior,None),(prior,noise_margin_dataset_contract(.5))):
+        with pytest.raises(ValueError,match='NATIVE_BAR_TRAIN_PRIOR_'):
+            owner.require_native_bar_train_prior(value,target_contract=target)
+    bad=deepcopy(prior);bad['class_names'][1]='FLAT'
+    with pytest.raises(ValueError,match='NOISE_IDENTITY'):owner.require_native_bar_train_prior(bad,target_contract=spec)
+    bad=deepcopy(prior);bad['per_task']['close']['M5']['probabilities']=[.5,.25,.25]
+    with pytest.raises(ValueError,match='FIXED_LAPLACE_ONE'):owner.require_native_bar_train_prior(bad,target_contract=spec)
+    output={key:torch.zeros(3,5,3)for key in ('open_logits','close_logits')}
+    with pytest.raises(ValueError,match='NOISE_TARGET_CONTRACT'):
+        owner.native_bar_direction_loss(model_output=output,truth=truth,fold_upper_ns=upper,
+            target_contract_sha256=contract()['contract_sha256'],target_contract=spec)
+    with pytest.raises(ValueError,match='TARGET_CONTRACT'):
+        owner.native_bar_direction_loss(model_output=output,truth=truth,fold_upper_ns=upper,
+            target_contract_sha256=spec['contract_sha256'])

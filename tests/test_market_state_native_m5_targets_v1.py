@@ -1,4 +1,6 @@
 """Observed native bar signs, independent components and next-bar target clocks."""
+import copy
+
 import numpy as np
 import pytest
 
@@ -242,3 +244,61 @@ def test_noise_margin_requires_explicit_finite_positive_recipe_value(tape,margin
         tape.gather_next_bar_noise_margin(tape.issue_ns[[500]],fold_upper_ns=tape.cutoff_ns,margin_atr=margin)
     with pytest.raises(TypeError):
         tape.gather_next_bar_noise_margin(tape.issue_ns[[500]],fold_upper_ns=tape.cutoff_ns)
+
+
+def test_noise_dataset_contract_binds_explicit_margin_and_all_persisted_projection_fields(tape):
+    spec=target.noise_margin_dataset_contract(.3)
+    other=target.noise_margin_dataset_contract(.4)
+    assert spec['schema_version']=='gx1_native_m5_bar_noise_margin_dataset_v1'
+    assert spec['raw_target_contract_sha256']==other['raw_target_contract_sha256']==target.contract()['contract_sha256']
+    assert spec['contract_sha256']!=other['contract_sha256']
+    assert spec['noise_margin_contract']==target.noise_margin_contract(.3)
+    assert spec['class_order']==[-1,0,1]and spec['class_names']==['DOWN','NEUTRAL_NET','UP']
+    assert spec['raw_fact_fields_preserved']and not spec['path_or_range_flat_semantics_changed']
+    assert spec['target_arrays_and_metadata_as_model_input']is False
+    out=tape.gather_next_bar_noise_margin(tape.issue_ns[[500]],fold_upper_ns=tape.cutoff_ns,margin_atr=.3)
+    arrays={key for key,value in out.items()if isinstance(value,np.ndarray)}
+    assert len(arrays)==len(spec['required_array_fields'])==24
+    assert arrays==set(spec['required_array_fields'])
+    assert set(out)-arrays==set(spec['required_projection_metadata_fields'])
+    assert out['noise_margin_contract']==spec['noise_margin_contract']
+    checked=target.require_noise_margin_dataset_contract(copy.deepcopy(spec))
+    assert checked==spec and checked is not spec
+    with pytest.raises(TypeError):target.noise_margin_dataset_contract()
+
+
+def test_noise_dataset_task_fields_preserve_independent_unknown_masks_and_raw_signs():
+    starts=np.arange(30,dtype=np.int64)*target.TICK_NS
+    ohlc=np.tile(np.array([100.,101.,99.,100.]),(30,1));ohlc[3,3]+=.125
+    tape=build(starts,ohlc)
+    out=tape.gather_next_bar_noise_margin(tape.issue_ns[[2]],fold_upper_ns=tape.cutoff_ns,margin_atr=.3)
+    tasks=target.noise_margin_dataset_contract(.3)['tasks']
+    assert tasks=={task:{kind:'noise_'+task+'_'+kind for kind in ('sign','known','eligible')}
+        for task in ('open','close')}
+    assert out[tasks['open']['known']][0,0]and out[tasks['open']['eligible']][0,0]
+    assert not out[tasks['close']['known']][0,0]and not out[tasks['close']['eligible']][0,0]
+    assert out[tasks['open']['sign']][0,0]==out[tasks['close']['sign']][0,0]==0
+    assert out['eligible'][0,0]and out['open_sign'][0,0]==0 and out['close_sign'][0,0]==1
+
+
+def test_noise_dataset_validator_rejects_relabeling_mask_or_metadata_contract_changes():
+    spec=target.noise_margin_dataset_contract(.3)
+    def altered(change):
+        result=copy.deepcopy(spec);change(result);return result
+    changes=[
+        lambda v:v['tasks']['close'].update(sign='close_sign'),
+        lambda v:v['tasks']['open'].update(known='eligible'),
+        lambda v:v['tasks']['close'].update(eligible='noise_open_eligible'),
+        lambda v:v['class_names'].__setitem__(1,'FLAT'),
+        lambda v:v['noise_margin_contract'].update(margin_atr=.4),
+        lambda v:v['required_array_fields'].remove('noise_atr_asof_available_ns'),
+        lambda v:v.update(raw_target_contract_sha256='0'*64),
+        lambda v:v.update(raw_fact_fields_preserved=1),
+        lambda v:v['class_order'].__setitem__(2,True),
+        lambda v:v.update(target_arrays_and_metadata_as_model_input=True),
+        lambda v:v.update(contract_sha256='0'*64)]
+    for change in changes:
+        with pytest.raises(ValueError,match='NOISE_DATASET_CONTRACT'):
+            target.require_noise_margin_dataset_contract(altered(change))
+    with pytest.raises(ValueError,match='NOISE_DATASET_CONTRACT'):
+        target.require_noise_margin_dataset_contract({})

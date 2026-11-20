@@ -34,6 +34,16 @@ fortegn; eksakt null med kjente endpoints er kjent nøytral. Ikke-null uten
 kjent margin er ukjent, aldri en gjettet FLAT. Kjent åpning holdes separat.
 Dette er netto-nøytralitet, ikke bevis for en rolig prisbane; lokal
 range-/aktivitetssemantikk og genuine observasjonsmasker beholdes.
+Den eksplisitte noise_margin_dataset_contract binder råkontrakt, margin,
+klasseorden DOWN/NEUTRAL_NET/UP og separate known/eligible-felt per task.
+Kun denne opt-in-identiteten bruker noise-fortegn i prior, loss og skår;
+standardruten beskriver fortsatt rå prisfortegn. Immutable målarrays og
+kontrakten er målmetadata, aldri forward-input. Foldgrensen sensurerer
+rå- og noise-felt samlet. Modell/state binder target-/objective-/priorhash
+og avviser gamle EQUAL-states før parameterkopiering. En ny initialbaseline
+og teknisk kald optimizerreplay kvalifiserer funksjonen før en ny hovedfit.
+Kortmekanikk kan gjenbruke eksakt006-provider og dens24175-TRAIN-normalisering;
+seksårsprovider krever sin egen gyldige normaliseringsakse.
 
 Gjeldende barfasit er to separate sammenligninger på hver tidsramme:
 

@@ -1317,3 +1317,75 @@ def test_primary_prepare_reuses_parent_statistics_and_never_initializes_from_old
     assert seen==[(parent,tmp_path,{'reload_normalization':normal,'reload_prior':prior})]
     context['normalization_fits']=1
     with pytest.raises(ValueError,match='PRIMARY_NO_STATISTICS_REFIT'):owner.prepare_primary_native_fit(plan,tmp_path)
+
+
+def test_noise_fold_cutoff_censors_both_tasks_without_mutating_persisted_truth():
+    from tests.test_market_state_native_m5_targets_v1 import build,source
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import _native_truth
+    from gx1.contracts.market_state_native_m5_targets_v1 import noise_margin_dataset_contract,TICK_NS
+    tape=build(*source(1000));issues=tape.issue_ns[500:520]
+    original=tape.gather_next_bar_noise_margin(issues,fold_upper_ns=tape.cutoff_ns,margin_atr=.3)
+    original.pop('noise_margin_contract');before={key:a.copy()for key,a in original.items()}
+    upper=int(issues[-1])+TICK_NS
+    actual=owner.noise_fold_truth(original,upper)
+    expected=tape.gather_next_bar_noise_margin(issues,fold_upper_ns=upper,margin_atr=.3)
+    expected.pop('noise_margin_contract')
+    for key in expected:
+        np.testing.assert_equal(actual[key],expected[key]);np.testing.assert_equal(original[key],before[key])
+    contract=noise_margin_dataset_contract(.3)
+    _native_truth(actual,rows=len(issues),fold_upper_ns=upper,
+        target_contract_sha256=contract['contract_sha256'],target_contract=contract)
+    assert (~actual['mature']).any()
+    for task in ('open','close'):
+        assert not actual['noise_'+task+'_known'][~actual['mature']].any()
+        assert not actual['noise_'+task+'_eligible'][~actual['mature']].any()
+        assert np.isnan(actual['noise_'+task+'_delta'][~actual['mature']]).all()
+
+
+def test_noise_route_requires_own_contract_and_retains_primary_checkpoint_schedule():
+    from gx1.contracts.market_state_native_m5_targets_v1 import noise_margin_dataset_contract
+    contract=noise_margin_dataset_contract(.3)
+    mechanical={'mode':'ta_noise_mechanics','metadata':{'target_contract':contract},
+        'recipe':{'fit_batches':2,'passes':2,'batch_rows':16}}
+    assert owner._ta_fit(mechanical)and owner._mechanics(mechanical['mode'])and owner._primary_fit(mechanical)
+    assert owner.noise_target_kwargs(mechanical)=={'target_contract':contract}
+    assert owner.noise_target_kwargs({'mode':'ta_primary_main'})=={}
+    selected={'FIT':np.arange(1536,dtype=np.int64)}
+    batches=owner._ta_training_batches(selected,mechanical)
+    assert len(batches)==2
+    np.testing.assert_array_equal(batches[0],batches[1])
+    position=owner._ta_schedule_position(mechanical,1)
+    assert position['next_pass']==1 and position['next_batch_in_pass']==0
+    assert owner._ta_main('ta_noise_main')and not owner._mechanics('ta_noise_main')
+
+
+def test_noise_prepare_and_fit_role_gates_precede_receipt_or_model_io(monkeypatch):
+    monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('IO before role validation'))
+    with pytest.raises(ValueError,match='NOISE_PREPARE_INPUT_ROLES'):
+        owner.build_noise_prepare_plan(inputs={},margin_atr=.3)
+    with pytest.raises(ValueError,match='NOISE_FIT_MODE'):
+        owner.build_noise_fit_plan(inputs={},recipe={},mode='ta_primary_main')
+
+
+def test_noise_persisted_axes_preserve_raw_source_report_and_independent_masks(tmp_path,monkeypatch):
+    from tests.test_market_state_native_m5_targets_v1 import build,source
+    from gx1.contracts.market_state_native_m5_targets_v1 import noise_margin_dataset_contract
+    tape=build(*source(1000));contract=noise_margin_dataset_contract(.3)
+    truth=tape.gather_next_bar_noise_margin(tape.issue_ns,fold_upper_ns=tape.cutoff_ns,margin_atr=.3)
+    truth.pop('noise_margin_contract');arrays={**truth,'source_row':tape.source_row}
+    path=tmp_path/'noise.npz';np.savez_compressed(path,**arrays)
+    dataset={'arrays':owner.ref(path),'headers':{key:{'dtype':a.dtype.str,'shape':list(a.shape),'sha256':owner.digest(a)}for key,a in arrays.items()}}
+    rawpath=tmp_path/'raw.npz';np.savez_compressed(rawpath,source_row=tape.source_row,issue_ns=tape.issue_ns,
+        **{'future_'+key:value for key,value in truth.items()if not key.startswith('noise_')})
+    provider=SimpleNamespace(issue_ns=tape.issue_ns,source_row=tape.source_row,input_ready=np.ones(len(tape.issue_ns),bool))
+    monkeypatch.setattr(owner,'FIT_START_NS',int(tape.issue_ns[500]))
+    monkeypatch.setattr(owner,'FIT_END_NS',int(tape.issue_ns[540]))
+    monkeypatch.setattr(owner,'CONTROL_END_NS',int(tape.issue_ns[580]))
+    actual,report=owner.noise_fit_axes(provider,dataset,contract)
+    old,old_report=owner.fit_axes(provider,owner.ref(rawpath))
+    for name in('TRAIN','CONTROL'):
+        for key,value in old_report[name].items():assert report[name][key]==value
+        np.testing.assert_array_equal(actual[name]['rows'],old[name]['rows'])
+        assert not actual[name]['truth']['noise_open_eligible'][actual[name]['truth']['open_known_at_issue']].any()
+        assert np.all(actual[name]['truth']['noise_close_eligible']<=actual[name]['truth']['eligible'])
+    assert any(report['TRAIN']['per_tf_eligible'][i]>report['TRAIN']['per_tf_noise_close_eligible'][i]for i in range(5))

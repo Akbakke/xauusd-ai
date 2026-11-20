@@ -472,6 +472,7 @@ def main():
     parser=argparse.ArgumentParser();parser.add_argument('--plan',required=True);parser.add_argument('--plan-sha256',required=True)
     parser.add_argument('--out-dir',required=True);parser.add_argument('--preflight',action='store_true');parser.add_argument('--device',choices=('cpu','cuda'))
     args=parser.parse_args();common.firewall_state()
+    if args.plan==str(NOISE_PREPARE_PLAN):return noise_prepare_cli(args)
     if args.plan==str(SHARED_GRADIENT_PLAN):return shared_gradient_cli(args)
     if args.plan!=str(PLAN):return fit_cli(args)
     need(args.device in(None,'cpu'),'QUALIFICATION_CPU_ONLY')
@@ -535,15 +536,15 @@ TA_FIT_SOURCE_PATHS=tuple(dict.fromkeys((*ta_audit.SOURCE_PATHS,
 
 
 def _ta_fit(plan):
-    return plan.get('mode') in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main')
+    return plan.get('mode') in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main','ta_noise_mechanics','ta_noise_main')
 
 
 def _ta_main(mode):
-    return mode in ('ta_main','ta_shuffle','ta_primary_main')
+    return mode in ('ta_main','ta_shuffle','ta_primary_main','ta_noise_main')
 
 
 def _mechanics(mode):
-    return mode in ('mechanics','ta_mechanics','ta_primary_mechanics')
+    return mode in ('mechanics','ta_mechanics','ta_primary_mechanics','ta_noise_mechanics')
 
 
 def _ta_pool_axis(ta_plan,*,return_source_rows=False):
@@ -711,12 +712,12 @@ def fit_recipe(value,mode):
     need(mode in FIT_SCOPES and(not _mechanics(mode)or value['fit_batches']==2),'FIT_MODE')
     if mode in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main'):
         need(type(value['passes'])is int and value['passes']>0
-            and value['fit_batches']==value['passes']*(1 if mode in('ta_mechanics','ta_primary_mechanics')else 96)
-            and(mode not in('ta_mechanics','ta_primary_mechanics')or value['passes']==2)
-            and value['checkpoint_every_updates']==(1 if mode in('ta_mechanics','ta_primary_mechanics')else 96)
+            and value['fit_batches']==value['passes']*(1 if mode in('ta_mechanics','ta_primary_mechanics','ta_noise_mechanics')else 96)
+            and(mode not in('ta_mechanics','ta_primary_mechanics','ta_noise_mechanics')or value['passes']==2)
+            and value['checkpoint_every_updates']==(1 if mode in('ta_mechanics','ta_primary_mechanics','ta_noise_mechanics')else 96)
             and value['score_batches_per_split']is None
             and value['outer_seconds']==1800 and value['internal_seconds']==1770,'TA_FIT_FIXED_RECIPE')
-        if mode in('ta_shuffle','ta_primary_main'):need(value['passes']==4 and value['fit_batches']==384,'TA_BLOCK_FIXED_FOUR_PASSES')
+        if mode in('ta_shuffle','ta_primary_main','ta_noise_main'):need(value['passes']==4 and value['fit_batches']==384,'TA_BLOCK_FIXED_FOUR_PASSES')
         return dict(value)
     if mode=='main':
         need(value['fit_batches']==96 and value['checkpoint_every_updates']==32
@@ -967,7 +968,7 @@ def prepare_matched_prior(context,fit_rows,plan,root):
     from gx1.contracts.market_state_ta_integrated_objective_v1 import fit_native_bar_train_prior
     prior=fit_native_bar_train_prior(
         truth=slice_truth(context['cohorts']['TRAIN'],fit_rows,fit=True),
-        fold_upper_ns=FIT_END_NS,target_contract_sha256=plan['metadata']['target_contract']['contract_sha256'])
+        fold_upper_ns=FIT_END_NS,target_contract_sha256=plan['metadata']['target_contract']['contract_sha256'],**noise_target_kwargs(plan))
     context['prior']=prior
     context['prior_ref']=publish(root/'MATCHED_FIT_PRIOR.json',prior)
     return context['prior_ref']
@@ -977,7 +978,7 @@ def fit_limits(recipe,mode,metadata=None):
     if mode in ('ta_mechanics','ta_main','ta_shuffle','ta_primary_mechanics','ta_primary_main'):
         score=sum((item['rows']+recipe['score_batch_rows']-1)//recipe['score_batch_rows']
             for item in small_cohort_manifest(metadata)['cohorts'].values())
-        mechanics=mode in('ta_mechanics','ta_primary_mechanics')
+        mechanics=mode in('ta_mechanics','ta_primary_mechanics','ta_noise_mechanics')
         updates=3 if mechanics else recipe['fit_batches']
         return {'model_constructions':2 if mechanics else 1,
             'model_forwards':updates+score*(2 if mechanics else recipe['passes']+1),
@@ -992,6 +993,7 @@ def fit_limits(recipe,mode,metadata=None):
 
 
 def build_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
+    if _noise_fit({'mode':mode}):return build_noise_fit_plan(inputs=inputs,recipe=recipe,mode=mode,source_base_commit=source_base_commit)
     need(mode in FIT_SCOPES,'FIT_MODE');recipe=fit_recipe(recipe,mode)
     stage,path,root=FIT_SCOPES[mode]
     metadata=fit_metadata(inputs,mode)
@@ -1008,7 +1010,7 @@ def build_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
         'execution':{'class':'trainer','device':'cuda','memory':'20G','swap':'512M',
             'tasks_max':128,'numerical_threads':8,'outer_seconds':recipe['outer_seconds'],
             'internal_seconds':recipe['internal_seconds'],'kill_after_seconds':10},
-        'fit_order':('whole_fixed_B16_blocks_permuted_per_pass_by_local_PCG64_seed'if mode in('ta_shuffle','ta_primary_main')else
+        'fit_order':('whole_fixed_B16_blocks_permuted_per_pass_by_local_PCG64_seed'if mode in('ta_shuffle','ta_primary_main','ta_noise_main')else
             'declared_passes_of_same_source_only_nonoverlapping_FIT_batches_no_CONTROL_selection'if ta_only
             else'source_only_evenly_spaced_nonoverlapping_contiguous_batches'),
         'score_order':'fixed_source_only_evenly_spaced_nonoverlapping_contiguous_batches',
@@ -1021,6 +1023,7 @@ def build_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
 
 
 def fit_source_clean(plan):
+    if _noise_fit(plan):return noise_source_clean(plan)
     if _primary_fit(plan):
         need(set(plan['source_owners'])==set(PRIMARY_FIT_SOURCE_PATHS),'PRIMARY_SOURCE_SET')
         adapted={**plan,'source_owners':{p:plan['source_owners'][p]for p in ta_audit.SOURCE_PATHS}}
@@ -1077,7 +1080,7 @@ def fit_boot_state(plan,*,admitted):
     fresh=actual>threshold
     if admitted:
         need(fresh,'FIT_FRESH_PHYSICAL_BOOT')
-        if plan['mode']in('main','ta_main','ta_shuffle','ta_primary_main'):
+        if plan['mode']in('main','ta_main','ta_shuffle','ta_primary_main','ta_noise_main'):
             need(actual>=plan['metadata']['mechanics']['physical_windows_boot_id'],'FIT_MAIN_BOOT_LINEAGE')
     return {'actual_windows_boot_id':actual,'required_greater_than':threshold,'fresh':fresh}
 
@@ -1189,6 +1192,7 @@ def fresh_fit_model(provider,normalization,plan,*,train_prior=None):
     if _primary_fit(plan):
         need(plan['backbone_gradient_policy']==PRIMARY_BACKBONE_GRADIENT_POLICY,'PRIMARY_FACTORY_POLICY')
         kwargs['backbone_gradient_policy']=PRIMARY_BACKBONE_GRADIENT_POLICY
+    kwargs.update(noise_target_kwargs(plan))
     model=build_native_bar_direction_model(input_normalization=normalization,
         input_binding=provider.input_binding(normalization),architecture=plan['metadata']['architecture'],
         device=torch.device('cuda',0),**kwargs)
@@ -1208,8 +1212,8 @@ def _ta_training_batches(selected,plan):
     # Mechanics crosses a pass boundary on one fixed source-only B16 panel.
     # The admitted main consumes all 96 frozen FIT batches once per declared pass.
     base=all_score_batches(selected['FIT'],plan['recipe']['batch_rows'])
-    if plan['mode']in('ta_mechanics','ta_primary_mechanics'):base=base[:1]
-    if plan['mode']in('ta_shuffle','ta_primary_main'):
+    if plan['mode']in('ta_mechanics','ta_primary_mechanics','ta_noise_mechanics'):base=base[:1]
+    if plan['mode']in('ta_shuffle','ta_primary_main','ta_noise_main'):
         expected=ta_block_schedule_from_rows(selected['FIT'],plan['recipe'],
             plan['cohort_selection']['cohorts']['FIT']['selection_identity_sha256'])
         need(plan['training_schedule']==expected,'TA_BLOCK_EXACT_SCHEDULE')
@@ -1218,11 +1222,11 @@ def _ta_training_batches(selected,plan):
 
 
 def _ta_schedule_position(plan,cursor):
-    per_pass=1 if plan['mode']in('ta_mechanics','ta_primary_mechanics')else 96
+    per_pass=1 if plan['mode']in('ta_mechanics','ta_primary_mechanics','ta_noise_mechanics')else 96
     need(type(cursor)is int and 0<=cursor<=plan['recipe']['fit_batches'],'TA_FIT_SCHEDULE_CURSOR')
     position={'completed_updates':cursor,'next_pass':cursor//per_pass,'next_batch_in_pass':cursor%per_pass,
         'batches_per_pass':per_pass,'declared_passes':plan['recipe']['passes']}
-    if plan['mode']in('ta_shuffle','ta_primary_main'):
+    if plan['mode']in('ta_shuffle','ta_primary_main','ta_noise_main'):
         schedule=plan['training_schedule']
         body={key:value for key,value in schedule.items()if key!='contract_sha256'}
         need(schedule['contract_sha256']==hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest()
@@ -1281,6 +1285,7 @@ def prepare_ta_native_fit(plan,root,*,reload_normalization=None,reload_prior=Non
 
 
 def prepare_native_fit(plan,root,*,reload_normalization=None,reload_prior=None):
+    if _noise_fit(plan):return prepare_noise_native_fit(plan,root,reload_normalization=reload_normalization,reload_prior=reload_prior)
     if _primary_fit(plan):return prepare_primary_native_fit(plan,root,reload_normalization=reload_normalization,reload_prior=reload_prior)
     if _ta_fit(plan):
         return prepare_ta_native_fit({**plan,'mode':'ta_main'}if plan['mode']=='ta_shuffle'else plan,root,
@@ -1314,15 +1319,15 @@ def fit_step(model,optimizer,provider,cohort,rows,plan):
     model.train();optimizer.zero_grad(set_to_none=True)
     raw=provider.gather(rows,max_rows=plan['recipe']['batch_rows'])
     features={key:torch.from_numpy(value).to(next(model.parameters()).device)for key,value in raw.items()}
-    if plan.get('mode')=='ta_primary_mechanics':
+    if plan.get('mode')in('ta_primary_mechanics','ta_noise_mechanics'):
         for value in features.values():
             if value.is_floating_point():value.requires_grad_(True)
     truth=slice_truth(cohort,rows,fit=True)
     output=model(features)
     loss=native_bar_direction_loss(model_output=output,truth=truth,fold_upper_ns=FIT_END_NS,
-        target_contract_sha256=plan['metadata']['target_contract']['contract_sha256'])
+        target_contract_sha256=plan['metadata']['target_contract']['contract_sha256'],**noise_target_kwargs(plan))
     need(not loss['skip_update']and bool(torch.isfinite(loss['loss'])),'FIT_SUPERVISED_FINITE_LOSS')
-    primary_probe=primary_backbone_probe(model,loss,features)if plan.get('mode')=='ta_primary_mechanics'else{}
+    primary_probe=primary_backbone_probe(model,loss,features)if plan.get('mode')in('ta_primary_mechanics','ta_noise_mechanics')else{}
     loss['loss'].backward()
     model._native_fit_counts['backward_calls']+=1
     gradients=[p for p in model.parameters()if p.grad is not None]
@@ -1360,11 +1365,11 @@ def fit_score(model,context,panels,plan):
                 outputs={key:np.concatenate(value)for key,value in outputs.items()}
                 cohort=context['cohorts'][name];truth=slice_truth(cohort,rows)
                 kwargs={'truth':truth,'fold_upper_ns':cohort['upper_ns'],
-                    'target_contract_sha256':plan['metadata']['target_contract']['contract_sha256']}
+                    'target_contract_sha256':plan['metadata']['target_contract']['contract_sha256'],**noise_target_kwargs(plan)}
                 reports[name]={'rows':len(rows),'source_rows_sha256':digest(rows),
                     'model':native_bar_direction_score_sums(model_output=outputs,**kwargs),
                     'fixed_TRAIN_prior':native_bar_direction_score_sums(
-                        model_output=native_bar_train_prior_logits(context['prior'],rows=len(rows)),**kwargs)}
+                        model_output=native_bar_train_prior_logits(context['prior'],rows=len(rows),**noise_target_kwargs(plan)),**kwargs)}
                 captures.update({name+'__source_row':rows,**{name+'__'+key:value for key,value in outputs.items()},
                     **{name+'__truth_'+key:value for key,value in truth.items()}})
     finally:model.train(training);restore_training_rng(rng)
@@ -1436,11 +1441,11 @@ def fit_state_proof(model,optimizer,cursor,step):
         'scheduler_state':None,'EMA_state':None,'rng_sha256':state_sha(training_rng()),'cursor':cursor,'step':step}
 
 
-def _ta_initial_prior_proof(model,context,captures):
+def _ta_initial_prior_proof(model,context,captures,plan=None):
     from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_train_prior_logits
     counts={}
     for name in ('TRAIN','CONTROL'):
-        rows=captures[name+'__source_row'];expected=native_bar_train_prior_logits(context['prior'],rows=len(rows))
+        rows=captures[name+'__source_row'];expected=native_bar_train_prior_logits(context['prior'],rows=len(rows),**noise_target_kwargs(plan or {}))
         for key,value in expected.items():
             need(np.array_equal(captures[name+'__'+key],value.astype(np.float32)),'TA_FIT_INITIAL_PRIOR_LOGITS:'+name+':'+key)
         counts[name]=len(rows)
@@ -1480,13 +1485,14 @@ def fit_physical(plan,plan_ref,root):
     model,optimizer=fresh_fit_model(provider,context['normalization'],plan,**({'train_prior':context['prior']}if ta_only else{}))
     if ta_only:model.require_prior_initialization_state()
     initial_sha=canonical_model_state_sha256(model.state_dict())
+    if _noise_fit(plan):need(initial_sha==plan['metadata']['prepared']['initial_state_sha256'],'NOISE_FRESH_CUDA_MATCHES_CPU_INITIAL')
     statistics_parent=(plan['metadata'].get('mechanics')if ta_only else
         plan['metadata']['mechanics']if plan['mode']=='main'else plan['metadata']['statistics_parent'])
-    if statistics_parent is not None and plan['mode']!='ta_primary_mechanics':
+    if statistics_parent is not None and plan['mode']not in('ta_primary_mechanics','ta_noise_mechanics'):
         need(initial_sha==statistics_parent['initial_state_sha256'],'FIT_FRESH_MAIN_INITIAL')
     score_started=time.monotonic();initial,capture_initial=fit_score(model,context,panels,plan)
     torch.cuda.synchronize();initial_score_seconds=time.monotonic()-score_started
-    prior_initialization=_ta_initial_prior_proof(model,context,capture_initial)if ta_only else None
+    prior_initialization=_ta_initial_prior_proof(model,context,capture_initial,plan)if ta_only else None
     initial_score_ref=publish(root/'INITIAL_SCORE.json',{'axis':context['axis'],
         'axis_role':'original_source_and_normalization_pools','selected_cohorts':selected_report,'scores':initial,
         'model_state_sha256':initial_sha,'normalization':context['normalization_ref'],'prior':context['prior_ref']})
@@ -1501,7 +1507,7 @@ def fit_physical(plan,plan_ref,root):
         if ta_only and cursor<2:
             need(step['heads_gradient_l2']>0 and(step['backbone_gradient_l2']==0 if cursor==0
                 else step['backbone_gradient_l2']>0),'TA_FIT_ZERO_HEAD_GRADIENT_TRANSITION')
-        if plan['mode']=='ta_primary_mechanics':
+        if plan['mode']in('ta_primary_mechanics','ta_noise_mechanics'):
             proof=step['primary_gradient_routing']
             need(proof['M5_head_gradient_l2']>0 and(proof['M5_shared_gradient_l2']==0 if cursor==0
                 else proof['M5_shared_gradient_l2']>0),'PRIMARY_M5_GRADIENT_TRANSITION')
@@ -1520,7 +1526,7 @@ def fit_physical(plan,plan_ref,root):
             capture_ref=publish(root/('CAPTURE_PASS_'+str(number).zfill(3)+'.npz'),stream.getvalue());stream.close()
             curve.append({'pass':number,'completed_updates':cursor+1,'scores':score_ref,'capture':capture_ref,
                 'checkpoint':checkpoint_refs[-1],'model_state_sha256':canonical_model_state_sha256(model.state_dict())})
-    if plan['mode']in('ta_shuffle','ta_primary_main'):need(digest(np.concatenate(batches))==plan['training_schedule']['source_row_schedule_sha256'],
+    if plan['mode']in('ta_shuffle','ta_primary_main','ta_noise_main'):need(digest(np.concatenate(batches))==plan['training_schedule']['source_row_schedule_sha256'],
         'TA_BLOCK_ACTUAL_SOURCE_ROW_SCHEDULE')
     score_started=time.monotonic();final,capture_final=(pass_scores,pass_capture)if _ta_main(plan['mode'])else fit_score(model,context,panels,plan)
     torch.cuda.synchronize();final_score_seconds=elapsed if _ta_main(plan['mode'])else time.monotonic()-score_started
@@ -1543,14 +1549,14 @@ def fit_physical(plan,plan_ref,root):
             'declared_passes':recipe['passes'],'learning_curve':curve,
             **({'training_schedule':plan['training_schedule'],
                 'actual_source_row_schedule_sha256':digest(np.concatenate(batches)),
-                'chronological_reference':plan['metadata']['chronological_reference']}if plan['mode']in('ta_shuffle','ta_primary_main')else{}),
+                'chronological_reference':plan['metadata']['chronological_reference']}if plan['mode']in('ta_shuffle','ta_primary_main','ta_noise_main')else{}),
             **({'backbone_gradient_policy':PRIMARY_BACKBONE_GRADIENT_POLICY,
                 'raw_gradient_design_evidence':plan['metadata']['raw_gradient_design_evidence']}if _primary_fit(plan)else{}),
             **({'primary_backbone_qualification':{
                 'auxiliary_shared_zero_all_steps':all(x['primary_gradient_routing']['auxiliary_shared_gradient_l2']==0 for x in steps),
                 'M5_shared_positive_after_first_head_update':steps[1]['primary_gradient_routing']['M5_shared_gradient_l2']>0,
                 'supported_auxiliary_heads_positive_all_steps':all(x['primary_gradient_routing']['auxiliary_head_gradient_l2']>0
-                    for x in steps if x['primary_gradient_routing']['auxiliary_predictive_cells']>0)}}if plan['mode']=='ta_primary_mechanics'else{}),
+                    for x in steps if x['primary_gradient_routing']['auxiliary_predictive_cells']>0)}}if plan['mode']in('ta_primary_mechanics','ta_noise_mechanics')else{}),
             'gradient_transition':{'first_backbone_gradient_l2':steps[0]['backbone_gradient_l2'],
                 'second_backbone_gradient_l2':steps[1]['backbone_gradient_l2'],
                 'zero_first_gradient_is_expected_from_zero_readout_weights':True,
@@ -1660,7 +1666,9 @@ def run_native_fit(plan_sha,mode):
         need(fit_source_clean(plan)and ref(POLICY)==policy_ref and ref(path)==plan_ref,'FIT_SOURCE_POLICY_BOOKEND')
         updates=3 if _mechanics(mode)else plan['recipe']['fit_batches']
         result=publish(root/'RESULT.json',{'stage':stage,
-            'status':('COMPLETE_NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS'if mode=='ta_primary_mechanics'else
+            'status':('COMPLETE_NATIVE_M5_TA_ATR03_MECHANICS'if mode=='ta_noise_mechanics'else
+                'COMPLETE_NATIVE_M5_TA_ATR03_FIT'if mode=='ta_noise_main'else
+                'COMPLETE_NATIVE_M5_TA_PRIMARY_BACKBONE_MECHANICS'if mode=='ta_primary_mechanics'else
                 'COMPLETE_NATIVE_M5_TA_PRIMARY_BACKBONE_FIT'if mode=='ta_primary_main'else
                 'COMPLETE_NATIVE_M5_TA_PRIOR_MECHANICS'if mode=='ta_mechanics'else
                 'COMPLETE_NATIVE_M5_TA_PRIOR_BLOCK_ORDER'if mode=='ta_shuffle'else
@@ -2008,7 +2016,7 @@ PRIMARY_FIT_SOURCE_PATHS=tuple(dict.fromkeys((*TA_FIT_SOURCE_PATHS,'tests/test_m
 
 
 def _primary_fit(plan):
-    return plan.get('mode')in('ta_primary_mechanics','ta_primary_main')
+    return plan.get('mode')in('ta_primary_mechanics','ta_primary_main','ta_noise_mechanics','ta_noise_main')
 
 
 def primary_model_source_identity(source):
@@ -2213,6 +2221,366 @@ def primary_backbone_probe(model,loss,features):
         and(result['auxiliary_head_gradient_l2']>0 if result['auxiliary_predictive_cells']>0 else result['auxiliary_head_gradient_l2']==0)
         and all(p.grad is None for p in model.parameters()),'PRIMARY_AUXILIARY_ROUTE_OR_GRAD_ACCUMULATION')
     return {'primary_gradient_routing':result}
+
+
+
+
+# Explicit net-change noise target route. Raw and market-range routes stay distinct.
+NOISE_PREPARE_STAGE='native_m5_ta_atr03_prepare_20261120_001'
+NOISE_PREPARE_PLAN=REPO/'configs/research/NATIVE_M5_TA_ATR03_PREPARE_20261120_001.json'
+NOISE_PREPARE_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_PREPARE_20261120_001')
+NOISE_SOURCE_PATHS=tuple(dict.fromkeys((*TA_FIT_SOURCE_PATHS,
+    'tests/test_market_state_native_m5_targets_v1.py',
+    'tests/test_market_state_ta_integrated_objective_v1.py',
+    'tests/test_market_state_ta_integrated_model_v1.py')))
+NOISE_PREPARE_EXECUTION={'class':'producer','device':'cpu','memory':'12G','swap':'512M',
+    'outer_seconds':1800,'internal_seconds':1770,'kill_after_seconds':10,'numerical_threads':1,
+    'model_constructions':1,'model_forwards':32,'optimizer_steps':0,'prior_fits':1,'normalization_fits':0}
+FIT_SCOPES.update({
+    'ta_noise_mechanics':('native_m5_ta_atr03_mechanics_20261120_001',
+        REPO/'configs/research/NATIVE_M5_TA_ATR03_MECHANICS_20261120_001.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_MECHANICS_20261120_001')),
+    'ta_noise_main':('native_m5_ta_atr03_fit_20261120_001',
+        REPO/'configs/research/NATIVE_M5_TA_ATR03_FIT_20261120_001.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIT_20261120_001'))})
+
+
+def _noise_fit(plan):
+    return plan.get('mode')in('ta_noise_mechanics','ta_noise_main')
+
+
+def noise_target_kwargs(plan):
+    return {'target_contract':plan['metadata']['target_contract']}if _noise_fit(plan)else{}
+
+
+def build_noise_prepare_plan(*,inputs,margin_atr,source_base_commit=None):
+    from gx1.contracts.market_state_native_m5_targets_v1 import noise_margin_dataset_contract
+    fields={'reference_fit_plan','normalization','source_qualification','comparison_review','raw_target_result','raw_target_tape'}
+    need(type(inputs)is dict and set(inputs)==fields,'NOISE_PREPARE_INPUT_ROLES')
+    base=read(inputs['reference_fit_plan']);normalization=read(inputs['normalization'])
+    qualification=read(inputs['source_qualification']);comparison=read(inputs['comparison_review'])
+    raw=read(inputs['raw_target_result']);proof=read(qualification['genuine_TRAIN_proof']['result'])
+    need(proof['status']=='PASS_GENUINE_PRODUCER_API'and proof['raw_target_tape']==inputs['raw_target_tape']
+        and proof['raw_target_result']==inputs['raw_target_result'],'NOISE_QUALIFIED_RAW_SOURCE')
+    from gx1.contracts.entry_model_native_input_normalization_v1 import require_native_m5_input_normalization_contract
+    require_native_m5_input_normalization_contract(normalization)
+    snapshot=read(base['metadata']['ta_plan']['inputs']['candidate_snapshot'])
+    need(normalization['source_axes_sha256']==snapshot['surfaces_metadata']['axes']['contract_sha256'],
+        'NOISE_PHYSICAL_FEATURE_NORMALIZATION_IDENTITY')
+    need(base['mode']=='ta_primary_main'and base['GC_used']is False
+        and base['metadata']['dependencies']['target_tape']==inputs['raw_target_tape']
+        and base['metadata']['dependencies']['train_normalization']==inputs['normalization']
+        and qualification['genuine_TRAIN_proof']['result']['path'].endswith('/NATIVE_BAR_NOISE_MARGIN_TRAIN_PROOF.json')
+        and comparison['status']=='PASS_TRAIN_DESCRIPTOR_ONLY_NOT_MODEL_BOUND'
+        and margin_atr==comparison['first_candidate_margin_atr']==0.3,'NOISE_PREPARE_BOUND_CANDIDATE')
+    need(normalization['fit_population']['issue_rows']==24175
+        and normalization['fit_population']['cutoff_ns']==FIT_END_NS
+        and raw['target_contract']==base['metadata']['target_contract']
+        and raw['target_tape']==inputs['raw_target_tape'],'NOISE_PREPARE_RAW_NORM_SCOPE')
+    metadata={'ta_plan':base['metadata']['ta_plan'],'architecture':base['metadata']['architecture'],
+        'seed':base['recipe']['seed'],'target_contract':noise_margin_dataset_contract(margin_atr),
+        'raw_target_contract':raw['target_contract'],'raw_source_spec':raw['source_spec'],
+        'source_pool':base['metadata']['source_pool'],
+        'fit_start_ns':FIT_START_NS,'fit_end_ns':FIT_END_NS,'control_end_ns':CONTROL_END_NS,
+        'normalization_population':normalization['fit_population'],
+        'dependencies':dict(base['metadata']['ta_plan']['inputs']),
+        'scope':'all_preTEST_raw_issue_noise_projection_plus_fixed_1536FIT_512CONTROL_fresh_initialbaseline',
+        'full_market_path_FLAT_qualified':False,'six_year_model_or_norm_qualified':False}
+    return {'schema_version':'gx1_native_m5_noise_prepare_plan_v1','stage':NOISE_PREPARE_STAGE,
+        'status':'PREPARED_NOT_ADMITTED','output_root':str(NOISE_PREPARE_ROOT),
+        'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
+        'source_owners':{name:sha(REPO/name)for name in NOISE_SOURCE_PATHS},
+        'inputs':inputs,'metadata':metadata,'margin_atr':margin_atr,
+        'cohort_selection':small_cohort_manifest(metadata),
+        'execution':dict(NOISE_PREPARE_EXECUTION),'training_authorized':False,'test_data_used':False,
+        'economic_edge_proven':False}
+
+
+def noise_source_clean(plan):
+    need(set(plan['source_owners'])==set(NOISE_SOURCE_PATHS),'NOISE_SOURCE_SET')
+    adapted={**plan,'source_owners':{name:plan['source_owners'][name]for name in ta_audit.SOURCE_PATHS}}
+    return ta_audit.source_clean(adapted)and all(sha(REPO/name)==value for name,value in plan['source_owners'].items())
+
+
+def noise_fold_truth(truth,upper):
+    value=ta_audit.fold_truth(truth,upper);mature=value['mature']
+    value['m5_count'][~mature]=0;value['source_gap'][~mature]=False
+    for task in ('open','close'):
+        value['noise_'+task+'_known']&=value['eligible']
+        value['noise_'+task+'_eligible']=value['noise_'+task+'_known']&(
+            ~value['open_known_at_issue']if task=='open'else True)
+        value['noise_'+task+'_sign'][~value['noise_'+task+'_known']]=0
+        value['noise_'+task+'_delta'][~value['eligible']]=np.nan
+    return value
+
+
+def noise_fit_axes(provider,dataset,dataset_contract):
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import _native_truth
+    need(ref(dataset['arrays']['path'])==dataset['arrays'],'NOISE_DATASET_HASH')
+    wanted=np.flatnonzero((provider.issue_ns>=FIT_START_NS)&(provider.issue_ns<CONTROL_END_NS))
+    with np.load(dataset['arrays']['path'],allow_pickle=False)as archive:
+        need(set(archive.files)==set(dataset_contract['required_array_fields'])|{'source_row'},'NOISE_ARRAY_INVENTORY')
+        times=archive['issue_ns'];sources=archive['source_row'];at=np.searchsorted(times,provider.issue_ns[wanted])
+        need(np.all(at<len(times))and np.array_equal(times[at],provider.issue_ns[wanted])
+            and np.array_equal(sources[at],provider.source_row[wanted]),'NOISE_DATASET_SOURCE_JOIN')
+        truth={}
+        for key in dataset_contract['required_array_fields']:
+            array=archive[key];header=dataset['headers'][key]
+            need(array.dtype.str==header['dtype']and list(array.shape)==header['shape']
+                and digest(array)==header['sha256'],'NOISE_ARRAY_BYTES:'+key)
+            truth[key]=array[at]
+    cohorts={};report={}
+    for name,start,end in [('TRAIN',FIT_START_NS,FIT_END_NS),('CONTROL',FIT_END_NS,CONTROL_END_NS)]:
+        chosen=(provider.issue_ns[wanted]>=start)&(provider.issue_ns[wanted]<end)
+        positions=wanted[chosen];ready=provider.input_ready[positions]
+        full=noise_fold_truth({key:value[chosen]for key,value in truth.items()},end)
+        outcomes={key:value[ready]for key,value in full.items()};rows=provider.source_row[positions][ready]
+        _native_truth(outcomes,rows=len(rows),fold_upper_ns=end,
+            target_contract_sha256=dataset_contract['contract_sha256'],target_contract=dataset_contract)
+        supervised=(outcomes['noise_open_eligible']|outcomes['noise_close_eligible']).any(1)
+        take=supervised if name=='TRAIN'else np.ones(len(rows),bool)
+        fit_rows=rows[take];fit_truth={key:value[take]for key,value in outcomes.items()}
+        need(len(rows)>=16 and np.all(np.diff(rows)>0),'NOISE_FIT_AXIS')
+        cohorts[name]={'rows':rows,'truth':outcomes,'fit_rows':fit_rows,'fit_truth':fit_truth,'upper_ns':end}
+        report[name]={'start_ns':start,'end_exclusive_ns':end,'base_issue_rows':len(positions),
+            'input_ready_rows':len(rows),'input_not_ready_rows':int((~ready).sum()),
+            'no_mature_supervision_rows':int((~supervised).sum()),'fit_rows':len(fit_rows),
+            'source_rows_sha256':digest(rows),'fit_source_rows_sha256':digest(fit_rows),
+            'issue_ns_sha256':digest(outcomes['issue_ns']),'fit_issue_ns_sha256':digest(fit_truth['issue_ns']),
+            'per_tf_mature':outcomes['mature'].sum(0).tolist(),
+            'per_tf_eligible':outcomes['eligible'].sum(0).tolist(),'unknown_GC_rows_removed':0,
+            'per_tf_noise_open_eligible':outcomes['noise_open_eligible'].sum(0).tolist(),
+            'per_tf_noise_close_eligible':outcomes['noise_close_eligible'].sum(0).tolist()}
+    return cohorts,report
+
+
+def noise_prepare_physical(plan,root):
+    import dataclasses
+    from types import MappingProxyType
+    import torch
+    from gx1.contracts import market_state_native_m5_targets_v1 as targets
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_bar_direction_model
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    meta=plan['metadata'];target_contract=meta['target_contract'];began=time.monotonic()
+    with np.load(plan['inputs']['raw_target_tape']['path'],allow_pickle=False)as z:
+        def owned(key):
+            a=z[key];a.flags.writeable=False;return a
+        bars={tf:targets.NativeTFBarDirections(**{f.name:owned('bars_'+tf+'_'+f.name)
+              for f in dataclasses.fields(targets.NativeTFBarDirections)})for tf in targets.TIMEFRAMES}
+        tape=targets.NativeM5Targets(issue_ns=owned('issue_ns'),source_row=owned('source_row'),
+            ohlc=owned('ohlc'),source_gap=owned('source_gap'),bars_by_timeframe=MappingProxyType(bars),
+            source_ref=MappingProxyType(meta['raw_source_spec']['manifest']),cutoff_ns=meta['raw_source_spec']['cutoff_ns'])
+        truth=tape.gather_next_bar_noise_margin(tape.issue_ns,fold_upper_ns=tape.cutoff_ns,margin_atr=plan['margin_atr'])
+        need(truth.pop('noise_margin_contract')==target_contract['noise_margin_contract'],'NOISE_PROJECTION_CONTRACT')
+        rawkeys=[key for key in target_contract['required_array_fields']if not key.startswith('noise_')]
+        for key in rawkeys:
+            a=z['future_'+key];need(a.dtype==truth[key].dtype and a.shape==truth[key].shape
+                and digest(a)==digest(truth[key]),'NOISE_RAW_FIELD_PRESERVED:'+key)
+        need(set(truth)==set(target_contract['required_array_fields']),'NOISE_PROJECTION_INVENTORY')
+        projected={**truth,'source_row':tape.source_row}
+        headers={key:{'dtype':a.dtype.str,'shape':list(a.shape),'sha256':digest(a)}for key,a in projected.items()}
+        stream=io.BytesIO();np.savez_compressed(stream,**projected)
+        array_ref=publish(root/'NOISE_TARGETS.npz',stream.getvalue());stream.close()
+        dataset={'schema_version':'gx1_native_m5_noise_dataset_artifact_v1','contract':target_contract,
+            'raw_target_tape':plan['inputs']['raw_target_tape'],'arrays':array_ref,'headers':headers,
+            'cutoff_ns':tape.cutoff_ns,'issue_rows':len(tape.issue_ns),
+            'raw_fields_byte_identical':True,'model_input_fields_added':0,'test_data_used':False,
+            'per_TF':{tf:{task:{
+                'raw_eligible_endpoints':int(truth['eligible'][:,j].sum()),
+                'noise_known':int(truth['noise_'+task+'_known'][:,j].sum()),
+                'noise_predictive':int(truth['noise_'+task+'_eligible'][:,j].sum()),
+                'raw_eligible_without_known_noise_target':int((truth['eligible'][:,j]&~truth['noise_'+task+'_known'][:,j]).sum()),
+                'predictive_counts_down_neutral_up':np.bincount(
+                    truth['noise_'+task+'_sign'][truth['noise_'+task+'_eligible'][:,j],j].astype(np.int64)+1,minlength=3).tolist()
+            }for task in('open','close')}for j,tf in enumerate(targets.TIMEFRAMES)}}
+        dataset_ref=publish(root/'NOISE_TARGETS.json',dataset)
+    del tape,bars,truth,projected
+    projection_seconds=time.monotonic()-began
+    provider,admission=ta_audit.load_candidate_provider(meta['ta_plan'])
+    cohorts,axis=noise_fit_axes(provider,dataset,target_contract)
+    need(np.array_equal(cohorts['TRAIN']['rows'],cohorts['TRAIN']['fit_rows']),'NOISE_FULL_TRAIN_NORM_AXIS')
+    for name,item in meta['source_pool']['axis'].items():
+        need(all(axis[name][key]==value for key,value in item.items()),'NOISE_ORIGINAL_SOURCE_POOL:'+name)
+    normalization=read(plan['inputs']['normalization']);provider.input_binding(normalization)
+    need(normalization['fit_population']['selected_source_rows_sha256']==digest(cohorts['TRAIN']['fit_rows']),
+        'NOISE_REUSED_EXACT_TRAIN_NORMALIZATION')
+    context={'provider':provider,'cohorts':cohorts,'axis':axis}
+    selected,selection=selected_small_cohorts(plan,context)
+    prior=objective.fit_native_bar_train_prior(truth=slice_truth(cohorts['TRAIN'],selected['FIT'],fit=True),
+        fold_upper_ns=FIT_END_NS,target_contract_sha256=target_contract['contract_sha256'],target_contract=target_contract)
+    prior_ref=publish(root/'MATCHED_FIT_PRIOR.json',prior)
+    torch.set_num_threads(1);torch.manual_seed(meta['seed'])
+    model=build_native_bar_direction_model(input_normalization=normalization,
+        input_binding=provider.input_binding(normalization),architecture=meta['architecture'],device=torch.device('cpu'),
+        train_prior=prior,backbone_gradient_policy=PRIMARY_BACKBONE_GRADIENT_POLICY,target_contract=target_contract)
+    model.require_prior_initialization_state();model.eval();initial_sha=canonical_model_state_sha256(model.state_dict())
+    captures={};scores={};forwards=0
+    with torch.no_grad():
+        for name,rows in [('TRAIN',selected['FIT']),('CONTROL',selected['CONTROL'])]:
+            outputs={'open_logits':[],'close_logits':[]}
+            for batch in all_score_batches(rows,64):
+                raw=provider.gather(batch,max_rows=64)
+                output=model({key:torch.from_numpy(value)for key,value in raw.items()});forwards+=1
+                for key,value in output.items():outputs[key].append(value.detach().numpy().copy())
+            outputs={key:np.concatenate(value)for key,value in outputs.items()}
+            expected=objective.native_bar_train_prior_logits(prior,rows=len(rows),target_contract=target_contract)
+            need(all(np.array_equal(value,expected[key].astype(np.float32))for key,value in outputs.items()),'NOISE_INITIAL_PRIOR_PARITY')
+            truth=slice_truth(cohorts[name],rows)
+            scores[name]=objective.native_bar_direction_score_sums(model_output=outputs,truth=truth,
+                fold_upper_ns=cohorts[name]['upper_ns'],target_contract_sha256=target_contract['contract_sha256'],target_contract=target_contract)
+            captures.update({name+'__source_row':rows,**{name+'__'+key:value for key,value in outputs.items()},
+                **{name+'__truth_'+key:value for key,value in truth.items()}})
+    need(forwards==32 and canonical_model_state_sha256(model.state_dict())==initial_sha,'NOISE_INITIAL_STATE_AND_FORWARDS')
+    model.load_state_dict(model.state_dict(),strict=True)
+    stream=io.BytesIO();torch.save(model.state_dict(),stream)
+    checkpoint=publish(root/'INITIAL_MODEL.pt',stream.getvalue());stream.close()
+    stream=io.BytesIO();np.savez_compressed(stream,**captures)
+    capture=publish(root/'INITIAL_CAPTURE.npz',stream.getvalue());stream.close()
+    return {'dataset':dataset_ref,'axis':axis,'selected_cohorts':selection,
+        'normalization':plan['inputs']['normalization'],'normalization_population':normalization['fit_population'],
+        'prior':prior_ref,'prior_fits':1,'normalization_fits':0,'model_constructions':1,'model_forwards':forwards,
+        'optimizer_steps':0,'initial_state_sha256':initial_sha,'initial_checkpoint':checkpoint,
+        'initial_capture':capture,'initial_scores':scores,'all_selected_initial_logits_equal_new_noise_prior':True,
+        'input_binding':provider.input_binding(normalization),'model_contract':model.research_objective,
+        'feature_requalification':admission,'projection_seconds':projection_seconds,
+        'scope':'all_preTEST_noise_targets_and_selected1536FIT_512CONTROL_initialbaseline_only',
+        'six_year_model_baseline_measured':False,'whole_market_FLAT_qualified':False,'economic_edge_proven':False}
+
+
+def inspect_noise_prepare(plan_sha,*,admitted):
+    need(Path.cwd().resolve()==REPO and not NOISE_PREPARE_ROOT.exists(),'NOISE_PREPARE_CWD_OUTPUT')
+    plan_ref={'path':str(NOISE_PREPARE_PLAN),'sha256':plan_sha};plan=read(plan_ref)
+    need(plan==build_noise_prepare_plan(inputs=plan['inputs'],margin_atr=plan['margin_atr'],
+        source_base_commit=plan['source_base_commit'])and noise_source_clean(plan),'NOISE_PREPARE_PLAN_SOURCE')
+    policy_ref=ref(POLICY);p=read(policy_ref);gate=p.get(NOISE_PREPARE_STAGE,{})
+    need(all(p.get(key)is False for key in ta_audit.data.CLOSED_FLAGS),'NOISE_PREPARE_CLOSED_FLAGS')
+    need(gate.get('plan')==plan_ref and gate.get('output_root')==str(NOISE_PREPARE_ROOT)
+        and gate.get('max_invocations')==1 and gate.get('claimed_invocations')==gate.get('completed_invocations')==0
+        and gate.get('remaining_invocations')==(1 if admitted else 0)
+        and gate.get('status')==('ADMITTED_ONE_USE'if admitted else'PREPARED_NOT_ADMITTED')
+        and gate.get('execution_authorized')is admitted and gate.get('relaunch_allowed')is False
+        and gate.get('training_authorized')is False and gate.get('test_authorized')is False,'NOISE_PREPARE_GATE')
+    checked_inputs(plan)
+    return plan,plan_ref,policy_ref
+
+
+def noise_prepare_cli(args):
+    need(args.device in(None,'cpu')and args.out_dir==str(NOISE_PREPARE_ROOT),'NOISE_PREPARE_CLI')
+    if args.preflight:
+        plan,plan_ref,policy_ref=inspect_noise_prepare(args.plan_sha256,admitted=False)
+        print(json.dumps({'status':'PREFLIGHT_NOISE_PREPARE_METADATA_ONLY','plan':plan_ref,'policy':policy_ref,
+            'claim_created':False,'model_forwards':0,'raw_values_decoded':0}));return
+    began=time.monotonic();cap=common.require_capped_cpu_research_producer_execution();lock=common.require_capped_lock_ancestry()
+    need(cap['memory_max']==cap['memory_high']==12*1024**3 and cap['swap']==512*1024**2
+        and cap['numerical_threads']==1 and lock['scope']==cap['cgroup_path'][len('/sys/fs/cgroup'):]
+        and signal.getitimer(signal.ITIMER_REAL)==(0.,0.),'NOISE_PREPARE_CAP')
+    plan,plan_ref,policy_ref=inspect_noise_prepare(args.plan_sha256,admitted=True)
+    root=NOISE_PREPARE_ROOT;root.mkdir(exist_ok=False)
+    claim=publish(root/'CLAIM.json',{'stage':plan['stage'],'plan':plan_ref,'policy':policy_ref,
+        'status':'CLAIMED_ONE_USE','remaining_invocations':0,'cap':cap,'lock':lock})
+    result=None;old=signal.getsignal(signal.SIGALRM)
+    def expired(*args):raise TimeoutError('NOISE_PREPARE_INTERNAL_LIMIT')
+    try:
+        remaining=plan['execution']['internal_seconds']-(time.monotonic()-began);need(remaining>0,'NOISE_TIME_BEFORE_INPUTS')
+        signal.signal(signal.SIGALRM,expired);signal.setitimer(signal.ITIMER_REAL,remaining)
+        report=noise_prepare_physical(plan,root);checked_inputs(plan)
+        need(noise_source_clean(plan)and ref(POLICY)==policy_ref,'NOISE_PREPARE_BOOKEND')
+        result=publish(root/'RESULT.json',{'stage':plan['stage'],'status':'COMPLETE_NATIVE_M5_ATR03_PREPARATION',
+            'plan':plan_ref,'claim':claim,'report':report,'source_unchanged':True,'optimizer_steps':0,
+            'test_data_used':False,'clean_process_io_firewall':common.firewall_state(),'elapsed_seconds':time.monotonic()-began})
+        terminal=publish(root/'TERMINAL.json',{'stage':plan['stage'],'status':'COMPLETE','exit_code':0,
+            'plan':plan_ref,'claim':claim,'result':result,'source_unchanged':True,'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
+        print(json.dumps({'result':result,'terminal':terminal}))
+    except BaseException as e:
+        publish(root/'TERMINAL.json',{'stage':plan['stage'],'status':'FAILED_CONSUMED','exit_code':1,
+            'plan':plan_ref,'claim':claim,'result':result,'error':type(e).__name__+':'+str(e)[:2000],
+            'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
+        raise
+    finally:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old)
+
+
+def build_noise_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
+    need(mode in('ta_noise_mechanics','ta_noise_main'),'NOISE_FIT_MODE')
+    proxy='ta_primary_mechanics'if mode=='ta_noise_mechanics'else'ta_primary_main'
+    recipe=fit_recipe(recipe,proxy)
+    fields={'prepare_result','prepare_terminal','matched_prior_reference'}|({'noise_mechanics_result','noise_mechanics_terminal'}if mode=='ta_noise_main'else set())
+    need(type(inputs)is dict and set(inputs)==fields,'NOISE_FIT_INPUT_ROLES')
+    done,last=read(inputs['prepare_result']),read(inputs['prepare_terminal'])
+    prepared=read(done['plan']);report=done['report']
+    need(done['stage']==last['stage']==NOISE_PREPARE_STAGE and done['status']=='COMPLETE_NATIVE_M5_ATR03_PREPARATION'
+        and last['status']=='COMPLETE'and last['exit_code']==0 and last['result']==inputs['prepare_result']
+        and last['claim']==done['claim']and last['plan']==done['plan']
+        and done['source_unchanged']is True and inputs['matched_prior_reference']==report['prior']
+        and report['all_selected_initial_logits_equal_new_noise_prior']is True
+        and report['optimizer_steps']==0 and prepared['source_owners']=={p:sha(REPO/p)for p in NOISE_SOURCE_PATHS},'NOISE_FIT_PREPARED')
+    from gx1.contracts.market_state_ta_integrated_model_v1 import native_bar_model_contract
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_bar_train_prior
+    prior=require_native_bar_train_prior(read(report['prior']),target_contract=prepared['metadata']['target_contract'])
+    normalization=read(report['normalization']);binding=report['input_binding']
+    need(binding['source_axes_sha256']==normalization['source_axes_sha256']
+        and binding['input_normalization_sha256']==normalization['contract_sha256']
+        and report['model_contract']==native_bar_model_contract(binding,train_prior=prior,
+            backbone_gradient_policy=PRIMARY_BACKBONE_GRADIENT_POLICY,target_contract=prepared['metadata']['target_contract']),
+        'NOISE_PHYSICAL_INPUT_CHECKPOINT_CONTRACT')
+    meta={**prepared['metadata'],'dependencies':{**prepared['metadata']['dependencies'],
+        'prepared_plan':done['plan'],'prepared_claim':done['claim'],'noise_dataset':report['dataset'],
+        'noise_arrays':read(report['dataset'])['arrays'],'train_prior':report['prior'],'train_normalization':report['normalization']},
+        'prepared':{'result':inputs['prepare_result'],'terminal':inputs['prepare_terminal'],
+            'dataset':report['dataset'],'normalization':report['normalization'],'prior':report['prior'],
+            'axis':report['axis'],'normalization_population':report['normalization_population'],
+            'initial_state_sha256':report['initial_state_sha256']},
+        'chronological_reference':{'role':'historical_raw_target_context_only_not_same_label_function','plan':prepared['inputs']['reference_fit_plan']},
+        'raw_gradient_design_evidence':{'role':'retained_existing_primary_backbone_policy_new_noise_mechanics_required'}}
+    if mode=='ta_noise_main':
+        r,t=read(inputs['noise_mechanics_result']),read(inputs['noise_mechanics_terminal'])
+        parent=read(r['plan']);proof=r['report']
+        need(r['stage']==t['stage']==FIT_SCOPES['ta_noise_mechanics'][0]
+            and r['status']=='COMPLETE_NATIVE_M5_TA_ATR03_MECHANICS'and t['status']=='COMPLETE'and t['exit_code']==0
+            and t['result']==inputs['noise_mechanics_result']and t['plan']==r['plan']and t['claim']==r['claim']
+            and proof['cold_resume']['bitexact']is True and proof['actual_counts']['autograd_calls']==6
+            and proof['normalization_fits']==proof['prior_fits']==0
+            and proof['primary_backbone_qualification']['auxiliary_shared_zero_all_steps']is True
+            and proof['primary_backbone_qualification']['M5_shared_positive_after_first_head_update']is True
+            and parent['metadata']==meta and parent['source_owners']=={p:sha(REPO/p)for p in NOISE_SOURCE_PATHS},'NOISE_MAIN_MECHANICS')
+        meta['mechanics']={'result':inputs['noise_mechanics_result'],'terminal':inputs['noise_mechanics_terminal'],
+            'plan':r['plan'],'claim':r['claim'],'normalization':proof['normalization'],'prior':proof['prior'],
+            'axis':proof['axis'],'initial_state_sha256':proof['initial_state_sha256'],
+            'physical_windows_boot_id':r['physical_windows_boot_id']}
+    stage,path,root=FIT_SCOPES[mode]
+    selection=small_cohort_manifest(meta)
+    return {'schema_version':'gx1_native_m5_ta_atr03_fit_plan_v1','stage':stage,'mode':mode,
+        'status':'PREPARED_NOT_ADMITTED','output_root':str(root),
+        'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
+        'source_owners':{p:sha(REPO/p)for p in NOISE_SOURCE_PATHS},'inputs':inputs,'metadata':meta,
+        'recipe':recipe,'cohort_selection':selection,
+        **({'training_schedule':ta_block_schedule(meta,recipe)}if mode=='ta_noise_main'else{}),
+        'backbone_gradient_policy':PRIMARY_BACKBONE_GRADIENT_POLICY,
+        'execution':{'class':'trainer','device':'cuda','memory':'20G','swap':'512M','tasks_max':128,
+            'numerical_threads':8,'outer_seconds':recipe['outer_seconds'],'internal_seconds':recipe['internal_seconds'],'kill_after_seconds':10},
+        'GC_used':False,'statistics_fits':{'normalization':0,'matched_TRAIN_prior':0},
+        'limits':fit_limits(recipe,proxy,meta),'qualification_weights_loaded':False,
+        'scheduler_state':None,'EMA_state':None,'training_authorized':True,'test_data_used':False,'economic_edge_proven':False}
+
+
+def prepare_noise_native_fit(plan,root,*,reload_normalization=None,reload_prior=None):
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    meta=plan['metadata'];saved=meta['prepared'];target_contract=meta['target_contract']
+    provider,admission=ta_audit.load_candidate_provider(meta['ta_plan'])
+    dataset=read(saved['dataset']);need(dataset['contract']==target_contract,'NOISE_BOUND_DATASET_CONTRACT')
+    cohorts,axis=noise_fit_axes(provider,dataset,target_contract)
+    need(axis==saved['axis'],'NOISE_REUSED_PREPARED_AXIS')
+    normalization=read(saved['normalization']);provider.input_binding(normalization)
+    need(normalization['fit_population']==saved['normalization_population']
+        and digest(cohorts['TRAIN']['fit_rows'])==normalization['fit_population']['selected_source_rows_sha256'],'NOISE_EXACT_TRAIN_NORMALIZATION')
+    prior=objective.require_native_bar_train_prior(read(saved['prior']),target_contract=target_contract)
+    selected,_=selected_small_cohorts(plan,{'cohorts':cohorts})
+    need(prior['fit_population']['issue_rows']==len(selected['FIT'])
+        and prior['fit_population']['issue_ns_sha256']==digest(provider.issue_ns[selected['FIT']]),'NOISE_MATCHED_PRIOR_AXIS')
+    need(reload_normalization in(None,saved['normalization'])and reload_prior in(None,saved['prior']),'NOISE_COLD_EXACT_STATS')
+    return {'provider':provider,'cohorts':cohorts,'axis':axis,'normalization':normalization,
+        'normalization_ref':saved['normalization'],'prior':prior,'prior_ref':saved['prior'],
+        'normalization_fits':0,'prior_fits':0,'feature_requalification':admission}
 
 
 if __name__=='__main__':main()

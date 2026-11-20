@@ -87,6 +87,54 @@ def noise_margin_contract(margin_atr):
     return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
 
 
+def noise_margin_dataset_contract(margin_atr):
+    """Bind training labels separately from unchanged observed bar facts."""
+    margin = noise_margin_contract(margin_atr)
+    value = {
+        'schema_version': 'gx1_native_m5_bar_noise_margin_dataset_v1',
+        'raw_target_contract_sha256': contract()['contract_sha256'],
+        'noise_margin_contract': margin,
+        'timeframes': list(TIMEFRAMES), 'class_order': [-1, 0, 1],
+        'class_names': ['DOWN', 'NEUTRAL_NET', 'UP'],
+        'tasks': {
+            task: {'sign': 'noise_' + task + '_sign',
+                   'known': 'noise_' + task + '_known',
+                   'eligible': 'noise_' + task + '_eligible'}
+            for task in ('open', 'close')},
+        'required_array_fields': [
+            'issue_ns', 'target_row', 'validity_ns', 'target_present',
+            'observed_previous', 'mature', 'eligible', 'open_known_at_issue',
+            'open_sign', 'close_sign', 'm5_count', 'source_gap',
+            'noise_margin_price', 'noise_atr14_asof',
+            'noise_atr_asof_row', 'noise_atr_asof_available_ns',
+            'noise_open_delta', 'noise_close_delta',
+            'noise_open_sign', 'noise_close_sign',
+            'noise_open_known', 'noise_close_known',
+            'noise_open_eligible', 'noise_close_eligible'],
+        'required_projection_metadata_fields': ['noise_margin_contract'],
+        'raw_fact_fields_preserved': True,
+        'future_maturity': 'target_present_and_observed_previous_and_validity_ns_strictly_before_fold_upper_ns',
+        'known_open': 'open_known_at_issue_is_observed_context_never_predictive_credit',
+        'projection': 'immutable_whole_cohort_once_before_model_batches',
+        'target_arrays_and_metadata_as_model_input': False,
+        'path_or_range_flat_semantics_changed': False,
+    }
+    raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+    return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
+
+
+def require_noise_margin_dataset_contract(value):
+    """Require the exact owner-declared fields, masks, semantics and identity."""
+    _need(type(value) is dict and type(value.get('noise_margin_contract')) is dict,
+          'NOISE_DATASET_CONTRACT')
+    expected = noise_margin_dataset_contract(value['noise_margin_contract'].get('margin_atr'))
+    raw = json.dumps({key: part for key, part in value.items() if key != 'contract_sha256'},
+                     sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+    _need(value == expected and hashlib.sha256(raw).hexdigest() == expected['contract_sha256'],
+          'NOISE_DATASET_CONTRACT')
+    return expected
+
+
 def _owned(array):
     return np.frombuffer(np.ascontiguousarray(array).tobytes(),
                          dtype=array.dtype).reshape(array.shape)

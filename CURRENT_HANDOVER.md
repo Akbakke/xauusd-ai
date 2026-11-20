@@ -10,8 +10,18 @@ Brukeren har avklart20.11: eksisterende FLAT betyr sideveis marked og
 inkluderer eksakt like priser. Brukeravklaringsblokkeringen er fjernet.
 Målet er ikke oppnådd; neste arbeid er korrekt kobling til markedsklasser.
 Seksårs TA-inputs er produsert og uavhengig kvalifisert.
-TRAIN-sammenligning av0,3/0,4ATR er ferdig;0,3 er første kandidat,
-fortsatt uten modellbinding eller ny fit.
+Brukeren bestiller nå0,3ATR-kobling og klargjøring til trening.
+Prosjektmålet i policy er oppdatert; sourceintegrasjon pågår med avgrensede
+eiere for target og modell/objective, én integrator for data/plan/launch.
+Ingen hovedfit er startet; fersk baseline og kald mekanikk skal kvalifiseres.
+Kildekobling er nå implementert opt-in:0,3ATR-datasetkontrakt, taskspesifikke
+masker og samme målidentitet i modell/prior/loss/score/checkpoint.38fokuserte
+saker og16nye guard-varianter består; faktisk metadata-build består utenCLAIM.
+Kilden klargjøres til én ny producer: alle preTEST-issues projiseres én gang,
+ny matched1536FIT-prior og fersk32forward-initialbaseline på1536FIT/512CONTROL.
+Eksakt006-provider og gammel whole24175TRAIN-norm gjenbrukes, ingen seksårs-
+metadatarebind. Deretter egen CUDA3update/cold-replay og ny hovedplan, utenfitlaunch.
+Dette kvalifiserer netto-støysone, ikke hele sideveis/path-FLAT eller edge.
 Ingen aktiv jobb. ALLE trenings-/kjøringsporter er stengt. Alle tidligere
 engangsplaner er konsumert og relanseres aldri. Ingen ny fit er innrømmet.
 M5-læringen bedret seg på valgt FIT, men senere CONTROL taper fortsatt prior.
