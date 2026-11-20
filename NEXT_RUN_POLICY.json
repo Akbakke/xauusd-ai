@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "EFFICIENCY_OPTIMIZATION_SOURCE_AND_QUALIFICATION_IN_PROGRESS",
+  "status": "EFFICIENCY_COLD_MECHANICS002_ADMITTED_MAIN_CLOSED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -3913,7 +3913,7 @@
     "five_tf_rowwise_target_locked": false,
     "model_fit_authorized": false
   },
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Requested smallSHORT_FIT002 completed/consumed and independentlyreviewed. No training/execution, automaticextra fit, full epoch, TEST, Entry/Exit, broker, trading, spending or promotion. Futurework uses preserved outputs first; everynewrun needs its own exactunconsumedadmission. M1neverfordirection.",
@@ -4740,7 +4740,7 @@
     "monitor_interval_minutes": 30,
     "source_bookend_witness": "Original cache003 RESULT and TERMINAL both assert source_unchanged=true.",
     "source_unchanged_at_result": true,
-    "active_stage": "native_m5_ta_atr03_throughput_20261120_003",
+    "active_stage": "native_m5_ta_atr03_five_year_mechanics_20261120_002",
     "latest_native_result": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001/RESULT.json",
       "sha256": "7b099711b52f12312d94cefd9fb427a2e26bd1abbdc529dcc1e4f523f1b394e5"
@@ -4751,7 +4751,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Throughput003COMPLETE exactB64train/eval and qualified fasterB256/equalTF; new cold-mechanics002 prepared",
+    "current_activity": "Exact3optimizerupdates/7forwards/6autograd technical cold qualification admitted; main remains closed",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -4781,7 +4781,7 @@
     "existing_indicator_surface_changed": true,
     "training_started": false,
     "latest_terminal_role": "FIVE_YEAR_TECHNICAL_COLD_REPLAY_ONLY_MAIN_NOT_STARTED",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001/TERMINAL.json",
       "sha256": "a7a592aee1c0d0afe7c114b5cba2df7960ce56436590767000f4e5ffad096aa9"
@@ -39217,7 +39217,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -95725,7 +95725,7 @@
     "unmeasured_efficiency_changes_enabled": false
   },
   "native_m5_ta_efficiency_qualification_20261120_001": {
-    "status": "THROUGHPUT003_COMPLETE_MECHANICS002_PREPARED",
+    "status": "MECHANICS002_ADMITTED_AWAITING_LAUNCH",
     "operator_request": "Ja, optimaliser effektivitet til maks",
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001",
     "scope": "Measured runtime controls and one fixed evalB256/equal-length-TF candidate; preserve TRAIN math and qualify exact source before any later main",
@@ -95799,7 +95799,7 @@
     }
   },
   "native_m5_ta_atr03_five_year_mechanics_20261120_002": {
-    "status": "PREPARED_NOT_ADMITTED",
+    "status": "ADMITTED_ONE_USE",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002.json",
       "sha256": "7dfda4b0f7a360687e8c113b4c2ceb5f64bd8b4c2474c8dfc0ca5fc2aefbfd12"
@@ -95808,9 +95808,9 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "remaining_invocations": 0,
-    "execution_authorized": false,
-    "training_authorized": false,
+    "remaining_invocations": 1,
+    "execution_authorized": true,
+    "training_authorized": true,
     "test_authorized": false,
     "relaunch_allowed": false,
     "model_constructions": 2,
@@ -95818,6 +95818,10 @@
     "backward_calls": 3,
     "optimizer_steps": 3,
     "autograd_calls": 6,
-    "scope": "Exact old five-year B64 first-two-distinct TRAIN trajectory plus third cold-resume update; no warmstart; reference model optimizer RNG equality required"
+    "scope": "Exact old five-year B64 first-two-distinct TRAIN trajectory plus third cold-resume update; no warmstart; reference model optimizer RNG equality required",
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/MECHANICS002_PREFLIGHT001.log",
+      "sha256": "13ef7704cc02b50be04e17b94ad7be40a0a38a94213c88eaf624ed5dee5cb745"
+    }
   }
 }

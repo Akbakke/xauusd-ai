@@ -40,10 +40,10 @@ toleranse; tellinger/confusion/ties eksakte, state/RNG uendret og korttail best�
 Peak CUDA-reserved7331643392bytes under12GiB. Signert vakt observerte maks50C
 core/48Cmem/179,28W,47samples; source/io-firewall består. Kvitteringer i policy.
 
-Ny mekanikk002 er PREPARED_NOT_ADMITTED, SHA
+Ny mekanikk002 er ADMITTED_ONE_USE, SHA
 7dfda4b0f7a360687e8c113b4c2ceb5f64bd8b4c2474c8dfc0ca5fc2aefbfd12.
 Den beholder B64,7forwards/3updates/6autograd og kald resume; krever også eksakt
-original modell-/optimizer-/RNG-/stepbane. Denne genuine kontrollen gjenstår.
+original modell-/optimizer-/RNG-/stepbane. Metadata-preflight exit0/0CLAIM/0modell på boot668; bare denne genuine kontrollen er nå innrømmet.
 Main001 er uclaimet men supersederes ved kvalifisert002; ingen main er startet.
 B256/equalTF er målt kvalifisert i panelet, men ennå ikke valgt i ny mainplan.
 
