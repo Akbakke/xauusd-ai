@@ -37,8 +37,19 @@ Ingen innholds-/semantikkgodkjenning følger av dette. Bevis lagres under
 En faktisk retention-feil er rettet: nye dokumentreferanser etter planlegging
 stopper nå validering/godkjenning og hver destruktive staged-operasjon.
 Sikker gjenoppretting er bevart. Alle169retention-tester består under audit4GiB.
-Ingen reelle filer er slettet. Feature-/funksjons-/metadatareferansearbeidet
-pågår; historisk numerikk beviser ikke alle nåværende fullprofilfelt.
+Ingen DATA/RUNS-payload er slettet. Fem beviselig frakoblede historiske
+workers er fjernet fra CURRENT:98666bytes/1650linjer/55definisjoner.
+Alle43metadatareferanser eies av13konsumerte planer; originalbevis er bevart,
+og eksakte kildebytes kan gjenopprettes fraGit. Gamle workerstier er derfor
+historiske, ikke fysisk kjørbare uten gjenoppretting; ingen relaunch åpnes.
+
+Hele CURRENT har nå1402Pythonfiler/20249definisjoner/311896AST-kall.
+47474JSONfiler er klassifisert:44389strictparse,3002forseglet metadata
+uåpnet,76historisk ugyldige bevart,5overstørrelse hashkontrollert uten
+dekoding og2root-eide historiske observasjoner uleselige. Canonicalretention
+reachability er fullført med830beskyttede stier. Dette er ikke full
+atferds-/bytegodkjenning. Nye fulle nativefeltorakler klargjøres; makro- og
+tillatt byteintegritetskontroll gjenstår. Trening er fortsatt stengt.
 
 ## Fysisk kvalifisert grunnlag
 

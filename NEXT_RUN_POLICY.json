@@ -94680,7 +94680,7 @@
     "physical_inventory_complete": true,
     "dependency_function_coverage_complete": false,
     "all_feature_numerical_coverage_complete": false,
-    "retention_reachability_complete": false,
+    "retention_reachability_complete": true,
     "cleanup_completed": false,
     "deleted_bytes": 0,
     "monitor_interval_minutes": 30,
@@ -94690,7 +94690,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Entire retention owner tests169PASS underaudit4GiB; sourcepatchblocks newdocumentrefs afterplanning whileallowingsafe restoration. Featurematrix identifies4x5currentnumeric coverage gaps plus source/clock bridgepending. No training.",
+    "latest_observation": "Allcurrentdefinitions indexed withperfile hashes;5consumedhistoricalworkers retiredtoGit after43metadatarefs/13closedplans.47474JSONfiles classified;fullnative256+localnonmacro numeric audit preparing;macro rawphase and permittedbyteintegrity sweep pending.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94715,6 +94715,33 @@
       "sha256": "b8f4b791f13a84eaa2b99ed0649fafb38534067ab7e2f7f9e1ad083493238a85"
     },
     "retention_owner_tests_passed": 169,
-    "retention_real_deletions": 0
+    "retention_real_deletions": 0,
+    "dependency_function_inventory_complete": true,
+    "current_python_files": 1402,
+    "current_function_definitions": 20249,
+    "current_AST_call_expressions": 311896,
+    "current_import_statements": 19692,
+    "dependency_inventory_archive": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CODE_AND_FEATURE_INVENTORY_ARCHIVE.json",
+      "sha256": "529f8c6caf6856a83a134c0fabb5933a33d13e81abae04a7e7ce2ae619941c6d"
+    },
+    "retired_repo_workers": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CURRENT_CODE__REPO_RETIREMENT_RECEIPT.json.gz",
+      "sha256": "3c512af4a92c97145507705fa2b5522f268b88f7d3f3b6ada9ca18144cd6c1d7"
+    },
+    "retired_repo_worker_count": 5,
+    "retired_repo_worker_bytes": 98666,
+    "all53_active_source_owner_hashes_unchanged": true,
+    "metadata_reference_summary": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/ALL_METADATA_REFERENCE_SUMMARY.json",
+      "sha256": "c1a43b9ccdf126c7f3ece76008eebb734e73350707d1b702bd3d00429e801170"
+    },
+    "retention_authority_closure": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CANONICAL_RETENTION_AUTHORITY_OBSERVATION.json",
+      "sha256": "844d35d275452f5631a1d2d1cc4fc12bf6c40026b5385800bd8dff9de9b496a0"
+    },
+    "full_behavior_of_every_historical_function_proved": false,
+    "all_data_bytes_checked": false,
+    "native_TEST_kept_sealed": true
   }
 }
