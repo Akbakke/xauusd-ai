@@ -43,6 +43,13 @@ kildeeiere; ikke kalt303nye tester i samme prosess. Kildebroen SHA-binder begge
 bevis. Genuine throughput003 og kald mekanikk002 gjenstår; B256/equalTF er kun
 kildeimplementert og har ennå ingen bruksadmisjon. Main001/002 er ikke startet.
 
+Gjeldende fryste kildebase er1a03fa47978b8c265f94c29f4e5d9f89a4755e79.
+Sourcecompat001 SHA4d245b9a6a755d56216d901021f7cdfc09f911685169a3248cf56be0a38eb6b4
+binder seks endrede kildeeiere og47uendrede, ekte gamle Gitbytes og303PASS.
+Ny throughput003 er forberedt, SHA41c3099e5ac83d563199f14ab289cbedcd9165af06a2e63b1ef96f61b2c384b8:
+1modell,1checkpointload,15forwards,6backwards,0autograd/optimizerupdates.
+Global training_enabled=false består. Planen gjenåpner ingen konsumert kjøring.
+
 ## Bestilt restart og effektivitet 20.11.2026
 
 Fysisk Windows-restart er utført og målt: boot667→668, ny LastBootUpTime og

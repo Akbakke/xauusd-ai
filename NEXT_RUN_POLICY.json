@@ -4751,7 +4751,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Runtime control source and303focused synthetic testsPASS; prepare exact new zero-update throughput003 admission",
+    "current_activity": "Exact throughput003 prepared; all training flags closed, zero claims/models/updates so far",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -95725,13 +95725,13 @@
     "unmeasured_efficiency_changes_enabled": false
   },
   "native_m5_ta_efficiency_qualification_20261120_001": {
-    "status": "SOURCE_AND_303_SYNTHETIC_TESTS_PASS_AWAITING_GENUINE_DIAGNOSTIC",
+    "status": "THROUGHPUT003_PREPARED_NOT_ADMITTED",
     "operator_request": "Ja, optimaliser effektivitet til maks",
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001",
     "scope": "Measured runtime controls and one fixed evalB256/equal-length-TF candidate; preserve TRAIN math and qualify exact source before any later main",
     "main_training_started": false,
     "test_authorized": false,
-    "source_review_pending": true,
+    "source_review_pending": false,
     "new_one_use_diagnostic_required": true,
     "new_cold_mechanics_required": true,
     "heavy_job_running": false,
@@ -95739,6 +95739,34 @@
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/UNIT_PROOF002.json",
       "sha256": "eac39c2aa2c2eaa7c5068dd49ac6f933ae2217a050d49cbc50f702509a4dc5d7"
     },
-    "focused_tests_passed": 303
+    "focused_tests_passed": 303,
+    "source_compatibility": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/SOURCE_COMPATIBILITY001.json",
+      "sha256": "4d245b9a6a755d56216d901021f7cdfc09f911685169a3248cf56be0a38eb6b4"
+    }
+  },
+  "native_m5_ta_atr03_throughput_20261120_003": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003.json",
+      "sha256": "41c3099e5ac83d563199f14ab289cbedcd9165af06a2e63b1ef96f61b2c384b8"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "model_constructions": 1,
+    "checkpoint_loads": 1,
+    "model_forwards": 15,
+    "backward_calls": 6,
+    "autograd_calls": 0,
+    "optimizer_constructions": 0,
+    "optimizer_steps": 0,
+    "scope": "Fixed whole-five-year-input TRAIN B64 paired train+eval runtime controls and B256/equalTF candidate, no optimizer updates"
   }
 }
