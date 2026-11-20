@@ -4745,7 +4745,11 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001/RESULT.json",
       "sha256": "7b099711b52f12312d94cefd9fb427a2e26bd1abbdc529dcc1e4f523f1b394e5"
     },
-    "latest_external_process_exit": {"observation": "Fiveyearmechanics cappedguardedCUDA exit0/nativeCOMPLETE/coldbitexact; no mainjob.", "exit_code": 0, "native_terminal_present": true},
+    "latest_external_process_exit": {
+      "observation": "Fiveyearmechanics cappedguardedCUDA exit0/nativeCOMPLETE/coldbitexact; no mainjob.",
+      "exit_code": 0,
+      "native_terminal_present": true
+    },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
     "current_activity": "Full project dependency/feature/function/storage audit requested before training; physical inventory and ownership review in progress.",
     "restart_and_smoke_goal": {
@@ -22435,7 +22439,7 @@
       "saved_prediction_source_review": "Read-only peer checked no model/fit/TEST, exact joins and fixed5min panels. Loaded order digest and plan bookends added; all-parent prediction similarity named explicitly. Canonical metric and typed array digest owners reused.",
       "result": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_EDGE_CAUSE_REVIEW_20261101.json",
-        "sha256": "84320c1f2d631aa5cddd91fb26f351f521ba5d0df2c27c452e380db1089004a5"
+        "sha256": "cb55f657472c99b366ce9ee8da1e7d5d6f2c9b35350c163f19cb6168bff3c7b8"
       },
       "saved_prediction_result": {
         "path": "/home/andre2/GX1_RUNS/EDGE_CAUSE_SAVED_DIAGNOSIS_20261101_001/RESULT.json",
@@ -26537,10 +26541,6 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/LEARNING_DESIGN_001/DESIGN.json",
       "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
     },
-    "learning_design_repository_copy": {
-      "path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
-      "sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864"
-    },
     "preparation_recipe": {
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261001/M1_REBINDING_PATCH/OUTPUT/PREPARATION_RECIPE_20261001T173806836787Z.json",
       "sha256": "b64e7b2641a767bc680239d9f2d6b450515690b2c8148cd01430320a4142ae06"
@@ -26673,7 +26673,21 @@
     },
     "input_build_authorized": false,
     "normalization_fit_authorized": false,
-    "native_training_enabled": false
+    "native_training_enabled": false,
+    "learning_design_repository_copy_retirement": {
+      "status": "OBSOLETE_PHYSICAL_DESIGN_REPOSITORY_COPY_RETIRED_AFTER_HERMETIC_TEST_MIGRATION",
+      "original_repository_path": "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json",
+      "original_sha256": "5235db5c9e6ea619ec971673d58a38dc462bcf325122dc5dff0c6d4f8584a864",
+      "git_commit": "76dc9a06daed1eae150840d2e9b7a73d7b68f970",
+      "git_blob": "401a015b44df545bacaad8cb5d07adc33d3cfa88",
+      "hermetic_template_owner": "tests/test_native_fresh_prefix_components.py:_physical_design_template",
+      "test_module_reads_migrated": 10,
+      "physical_replay_qualified": false,
+      "training_authorized": false,
+      "old_admissions_reopened": false,
+      "original_RUNS_proofs_preserved": true,
+      "dated_Oct17_inventory_unchanged": true
+    }
   },
   "native_v38_rebuild_20261007": {
     "status": "READY_FOR_BOUNDED_RESEARCH_SMOKE_PREPARATION_COMPLETE_NOT_MODEL_ADMISSION",
@@ -51263,7 +51277,7 @@
     "status": "COMPLETE_EXPLORATORY_CAPPED_READ_ONLY",
     "result": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_GC_CONTEXT_RANGE_DIAGNOSIS_20261028.json",
-      "sha256": "a32df96dc55669ef6efc4b5b47a28249adf8cd71f4f5b32362e197d090f27962"
+      "sha256": "fc4b7a580e207e05b6fccbc2a99c4b6a8c1229333ab9081ada873990880da2c5"
     },
     "new_model_forwards": 0,
     "optimizer_steps": 0,
@@ -51274,7 +51288,7 @@
     "status": "COMPLETE_CAPPED_READ_ONLY",
     "result": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_GC_REGISTRY_FOLD_SCOPE_20261028.json",
-      "sha256": "6eed8d1142c65fdcf5dd8b6819304e7d742c315ee97215b94409be21e3b1c67d"
+      "sha256": "c00e5de656a2f4596b3b56925c13827340e3ba436d7fe6dfc02af7f860401751"
     },
     "new_model_forwards": 0,
     "optimizer_steps": 0,
@@ -94688,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Phase2 COMPLETE exit0 in15.676s:61macro formulas+declaredasof /122rawfieldrecords/47528638cells. All1731rawrecords nowindependentlyqualified. FrozenTRAINstat independentverification admittedonce; no new fitted/persistedmodelparameters. Sourcepolicyfreeze.",
+    "latest_observation": "Measured JSONdocumentguard+4historicalstoragebindingretirements and10realdesignreads→hermeticfixture completed. Focused544cases qualified via527unchangedpasses+17correctedfailure-retests, exactset. Legacyteacherfixture wronglyremovedALLfamilyMTFnorms; nowonlycontractmainnorm, strictstate/RNG/Entry/Exitparitypasses. No active modelmath change; DATA/RUNS deletionstill0.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94712,7 +94726,7 @@
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_OWNER_TESTS.xml",
       "sha256": "b8f4b791f13a84eaa2b99ed0649fafb38534067ab7e2f7f9e1ad083493238a85"
     },
-    "retention_owner_tests_passed": 169,
+    "retention_owner_tests_passed": 170,
     "retention_real_deletions": 0,
     "dependency_function_inventory_complete": true,
     "current_python_files": 1402,
@@ -94764,7 +94778,17 @@
     "current_macro_numeric_terminal": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_MACRO_NUMERIC001/TERMINAL.json",
       "sha256": "1e642633ff2e5962774b8341c7523a609f81ec4b35c8b5abe1a3ab9aa42174e2"
-    }
+    },
+    "frozen_TRAIN_statistics_verified": false,
+    "retention_JSON_document_guard_fixed": true,
+    "hermetic_legacy_design_test_reads_migrated": 10,
+    "focused_test_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_AND_HERMETIC_COMPOSITE_QUALIFICATION001.json",
+      "sha256": "c8add7f75971c84a7fc8a836ecb5923e8464c54696b68bf177d0bac42d454a86"
+    },
+    "focused_test_cases_composite_passed": 544,
+    "legacy_teacher_test_main_norm_scope_corrected": true,
+    "retired_repo_config_count": 1
   },
   "full_project_current_native_feature_numeric_20261120_001": {
     "status": "COMPLETE_CONSUMED",
@@ -95151,20 +95175,20 @@
     }
   },
   "full_project_current_native_frozen_train_stats_numeric_20261120_001": {
-    "status": "ADMITTED_ONE_USE_FROZEN_TRAIN_STATISTICS_VERIFICATION_ONLY",
+    "status": "FAILED_CONSUMED_AUDITOR_TUPLE_LIST_TYPE_CHECK",
     "contract": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/TRAIN_STATS_CONTRACT001.json",
       "sha256": "8236591522b342d62ed27ee8026830eea8a8e738bb00b2222ac22d3683680a49"
     },
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS001",
-    "execution_authorized": true,
+    "execution_authorized": false,
     "training_authorized": false,
     "test_authorized": false,
     "parameter_fit_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "outer_seconds": 3600,
     "internal_seconds": 3570,
@@ -95176,6 +95200,10 @@
     "monitor_interval_minutes": 30,
     "target_values_decoded": 0,
     "parameter_fit_API_calls": 0,
-    "reusable_parameters_published": false
+    "reusable_parameters_published": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS001/TERMINAL.json",
+      "sha256": "00144a4924df5e93ee7bd04178aa25ee5d217e6f4e45c43c7bac933340a00e6f"
+    }
   }
 }

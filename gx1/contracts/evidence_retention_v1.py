@@ -58,7 +58,7 @@ RETENTION_PROTECTED_LEAVES_SCHEMA = "gx1_retention_protected_leaves_v1"
 # Documents whose text names an artifact make it uncleanable until the document changes (rule 9).
 CURRENT_DOCUMENT_GLOBS = (
     "NEXT_RUN_POLICY.json", "CURRENT_HANDOVER.md", "GX1_RULES.md", "AGENTS.md", "PROJECT_STATE_*.json",
-    "docs/*.md", "configs/research/*.json",
+    "docs/*.md", "docs/*.json", "configs/research/*.json",
 )
 _ABSOLUTE_DATA_PATH_RE = re.compile(r"/home/andre2/GX1_(?:DATA|RUNS)[^\s\"'`,;)\]}<>]*")
 _RELATIVE_DATA_PATH_RE = re.compile(r"(?<![/\w])GX1_(?:DATA|RUNS)/[^\s\"'`,;)\]}<>]*")

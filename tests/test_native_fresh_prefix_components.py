@@ -22,6 +22,50 @@ def _write(path,data):
     path.write_text(json.dumps(data));return _bind(path)
 
 
+def _physical_design_template(tmp_path):
+    """Synthetic current-function metadata; source placeholders are never read.
+
+    Physical integration fixtures replace these bindings with their own bytes.
+    This is not an executable design or a copy of a historical dataset contract.
+    """
+    sources = {
+        split: {
+            kind: {"path": str(tmp_path / (split + "_SOURCE_NOT_READ." + suffix)),
+                   "sha256": digit * 64}
+            for kind, suffix, digit in (("parquet", "parquet", "2"),
+                                        ("manifest", "manifest.json", "3"))
+        }
+        for split in ("train", "val")
+    }
+    return {
+        "schema_version": "gx1_frozen_chronological_learning_design_v1",
+        "status": "DESIGN_AND_CONTROL_IDS_FROZEN_NOT_EXECUTABLE",
+        "scope": {"test_sealed": True, "same_architecture": True,
+                  "one_experiment": True, "native_launch_authorized": False},
+        "initialization": {
+            "mode": "fresh_existing_model_constructor_no_checkpoint_weights",
+            "seed": 20260911,
+            "target": "Frozen copy of the same current initial ONLINE function and weights. "
+                      "Do not strip current parameter-free norms for historical compatibility. "
+                      "Bind function identity as well as state hashes.",
+        },
+        "budget": {"planned_optimizer_steps": 256, "maximum_trained_entry_rows": 4096,
+                   "train_batch_size": 16},
+        "selection": {"control_entries": 256, "seed": 20260911},
+        "targets": {"reference_policy": reference_policy_contract()},
+        "calendar": {
+            "source_bindings": sources,
+            "physical_source_splits": {"train": "train", "control": "val"},
+            "physical_coordinate_namespaces_are_separate": True,
+            "train_entry_start_inclusive": "2011-06-01T00:00:00+00:00",
+            "train_control_cutoff": "2025-06-01T00:00:00+00:00",
+            "development_control_entry_end_exclusive": "2026-07-01T00:00:00+00:00",
+        },
+        "read_boundary": {"test_dataset_or_manifest_accessed": False},
+        "source_owners": {"synthetic_test_owner": "test_native_fresh_prefix_components"},
+    }
+
+
 def _bindings(tmp_path):
     files={name:tmp_path/name for name in runner._DATA_FILES}
     for path in files.values():path.write_text('{}')
@@ -354,8 +398,7 @@ def physical_component_case(tmp_path, physical_component_templates):
     from gx1.contracts.unified_exit_native_candidate_campaign_v1 import native_sha256
     c = physical_recipe.__wrapped__(tmp_path, physical_component_templates)
     design = c["design"]
-    actual = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
-    design["initialization"]["target"] = actual["initialization"]["target"]
+    design["initialization"]["target"] = _physical_design_template(tmp_path)["initialization"]["target"]
     design["budget"].update(train_only_probe_entries=256, train_batch_size=16)
     design["selection"]["seed"] = 20260911
     c["seal"]()

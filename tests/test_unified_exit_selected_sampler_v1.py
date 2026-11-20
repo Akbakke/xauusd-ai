@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.test_native_fresh_prefix_components import _physical_design_template
 import copy
 import json
 from pathlib import Path
@@ -146,7 +147,7 @@ def _file_binding(path):
 
 def _direct_fixture(tmp_path, selected_budget=131072, *, population=652552, design_path=None):
     if design_path is None:
-        design = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+        design = _physical_design_template(tmp_path)
         design_path = tmp_path / "DESIGN.json"
         _write(design_path, design)
     else:
@@ -357,7 +358,7 @@ def test_native_component_binds_measured_current_sampler(tmp_path, budget):
     c = _direct_fixture(tmp_path, budget)
     selected = _direct_build(c)
     sp = tmp_path / "SELECTED.json"; _write(sp, selected)
-    design = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+    design = _physical_design_template(tmp_path)
     dp = tmp_path / "DESIGN.json"; _write(dp, design)
     prefix = {"design": _file_binding(dp)}
     files = {"selected_sampler": sp, "sampler_candidate_set": c["candidate_path"], "random_access_root": c["root_path"],
@@ -394,7 +395,7 @@ def test_current_native_rejects_other_benchmark_workload(tmp_path, fault):
 def test_native_builder_stops_unmeasured_current_design_before_dataset_or_model(tmp_path, monkeypatch):
     from gx1.scripts import run_unified_exit_random_access_full_train_v1 as runner
     import torch
-    design = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+    design = _physical_design_template(tmp_path)
     dp = tmp_path / "DESIGN.json"; _write(dp, design)
     def forbidden(*a, **kw):
         pytest.fail("Current builder touched dataset/model before measured sampler admission")
@@ -451,7 +452,7 @@ def test_native_current_sampler_requires_measured_input_geometry(tmp_path, fault
 
 def _metadata_completion_case(tmp_path):
     from gx1.contracts import unified_exit_native_candidate_campaign_v1 as native
-    procedure = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+    procedure = _physical_design_template(tmp_path)
     procedure_path = tmp_path / "PROCEDURE.json"
     _write(procedure_path, procedure)
     original = copy.deepcopy(procedure)

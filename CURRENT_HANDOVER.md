@@ -63,13 +63,25 @@ ingen nativeTEST-fil eller etterforseglede makroverdier inngikk i feltberegninge
 Dermed er alle1731råfeltposter kontrollert uavhengig. Vendorrevisjoner og hele
 historiske publiseringsledgeren er fortsatt ikke fullstendig bevist.
 
-Neste engangs CPU-audit verifiserer allerede frosne heleTRAIN-statistikker:
-populasjonsvinduer, kvartiler/robust skala, domener, alias-eierskap og eksakte
-center-/skalabits/ekstrema/kategoritall. Ingen produksjons-fit-API eller nye
-modeller/parametre. TRAIN_STATS_CONTRACT001.json er bundet i policy.
-Audit4GiB/512MiB/1tråd/64tasks,intern3570s/ekstern3600s;43syntetiske prøver
-og metadata-preflight består utenCLAIM/arrays. Kilde/policy fryses under kjøringen.
-Kvalifisert retention/bytekontroll gjenstår. Ingen trening er innrømmet.
+Frosne heleTRAIN-statistikker er ennå ikke ferdig uavhengig verifisert.
+Audit001 fullførte kontrollene for signal318/kontekst132, men feilet på en
+representasjonskontroll i auditøren: profilens tuple('session_id',) ble sammenlignet
+med en liste. Faktisk metadata er konsistent:ctx_cat<i8,[389579,1]. Original
+FAILED_CONSUMED er bevart og relanseres aldri. En ny avgrenset korrigert
+verifikator klargjøres; ingen modell-/normaliseringsparametre er endret.
+
+En andre målt retention-mangel rettes:docs/*.json inngår nå i dokumentvernet.
+Fire konsumerte GC-dokumenter har eksplisitt pensjonert sine scratch-lagringskrav;
+originale bindinger/resultater er bevart i Git/uendrede RUNS. Foreldet PENDING-status
+er korrigert fra faktiske terminaler. Fem testmoduler bruker nå syntetiske
+fixtures i eksisterende eier fremfor gammel V38 fysisk design. Den foreldede
+repo-designkopien pensjoneres med Git-gjenoppretting; datert Oct17-inventar og
+alle originale RUNS-bevis beholdes. Fokuserte544tilfeller er kvalifisert:527uendrede PASS og17rettede feiltilfeller
+består ved eksakt etterkontroll; ingen ny fullsuite.170retention-tester består.
+En gammel teacher-test fjernet feilaktig alle familie-/MTF-normer; den er nå
+avgrenset til hovedencoderens norm etter kontrakten, med streng Entry/Exit-/
+state-/RNG-paritet bevart. Ingen produksjonsmodell er endret.
+Ingen DATA/RUNS-sletting har skjedd. Hovedtreningen forblir stengt.
 
 ## Fysisk kvalifisert grunnlag
 

@@ -2461,3 +2461,19 @@ def test_new_document_reference_between_staged_deletes_stops_remaining_target(
     assert calls == [str(state["targets"][0])]
     assert not Path(state["stage_plan"][0]["quarantine_wrapper"]).exists()
     assert Path(state["stage_plan"][1]["quarantine_path"]).read_bytes() == b"obsolete-1"
+
+
+def test_current_json_document_storage_binding_blocks_exact_target(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    (repo / "docs").mkdir(parents=True)
+    for name in ("NEXT_RUN_POLICY.json", "CURRENT_HANDOVER.md", "GX1_RULES.md", "AGENTS.md"):
+        (repo / name).write_text("{}" if name.endswith(".json") else "clean")
+    target = Path("/home/andre2/GX1_RUNS/synthetic-retention-json/context.mmap")
+    document = repo / "docs" / "historical_context.json"
+    _write_json(document, {"inputs": {"context_mmap": {"path": str(target)}}})
+    with pytest.raises(EvidenceRetentionError, match="named by current document"):
+        retention_contract.require_targets_unnamed_in_current_documents([target], repo_root=repo)
+    assert str(document) in retention_contract.current_document_named_paths(repo)
+    _write_json(document, {"status": "HISTORICAL_COMPLETE_CONSUMED_STORAGE_BINDING_RETIRED",
+                           "original_proof": {"git_blob": "synthetic-original-retained-in-git"}})
+    retention_contract.require_targets_unnamed_in_current_documents([target], repo_root=repo)

@@ -15,7 +15,7 @@ from gx1.contracts.unified_exit_bounded_val_cohort_v1 import build_chronological
 from gx1.contracts.unified_exit_random_access_val_factory_v1 import RandomAccessValStateFactoryV1
 from gx1.contracts.unified_exit_random_access_model_v1 import RANDOM_ACCESS_MODEL_SCHEMA_VERSION,RANDOM_ACCESS_MODEL_SCHEMA_SHA256
 from tests.test_native_fresh_prefix_components import (
-    _bindings, _bind, _write, physical_component_templates, physical_component_case,
+    _bindings, _bind, _write, _physical_design_template, physical_component_templates, physical_component_case,
 )
 from tests.test_native_chronological_control_source import _control_plan
 from tests.test_candidate_execution_staging import Harness,Rows,equal_tree,digest
@@ -219,7 +219,7 @@ def test_prefix_fixed_scope_rejects_expansion_before_checkpoint_or_updates(tmp_p
 def test_current_design_cannot_relabel_legacy_same_source_control(tmp_path):
     data = _prepared(tmp_path)
     args = _binding_args(data)
-    current = json.loads((Path(__file__).resolve().parents[1] / "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+    current = _physical_design_template(tmp_path)
     data.design["calendar"].update({
         "physical_source_splits": current["calendar"]["physical_source_splits"],
         "physical_coordinate_namespaces_are_separate": True,

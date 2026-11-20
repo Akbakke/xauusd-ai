@@ -15,6 +15,7 @@ from gx1.contracts.unified_exit_random_access_sampler_v1 import (
     build_random_access_sampler_contract,
 )
 from gx1.scripts import benchmark_unified_exit_random_access_train_v1 as benchmark
+from tests.test_native_fresh_prefix_components import _physical_design_template
 
 
 class _Adapter:
@@ -394,9 +395,9 @@ def test_candidate_factory_rejects_equal_python_values_with_changed_bytes(tmp_pa
         _candidate_contracts(path)
 
 
-def test_benchmark_forwards_and_records_actual_reference_workload(monkeypatch):
+def test_benchmark_forwards_and_records_actual_reference_workload(monkeypatch, tmp_path):
     from pathlib import Path
-    design = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+    design = _physical_design_template(tmp_path)
     workload = benchmark._reference_workload_from_design(design)
     calls = []
     class ReferenceAdapter(_Adapter):
@@ -413,9 +414,9 @@ def test_benchmark_forwards_and_records_actual_reference_workload(monkeypatch):
     assert receipt["candidate_selection_performed"] is False
 
 
-def test_benchmark_rejects_candidate_reference_workload_drift(monkeypatch):
+def test_benchmark_rejects_candidate_reference_workload_drift(monkeypatch, tmp_path):
     from pathlib import Path
-    design = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+    design = _physical_design_template(tmp_path)
     workload = benchmark._reference_workload_from_design(design)
     seen = []
     def factory(budget):
@@ -446,7 +447,7 @@ def test_benchmark_cli_binds_design_to_factory_collation_and_input_geometry(tmp_
                  "entry_train_manifest", "sequence_source_audit", "m5_prebuilt")
     paths = {key: tmp_path / (key + ".json") for key in file_keys}
     for path in paths.values(): path.write_text("{}")
-    design = json.loads(Path("configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json").read_text())
+    design = _physical_design_template(tmp_path)
     design["calendar"]["source_bindings"]["train"].update({
         key: {"path": str(paths["entry_train_" + key]), "sha256": benchmark.file_sha256(paths["entry_train_" + key])}
         for key in ("parquet", "manifest")

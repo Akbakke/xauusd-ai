@@ -40,8 +40,13 @@ def test_frozen_teacher_entry_token_exit_and_rng_match_original_constructor(monk
     online = _make_model(dropout=0.0).eval()
     rng = torch.get_rng_state().clone()
     constructor = module.nn.TransformerEncoder
+    constructor_calls = 0
     def original_constructor(*args, **kwargs):
-        kwargs.pop('norm', None)
+        nonlocal constructor_calls
+        # The legacy contract removes only the main encoder's final norm.
+        if constructor_calls == 0:
+            kwargs.pop('norm', None)
+        constructor_calls += 1
         return constructor(*args, **kwargs)
     with monkeypatch.context() as patch:
         patch.setattr(module.nn, 'TransformerEncoder', original_constructor)
@@ -49,6 +54,7 @@ def test_frozen_teacher_entry_token_exit_and_rng_match_original_constructor(monk
         original = _make_model(dropout=0.0).eval().requires_grad_(False)
         # The original six-layer fuse has no final normalization or extra RNG draw.
         original.fuse = original.fuse[:-1]
+    assert constructor_calls > 1 and original.encoder.norm is None
     assert torch.equal(rng, torch.get_rng_state())
     _assert_equal(online.state_dict(), original.state_dict())
     teacher = trainer._copy_frozen_prefix_reference_model(online)
@@ -100,23 +106,21 @@ def test_entry_fuse_bounds_each_row_without_mixing_inputs_or_losing_gradients():
 
 
 
-def _v38_design():
-    import json
-    from pathlib import Path
-    path = Path(__file__).resolve().parents[1] / "configs/research/NATIVE_V38_LEARNING_DESIGN_20261001.json"
-    return json.loads(path.read_text())
+def _v38_design(tmp_path):
+    from tests.test_native_fresh_prefix_components import _physical_design_template
+    return _physical_design_template(tmp_path)
 
 
-def test_frozen_v38_design_requires_current_function_and_legacy_stays_explicit():
-    assert trainer._prefix_reference_model_functions(_v38_design()) == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
+def test_frozen_v38_design_requires_current_function_and_legacy_stays_explicit(tmp_path):
+    assert trainer._prefix_reference_model_functions(_v38_design(tmp_path)) == trainer._PREFIX_CURRENT_MODEL_FUNCTIONS
     legacy = {"schema_version": "gx1_frozen_chronological_learning_design_v1",
               "calendar": {}, "initialization": {}}
     assert trainer._prefix_reference_model_functions(legacy) == trainer._PREFIX_MODEL_FUNCTIONS
 
 
 @pytest.mark.parametrize("fault", ["same_source", "missing_namespace", "target", "old_init", "partial_current", "schema", "calendar_type"])
-def test_current_teacher_design_rejects_ambiguous_or_mismatched_function(fault):
-    design = _v38_design()
+def test_current_teacher_design_rejects_ambiguous_or_mismatched_function(fault, tmp_path):
+    design = _v38_design(tmp_path)
     if fault == "same_source":
         design["calendar"]["physical_source_splits"]["control"] = "train"
     elif fault == "missing_namespace":
@@ -137,12 +141,12 @@ def test_current_teacher_design_rejects_ambiguous_or_mismatched_function(fault):
 
 
 @pytest.mark.parametrize("inference", [False, True])
-def test_current_teacher_preserves_entry_exit_function_weights_and_rng(inference):
+def test_current_teacher_preserves_entry_exit_function_weights_and_rng(inference, tmp_path):
     torch.manual_seed(20260911)
     online = _make_model(dropout=0.0).eval()
     before = trainer._model_state_sha256(online)
     rng = torch.get_rng_state().clone()
-    functions = trainer._prefix_reference_model_functions(_v38_design())
+    functions = trainer._prefix_reference_model_functions(_v38_design(tmp_path))
     teacher = trainer._copy_frozen_prefix_reference_model(online, model_functions=functions)
     assert torch.equal(rng, torch.get_rng_state())
     assert trainer._model_state_sha256(teacher) == before == trainer._model_state_sha256(online)

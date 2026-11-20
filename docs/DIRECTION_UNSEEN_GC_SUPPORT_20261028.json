@@ -1,14 +1,39 @@
 {
   "schema_version": "gx1_direction_unseen_gc_support_design_v1",
-  "status": "SOURCE_PREPARED_ACTUAL_AUDIT_PENDING",
+  "status": "HISTORICAL_COMPLETE_CONSUMED_STORAGE_REQUIREMENT_RETIRED",
+  "storage_binding_retirement": {
+    "status": "HISTORICAL_GENERATED_SCRATCH_STORAGE_REQUIREMENT_RETIRED",
+    "prior_document_status": "SOURCE_PREPARED_ACTUAL_AUDIT_PENDING",
+    "retired_current_input_key": "inputs.context_mmap",
+    "original_document": {
+      "git_commit": "4f492aa60028c0571e2bdcc3e674e57072e785d7",
+      "git_blob": "3a5c891e61742f9c25deea19853fa805cdb6dcbc",
+      "source_sha256": "92a04497982e66d3899852fcc5f5afb4be58d6c0ca2bb5c3bcf44ffceb0030d4"
+    },
+    "original_absolute_storage_binding_preserved_in": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_SUPPORT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "48b28abd82380efa51ab4ff8912152e586b4535c615c5c7091eae68bc910d3c7"
+    },
+    "original_storage_binding_field": "context_mmap",
+    "consumed_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_SUPPORT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "48b28abd82380efa51ab4ff8912152e586b4535c615c5c7091eae68bc910d3c7"
+    },
+    "consumed_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_SUPPORT_20261028_001/TERMINAL.json",
+      "sha256": "970da1a901bb640d07631fd8c44fe45f7a840268c448e7c1b3f1049b687d6207"
+    },
+    "proof_scope": "The original design remains in Git and its actual one-use execution is complete and consumed. The unchanged support result cited above preserves the historical storage binding.",
+    "storage_replay_qualified": false,
+    "replay_requires_fresh_preparation": true,
+    "model_authority": false,
+    "relaunch_allowed": false,
+    "physical_deletion_authority": "Only gx1.scripts.cleanup_gx1_evidence_v1; this document neither authorizes nor asserts deletion."
+  },
   "scope": "Measure whether the 33 active GC context coordinates whose normalized values and projection columns were constant/unchanged on first-prefix TRAIN become nonzero for the same model on Q1 OOF or the fixed Q2 sample.",
   "method": "Verify the original immutable decoded context file and parent/time axes, replicate the native signal-owned normalization and observation masks, independently recheck zero TRAIN support, then count later nonzero normalized values and affected parents. No model scoring or outcome-conditioned selection.",
   "limits": "A previously unsupported coordinate becoming nonzero shows extrapolation opportunity, not that its particular weight affects output or causes poor direction. Current context and temporal/history paths can differ; Q2 is a fixed development subsample.",
   "inputs": {
-    "context_mmap": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_NORMALIZATION_20261024_261/SUPPORT_SCRATCH/current051/ctx_cont.mmap",
-      "sha256": "3765bd5138548b11d8f52464175ad9bdfd38bc69355e0415307167264301b78b"
-    },
     "support_plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PLAN_SUPPORT.json",
       "sha256": "96ff82533042ab069292505b3a44315c13223a9b9d9e9ee669cd757e3f84c086"

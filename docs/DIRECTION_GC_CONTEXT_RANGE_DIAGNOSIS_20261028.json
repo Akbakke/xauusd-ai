@@ -1,11 +1,36 @@
 {
   "schema_version": "gx1_gc_context_train_range_diagnosis_v1",
-  "status": "COMPLETE_EXPLORATORY_CAPPED_READ_ONLY",
-  "inputs": {
-    "context_mmap": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_NORMALIZATION_20261024_261/SUPPORT_SCRATCH/current051/ctx_cont.mmap",
-      "sha256": "3765bd5138548b11d8f52464175ad9bdfd38bc69355e0415307167264301b78b"
+  "status": "HISTORICAL_COMPLETE_STORAGE_REQUIREMENT_RETIRED",
+  "storage_binding_retirement": {
+    "status": "HISTORICAL_GENERATED_SCRATCH_STORAGE_REQUIREMENT_RETIRED",
+    "prior_document_status": "COMPLETE_EXPLORATORY_CAPPED_READ_ONLY",
+    "retired_current_input_key": "inputs.context_mmap",
+    "original_document": {
+      "git_commit": "4f492aa60028c0571e2bdcc3e674e57072e785d7",
+      "git_blob": "86c556d0196d5fa6f7a6f6edc29fdf0fa1d31431",
+      "source_sha256": "a32df96dc55669ef6efc4b5b47a28249adf8cd71f4f5b32362e197d090f27962"
     },
+    "original_absolute_storage_binding_preserved_in": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_SUPPORT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "48b28abd82380efa51ab4ff8912152e586b4535c615c5c7091eae68bc910d3c7"
+    },
+    "original_storage_binding_field": "context_mmap",
+    "consumed_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_SUPPORT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "48b28abd82380efa51ab4ff8912152e586b4535c615c5c7091eae68bc910d3c7"
+    },
+    "consumed_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_SUPPORT_20261028_001/TERMINAL.json",
+      "sha256": "970da1a901bb640d07631fd8c44fe45f7a840268c448e7c1b3f1049b687d6207"
+    },
+    "proof_scope": "The original aggregate transcription remains in Git. These completed consumer receipts preserve the original scratch binding and its historical use; they are not standalone execution receipts for this transcription.",
+    "storage_replay_qualified": false,
+    "replay_requires_fresh_preparation": true,
+    "model_authority": false,
+    "relaunch_allowed": false,
+    "physical_deletion_authority": "Only gx1.scripts.cleanup_gx1_evidence_v1; this document neither authorizes nor asserts deletion."
+  },
+  "inputs": {
     "prefix_normalization": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_1.json",
       "sha256": "54bc7ca606c5b2c3b077f0207b2938e80d055654a9d3b37d135fc33b27a4e0db"
