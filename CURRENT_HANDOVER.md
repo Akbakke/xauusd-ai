@@ -6,7 +6,8 @@ originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 ## Gjeldende status 20.11.2026
 
-Det vedvarende OPP/NED/FLAT-målet er aktivt, ikke oppnådd.
+Det vedvarende OPP/NED/FLAT-målet er blokkert på nødvendig brukeravklaring,
+ikke oppnådd. Det fulle målet og alt kvalifisert arbeid beholdes.
 Seksårs TA-inputs er produsert og uavhengig kvalifisert.
 Ingen aktiv jobb. ALLE trenings-/kjøringsporter er stengt. Alle tidligere
 engangsplaner er konsumert og relanseres aldri. Ingen ny fit er innrømmet.
@@ -168,7 +169,11 @@ bullish/bearish/sideveis markedsfasit. Ingen ny terskel, klassekvote, vekt
 eller fasitendring er gjort. Originale prisfakta skal beholdes.
 
 Avklar om FLAT skal være separat markedsregime, før neste target-/fitkontrakt.
-Dette brukeravklaringspunktet er fortsatt ubesvart; intet svar er tolket som ja.
+Dette brukeravklaringspunktet er fortsatt ubesvart gjennom tre målturner;
+intet svar er tolket som ja. Seksårsinput-, fasit-/maskestøtte- og referanse-
+kontrollene er ferdige. Ingen ny nyttig selvstendig kjøring gjenstår før
+klassebetydningen er avklart. Målet settes derfor blokkert, uten refit,
+fasitendring eller omdefinering av suksess.
 Deretter trengs forhåndsbundet TRAIN-fold, TRAIN-only normalisering og
 genuin fersk initialbaseline for den nye seksårscachen før en ny kort fit.
 Ingen ny trening/produksjon er innrømmet og ingen automatisk epoke-/seedserie.
