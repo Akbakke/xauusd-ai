@@ -70,7 +70,9 @@ men stoppet på eksakt centerbit i D1 geomline_bars_since_break_signed.
 Lagret center er negativ null. Faktisk D1-diagnose er nå fullført:én +0/-0-centerrepresentasjon, ingen
 numerisk forskjell i noen av256D1-statistikker. Scalar/32-kolonners NumPy-kvartiler
 [-2,-0,1] samsvarer med den frosne statistikken, skala3. Korrigertverifikator003
-klargjøres uten endring av frosne parametre.
+er innrømmet:TRAIN_STATS_CONTRACT003.json,72syntetiske kontroller/preflight PASS.
+Bare målt navngitt D1-center +0→lagret-0 er numerisk ekvivalent; øvrige1729
+centerbits/alle skala-/ekstrembits er strenge. Ingen frosne parametre endres.
 En ny D1-only diagnose er innrømmet:1542TRAIN-rader/256statistikkfelt,
 D1_STATS_DIAG_CONTRACT001.json, audit4GiB/512MiB/1tråd/64tasks,110/120s.
 Ingen gammel engangsplan relanseres, ingen modell/fit/target/TEST/parameterendring.
@@ -202,6 +204,10 @@ Ingen fast tapsgrense eller maksimal holdetid er innført.
 Kode/docs/interne stier/aggregerte bevis kan pushes til autorisert branch;
 aldri rådata, vekter, hemmeligheter eller force-push.
 
-Aktiv housekeeping:én avgrenset SHA-only-kontroll av fire positive preseal-filer
-(to mulige byteidentiske TRAIN/VAL-kopipar), gjennom eksisterende retention-inventar.
-Ingen arraydekoding/sletting/trening; kilde/policy fryses under kjøringen.
+Housekeeping SHA-only kontroll fullført på98,129s:42320360170logiske bytes
+lest gjennom retention-eieren. Begge historiske TRAIN/VAL-kopipar er eksakt
+byteidentiske med erklært SHA, stabile identiteter og beholdte ekvivalenter.
+Mulig allokert frigjøring21160194048bytes; ingen DATA/RUNS-sletting ennå.
+Ferske dokument-/canonicalvern nektet ingen av de åtte kvalifiserte målene,
+men ulesbare root-prosessers FD-tabeller stenger korrekt sletteporten. Dette
+undersøkes med legitim midlertidig administrativ inspeksjon uten å svekke vernet.

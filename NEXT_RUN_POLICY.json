@@ -94702,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "D1diagnosisCOMPLETE:exactone+0vs-0centerdifference,numericidentical; all256D1statistics/extremapass. Correctedverifier003pending. ExactfourfileSHAparity audit admittedforqualifiedduplicatecleanup; no DATA/RUNS deletion.",
+    "latest_observation": "42.320GB read-onlyhash:bothTRAINVALpairs identicaltooriginaldeclaredSHA/stablebookends. No deletion. Stats003oneexplicitmeasuredD1+0vs-0representationexception;1729strictcenters/allscales/extremastrict, no parameterchanges, freshfullverificationadmitted. CleanupownerFDpermissionblockunderlegitimateadminlaunchinvestigation; no guardbypass.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94796,7 +94796,16 @@
     "D1_signed_zero_diagnostic_terminal": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/D1_STATS_DIAG001/TERMINAL.json",
       "sha256": "8daa6d863a09048d10befc65d9096c27a7b9d058f8fb52fd1deaf31dbcefe691"
-    }
+    },
+    "duplicate_byte_parity_result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/DUPLICATE_BYTE_PARITY001/RESULT.json",
+      "sha256": "13171657a4886df130f8fb375acd80faa36367d7f86de7b5fb7434c9e80dac7d"
+    },
+    "duplicate_byte_parity_terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/DUPLICATE_BYTE_PARITY001/TERMINAL.json",
+      "sha256": "d23040bd739f7f0960075a64f081fb04db00ee3ce68e077182b176196817e0e7"
+    },
+    "verified_duplicate_candidate_reclaim_bytes": 21160194048
   },
   "full_project_current_native_feature_numeric_20261120_001": {
     "status": "COMPLETE_CONSUMED",
@@ -95278,23 +95287,57 @@
     }
   },
   "full_project_duplicate_byte_parity_20261120_001": {
-    "status": "ADMITTED_READONLY_DUPLICATE_BYTES_PROOF",
+    "status": "COMPLETE_CONSUMED_TWO_BYTE_IDENTICAL_PRESEAL_PAIRS",
     "contract": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/DUPLICATE_BYTE_PARITY_CONTRACT001.json",
       "sha256": "718b22522c8b820425788877d999c83d5c7f43a411d7277e4835769d4a316652"
     },
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/DUPLICATE_BYTE_PARITY001",
-    "execution_authorized": true,
+    "execution_authorized": false,
     "training_authorized": false,
     "test_authorized": false,
     "max_invocations": 1,
+    "claimed_invocations": 1,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "memory": "4G",
+    "swap": "512M",
+    "tasks_max": 64,
+    "numerical_threads": 1,
+    "outer_seconds": 600,
+    "completed_invocations": 1,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/DUPLICATE_BYTE_PARITY001/RESULT.json",
+      "sha256": "13171657a4886df130f8fb375acd80faa36367d7f86de7b5fb7434c9e80dac7d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/DUPLICATE_BYTE_PARITY001/TERMINAL.json",
+      "sha256": "d23040bd739f7f0960075a64f081fb04db00ee3ce68e077182b176196817e0e7"
+    }
+  },
+  "full_project_current_native_frozen_train_stats_numeric_20261120_003": {
+    "status": "ADMITTED_FROZEN_STATS_NUMERIC_VERIFICATION_ONE_BOUND_SIGNED_ZERO_CENTER",
+    "contract": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/TRAIN_STATS_CONTRACT003.json",
+      "sha256": "6e37f3f1c410c1a1c3ccd28030ac157b10cde41fe97bf3495d3adcc5e614829c"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS003",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "test_authorized": false,
+    "parameter_fit_authorized": false,
+    "max_invocations": 1,
     "claimed_invocations": 0,
+    "completed_invocations": 0,
     "remaining_invocations": 1,
     "relaunch_allowed": false,
     "memory": "4G",
     "swap": "512M",
     "tasks_max": 64,
     "numerical_threads": 1,
-    "outer_seconds": 600
+    "outer_seconds": 3600,
+    "internal_seconds": 3570,
+    "preflight_synthetic_checks_passed": 72,
+    "comparison_scope": "1729 float32 center bytes exact and one diagnostic-bound named D1 positive-zero versus stored-negative-zero center numerically equal; all scales byte exact; scale-source/domain/population hashes exact; stored float64 transformed extrema bytes exact using unchanged stored center for the one qualified zero representation; category counts exact"
   }
 }
