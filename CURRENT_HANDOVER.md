@@ -10,6 +10,8 @@ Brukeren har avklart20.11: eksisterende FLAT betyr sideveis marked og
 inkluderer eksakt like priser. Brukeravklaringsblokkeringen er fjernet.
 Målet er ikke oppnådd; neste arbeid er korrekt kobling til markedsklasser.
 Seksårs TA-inputs er produsert og uavhengig kvalifisert.
+TRAIN-sammenligning av0,3/0,4ATR er ferdig;0,3 er første kandidat,
+fortsatt uten modellbinding eller ny fit.
 Ingen aktiv jobb. ALLE trenings-/kjøringsporter er stengt. Alle tidligere
 engangsplaner er konsumert og relanseres aldri. Ingen ny fit er innrømmet.
 M5-læringen bedret seg på valgt FIT, men senere CONTROL taper fortsatt prior.
@@ -163,7 +165,7 @@ Ingen prisarrays/modell/fit, ny klassevekt/prior/fold eller fasitendring.
 
 Brukeren ber om en liten bunnmargin for støy. Target-eieren har nå en
 separat eksplisitt ATR-nøytralsone for netto åpning-/sluttendringer.
-Ingen standardkoeffisient er gjettet eller valgt. Vanlig build, dataclass,
+Ingen skjult standardkoeffisient er innført. Vanlig build, dataclass,
 råkontrakt og gather er urørt; hele opprinnelige AST og råfeltbytes er
 bevist uendret. Ny producer-only gather legger til noise_sign/known/
 predictive-eligible/delta og kausal ATR-/marginmetadata, aldri modellinput.
@@ -190,10 +192,39 @@ leserevidert uten nyarraydekoding. Alle audits/script/log/proofs er
 immutable og hashbundet i NOISE_MARGIN_SOURCE_QUALIFICATION/policy.
 Alle trenings-/kjøringsporter er fortsatt stengt.
 
+## Brukerforeslått0,3 mot0,4ATR — TRAIN-sammenligning
+
+Én readonly audit4G/512M/1tråd fullførte på2,950s/RSS488MiB.
+Begge marginer brukte samme24175issues fra deklarert TRAIN[01.05,01.09)2024,
+samme kausale ATR14-skala og masker i neste faktiske nativeTF-bar-domene.
+Alle rågatherfelt er byteuendret.0,4 flytter bare flere utfall til nøytral,
+aldri fra OPP til NED eller omvendt. Source/input/policybookends bestod.
+
+| TF-close | Nøytral ved0,3ATR | Nøytral ved0,4ATR |
+|---|---:|---:|
+|M5|39,1909%|50,1779%|
+|M15|42,7401%|53,6361%|
+|H1|45,7392%|56,4615%|
+|H4|40,1613%|52,7363%|
+|D1|36,2854%|46,5605%|
+
+M5 har24174eligible mål: NED/nøytral/OPP=7175/9474/7525 ved0,3,
+5922/12130/6122 ved0,4. HøyereTF er issuevektet, ikke uavhengige unike
+målbarer; D1-open har fortsatt0prediktivstøtte i denne TRAIN-kohorten.
+0,3 er assistentens første kandidat fordi den er det mindre inngrepet,
+deklarert før modell-/CONTROL-resultater. Ingen klassekvote ble valgt.
+Dette er netto-prisendringsnøytralitet, ikke bevis på rolig prisbane eller
+hele markedets sideveis-FLAT. Ingen seksårs marginmåling eller modellfit.
+ATR_MARGIN_03_04_TRAIN_COMPARISON.py/.log/.json og lesereview er immutable
+i cache003-root og hashbundet i policy. Uavhengig script-/aggregatreview
+bestod uten nyarraydekoding. Produksjonsmargin er fortsatt null; target-
+datasett, modellkontrakt, prior, loss og score må kobles sammen og få
+fersk initialbaseline før ny trening. Alle kjøringsporter forblir stengt.
+
 ## Neste tekniske kobling etter avklaringen20.11
 
 Brukeren bekrefter FLAT=sideveis marked og at eksakt like priser inngår.
-Dette viderefører eksisterende forståelse; ingen ny terskel er valgt.
+Dette viderefører eksisterende forståelse; ingen ny lokal range-terskel er valgt.
 Den tidligere manglende-avklaring-blokkeringen var unødvendig og er fjernet.
 Ikke spør om samme betydning igjen. Rå åpning-/sluttfakta beholdes fullt.
 
