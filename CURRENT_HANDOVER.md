@@ -217,3 +217,10 @@ Faktisk capped-probe bekrefter UID1000, kun de to lese-capabilities, uendret
 består med PID1-tabellen lesbar. Ny eksakt retention-plan for åtte kvalifiserte
 mål er innrømmet; plan/approve/dryrun/execute skjer bare gjennom eksisterende eier.
 Ingen sletting før konkret plan er validert og godkjent etter brukerens vedtak.
+
+Den fortsatt uclaimede femårsplanen er metadata-rebundet til siste kodecommit
+2cee1dfe etter målt sourceguard=False fra endret retention-/pensjonert utilitykode.
+Bare source_base_commit endres; alle53modellkilder/inputs/recipe/initialtilstand
+er byteuendret. Gamle kvitteringer er urørt og originalplanen finnes i Git.
+Fersk preflight gjenstår; ingen treningsport åpnes. docs/FEATURE_AUDIT.md viser
+nå faktisk1731feltdekning og ærlige konsum-/gradient-/generaliseringsgrenser.

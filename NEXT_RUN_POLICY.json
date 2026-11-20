@@ -94644,7 +94644,7 @@
     "status": "PREPARED_NOT_ADMITTED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json",
-      "sha256": "b9dcdda5157e2c20a19427d13285db2d3c1eb57245fc002bccbce892ba2a7667"
+      "sha256": "e8c865982bcce9ec60e4078640366276ef484ab53e191f349c0baf247088cb03"
     },
     "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001",
     "max_invocations": 1,
@@ -94702,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "AllfrozenTRAINstatisticsqualifiedexit0/20.582s:1730numeric+1category,1729centerbits+1measuredsignedzero,allscale/extremabits/domains/populations. No parameterfit/change. Legal2readcapabilitysameUID/canonicalcaproutepreflightnext; no retentionguardbypass or permanentpermissions.",
+    "latest_observation": "Allnumerics/statsqualified. Unclaimedmain sourceguardFalse afterretentionutilitychanges; reboundONLYsource_base_commit tolatestcodecommit2cee, all53sources/inputs/recipe/initialstate unchanged, no traininggatesopened. Currentfeatureaudit refreshed; retentionplanreview/bytecoveragecontinue.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94821,6 +94821,10 @@
     "root_owned_metadata_resolution": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/ROOT_OBSERVATION_METADATA_RESOLUTION001.json",
       "sha256": "e4b8431a09392e828b30c31d5e0f6640bb5852ca33fb0f5c756c336c52706222"
+    },
+    "unclaimed_main_plan_source_rebind": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/MAIN_PLAN_SOURCE_REBIND001.json",
+      "sha256": "dd63ff4850cf5be5e1899358aea5f929d40ee04f0d8292b4a73125c2d56f1da7"
     }
   },
   "full_project_current_native_feature_numeric_20261120_001": {
