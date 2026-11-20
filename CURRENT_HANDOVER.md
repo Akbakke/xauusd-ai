@@ -210,3 +210,7 @@ historiske flater er ikke bevist.0,3ATR er nettoendringsproxy, ikke bevist rolig
 prisbane/økonomisk FLAT. Juni2026 er gjenbrukt utvikling. TRAIN-fit, senere
 generalisering, referanseverdi og realisert økonomi holdes adskilt. Edge/profitt er
 fortsatt ubevist. Teknisk beredskap betyr ikke bedre handelsbeslutninger.
+
+Aktuell admisjon: `NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004`, eksakt planSHA4c14a547dd05873d8b3db292f71053351f93fd062aaeb6b07c93ec15795a3f7d.
+Kilde/policy fryses ved launch; denne admisjonen bruker bare planens egne
+modell-/forward-/optimizergrenser. Main er fortsatt ustartet under kvalifisering.

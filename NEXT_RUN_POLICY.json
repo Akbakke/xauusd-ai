@@ -4740,7 +4740,7 @@
     "monitor_interval_minutes": 30,
     "source_bookend_witness": "Original cache003 RESULT and TERMINAL both assert source_unchanged=true.",
     "source_unchanged_at_result": true,
-    "active_stage": "native_m5_ta_atr03_five_year_fit_20261120_002",
+    "active_stage": "native_m5_ta_atr03_throughput_20261120_004",
     "latest_native_result": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002/RESULT.json",
       "sha256": "128c59233986b4a1df26d302cd90b4e7f1196721d771cb704e9d089b80a9156e"
@@ -4751,7 +4751,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Recovery source389focusedPASS and math/sourceguard proof; new zero-update throughput004 prepared before mainresume qualification",
+    "current_activity": "Exact one-use recovery qualification admitted: NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -4781,7 +4781,7 @@
     "existing_indicator_surface_changed": true,
     "training_started": false,
     "latest_terminal_role": "FIVE_YEAR_TECHNICAL_COLD_REPLAY_ONLY_MAIN_NOT_STARTED",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002/TERMINAL.json",
       "sha256": "6993a81afeda72669f3a4a283997c4a0da05adc39395a438060d1ff48923549d"
@@ -95888,7 +95888,7 @@
     }
   },
   "native_m5_ta_resilient_training_preparation_20261120_001": {
-    "status": "THROUGHPUT004_PREPARED_PENDING_PREFLIGHT",
+    "status": "ADMITTED_AWAITING_LAUNCH_NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004",
     "operator_request": "Sikre ekstra med mellomlagring om noe skulle skje; vurder watt/GPU/CPU og5epoker/earlystop",
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001",
     "observed_gap": "Main002 checkpointbytes durable but no admissible practical maincontinuation after hard interruption/timecap; only mechanics coldproof",
@@ -95925,7 +95925,7 @@
     "source_base_commit": "060fe55f719d5adceab78cbcd3423cec909e7347"
   },
   "native_m5_ta_atr03_throughput_20261120_004": {
-    "status": "PREPARED_NOT_ADMITTED",
+    "status": "ADMITTED_ONE_USE",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004.json",
       "sha256": "4c14a547dd05873d8b3db292f71053351f93fd062aaeb6b07c93ec15795a3f7d"
@@ -95934,8 +95934,8 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "remaining_invocations": 0,
-    "execution_authorized": false,
+    "remaining_invocations": 1,
+    "execution_authorized": true,
     "training_authorized": false,
     "test_authorized": false,
     "relaunch_allowed": false,
@@ -95945,6 +95945,10 @@
     "backward_calls": 6,
     "autograd_calls": 0,
     "optimizer_constructions": 0,
-    "optimizer_steps": 0
+    "optimizer_steps": 0,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004_PREFLIGHT001.log",
+      "sha256": "859598a5b5fcf6f58783b6bc2e1d8a037d38525cf40176566003b12ca059097f"
+    }
   }
 }
