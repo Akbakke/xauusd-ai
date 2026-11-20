@@ -6,16 +6,15 @@ originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 ## Gjeldende status 20.11.2026
 
-Brukerens mål er oppdatert: kvalifiser nyttig OPP/NED/FLAT på M5/MTF,
-med0,3ATR som første netto-støysone. FLAT er små bevegelser som ikke er
-verdt å trade. Rå barfakta og separat lokal range-/aktivitetssemantikk består.
-ATR03-targets for alle1215513preTEST-issues, ny matchedTRAIN-prior og fersk
-32forward-initialbaseline er ferdige. Optimizer/kald replay bestod på84,434s
-med3tekniskeupdates,67forwards og6gradientprober. Ingen hovedfit startet.
-Brukeren bestiller nå bred prosjektrevisjon og større testklargjøring.
-Gammel kortplan er supersedert utenCLAIM; alle porter er stengt. Kildeclosure
-rettet med4aktive formel-eiere; GPUytelse, årsstatistikk og kaldB64-mekanikk
-er kvalifisert. Større hovedplan er publisert; siste metadata-preflight gjenstår.
+Brukerens mål er nyttig OPP/NED/FLAT på M5/MTF, med0,3ATR som første
+netto-støysone. FLAT betyr små bevegelser som ikke er verdt å trade; rå barfakta
+bevares separat. Bred kilde-/pipelineaudit er gjennomført og konkrete feil er
+rettet. HeleTRAIN-året70935rader har ny normalisering/prior og faktisk fersk
+1200forward-baseline. B64optimizer/kaldreplay består bitidentisk.
+Større YEAR_FIT001 er teknisk klar etter metadata-preflight:1år/1pass/B64,
+1109updates og full5789rader septemberCONTROL, med3600s hardgrense.
+Ingen hovedfit startet. Alle treningsporter er stengt; planen er uclaimet.
+Tidligere kortplan er supersedert og skal aldri relanseres.
 Målet om tilfredsstillende vekting, prediksjon og edge er fortsatt uoppnådd.
 
 M1 brukes ALDRI til retning: ingen input, fasit, metadataforelder, rader,
@@ -46,8 +45,8 @@ per-parameter finite-synkroniseringer: aten::item1435→106 og CUDAstreamSync153
 B64-referanser1,281/1,276s mot1,140/1,154s med per-device-bools; rundt10%
 computegevinst på samme panel, ikke bevist total treningsgevinst. Alle finite-vakter
 består; ingen loss-/optimizerformel eller sikkerhetsgrense er fjernet.
-Større test klargjøres foreløpig som ett helt input-TRAIN-år, én B64-pass
-og påfølgende septemberCONTROL. Nye TRAIN-stats/baseline må kvalifiseres først.
+Større test er klargjort som ett helt input-TRAIN-år, én B64-pass
+og påfølgende septemberCONTROL. Nye heleTRAIN-stats, prior og baseline er fysisk kvalifisert.
 Hovedtreningen er ikke startet; gammel kortplan skal ikke relanseres.
 Ny årsroute er kildeklar: TRAIN[2023-09-01,2024-09-01)=70935rader,
 CONTROL[2024-09-01,2024-10-01)=5789rader; B64gir1109updates/énpass.
@@ -68,7 +67,14 @@ auxiliary→shared er0. Peakreserved6,91GB. Hovedfit bruker ingen slike prober.
 Hovedplan YEAR_FIT001 er publisert utenCLAIM:70935TRAIN/5789CONTROL,
 1ferskmodell/2309F/1109updates/1pass; tidligere1200initialforwards gjenbrukes
 etter eksakt tilstand/input/target/norm/prior-kontroll. Aldri tekniske vekter.
-Hardgrense3600s, ingen hovedfit startet. Endelig metadata-preflight gjenstår.
+Hardgrense3600s, ingen hovedfit startet. Endelig metadata-preflight består;
+originalkvittering og samlet LARGER_YEAR_TRAINING_READY_20261120.json ligger
+i cache003-roten og er SHA-bundet fra NEXT_RUN_POLICY. Uavhengig JSON-kontroll
+av20predictive proper-scoreceller gir maksavvik4,37e-11. Ingen nye modeller/arraydecode.
+Gamle current-baseline/statusfelt i policy pekte fortsatt på liten råbar/GC-funksjon;
+disse er korrigert til faktisk årsbaseline/tekniskmekanikk. Historiske kvitteringer består.
+52målrettede tester består. Faktisk hovedpass-tid og læring er ennå umålt;
+3600s er hardgrense, ikke garanti for fullføring. Ingen endring i markedsvaktene.
 
 ## Ferdig seksårs inputgrunnlag
 
@@ -265,7 +271,7 @@ ATR_MARGIN_03_04_TRAIN_COMPARISON.py/.log/.json og lesereview er immutable
 i cache003-root og hashbundet i policy. Uavhengig script-/aggregatreview
 bestod uten nyarraydekoding. Den valgte treningsmarginen er nå0,3;
 persistens, modell/prior/loss/score og fersk initialbaseline/kald mekanikk
-er kvalifisert for den korte ruten nedenfor. Ingen serving-/handelsmargin
+ble først kvalifisert på kort rute og nå på heleTRAINåret ovenfor. Ingen serving-/handelsmargin
 er innført. Alle kjøringsporter er stengt.
 
 ## Gjenværende full markeds-FLAT-grense
@@ -294,8 +300,8 @@ Full range-/markeds-FLAT utover netto-støyproxyen krever fortsatt riktig
 native eier og dokumenterte pause-/ukjentregler. Rå barfakta beholdes. Alle8TA-familier,
 61makro og femTF består; GC utsatt og M1 aldri til retning.
 Ingen hovedfit er innrømmet. ATR03-nettofunksjonens ferske initialbaseline
-og kaldmekanikk er kvalifisert. Den korte hovedplanen krever fortsatt
-egen eksakt engangsadmisjon; den starter ikke som del av klargjøringen.
+og kaldmekanikk er kvalifisert. Årsplanen krever egen eksakt engangsadmisjon;
+den starter ikke som del av klargjøringen. Tidligere kortplan er supersedert.
 ## Bevart grunnlag og oppryddingsgrense
 
 Hele native prisfasit2009–2026 før TEST er tidligere merket og alle76arrays
@@ -315,48 +321,22 @@ Ikke gjenta eldre fullført retention/Windows-/cache-opprydding.
 Kode/docs/interne stier/aggregerte bevis kan pushes til autorisert branch;
 aldri rådata, vekter, hemmeligheter eller force-push.
 
-## ATR03 klar til kort trening — hovedfit ikke startet
+## Historisk kort ATR03-kvalifikasjon — supersedert
 
-PREPARE002 fullførte exit0 på203,807s: alle25historiske payloadarrays og
-hele native source_row valideres.001-targets gjenbrukes uten reberegning;
-001er FAILED_CONSUMED førmodell og relanseres aldri. Eksakt006provider og
-whole24175TRAIN-norm bestod med den kvalifiserte alias-AST-broen.
-Ny prior bruker1536FIT-issues; M5-close1535celler med470/611/454NED/nøytral/OPP.
-Fersk modell32forwards på1536FIT/512CONTROL hadde eksakt priorlogits,
-0updates og0M1-nektelser. InitialSHA6c9aca38468ed8137b3d2941b254aae6e1ae4b71fe591496efa542e416201315.
-Uavhengig metadata-/aggregatreview bestod; LL/Brier-sumavvik≤4,55e-13.
-M5initialLL/Brier:FIT1,089364/0,660331,CONTROL1,092974/0,662826.
-Disse er nye3klasse-noisemål og sammenlignes ikke direkte med gammelrawLL.
-
-ATR03_MECHANICS001 fullførte exit0 på84,434s:2ferske modellkonstruksjoner,
-67forwards,3tekniske optimizerupdates og6autogradprober. CPU- og CUDAinitial
-var identiske. M5sharedgradient etterførste headupdate positiv, aux→shared
-nøyaktig0, støttede auxhoderpositive. Nyprosesscoldreplay var bitidentisk.
-Kvalifikasjonsvekter gjenbrukes aldri som hovedfitvekter; samme frosneTRAIN-
-normalisering og nye prior kan gjenbrukes med fersk modell og optimizer.
-
-Hovedplanmetadata manglet selected_cohorts til eksisterende schedule-eier.
-Dette ble oppdaget utenCLAIM og rettet bare i planadapteren. Ny kildebro
-beholder alle importer og øvrig AST utenom de2navngitte metadatafunksjonene;
-alle andre sourceeiere er byteidentiske. Positive og3negative mutasjoner
-(modell, numerisk driver, import) består. Uavhengig kildereview girPASS;
-ingen ny modellrunde var nødvendig. Mainmetadata bygger4fastepass/384updates/
-544forwards med frosne kilde-ranker og PCG64-rekkefølge. Eksakt CLI-preflight
-inkludert kilde-/kvitterings-/input-/checkpointidentitet og hardware/boot667
-bestod,0modell/updates/CLAIM. Hovedplanbff73ed6…20b7d er PREPARED_NOT_ADMITTED;
-outputrot finnes ikke. TRAINING_READY.json binder hele kvalifikasjonen.
-30minuttersramme; gammel sammegeometri544F/384updates brukte578,831s.
-Estimert omtrent10minutter, ikke et resultat eller tidsløfte for den nye runden.
-0,3ATR er en netto-støyproxy. Faktisk økonomisk uutnyttbarhet, helemarkedets
-path-FLAT, tilfredsstillende vekting og prediktiv edge er fortsatt ubevist.
+PREPARE002 og ATR03_MECHANICS001 var kvalifiserte små forgjengere med
+1536FIT/512CONTROL,32initialforwards og67mekanikkforwards. De er fullført,
+bevares immutable og skal ikke relanseres. Den tidligere korte hovedplanen
+bff73ed6…20b7d ble aldri claimet og er SUPERSEDED_UNCLAIMED_BY_BROADER_SOURCE_AUDIT.
+Den gir ingen kjøringsrett. Små gammelstats fra source_axes944b brukes ikke
+på årsgrunnlagets source_axes2173; året har nye heleTRAIN-stats/prior.
+Gjeldende hovedplan og faktiske årskvitteringer står øverst og i policy.
 
 ## Målt fart før større test
 
-THROUGHPUT001 fullførte58,397s med8F/8back/0optimizer, eksakt like logits,
-loss og clippedgradients påsammeRNG. Vekter/stats uendret, RNGtilbake,gradNone.
-B16reference1,193801s;B64reference1,418211s,3,37ganger flere rader/s på disse
-faste panelene. Dette er ikke faktiskAdamW-throughput eller robustspeedup.
-Forward-onlygrouping ga≤1prosentforskjell. ProfilertB64 hadde1435item/
-skalarsynkroniseringer; gjentatte grad-/parameterfinitekontroller er konkret
-arbeid som nå samler sammepredikaterperdevice. CPUnegativeparitet består;
-nyB64-zero-updateparitet/fart måmåles før nye treningsvalg låses.
+THROUGHPUT001 og002 er begge COMPLETE_CONSUMED, aldri relansering.
+Første målte3,37ganger flere rader/s ved B64 ennB16 på faste paneler.
+Andre beviste eksakt samme logits/tap/klippede gradienter etter finite-reduksjon,
+med10,25% lavere gjennomsnittlig compute-tid på to samme-B64-par.
+Ingen optimizerupdates i profilene; faktisk hovedpass-tid er fortsatt umålt.
+PROJECT_TRAINING_THROUGHPUT_REVIEW_20261120.json binder begge terminaler og
+presise målinger. Guardendringer, geometri og årsforberedelse står ovenfor.
