@@ -17,12 +17,12 @@ Ingen hovedfit er startet; fersk baseline og kald mekanikk skal kvalifiseres.
 Kildekobling er nå implementert opt-in:0,3ATR-datasetkontrakt, taskspesifikke
 masker og samme målidentitet i modell/prior/loss/score/checkpoint.38fokuserte
 saker og16nye guard-varianter består; faktisk metadata-build består utenCLAIM.
-Kilden klargjøres til én ny producer: alle preTEST-issues projiseres én gang,
+Én ny producer er eksakt innrømmet etter CLI-preflight: alle preTEST-issues projiseres én gang,
 ny matched1536FIT-prior og fersk32forward-initialbaseline på1536FIT/512CONTROL.
 Eksakt006-provider og gammel whole24175TRAIN-norm gjenbrukes, ingen seksårs-
 metadatarebind. Deretter egen CUDA3update/cold-replay og ny hovedplan, utenfitlaunch.
 Dette kvalifiserer netto-støysone, ikke hele sideveis/path-FLAT eller edge.
-Ingen aktiv jobb. ALLE trenings-/kjøringsporter er stengt. Alle tidligere
+Produceradmisjon gjelder bare ATR03_PREPARE001,0modellupdates; treningsporter er stengt. Alle tidligere
 engangsplaner er konsumert og relanseres aldri. Ingen ny fit er innrømmet.
 M5-læringen bedret seg på valgt FIT, men senere CONTROL taper fortsatt prior.
 Dette er ingen dokumentert retningsedge, generalisering eller økonomi.
