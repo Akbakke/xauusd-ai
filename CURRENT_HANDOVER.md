@@ -16,13 +16,19 @@ Alle8TA-familier/61D1-makrofelt/femTF beholdes; ingen manglende inputrader.
 Uavhengig NumPy4G-kontroll bestod på30,319s: alle27arrays dtype/shape/SHA,
 kausale TF-vinduer,132aliaspar og265807felles issues byteidentiske motcache003;
 gammel fullM5-klokke er eksakt prefiks.0Torch/targets/norm/fit/M1/TEST.
-Ferske helefemårsTRAIN-stats/prior/full initialbaseline, B64optimizer/kaldreplay
-og hovedplan gjenstår. NativeTEST er fortsatt forseglet.
+Ferske helefemårsTRAIN-stats/prior/full initialbaseline er nå fysisk kvalifisert:
+PREPARE001 fullførte2745,427s/1modell/6086F/0updates. Alle initiallogits er
+eksakt ferskTRAIN-prior, modell/RNG ogsource/policy uendret;0M1-avvisninger.
+TRAIN354550rader, utviklingsVAL34934; M5close354549celler med
+106505NED/138892NEUTRAL_NET/109152OPP. B64optimizer/kaldreplay og
+hovedplan/sluttkontroll gjenstår. NativeTEST er fortsatt forseglet.
 Tidligere YEAR_FIT001 er supersedert utenCLAIM og skal ikke relanseres;
 årskvalifikasjon/profiler er bevart som historisk omfangsbundet evidens.
 Alle globale treningsporter står stengt. FIVE_YEAR_PREPARE001 er publisert
 for1ferskmodell/6086initialforwards/0updates,1nyheleTRAIN-normalisering/prior,
-CPU20G/CUDA12GiB/8tråder/5400s. Metadata-preflight gjenstår; storfit er ikke startet.
+CPU20G/CUDA12GiB/8tråder/5400s; COMPLETE. MECHANICS001 er publisert
+for2ferske modeller/7F/3tekniskeupdates/6prober og1800s, før ny storfit.
+Dens metadata-preflight gjenstår; storfit er ikke startet.
 100målrettede kilde-/guardtester består. Ingen sourcekode er endret ettercacheclaim.
 
 M1 brukes ALDRI til retning: ingen input, fasit, metadataforelder, rader,
