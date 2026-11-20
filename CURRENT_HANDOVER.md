@@ -40,10 +40,11 @@ toleranse; tellinger/confusion/ties eksakte, state/RNG uendret og korttail best�
 Peak CUDA-reserved7331643392bytes under12GiB. Signert vakt observerte maks50C
 core/48Cmem/179,28W,47samples; source/io-firewall består. Kvitteringer i policy.
 
-Ny mekanikk002 er ADMITTED_ONE_USE, SHA
+Ny mekanikk002 er COMPLETE_CONSUMED, SHA
 7dfda4b0f7a360687e8c113b4c2ceb5f64bd8b4c2474c8dfc0ca5fc2aefbfd12.
-Den beholder B64,7forwards/3updates/6autograd og kald resume; krever også eksakt
-original modell-/optimizer-/RNG-/stepbane. Metadata-preflight exit0/0CLAIM/0modell på boot668; bare denne genuine kontrollen er nå innrømmet.
+B64/7forwards/3updates/6autograd er fullført, exit0 og kilde uendret på boot668.
+Kald resume i ny prosess er bitidentisk; modell/optimizer/RNG/cursor/schedule og
+alle stegrapporter matcher original001eksakt. Alle treningsporter er stengt igjen.
 Main001 er uclaimet men supersederes ved kvalifisert002; ingen main er startet.
 B256/equalTF er målt kvalifisert i panelet, men ennå ikke valgt i ny mainplan.
 
