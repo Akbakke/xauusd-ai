@@ -4740,7 +4740,7 @@
     "monitor_interval_minutes": 30,
     "source_bookend_witness": "Original cache003 RESULT and TERMINAL both assert source_unchanged=true.",
     "source_unchanged_at_result": true,
-    "active_stage": "native_m5_ta_atr03_five_year_mechanics_20261120_001",
+    "active_stage": "native_m5_ta_atr03_throughput_20261120_003",
     "latest_native_result": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001/RESULT.json",
       "sha256": "7b099711b52f12312d94cefd9fb427a2e26bd1abbdc529dcc1e4f523f1b394e5"
@@ -4751,7 +4751,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Exact throughput003 prepared; all training flags closed, zero claims/models/updates so far",
+    "current_activity": "One-use zero-update throughput003 admitted after exact preflight; source and policy freeze at launch",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -4781,7 +4781,7 @@
     "existing_indicator_surface_changed": true,
     "training_started": false,
     "latest_terminal_role": "FIVE_YEAR_TECHNICAL_COLD_REPLAY_ONLY_MAIN_NOT_STARTED",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001/TERMINAL.json",
       "sha256": "a7a592aee1c0d0afe7c114b5cba2df7960ce56436590767000f4e5ffad096aa9"
@@ -95725,7 +95725,7 @@
     "unmeasured_efficiency_changes_enabled": false
   },
   "native_m5_ta_efficiency_qualification_20261120_001": {
-    "status": "THROUGHPUT003_PREPARED_NOT_ADMITTED",
+    "status": "THROUGHPUT003_ADMITTED_AWAITING_LAUNCH",
     "operator_request": "Ja, optimaliser effektivitet til maks",
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001",
     "scope": "Measured runtime controls and one fixed evalB256/equal-length-TF candidate; preserve TRAIN math and qualify exact source before any later main",
@@ -95746,7 +95746,7 @@
     }
   },
   "native_m5_ta_atr03_throughput_20261120_003": {
-    "status": "PREPARED_NOT_ADMITTED",
+    "status": "ADMITTED_ONE_USE",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003.json",
       "sha256": "41c3099e5ac83d563199f14ab289cbedcd9165af06a2e63b1ef96f61b2c384b8"
@@ -95755,8 +95755,8 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "remaining_invocations": 0,
-    "execution_authorized": false,
+    "remaining_invocations": 1,
+    "execution_authorized": true,
     "training_authorized": false,
     "test_authorized": false,
     "relaunch_allowed": false,
@@ -95767,6 +95767,11 @@
     "autograd_calls": 0,
     "optimizer_constructions": 0,
     "optimizer_steps": 0,
-    "scope": "Fixed whole-five-year-input TRAIN B64 paired train+eval runtime controls and B256/equalTF candidate, no optimizer updates"
+    "scope": "Fixed whole-five-year-input TRAIN B64 paired train+eval runtime controls and B256/equalTF candidate, no optimizer updates",
+    "outer_seconds": 1800,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/THROUGHPUT003_PREFLIGHT001.log",
+      "sha256": "2a0c2a27083f07e036270090e7e9e56daf779a766c8d6e757a3dc5296d786eec"
+    }
   }
 }

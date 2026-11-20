@@ -185,3 +185,9 @@ historiske flater er ikke bevist.0,3ATR er nettoendringsproxy, ikke bevist rolig
 prisbane/økonomisk FLAT. Juni2026 er gjenbrukt utvikling. TRAIN-fit, senere
 generalisering, referanseverdi og realisert økonomi holdes adskilt. Edge/profitt er
 fortsatt ubevist. Teknisk beredskap betyr ikke bedre handelsbeslutninger.
+
+Aktuell engangsadmisjon: throughput003,15forwards/6backwards/0updates,20G/512M,
+8tråder/128tasks/12GiBGPU/1800s, gjennom uendret eksisterende maskinvarevakter.
+Metadata-preflight exit0; ingen CLAIM/OUTPUT fra preflight. Boot668 er målt og
+GPUcompute ledig før admisjon. Global trening er fortsattfalse; hovedtrening
+starter ikke i denne diagnostikken. Ingen kilde-/policyendring under kjøringen.
