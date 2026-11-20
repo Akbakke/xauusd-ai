@@ -94677,7 +94677,7 @@
     "deletion_scope": "Rule9 sole retention owner for GX1_DATA/RUNS; separate reversible repo cleanup after references/imports/tests/evidence ownership.",
     "physical_inventory_complete": true,
     "dependency_function_coverage_complete": false,
-    "all_feature_numerical_coverage_complete": false,
+    "all_feature_numerical_coverage_complete": true,
     "retention_reachability_complete": true,
     "cleanup_completed": false,
     "deleted_bytes": 0,
@@ -94688,7 +94688,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Phase1 COMPLETE exit0 in5078.675s: all256fields fiveTF andlocalnonmacro; all27arrays,1731normalization arithmetic/domains; no forbiddenmodel/checkpoint/CUDA actions. Stage2 exact61publicmacro formulas/asof admittedonce, no nativeTEST/model/fit/training.",
+    "latest_observation": "Phase2 COMPLETE exit0 in15.676s:61macro formulas+declaredasof /122rawfieldrecords/47528638cells. All1731rawrecords nowindependentlyqualified. FrozenTRAINstat independentverification admittedonce; no new fitted/persistedmodelparameters. Sourcepolicyfreeze.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94755,8 +94755,16 @@
       "sha256": "344e508ed81f7f602eb7659401736c786616bfc39f9efe252d824a1834624d0a"
     },
     "current_native_numeric_completed": true,
-    "raw_input_field_records_independently_checked": 1609,
-    "raw_macro_field_records_pending": 122
+    "raw_input_field_records_independently_checked": 1731,
+    "raw_macro_field_records_pending": 0,
+    "current_macro_numeric_result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_MACRO_NUMERIC001/RESULT.json",
+      "sha256": "96cbd2b28bed30e11a5670cd369314e110b40db3f36cf5e4258e48f831d7c89d"
+    },
+    "current_macro_numeric_terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_MACRO_NUMERIC001/TERMINAL.json",
+      "sha256": "1e642633ff2e5962774b8341c7523a609f81ec4b35c8b5abe1a3ab9aa42174e2"
+    }
   },
   "full_project_current_native_feature_numeric_20261120_001": {
     "status": "COMPLETE_CONSUMED",
@@ -94801,19 +94809,19 @@
     }
   },
   "full_project_current_native_macro_numeric_20261120_001": {
-    "status": "ADMITTED_ONE_USE_MACRO_NUMERIC_AUDIT_ONLY",
+    "status": "COMPLETE_CONSUMED",
     "contract": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/MACRO_NUMERIC_CONTRACT001.json",
       "sha256": "9a3e13d645593e89ab91da23242741a5a861f96da736c2af440a3cd5ed2bd3e0"
     },
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_MACRO_NUMERIC001",
-    "execution_authorized": true,
+    "execution_authorized": false,
     "training_authorized": false,
     "test_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "public_macro_source_container_hashing_authorized": true,
     "public_macro_source_bindings": [
@@ -95132,6 +95140,42 @@
     "numerical_threads": 1,
     "tasks_max": 64,
     "preflight_synthetic_checks_passed": 21,
-    "monitor_interval_minutes": 30
+    "monitor_interval_minutes": 30,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_MACRO_NUMERIC001/RESULT.json",
+      "sha256": "96cbd2b28bed30e11a5670cd369314e110b40db3f36cf5e4258e48f831d7c89d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_MACRO_NUMERIC001/TERMINAL.json",
+      "sha256": "1e642633ff2e5962774b8341c7523a609f81ec4b35c8b5abe1a3ab9aa42174e2"
+    }
+  },
+  "full_project_current_native_frozen_train_stats_numeric_20261120_001": {
+    "status": "ADMITTED_ONE_USE_FROZEN_TRAIN_STATISTICS_VERIFICATION_ONLY",
+    "contract": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/TRAIN_STATS_CONTRACT001.json",
+      "sha256": "8236591522b342d62ed27ee8026830eea8a8e738bb00b2222ac22d3683680a49"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS001",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "test_authorized": false,
+    "parameter_fit_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "outer_seconds": 3600,
+    "internal_seconds": 3570,
+    "memory": "4G",
+    "swap": "512M",
+    "numerical_threads": 1,
+    "tasks_max": 64,
+    "preflight_synthetic_checks_passed": 43,
+    "monitor_interval_minutes": 30,
+    "target_values_decoded": 0,
+    "parameter_fit_API_calls": 0,
+    "reusable_parameters_published": false
   }
 }

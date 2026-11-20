@@ -55,16 +55,21 @@ aritmetikk er kontrollert. Ingen modell, optimizer, checkpoint, CUDA, mål-,
 M1-, GC- eller nativeTEST-lesing; kilde/policy/inputidentiteter er uendret.
 RESULT/TERMINAL er SHA-bundet i policy.122råmakroposter gjenstår.
 
-Neste fase er en separat engangs CPU-audit av61makrofelt i signal og kontekst,
-122feltposter. MACRO_NUMERIC_CONTRACT001.json binder eksakt74offentlige
-kildereferanser og fysisk kildeavgrensning. Hele offentlige kildecontainere
-hashes eksplisitt, inkludert bytes etter forseglingen; bare kvalifiserte
-observasjoner/tilgjengelighet før forseglingen brukes til makroverdier.
-Ingen nativeTEST-fil, modell eller fit er innrømmet. Audit4GiB/512MiB,
-1tråd/64tasks,intern1770s/ekstern1800s.21syntetiske prøver og preflight
-består utenCLAIM/arrays. Kilde/policy fryses under kjøringen. Historiske
-vendorrevisjoner/publiseringstidspunkt er fortsatt ikke fullstendig bevist.
-Frosne heleTRAIN-statistikker og kvalifisert retention/bytekontroll gjenstår.
+Makrofasen er fullført med exit0 på15,676s, peakRSS1424780KiB.
+Alle61uavhengig beregnede makrofelt i både signal og kontekst består:
+122feltposter/47528638celler og erklært tilgjengelighetsklokke. Hele offentlige
+kildecontainere ble eksplisitt SHA-kontrollert inkludert bytes etter forseglingen;
+ingen nativeTEST-fil eller etterforseglede makroverdier inngikk i feltberegningen.
+Dermed er alle1731råfeltposter kontrollert uavhengig. Vendorrevisjoner og hele
+historiske publiseringsledgeren er fortsatt ikke fullstendig bevist.
+
+Neste engangs CPU-audit verifiserer allerede frosne heleTRAIN-statistikker:
+populasjonsvinduer, kvartiler/robust skala, domener, alias-eierskap og eksakte
+center-/skalabits/ekstrema/kategoritall. Ingen produksjons-fit-API eller nye
+modeller/parametre. TRAIN_STATS_CONTRACT001.json er bundet i policy.
+Audit4GiB/512MiB/1tråd/64tasks,intern3570s/ekstern3600s;43syntetiske prøver
+og metadata-preflight består utenCLAIM/arrays. Kilde/policy fryses under kjøringen.
+Kvalifisert retention/bytekontroll gjenstår. Ingen trening er innrømmet.
 
 ## Fysisk kvalifisert grunnlag
 
