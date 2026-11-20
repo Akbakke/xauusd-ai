@@ -4751,7 +4751,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Native mechanics003PASS exact original model/AdamW/RNG; main003blueprint prepared, independent checkpoint windows next",
+    "current_activity": "Fresh prefix1 and uninterrupted2 windows prepared from immutable main003 trajectory; practical recovery qualification only",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -95889,7 +95889,7 @@
     "superseded_by": "native_m5_ta_atr03_five_year_fit_20261120_003"
   },
   "native_m5_ta_resilient_training_preparation_20261120_001": {
-    "status": "NATIVE_MECHANICS003_COMPLETE_MAIN003_REFERENCE_PREPARED",
+    "status": "INDEPENDENT_WINDOWS_PREPARED_PENDING_PREFLIGHT",
     "operator_request": "Sikre ekstra med mellomlagring om noe skulle skje; vurder watt/GPU/CPU og5epoker/earlystop",
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001",
     "observed_gap": "Main002 checkpointbytes durable but no admissible practical maincontinuation after hard interruption/timecap; only mechanics coldproof",
@@ -95943,7 +95943,17 @@
     "main_plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003.json",
       "sha256": "20c964020752318c507957ec0b71645e419e023defd7275637cc85fd48b2b5fd"
-    }
+    },
+    "qualification_window_plans": [
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_001.json",
+        "sha256": "e955d1c931dc3b9b144d049d631719eff197047786150ae6ee8e000c900f97d0"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002.json",
+        "sha256": "db8035b3e2b4ff99a98af120d26dab5561aff893d7f03170109a9e10a0fa002c"
+      }
+    ]
   },
   "native_m5_ta_atr03_throughput_20261120_004": {
     "status": "COMPLETE_CONSUMED_RECOVERY_SOURCE_PARITY",
@@ -96037,5 +96047,49 @@
     "main_training_started": false,
     "ready_for_later_one_use_admission": false,
     "scope": "One full chronological2021-2025B64TRAIN/5540updates, B256equalTFdevelopmentVAL, immutable checkpoint/receipts every256updates; practical mainresume qualification required before admission"
+  },
+  "native_m5_ta_atr03_five_year_window_20261121_001": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_001.json",
+      "sha256": "e955d1c931dc3b9b144d049d631719eff197047786150ae6ee8e000c900f97d0"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "model_constructions": 1,
+    "model_forwards": 1,
+    "backward_calls": 1,
+    "optimizer_steps": 1,
+    "autograd_calls": 0,
+    "scope": "Technical first-prefix/uninterrupted checkpoint qualification only; weights must never warmstart the fullmain"
+  },
+  "native_m5_ta_atr03_five_year_window_20261121_002": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002.json",
+      "sha256": "db8035b3e2b4ff99a98af120d26dab5561aff893d7f03170109a9e10a0fa002c"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "model_constructions": 1,
+    "model_forwards": 2,
+    "backward_calls": 2,
+    "optimizer_steps": 2,
+    "autograd_calls": 0,
+    "scope": "Technical first-prefix/uninterrupted checkpoint qualification only; weights must never warmstart the fullmain"
   }
 }
