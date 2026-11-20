@@ -68,7 +68,10 @@ Audit001 fullførte kontrollene for signal318/kontekst132, men feilet på en
 representasjonskontroll i auditøren: profilens tuple('session_id',) ble sammenlignet
 med en liste. Faktisk metadata er konsistent:ctx_cat<i8,[389579,1]. Original
 FAILED_CONSUMED er bevart og relanseres aldri. En ny avgrenset korrigert
-verifikator klargjøres; ingen modell-/normaliseringsparametre er endret.
+verifikator002 er innrømmet én gang:TRAIN_STATS_CONTRACT002.json,48syntetiske
+prøver og metadata-preflight PASS. Kategorinavn/header kontrolleres før arrays.
+Audit4GiB/512MiB/1tråd/64tasks,3570/3600s. Ingen modell-/normaliseringsparametre
+er endret. Kilde/policy fryses under kjøringen.
 
 En andre målt retention-mangel rettes:docs/*.json inngår nå i dokumentvernet.
 Fire konsumerte GC-dokumenter har eksplisitt pensjonert sine scratch-lagringskrav;

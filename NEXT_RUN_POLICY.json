@@ -94702,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Measured JSONdocumentguard+4historicalstoragebindingretirements and10realdesignreads→hermeticfixture completed. Focused544cases qualified via527unchangedpasses+17correctedfailure-retests, exactset. Legacyteacherfixture wronglyremovedALLfamilyMTFnorms; nowonlycontractmainnorm, strictstate/RNG/Entry/Exitparitypasses. No active modelmath change; DATA/RUNS deletionstill0.",
+    "latest_observation": "Correctedfrozenstats002 exactmetadata/preflight48checksPASS, original001FAILEDclosed. Auditonly no fit/model/training. Post-test sourcecleanandhandoverupdated; freezeonlaunch.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -95205,5 +95205,33 @@
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS001/TERMINAL.json",
       "sha256": "00144a4924df5e93ee7bd04178aa25ee5d217e6f4e45c43c7bac933340a00e6f"
     }
+  },
+  "full_project_current_native_frozen_train_stats_numeric_20261120_002": {
+    "status": "ADMITTED_CORRECTED_FROZEN_TRAIN_STATISTICS_VERIFICATION_ONLY",
+    "contract": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/TRAIN_STATS_CONTRACT002.json",
+      "sha256": "086d97b8b4b1c03265efc18c0538fa0105d7078c32b218e10c0cab2f6e77773c"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS002",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "test_authorized": false,
+    "parameter_fit_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "outer_seconds": 3600,
+    "internal_seconds": 3570,
+    "memory": "4G",
+    "swap": "512M",
+    "numerical_threads": 1,
+    "tasks_max": 64,
+    "preflight_synthetic_checks_passed": 48,
+    "monitor_interval_minutes": 30,
+    "new_bounded_audit_reason": "Measured001tuple/list verifier defect; originalFAILED unchanged/no001relaunch. Only category canonicalization/pre-decode metadata gate changed; all statistics recomputed with fresh bookends.",
+    "parameter_fit_API_calls": 0,
+    "reusable_parameters_published": false
   }
 }
