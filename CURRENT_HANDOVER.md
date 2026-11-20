@@ -64,14 +64,15 @@ Dermed er alle1731råfeltposter kontrollert uavhengig. Vendorrevisjoner og hele
 historiske publiseringsledgeren er fortsatt ikke fullstendig bevist.
 
 Frosne heleTRAIN-statistikker er ennå ikke ferdig uavhengig verifisert.
-Audit001 fullførte kontrollene for signal318/kontekst132, men feilet på en
-representasjonskontroll i auditøren: profilens tuple('session_id',) ble sammenlignet
-med en liste. Faktisk metadata er konsistent:ctx_cat<i8,[389579,1]. Original
-FAILED_CONSUMED er bevart og relanseres aldri. En ny avgrenset korrigert
-verifikator002 er innrømmet én gang:TRAIN_STATS_CONTRACT002.json,48syntetiske
-prøver og metadata-preflight PASS. Kategorinavn/header kontrolleres før arrays.
-Audit4GiB/512MiB/1tråd/64tasks,3570/3600s. Ingen modell-/normaliseringsparametre
-er endret. Kilde/policy fryses under kjøringen.
+Audit001 feilet på auditørens tuple/list-sammenligning; originalen er bevart.
+Korrigert002 fullførte signal318/kontekst132 og alle256felt på M5/M15/H1/H4,
+men stoppet på eksakt centerbit i D1 geomline_bars_since_break_signed.
+Lagret center er negativ null. Syntetiske forsøk viser at NumPy-partisjon og
+fullsortering kan velge ulike nullfortegn, men faktisk D1-årsak er ikke bevist.
+En ny D1-only diagnose er innrømmet:1542TRAIN-rader/256statistikkfelt,
+D1_STATS_DIAG_CONTRACT001.json, audit4GiB/512MiB/1tråd/64tasks,110/120s.
+Ingen gammel engangsplan relanseres, ingen modell/fit/target/TEST/parameterendring.
+Kilde/policy fryses under kjøringen. Eksakt nåværende kontroll er ikke svekket.
 
 En andre målt retention-mangel rettes:docs/*.json inngår nå i dokumentvernet.
 Fire konsumerte GC-dokumenter har eksplisitt pensjonert sine scratch-lagringskrav;

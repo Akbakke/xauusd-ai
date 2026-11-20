@@ -94702,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Correctedfrozenstats002 exactmetadata/preflight48checksPASS, original001FAILEDclosed. Auditonly no fit/model/training. Post-test sourcecleanandhandoverupdated; freezeonlaunch.",
+    "latest_observation": "Stats002 failedD1geomline_bars_since_break_signed centerbits afterallotherfive surfaces passed. Storedcenternegativezero; independentactualD1value notyetdiagnosed. NewD1-only boundeddiagnostic admitted; no parameter/data change and no FAILEDplanrelaunch.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -95207,20 +95207,20 @@
     }
   },
   "full_project_current_native_frozen_train_stats_numeric_20261120_002": {
-    "status": "ADMITTED_CORRECTED_FROZEN_TRAIN_STATISTICS_VERIFICATION_ONLY",
+    "status": "FAILED_CONSUMED_D1_CENTER_BIT_DIFFERENCE_REQUIRES_DIAGNOSIS",
     "contract": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/TRAIN_STATS_CONTRACT002.json",
       "sha256": "086d97b8b4b1c03265efc18c0538fa0105d7078c32b218e10c0cab2f6e77773c"
     },
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS002",
-    "execution_authorized": true,
+    "execution_authorized": false,
     "training_authorized": false,
     "test_authorized": false,
     "parameter_fit_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "relaunch_allowed": false,
     "outer_seconds": 3600,
     "internal_seconds": 3570,
@@ -95232,6 +95232,33 @@
     "monitor_interval_minutes": 30,
     "new_bounded_audit_reason": "Measured001tuple/list verifier defect; originalFAILED unchanged/no001relaunch. Only category canonicalization/pre-decode metadata gate changed; all statistics recomputed with fresh bookends.",
     "parameter_fit_API_calls": 0,
-    "reusable_parameters_published": false
+    "reusable_parameters_published": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FROZEN_TRAIN_STATS002/TERMINAL.json",
+      "sha256": "397535fae3f3594d206754b8b0e882c274c3faa5e29c9334854e51cee43f440c"
+    }
+  },
+  "full_project_current_native_d1_stat_signed_zero_diagnostic_20261120_001": {
+    "status": "ADMITTED_EXACT_D1_CENTER_DIAGNOSTIC_ONLY",
+    "contract": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/D1_STATS_DIAG_CONTRACT001.json",
+      "sha256": "118fc7f84ca254dc14b6a314897f5df7d19abbb2ccb8d890dd352b1788c2997d"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/D1_STATS_DIAG001",
+    "execution_authorized": true,
+    "training_authorized": false,
+    "test_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "memory": "4G",
+    "swap": "512M",
+    "numerical_threads": 1,
+    "tasks_max": 64,
+    "outer_seconds": 120,
+    "internal_seconds": 110,
+    "actual_scope": "D1TRAIN1542rows256stats; no fit/model/targets. Classify numeric difference vs signedzero bit differences without waiving current assertion."
   }
 }
