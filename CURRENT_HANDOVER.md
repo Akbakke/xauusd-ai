@@ -63,7 +63,7 @@ Alle genuine fasers M1-firewall har0avvisteforsøk; ingen GC/nativeTEST brukt.
 
 ## Feilretting og samlet kontroll
 
-Bredt filinventar fra forrige bølge dekker2160filer:1406PythonAST,650JSON og
+Ferskt filinventar dekker2170sporede filer:1407PythonAST,676JSON og
 9shellfiler,0syntaksfeil. Det er ikke atferdstesting av hele historiske biblioteket.
 Aktiv kilde→input→fasit→modell→loss→score→checkpoint→launch er nå kontrollert
 på nytt for femårsscopet av tre avgrensede agenter og integrator.100målrettede
@@ -79,6 +79,14 @@ og deres to foreldede tester er fjernet etter referanse-/test-/eierskapskontroll
 Fire formeleiere, tidlig makrofilter og finite-synkroniseringsrettelsen fra
 forrige bølge beholdes. Ingen taps-/optimizerformel eller maskinvaregrense er svekket.
 
+Ny kilde-/metadatagjennomgang fant ingen ny blokkering i den aktive treningskjeden.
+Overleveringen viste eldre Entry-blokkeringer som aktiv femårsstatus; rapporten
+er rettet, og to foreldede GC-tester har fått riktig historisk scope. Alle133
+tester i overleveringseieren består. Ingen modell-/taps-/optimizerendring.
+Hovedplanens kildebase er oppdatert for rapportendringen; alle53bundne eiere
+er byteuendret. Ny lesende preflight og readiness-binding ferdigstilles før
+startstreken bekreftes igjen; ingen trening innrømmes av gjennomgangen.
+
 Full initialscore er uavhengig kontrollert fra JSON-aggregater for20predictive
 proper-scoreceller, maksavvik4,08e-10. INIT=model=fixedTRAINprior på begge
 splits. Sluttreview bekrefter samme akser, norm/prior,0,3ATR-target, modell-
@@ -89,7 +97,7 @@ checkpointdekoding påstås. Ingen ny blokkering er funnet.
 ## Hovedplan og neste steg
 
 Eneste nye hovedplan: configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json.
-SHA256:b9026f8bda1135ae86f7f737852fc7e8ab4b7cc12e41234af71fbe106f5b0cb3.
+SHA256:b9dcdda5157e2c20a19427d13285db2d3c1eb57245fc002bccbce892ba2a7667.
 Én fast kronologisk pass, B64,5540updates/11626forwards,0autogradprober,
 én ferskmodell og optimizer. Teknisk trente vekter brukes aldri. Tidligere6086
 faktiske initialforwards gjenbrukes bare etter eksakt freshstate/input/target/
