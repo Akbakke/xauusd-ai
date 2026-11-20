@@ -95382,7 +95382,7 @@
     }
   },
   "full_project_retention_cleanup_20261120_001": {
-    "status": "EXACT_PLAN_AND_PEER_REVIEW_PASS_APPROVAL_AUTHORIZED",
+    "status": "EXACT_OWNER_APPROVED_DRYRUN_THEN_EXECUTE_AUTHORIZED",
     "user_deletion_authorization": "Explicit2026-11-20wholeprojectunnecessarystoragecleanup; soleexistingretentionowner only",
     "candidate_targets": 8,
     "candidate_allocated_payload_bytes": 35728601088,
@@ -95391,7 +95391,7 @@
     "training_authorized": false,
     "test_authorized": false,
     "cleanup_plan_authorized": true,
-    "cleanup_execute_authorized": false,
+    "cleanup_execute_authorized": true,
     "retention_owner": "gx1.scripts.cleanup_gx1_evidence_v1",
     "FD_guard_unchanged": true,
     "temporary_inspection_capabilities": [
@@ -95437,6 +95437,25 @@
     },
     "approval_output": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_APPROVAL001",
     "user_confirmation_required": false,
-    "approval_basis": "Explicit user20Nov request, exact byte parity and consumed-scratch proof, sole-owner plan and independent peer. No new user approval needed."
+    "approval_basis": "Explicit user20Nov request, exact byte parity and consumed-scratch proof, sole-owner plan and independent peer. No new user approval needed.",
+    "approval": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_APPROVAL001/GX1_EVIDENCE_RETENTION_APPROVAL_20261120T190400098756Z.json",
+      "sha256": "08349083e1d087c652a36be4936db2914601130c8a9a03f620d4eebf5f2f4765"
+    },
+    "execution_max_invocations": 1,
+    "execution_claimed_invocations": 0,
+    "execution_remaining_invocations": 1,
+    "pipeline_worker": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_DRYRUN_EXECUTE_WORKER001.py",
+      "sha256": "771cd3f3d0f9911e98cd69d1fcbb602ef46241c2d30ad743f5958017e8a979a3"
+    },
+    "pipeline_launch": {
+      "path": "/tmp/gx1_retention_owner_dryrun_execute_20261120_001.sh",
+      "sha256": "5fe8fe1578acb1b01b935462de2210994526f23743b1e10be8f2b7c130802bb1"
+    },
+    "pipeline_output": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_PIPELINE001",
+    "owner_execution_output": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_EXECUTION001",
+    "fresh_owner_dry_run_must_precede_execute": true,
+    "relaunch_allowed": false
   }
 }

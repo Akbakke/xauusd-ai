@@ -231,3 +231,10 @@ og source050signal er uendret/beskyttet. Ownergodkjenning innrømmes under
 brukerens eksplisitte vedtak; etterpå fersk dry-run og særskilt eksakt execute.
 Ny hovedplanpreflight består med nyeSHAe8c86598…, kilde-/parent-/portkontroll,
 fersk Windowsboot667 og0CLAIM/modell/optimizer/featureverdidekoding. Trening stengt.
+
+Ownergodkjenning08349083… er publisert for nøyaktig plan9e974cd0… og8mål.
+En engangspipeline er innrømmet:først uendret owner dry-run med full byte-/
+autoritets-/dokument-/FD-validering, deretter execute bare hvis den består.
+Begge kall eies av gx1.scripts.cleanup_gx1_evidence_v1 i samme capped-prosess/
+lås og UID1000. Originale clearance/STARTED/STAGED/EXECUTION bevares.
+Ingen manuell sletterute, ingen guard-skip. Kilde/policy fryses til terminal.
