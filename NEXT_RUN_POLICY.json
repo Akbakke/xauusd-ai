@@ -4751,7 +4751,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Practical main/window/continuation source implemented;389focused casesPASS, numericcoreASTunchanged; prepare exact fresh one-use qualification before overnight main",
+    "current_activity": "Recovery source389focusedPASS and math/sourceguard proof; new zero-update throughput004 prepared before mainresume qualification",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -95888,7 +95888,7 @@
     }
   },
   "native_m5_ta_resilient_training_preparation_20261120_001": {
-    "status": "SOURCE_AND_389_FOCUSED_TESTS_PASS_PENDING_GENUINE_RECOVERY",
+    "status": "THROUGHPUT004_PREPARED_PENDING_PREFLIGHT",
     "operator_request": "Sikre ekstra med mellomlagring om noe skulle skje; vurder watt/GPU/CPU og5epoker/earlystop",
     "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001",
     "observed_gap": "Main002 checkpointbytes durable but no admissible practical maincontinuation after hard interruption/timecap; only mechanics coldproof",
@@ -95917,6 +95917,34 @@
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/SOURCE_DIFF_REVIEW004.json",
       "sha256": "1d5de0f14c03e836b32a35435fabe18c1a84c4af208b1624da40f49dd2ec5e33"
     },
-    "focused_current_cases_passed": 389
+    "focused_current_cases_passed": 389,
+    "source_compatibility": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/SOURCE_COMPATIBILITY002.json",
+      "sha256": "1ed9b6a4746495b9d84966c341dcc5c8a3239bd53a1c26ea96d1b240647a4350"
+    },
+    "source_base_commit": "060fe55f719d5adceab78cbcd3423cec909e7347"
+  },
+  "native_m5_ta_atr03_throughput_20261120_004": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004.json",
+      "sha256": "4c14a547dd05873d8b3db292f71053351f93fd062aaeb6b07c93ec15795a3f7d"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "model_constructions": 1,
+    "checkpoint_loads": 1,
+    "model_forwards": 15,
+    "backward_calls": 6,
+    "autograd_calls": 0,
+    "optimizer_constructions": 0,
+    "optimizer_steps": 0
   }
 }

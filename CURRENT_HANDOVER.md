@@ -37,6 +37,12 @@ to foreldede scope-ID-forventninger rettet til nye engangsidentiteter. Kjerne-
 funksjoner for modell, fit/score, RNG, optimizerrestore og batchschedule har
 uendret AST. To uavhengige kildepeer-reviews består; faktisk separat-prosess-/
 checkpointqual gjenstår. Ingen hovedtrening er startet.
+Fryst kodebase060fe55f. Ny throughput004 er forberedt og ikke innrømmet,
+SHA4c14a547dd05873d8b3db292f71053351f93fd062aaeb6b07c93ec15795a3f7d,
+15forwards/6backwards/0updates. Sourcecompat002/UNIT_PROOF005/SOURCE_DIFF_REVIEW004
+binder53eiere, uendret numerisk kjerne og389beståtte målrettede tilfeller.
+Nye mekanikk003 og main003 opprettes først fra nye genuine kvalifikasjoner.
+
 
 i9-10900K:10fysiske kjerner/20logiske tråder,19WSLvCPUer. Treneraffinity0–18 gir
 alleredetilgangtilalle19;8er numeriskpool. GPU250Wcap og målte korte topper179/190W
