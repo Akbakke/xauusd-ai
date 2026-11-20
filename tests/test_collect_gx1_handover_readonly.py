@@ -166,8 +166,10 @@ def test_gc_source_resume_preserves_retraining_boundaries_and_gc_evidence():
     gc = policy['gc_order_flow_research_20261006']
     execution = policy['native_v38_execution_20261005']
     prep = policy['native_v38_preparation_20261001']
-    # Current GC source work can advance while native training remains closed.
-    active_gc = work['gc_continuous_source_plan_004']
+    # This consumed source-admission owner remains closed independently of
+    # the newer five-year TA preparation in current_work.
+    active_gc = gc['continuous_source_admission_plan_004']
+    assert active_gc == work['gc_continuous_source_plan_004']
     assert active_gc['training_authorized'] is False
     assert active_gc['test_authorized'] is False
     assert active_gc['execution_authorized'] is False
@@ -176,13 +178,19 @@ def test_gc_source_resume_preserves_retraining_boundaries_and_gc_evidence():
     # The retained V38 evidence is historical; a later active goal owns current_work.
     assert Path(rebuild['run_root']).name == 'HISTORY2009W_NATIVE_V38_20261007'
     assert rebuild['run_root'] != prep['run_root']
-    assert work['existing_indicator_surface_changed'] is False
+    assert gc['indicator_removal_authorized'] is False
+    assert gc['native_architecture_change_authorized'] is False
     assert work['training_started'] is False
     # Consumed research keeps its scoped result while a later native goal owns
     # current status. Never project that old conclusion onto the new generation.
     assert gc['status'] != work['gc_goal_status']
     assert work['project_goal']['entry_timeframe'] == 'M5'
-    assert work['native_gc_rebuild_20261017']['training_started'] is False
+    assert work['native_gc_rebuild_20261017']['training_started'] is True
+    assert work['native_gc_rebuild_20261017']['native_training_admitted'] is False
+    current_main = policy['native_m5_ta_atr03_five_year_fit_20261120_001']
+    assert current_main['main_training_started'] is False
+    assert current_main['training_authorized'] is False
+    assert current_main['test_authorized'] is False
     assert gc['goal_execution_requested'] is True
     assert gc['research_fit_authorized_after_qualification_and_frozen_recipe'] is False
     assert gc['source_fetch_authorized'] is False
@@ -868,25 +876,25 @@ def test_current_handover_separates_new_rebuild_from_consumed_preprocessing():
     assert work["restart_and_smoke_goal"]["physical_reboot_executed"] is True
     repair = work['feature_repair_rebuild_20261010']
     current = work['native_d1_rebuild_20261011_003']
-    # The native rebuild keeps its own identity while the current GC task advances.
-    assert work['current_research_id'] == policy['gc_order_flow_research_20261006']['research_id']
+    # Historical native rebuilds retain their identity; the exact newer TA
+    # preparation owns current status and never inherits their launch authority.
+    assert work['current_research_id'] == 'native_m5_five_year_preparation_goal_20261120'
+    goal = policy[work['current_research_id']]
+    assert goal['status'] == 'COMPLETE_AT_STARTING_LINE_MAIN_NOT_STARTED'
+    assert goal['main_training_authorized'] is False
+    assert goal['native_TEST_authorized'] is False
     assert Path(current['run_root']).name == 'NATIVE_D1_REBUILD_20261011_003'
     native_terminal = work['native_preprocessing_terminal_20261013']
     assert native_terminal['path'].startswith(current['run_root'] + '/')
     assert not native_terminal['path'].startswith(repair['run_root'] + '/')
     assert not work['latest_terminal']['path'].startswith(current['run_root'] + '/')
-    def consumed_stage_bindings(value):
-        if isinstance(value, dict):
-            if value.get('completed_invocations') == 1 or value.get('failed_invocations') == 1:
-                terminal = value.get('terminal')
-                if isinstance(terminal, dict):
-                    yield terminal
-                if value.get('terminal_path'):
-                    yield {'path': value['terminal_path']}
-            for item in value.values():
-                yield from consumed_stage_bindings(item)
-    assert any(item['path'] == work['latest_terminal']['path']
-               for item in consumed_stage_bindings(work))
+    latest = policy['native_m5_ta_atr03_five_year_mechanics_20261120_001']
+    assert work['latest_terminal'] == latest['terminal']
+    assert latest['claimed_invocations'] == latest['completed_invocations'] == 1
+    assert latest['remaining_invocations'] == 0
+    assert latest['execution_authorized'] is False
+    assert latest['training_authorized'] is False
+    assert latest['relaunch_allowed'] is False
     assert repair['core_build_authorized'] is False
     assert repair['core_relaunch_allowed'] is False
     assert repair['complete_m1_stage']['authorized'] is False
@@ -1297,3 +1305,91 @@ def test_original_goal_fails_closed_before_any_terminal_read(fixture, monkeypatc
     monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', unexpected)
     with pytest.raises(ValueError, match='ORIGINAL_PROJECT_GOAL|original_project_goal'):
         current_status(fixture, source_only=source_only)
+
+
+def _prepared_five_year_fixture(repo):
+    path, policy = _policy(repo)
+    stage = 'native_m5_ta_atr03_five_year_fit_20261120_001'
+    plan_path = repo / 'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json'
+    plan_path.parent.mkdir(parents=True)
+    output_root = repo.parent / 'five_year_main'
+    plan = {'stage': stage, 'mode': 'ta_five_year_main', 'output_root': str(output_root),
+            'limits': {'optimizer_steps': 5540}}
+    plan_path.write_text(json.dumps(plan))
+    plan_ref = {'path': str(plan_path), 'sha256': hashlib.sha256(plan_path.read_bytes()).hexdigest()}
+    readiness_path = repo.parent / 'TRAINING_READY.json'
+    readiness = {'schema_version': 'gx1_five_year_training_readiness_v1',
+                 'status': 'READY_NOT_ADMITTED_NOT_STARTED', 'main_plan': plan_ref,
+                 'main_limits': plan['limits'], 'current_training_flags_closed': True,
+                 'main_output_root_absent': True, 'test_data_used': False}
+    readiness_path.write_text(json.dumps(readiness))
+    policy['current_work']['current_research_id'] = 'native_m5_five_year_preparation_goal_20261120'
+    policy[stage] = {'status': 'PREPARED_NOT_ADMITTED', 'plan': plan_ref,
+                     'output_root': str(output_root), 'max_invocations': 1,
+                     'claimed_invocations': 0, 'completed_invocations': 0, 'remaining_invocations': 0,
+                     'execution_authorized': False, 'training_authorized': False,
+                     'test_authorized': False, 'relaunch_allowed': False, 'main_training_started': False,
+                     'ready_for_later_one_use_admission': True,
+                     'training_readiness': {'path': str(readiness_path),
+                         'sha256': hashlib.sha256(readiness_path.read_bytes()).hexdigest()}}
+    for key in ('training_enabled', 'native_training_enabled', 'full_epoch_training_allowed', 'full_val_allowed'):
+        policy[key] = False
+    path.write_text(json.dumps(policy))
+    return path, policy, stage, plan_path, readiness_path, output_root
+
+
+def test_active_prepared_five_year_is_separate_from_legacy_entry_gates(fixture, monkeypatch):
+    _prepared_five_year_fixture(fixture)
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly.next_run_readiness',
+                        lambda _: {'decision': 'BLOCKED', 'blocked_reasons': ['gpu_batch256_parity_missing']})
+    out = current_status(fixture)
+    assert out['next_run']['decision'] == 'PREPARED_NOT_ADMITTED'
+    assert out['next_run']['blocked_reasons'] == ['current_plan_not_admitted']
+    assert out['next_run']['run_authority'] is False
+    assert out['next_run']['admission_requires_fresh_source_and_hardware_checks'] is True
+    legacy = out['legacy_native_campaign_readiness']
+    assert legacy['scope'] == 'legacy_native_entry_window_campaign'
+    assert legacy['blocked_reasons'] == ['gpu_batch256_parity_missing']
+
+
+@pytest.mark.parametrize('mutation', ('plan_hash', 'readiness_hash', 'wrong_plan', 'wrong_limits',
+    'output_exists', 'claimed', 'training_open', 'execution_open', 'test_used'))
+def test_prepared_five_year_cannot_soft_pass_mismatches(fixture, mutation):
+    from scripts.collect_gx1_handover_readonly import prepared_five_year_observation
+    _, policy, stage, plan_path, readiness_path, output_root = _prepared_five_year_fixture(fixture)
+    gate = policy[stage]
+    readiness = json.loads(readiness_path.read_text())
+    if mutation == 'plan_hash':
+        plan_path.write_text(plan_path.read_text() + ' ')
+    elif mutation == 'readiness_hash':
+        readiness_path.write_text(readiness_path.read_text() + ' ')
+    elif mutation == 'wrong_plan':
+        readiness['main_plan'] = {'path': str(plan_path), 'sha256': '0' * 64}
+    elif mutation == 'wrong_limits':
+        readiness['main_limits'] = {'optimizer_steps': 1}
+    elif mutation == 'output_exists':
+        output_root.mkdir()
+    elif mutation == 'claimed':
+        gate['claimed_invocations'] = 1
+    elif mutation == 'training_open':
+        policy['training_enabled'] = True
+    elif mutation == 'execution_open':
+        gate['execution_authorized'] = True
+    elif mutation == 'test_used':
+        readiness['test_data_used'] = True
+    if mutation in ('wrong_plan', 'wrong_limits', 'test_used'):
+        readiness_path.write_text(json.dumps(readiness))
+        gate['training_readiness']['sha256'] = hashlib.sha256(readiness_path.read_bytes()).hexdigest()
+    with pytest.raises(ValueError, match='CURRENT_FIVE_YEAR_'):
+        prepared_five_year_observation(fixture, policy)
+
+
+def test_later_five_year_state_never_inherits_prepared_or_legacy_ready(fixture):
+    from scripts.collect_gx1_handover_readonly import prepared_five_year_observation
+    _, policy, stage, _, _, _ = _prepared_five_year_fixture(fixture)
+    policy[stage]['status'] = 'ADMITTED_ONE_USE'
+    result = prepared_five_year_observation(fixture, policy)
+    assert result['decision'] == 'BLOCKED'
+    assert result['run_authority'] is False
+    assert result['recorded_status'] == 'ADMITTED_ONE_USE'

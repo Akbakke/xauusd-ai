@@ -350,6 +350,57 @@ def next_run_readiness(
             **({"native_window_scope": native_scope} if native_scope is not None else {})}
 
 
+def prepared_five_year_observation(repo: Path, policy: dict) -> dict | None:
+    """Observe the exact prepared M5 plan; this is never a launch gate."""
+    if policy.get("current_work", {}).get("current_research_id") != "native_m5_five_year_preparation_goal_20261120":
+        return None
+    stage = "native_m5_ta_atr03_five_year_fit_20261120_001"
+    gate = policy.get(stage, {})
+    plan_ref = gate.get("plan")
+    expected = repo / "configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json"
+    if not isinstance(plan_ref, dict) or set(plan_ref) != {"path", "sha256"} or plan_ref["path"] != str(expected):
+        raise ValueError("CURRENT_FIVE_YEAR_PLAN_BINDING_INVALID")
+    path = _regular_file(plan_ref["path"], label="current_five_year_plan")
+    if _sha256(path) != plan_ref["sha256"]:
+        raise ValueError("CURRENT_FIVE_YEAR_PLAN_HASH_MISMATCH")
+    plan = json.loads(path.read_text())
+    if gate.get("status") != "PREPARED_NOT_ADMITTED":
+        # Later states require their own exact runtime observation; never fall
+        # back to legacy Entry readiness or infer a fresh preparation pass.
+        return {"decision": "BLOCKED", "scope": stage,
+                "blocked_reasons": ["active_five_year_scope_requires_runtime_observation"],
+                "recorded_status": gate.get("status"), "run_authority": False}
+    readiness_ref = gate.get("training_readiness")
+    if not isinstance(readiness_ref, dict) or set(readiness_ref) != {"path", "sha256"}:
+        raise ValueError("CURRENT_FIVE_YEAR_READINESS_BINDING_INVALID")
+    readiness_path = _regular_file(readiness_ref["path"], label="current_five_year_readiness")
+    if _sha256(readiness_path) != readiness_ref["sha256"]:
+        raise ValueError("CURRENT_FIVE_YEAR_READINESS_HASH_MISMATCH")
+    readiness = json.loads(readiness_path.read_text())
+    output_root = Path(plan["output_root"])
+    if (plan.get("stage") != stage or plan.get("mode") != "ta_five_year_main"
+            or gate.get("output_root") != str(output_root)
+            or output_root.exists() or output_root.is_symlink()
+            or gate.get("max_invocations") != 1
+            or any(gate.get(key) != 0 for key in ("claimed_invocations", "completed_invocations", "remaining_invocations"))
+            or any(gate.get(key) is not False for key in ("execution_authorized", "training_authorized", "test_authorized", "relaunch_allowed", "main_training_started"))
+            or any(policy.get(key) is not False for key in ("training_enabled", "native_training_enabled", "full_epoch_training_allowed", "full_val_allowed"))
+            or gate.get("ready_for_later_one_use_admission") is not True
+            or readiness.get("schema_version") != "gx1_five_year_training_readiness_v1"
+            or readiness.get("status") != "READY_NOT_ADMITTED_NOT_STARTED"
+            or readiness.get("main_plan") != plan_ref
+            or readiness.get("main_limits") != plan.get("limits")
+            or readiness.get("current_training_flags_closed") is not True
+            or readiness.get("main_output_root_absent") is not True
+            or readiness.get("test_data_used") is not False):
+        raise ValueError("CURRENT_FIVE_YEAR_PREPARED_STATE_MISMATCH")
+    return {"decision": "PREPARED_NOT_ADMITTED", "scope": stage,
+            "blocked_reasons": ["current_plan_not_admitted"], "plan": plan_ref,
+            "training_readiness": readiness_ref, "training_started": False,
+            "run_authority": False,
+            "admission_requires_fresh_source_and_hardware_checks": True}
+
+
 def _current_processes(source: Path) -> list[dict[str, str]]:
     """Observe CURRENT Python workloads, including external benchmark operators."""
     result = subprocess.run(
@@ -488,7 +539,15 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
     out["latest_terminal_receipt"] = terminal
     out["current_processes"] = _current_processes(repo)
     out["process_observation"] = "RUNNING" if out["current_processes"] else "NO_CURRENT_PYTHON_WORKLOAD_OBSERVED"
-    out["next_run"] = next_run_readiness(repo)
+    legacy_readiness = next_run_readiness(repo)
+    active_preparation = prepared_five_year_observation(repo, policy)
+    if active_preparation is None:
+        out["next_run"] = legacy_readiness
+    else:
+        out["legacy_native_campaign_readiness"] = {
+            **legacy_readiness, "scope": "legacy_native_entry_window_campaign",
+        }
+        out["next_run"] = active_preparation
     if failed_without_test_witness:
         # Observe the genuine failed exit without inventing missing proof.
         # Even a separately ready native scope cannot pass this unknown.
