@@ -42,9 +42,11 @@ SHA4c14a547dd05873d8b3db292f71053351f93fd062aaeb6b07c93ec15795a3f7d,
 15forwards/6backwards/0updates. Sourcecompat002/UNIT_PROOF005/SOURCE_DIFF_REVIEW004
 binder53eiere, uendret numerisk kjerne og389beståtte målrettede tilfeller.
 Kilde-/RNG-/B64- og B256/equalTF-paritet består på ekte data. Ny mekanikk003 er
-forberedt (a27fb443e18f2f6d38e329c7ef7d63713fb32f494d308fe55973913ad938178c);
-7forwards/3updates/6autograd og original modell/optimizer/RNG-bane kreves.
-Praktisk uavhengig-prosessresume og main003-fullpass gjenstår.
+COMPLETE/exit0 (7forwards/3updates/6autograd), kald resume og original modell/
+optimizer/RNG/stepbane er bitidentiske. Ny main003-blueprint er forberedt, SHA
+20c964020752318c507957ec0b71645e419e023defd7275637cc85fd48b2b5fd,
+med cadence256 og uendrede5540TRAINupdates/7062totalforwards. Praktisk uavhengig-
+prosessresume og hovedpass gjenstår; kvalifiseringsvekter skal ikke brukes til main.
 
 
 i9-10900K:10fysiske kjerner/20logiske tråder,19WSLvCPUer. Treneraffinity0–18 gir
