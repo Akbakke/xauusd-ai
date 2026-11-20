@@ -2226,9 +2226,9 @@ def primary_backbone_probe(model,loss,features):
 
 
 # Explicit net-change noise target route. Raw and market-range routes stay distinct.
-NOISE_PREPARE_STAGE='native_m5_ta_atr03_prepare_20261120_001'
-NOISE_PREPARE_PLAN=REPO/'configs/research/NATIVE_M5_TA_ATR03_PREPARE_20261120_001.json'
-NOISE_PREPARE_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_PREPARE_20261120_001')
+NOISE_PREPARE_STAGE='native_m5_ta_atr03_prepare_20261120_002'
+NOISE_PREPARE_PLAN=REPO/'configs/research/NATIVE_M5_TA_ATR03_PREPARE_20261120_002.json'
+NOISE_PREPARE_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_PREPARE_20261120_002')
 NOISE_SOURCE_PATHS=tuple(dict.fromkeys((*TA_FIT_SOURCE_PATHS,
     'tests/test_market_state_native_m5_targets_v1.py',
     'tests/test_market_state_ta_integrated_objective_v1.py',
@@ -2255,7 +2255,7 @@ def noise_target_kwargs(plan):
 
 def build_noise_prepare_plan(*,inputs,margin_atr,source_base_commit=None):
     from gx1.contracts.market_state_native_m5_targets_v1 import noise_margin_dataset_contract
-    fields={'reference_fit_plan','normalization','source_qualification','comparison_review','raw_target_result','raw_target_tape'}
+    fields={'reference_fit_plan','normalization','source_qualification','comparison_review','raw_target_result','raw_target_tape','reused_noise_dataset','previous_prepare_terminal'}
     need(type(inputs)is dict and set(inputs)==fields,'NOISE_PREPARE_INPUT_ROLES')
     base=read(inputs['reference_fit_plan']);normalization=read(inputs['normalization'])
     qualification=read(inputs['source_qualification']);comparison=read(inputs['comparison_review'])
@@ -2277,6 +2277,24 @@ def build_noise_prepare_plan(*,inputs,margin_atr,source_base_commit=None):
         and normalization['fit_population']['cutoff_ns']==FIT_END_NS
         and raw['target_contract']==base['metadata']['target_contract']
         and raw['target_tape']==inputs['raw_target_tape'],'NOISE_PREPARE_RAW_NORM_SCOPE')
+    ta_plan=base['metadata']['ta_plan']
+    need(ta_audit.candidate_metadata(ta_plan['inputs'],ta_plan['feature_contract'])==ta_plan['candidate_requalification'],
+        'NOISE_PROVIDER_RELOAD_METADATA_GATE_BEFORE_CLAIM')
+    previous=read(inputs['previous_prepare_terminal']);old_plan=read(previous['plan']);old_claim=read(previous['claim'])
+    dataset=read(inputs['reused_noise_dataset'])
+    need(previous['stage']==old_plan['stage']==old_claim['stage']=='native_m5_ta_atr03_prepare_20261120_001'
+        and previous['status']=='FAILED_CONSUMED'and previous['exit_code']==1 and previous['result']is None
+        and previous['remaining_invocations']==0 and previous['relaunch_allowed']is False
+        and previous['error']=='ValueError:NATIVE_M5_PIPELINE_CANDIDATE_NUMERIC_OWNER_CHANGED:gx1/contracts/market_state_native_m5_feature_inputs_v1.py'
+        and old_claim['plan']==previous['plan']and old_plan['inputs']['raw_target_tape']==inputs['raw_target_tape']
+        and inputs['reused_noise_dataset']['path']==str(Path(old_plan['output_root'])/'NOISE_TARGETS.json')
+        and dataset['raw_target_tape']==inputs['raw_target_tape']and dataset['raw_fields_byte_identical']is True
+        and dataset['contract']==noise_margin_dataset_contract(margin_atr)
+        and all(old_plan['source_owners'][name]==sha(REPO/name)for name in (
+            'gx1/contracts/market_state_native_m5_targets_v1.py','gx1/features/technical_indicators_v1.py','gx1/features/htf_features.py'))
+        and dataset['cutoff_ns']==raw['source_spec']['cutoff_ns']and dataset['issue_rows']==raw['report']['selected_issue_rows']
+        and set(dataset['headers'])==set(dataset['contract']['required_array_fields'])|{'source_row'}
+        and ref(dataset['arrays']['path'])==dataset['arrays'],'NOISE_REUSE_COMPLETE_TARGETS_FROM_PRE_MODEL_FAILURE')
     metadata={'ta_plan':base['metadata']['ta_plan'],'architecture':base['metadata']['architecture'],
         'seed':base['recipe']['seed'],'target_contract':noise_margin_dataset_contract(margin_atr),
         'raw_target_contract':raw['target_contract'],'raw_source_spec':raw['source_spec'],
@@ -2321,6 +2339,11 @@ def noise_fit_axes(provider,dataset,dataset_contract):
     with np.load(dataset['arrays']['path'],allow_pickle=False)as archive:
         need(set(archive.files)==set(dataset_contract['required_array_fields'])|{'source_row'},'NOISE_ARRAY_INVENTORY')
         times=archive['issue_ns'];sources=archive['source_row'];at=np.searchsorted(times,provider.issue_ns[wanted])
+        source_header=dataset['headers']['source_row']
+        need(sources.dtype==np.int64 and sources.shape==(dataset['issue_rows'],)
+            and sources.dtype.str==source_header['dtype']and list(sources.shape)==source_header['shape']
+            and digest(sources)==source_header['sha256']and np.array_equal(sources,np.arange(len(sources),dtype=np.int64)),
+            'NOISE_FULL_NATIVE_SOURCE_ROW_AXIS')
         need(np.all(at<len(times))and np.array_equal(times[at],provider.issue_ns[wanted])
             and np.array_equal(sources[at],provider.source_row[wanted]),'NOISE_DATASET_SOURCE_JOIN')
         truth={}
@@ -2328,7 +2351,10 @@ def noise_fit_axes(provider,dataset,dataset_contract):
             array=archive[key];header=dataset['headers'][key]
             need(array.dtype.str==header['dtype']and list(array.shape)==header['shape']
                 and digest(array)==header['sha256'],'NOISE_ARRAY_BYTES:'+key)
-            truth[key]=array[at]
+            truth[key]=array
+    _native_truth(truth,rows=dataset['issue_rows'],fold_upper_ns=dataset['cutoff_ns'],
+        target_contract_sha256=dataset_contract['contract_sha256'],target_contract=dataset_contract)
+    truth={key:value[at]for key,value in truth.items()}
     cohorts={};report={}
     for name,start,end in [('TRAIN',FIT_START_NS,FIT_END_NS),('CONTROL',FIT_END_NS,CONTROL_END_NS)]:
         chosen=(provider.issue_ns[wanted]>=start)&(provider.issue_ns[wanted]<end)
@@ -2363,39 +2389,44 @@ def noise_prepare_physical(plan,root):
     from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_bar_direction_model
     from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
     meta=plan['metadata'];target_contract=meta['target_contract'];began=time.monotonic()
-    with np.load(plan['inputs']['raw_target_tape']['path'],allow_pickle=False)as z:
-        def owned(key):
-            a=z[key];a.flags.writeable=False;return a
-        bars={tf:targets.NativeTFBarDirections(**{f.name:owned('bars_'+tf+'_'+f.name)
-              for f in dataclasses.fields(targets.NativeTFBarDirections)})for tf in targets.TIMEFRAMES}
-        tape=targets.NativeM5Targets(issue_ns=owned('issue_ns'),source_row=owned('source_row'),
-            ohlc=owned('ohlc'),source_gap=owned('source_gap'),bars_by_timeframe=MappingProxyType(bars),
-            source_ref=MappingProxyType(meta['raw_source_spec']['manifest']),cutoff_ns=meta['raw_source_spec']['cutoff_ns'])
-        truth=tape.gather_next_bar_noise_margin(tape.issue_ns,fold_upper_ns=tape.cutoff_ns,margin_atr=plan['margin_atr'])
-        need(truth.pop('noise_margin_contract')==target_contract['noise_margin_contract'],'NOISE_PROJECTION_CONTRACT')
-        rawkeys=[key for key in target_contract['required_array_fields']if not key.startswith('noise_')]
-        for key in rawkeys:
-            a=z['future_'+key];need(a.dtype==truth[key].dtype and a.shape==truth[key].shape
-                and digest(a)==digest(truth[key]),'NOISE_RAW_FIELD_PRESERVED:'+key)
-        need(set(truth)==set(target_contract['required_array_fields']),'NOISE_PROJECTION_INVENTORY')
-        projected={**truth,'source_row':tape.source_row}
-        headers={key:{'dtype':a.dtype.str,'shape':list(a.shape),'sha256':digest(a)}for key,a in projected.items()}
-        stream=io.BytesIO();np.savez_compressed(stream,**projected)
-        array_ref=publish(root/'NOISE_TARGETS.npz',stream.getvalue());stream.close()
-        dataset={'schema_version':'gx1_native_m5_noise_dataset_artifact_v1','contract':target_contract,
-            'raw_target_tape':plan['inputs']['raw_target_tape'],'arrays':array_ref,'headers':headers,
-            'cutoff_ns':tape.cutoff_ns,'issue_rows':len(tape.issue_ns),
-            'raw_fields_byte_identical':True,'model_input_fields_added':0,'test_data_used':False,
-            'per_TF':{tf:{task:{
-                'raw_eligible_endpoints':int(truth['eligible'][:,j].sum()),
-                'noise_known':int(truth['noise_'+task+'_known'][:,j].sum()),
-                'noise_predictive':int(truth['noise_'+task+'_eligible'][:,j].sum()),
-                'raw_eligible_without_known_noise_target':int((truth['eligible'][:,j]&~truth['noise_'+task+'_known'][:,j]).sum()),
-                'predictive_counts_down_neutral_up':np.bincount(
-                    truth['noise_'+task+'_sign'][truth['noise_'+task+'_eligible'][:,j],j].astype(np.int64)+1,minlength=3).tolist()
-            }for task in('open','close')}for j,tf in enumerate(targets.TIMEFRAMES)}}
-        dataset_ref=publish(root/'NOISE_TARGETS.json',dataset)
-    del tape,bars,truth,projected
+    if 'reused_noise_dataset'in plan['inputs']:
+        dataset_ref=plan['inputs']['reused_noise_dataset'];dataset=read(dataset_ref)
+        need(dataset['contract']==target_contract and dataset['raw_target_tape']==plan['inputs']['raw_target_tape']
+            and ref(dataset['arrays']['path'])==dataset['arrays'],'NOISE_REUSED_DATASET_BINDING')
+    else:
+        with np.load(plan['inputs']['raw_target_tape']['path'],allow_pickle=False)as z:
+            def owned(key):
+                a=z[key];a.flags.writeable=False;return a
+            bars={tf:targets.NativeTFBarDirections(**{f.name:owned('bars_'+tf+'_'+f.name)
+                  for f in dataclasses.fields(targets.NativeTFBarDirections)})for tf in targets.TIMEFRAMES}
+            tape=targets.NativeM5Targets(issue_ns=owned('issue_ns'),source_row=owned('source_row'),
+                ohlc=owned('ohlc'),source_gap=owned('source_gap'),bars_by_timeframe=MappingProxyType(bars),
+                source_ref=MappingProxyType(meta['raw_source_spec']['manifest']),cutoff_ns=meta['raw_source_spec']['cutoff_ns'])
+            truth=tape.gather_next_bar_noise_margin(tape.issue_ns,fold_upper_ns=tape.cutoff_ns,margin_atr=plan['margin_atr'])
+            need(truth.pop('noise_margin_contract')==target_contract['noise_margin_contract'],'NOISE_PROJECTION_CONTRACT')
+            rawkeys=[key for key in target_contract['required_array_fields']if not key.startswith('noise_')]
+            for key in rawkeys:
+                a=z['future_'+key];need(a.dtype==truth[key].dtype and a.shape==truth[key].shape
+                    and digest(a)==digest(truth[key]),'NOISE_RAW_FIELD_PRESERVED:'+key)
+            need(set(truth)==set(target_contract['required_array_fields']),'NOISE_PROJECTION_INVENTORY')
+            projected={**truth,'source_row':tape.source_row}
+            headers={key:{'dtype':a.dtype.str,'shape':list(a.shape),'sha256':digest(a)}for key,a in projected.items()}
+            stream=io.BytesIO();np.savez_compressed(stream,**projected)
+            array_ref=publish(root/'NOISE_TARGETS.npz',stream.getvalue());stream.close()
+            dataset={'schema_version':'gx1_native_m5_noise_dataset_artifact_v1','contract':target_contract,
+                'raw_target_tape':plan['inputs']['raw_target_tape'],'arrays':array_ref,'headers':headers,
+                'cutoff_ns':tape.cutoff_ns,'issue_rows':len(tape.issue_ns),
+                'raw_fields_byte_identical':True,'model_input_fields_added':0,'test_data_used':False,
+                'per_TF':{tf:{task:{
+                    'raw_eligible_endpoints':int(truth['eligible'][:,j].sum()),
+                    'noise_known':int(truth['noise_'+task+'_known'][:,j].sum()),
+                    'noise_predictive':int(truth['noise_'+task+'_eligible'][:,j].sum()),
+                    'raw_eligible_without_known_noise_target':int((truth['eligible'][:,j]&~truth['noise_'+task+'_known'][:,j]).sum()),
+                    'predictive_counts_down_neutral_up':np.bincount(
+                        truth['noise_'+task+'_sign'][truth['noise_'+task+'_eligible'][:,j],j].astype(np.int64)+1,minlength=3).tolist()
+                }for task in('open','close')}for j,tf in enumerate(targets.TIMEFRAMES)}}
+            dataset_ref=publish(root/'NOISE_TARGETS.json',dataset)
+        del tape,bars,truth,projected
     projection_seconds=time.monotonic()-began
     provider,admission=ta_audit.load_candidate_provider(meta['ta_plan'])
     cohorts,axis=noise_fit_axes(provider,dataset,target_contract)
@@ -2443,7 +2474,8 @@ def noise_prepare_physical(plan,root):
         'optimizer_steps':0,'initial_state_sha256':initial_sha,'initial_checkpoint':checkpoint,
         'initial_capture':capture,'initial_scores':scores,'all_selected_initial_logits_equal_new_noise_prior':True,
         'input_binding':provider.input_binding(normalization),'model_contract':model.research_objective,
-        'feature_requalification':admission,'projection_seconds':projection_seconds,
+        'feature_requalification':admission,'target_dataset_acquisition_seconds':projection_seconds,
+        'noise_target_projection_recomputed':'reused_noise_dataset'not in plan['inputs'],'reused_noise_dataset':dataset_ref,
         'scope':'all_preTEST_noise_targets_and_selected1536FIT_512CONTROL_initialbaseline_only',
         'six_year_model_baseline_measured':False,'whole_market_FLAT_qualified':False,'economic_edge_proven':False}
 

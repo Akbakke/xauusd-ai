@@ -98,7 +98,9 @@ SOURCE_PATHS = tuple(dict.fromkeys((*SOURCE_PATHS, *NUMERIC_OWNER_PATHS,
     'gx1/features/gc_native_field_catalog_v1.py',
     'gx1/contracts/native_m5_direction_io_firewall_v1.py',
     'gx1/features/gc_native_context_v1.py',
-    'gx1/contracts/entry_gc_mtf_history_v1.py')))
+    'gx1/contracts/entry_gc_mtf_history_v1.py',
+    'gx1/audit/build_native_m5_ta_feature_cache_v1.py',
+    'tests/test_build_native_m5_ta_feature_cache_v1.py')))
 
 
 def numeric_ast_identity(source, *, excluded_functions=()):
@@ -131,7 +133,13 @@ def numeric_owner_identities(old_plan):
         excluded = ('native_m5_feature_provider_contract', 'fit_native_m5_feature_normalization') if (
             relative == 'gx1/contracts/market_state_native_m5_feature_inputs_v1.py') else ()
         old = numeric_ast_identity(original.decode(), excluded_functions=excluded)
-        current = numeric_ast_identity((REPO / relative).read_text(), excluded_functions=excluded)
+        if relative == 'gx1/contracts/market_state_native_m5_feature_inputs_v1.py':
+            # Late import: the cache adapter imports this owner for its existing
+            # AST authority; only its exact qualified helper/call bridge is used.
+            from gx1.audit.build_native_m5_ta_feature_cache_v1 import alias_layout_numeric_identity
+            current = alias_layout_numeric_identity((REPO / relative).read_text())
+        else:
+            current = numeric_ast_identity((REPO / relative).read_text(), excluded_functions=excluded)
         need(old == current, 'CANDIDATE_NUMERIC_OWNER_CHANGED:' + relative)
         result[relative] = current
     return result

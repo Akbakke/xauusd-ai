@@ -1374,7 +1374,7 @@ def test_noise_persisted_axes_preserve_raw_source_report_and_independent_masks(t
     truth=tape.gather_next_bar_noise_margin(tape.issue_ns,fold_upper_ns=tape.cutoff_ns,margin_atr=.3)
     truth.pop('noise_margin_contract');arrays={**truth,'source_row':tape.source_row}
     path=tmp_path/'noise.npz';np.savez_compressed(path,**arrays)
-    dataset={'arrays':owner.ref(path),'headers':{key:{'dtype':a.dtype.str,'shape':list(a.shape),'sha256':owner.digest(a)}for key,a in arrays.items()}}
+    dataset={'arrays':owner.ref(path),'issue_rows':len(tape.issue_ns),'cutoff_ns':tape.cutoff_ns,'headers':{key:{'dtype':a.dtype.str,'shape':list(a.shape),'sha256':owner.digest(a)}for key,a in arrays.items()}}
     rawpath=tmp_path/'raw.npz';np.savez_compressed(rawpath,source_row=tape.source_row,issue_ns=tape.issue_ns,
         **{'future_'+key:value for key,value in truth.items()if not key.startswith('noise_')})
     provider=SimpleNamespace(issue_ns=tape.issue_ns,source_row=tape.source_row,input_ready=np.ones(len(tape.issue_ns),bool))

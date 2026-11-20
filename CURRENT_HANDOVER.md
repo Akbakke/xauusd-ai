@@ -22,7 +22,21 @@ ny matched1536FIT-prior og fersk32forward-initialbaseline på1536FIT/512CONTROL.
 Eksakt006-provider og gammel whole24175TRAIN-norm gjenbrukes, ingen seksårs-
 metadatarebind. Deretter egen CUDA3update/cold-replay og ny hovedplan, utenfitlaunch.
 Dette kvalifiserer netto-støysone, ikke hele sideveis/path-FLAT eller edge.
-Produceradmisjon gjelder bare ATR03_PREPARE001,0modellupdates; treningsporter er stengt. Alle tidligere
+PREPARE001 produserte NOISE_TARGETS.json/.npz for1215513preTEST-issues,
+alle rågatherfelt byteidentiske. Deretter avviste gammel provider-loader den
+allerede kvalifiserte alias-minnefiksen i feature_inputs. Metadata-preflight
+hadde ikke kjørt akkurat denne lasteporten; den flyttes nå før nyCLAIM.
+Ingen modell/forward/fit ble startet.001er konsumert og relanseres aldri.
+Neste plan skal gjenbruke de ferdige målene og eksisterende eksakte AST-bro,
+ikke bygge historikken eller endre numerikk/normalisering på nytt.
+Den kanoniske provider-loaderen bruker nå eksisterende eksakt alias-AST-bro;
+alle andre numeriske eiere er fortsatt låst.2nye positive/negative tilfeller
+og4målrettede noise-/foldtilfeller består. Metadata-build for nyPREPARE002
+kjører den reelle provider-metadata-porten førCLAIM og består.002binder
+001feilterminal+plan+CLAIM, hele25-arrayinventaret, råtape003 og uendrede
+ATR-/targeteiere. Hele source_row og alle arrayhasher/typed noise-masker
+valideres førmodell. Ingen nyATR-/targetberegning.002er ennå ikke innrømmet.
+ATR03_PREPARE001 er FAILED_CONSUMED før modellbygging; alle porter er stengt. Alle tidligere
 engangsplaner er konsumert og relanseres aldri. Ingen ny fit er innrømmet.
 M5-læringen bedret seg på valgt FIT, men senere CONTROL taper fortsatt prior.
 Dette er ingen dokumentert retningsedge, generalisering eller økonomi.

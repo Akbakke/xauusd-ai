@@ -619,3 +619,48 @@ def test_006_diagnosis_gate_rejects_changed_archive_axis_or_uncovered_case(monke
     else:report['normalization_fitted']=True
     with pytest.raises(ValueError,match='NORMALIZATION_DIAGNOSIS_'):
         audit.normalization_diagnosis(inputs)
+
+
+def alias_numeric_owner_fixture(monkeypatch, tmp_path):
+    from gx1.audit import build_native_m5_ta_feature_cache_v1 as bridge
+    relative='gx1/contracts/market_state_native_m5_feature_inputs_v1.py'
+    current=(audit.REPO/relative).read_text()
+    original=current.replace(bridge._ALIAS_HELPER_SOURCE+'\n\n','').replace(
+        'values[local]='+bridge._ALIAS_NEW_EXPRESSION,'values[local]='+bridge._ALIAS_OLD_EXPRESSION)
+    assert original!=current and '_native_m5_alias_vector'not in original
+    other='gx1/features/unit_numeric_owner.py'
+    originals={relative:original.encode(),other:b'LIMIT=3\ndef formula(x): return x+LIMIT\n'}
+    for name,value in {relative:current,other:originals[other].decode()}.items():
+        path=tmp_path/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(value)
+    monkeypatch.setattr(audit,'REPO',tmp_path)
+    monkeypatch.setattr(audit,'NUMERIC_OWNER_PATHS',(relative,other))
+    monkeypatch.setattr(audit.subprocess,'check_output',lambda args,**kwargs:originals[args[-1].split(':',1)[1]])
+    plan={'source_base_commit':'unit','source_owners':{
+        name:audit.hashlib.sha256(value).hexdigest()for name,value in originals.items()}}
+    return relative,other,current,originals,plan
+
+
+def test_canonical_numeric_owner_reuses_exact_qualified_alias_bridge(monkeypatch,tmp_path):
+    relative,other,current,originals,plan=alias_numeric_owner_fixture(monkeypatch,tmp_path)
+    identities=audit.numeric_owner_identities(plan)
+    assert set(identities)=={relative,other}
+    excluded=('native_m5_feature_provider_contract','fit_native_m5_feature_normalization')
+    assert identities[relative]==audit.numeric_ast_identity(originals[relative].decode(),excluded_functions=excluded)
+    assert identities[other]==audit.numeric_ast_identity(originals[other].decode())
+    assert 'gx1/audit/build_native_m5_ta_feature_cache_v1.py'in audit.SOURCE_PATHS
+    assert 'tests/test_build_native_m5_ta_feature_cache_v1.py'in audit.SOURCE_PATHS
+
+
+def test_canonical_alias_bridge_rejects_helper_or_other_numeric_changes(monkeypatch,tmp_path):
+    relative,other,current,originals,plan=alias_numeric_owner_fixture(monkeypatch,tmp_path)
+    path=tmp_path/relative
+    changed=current.replace('m5.columns.get_loc(per_bar)','0')
+    assert changed!=current
+    path.write_text(changed)
+    with pytest.raises(ValueError,match='EXACT_ALIAS_HELPER_AST'):audit.numeric_owner_identities(plan)
+    changed=current.replace('issues=starts+BAR_NS','issues=starts+BAR_NS+1')
+    assert changed!=current
+    path.write_text(changed)
+    with pytest.raises(ValueError,match='CANDIDATE_NUMERIC_OWNER_CHANGED:'):audit.numeric_owner_identities(plan)
+    path.write_text(current);(tmp_path/other).write_text('LIMIT=4\ndef formula(x): return x+LIMIT\n')
+    with pytest.raises(ValueError,match='CANDIDATE_NUMERIC_OWNER_CHANGED:'):audit.numeric_owner_identities(plan)
