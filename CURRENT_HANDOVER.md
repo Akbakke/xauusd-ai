@@ -4,142 +4,125 @@ Arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 Les `GX1_RULES.md` helt. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus.
 Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git.
 
-## Gjeldende oppdrag 20.11.2026
+## Konklusjon 20.11.2026
 
-Full revisjon av prosjektets avhengigheter, funksjoner, features, koblinger og
-lagring før trening. Numerikk, TRAIN-statistikk og kvalifisert opprydding er
-ferdige. Hel testsamling er importert/samlet uten feil. Positiv bytekontroll er ferdig. Nytt fysisk sluttinventar og samlet
-beredskapskvittering gjenstår. Status eies av `full_project_dependency_feature_storage_audit_20261120_001`.
+Den bestilte fullprosjektrevisjonen er ferdig innen autorisert omfang, med
+uttrykkelige ubeviste grenser nedenfor. Det er ikke funnet en gjenstående konkret
+teknisk blokkering for den forberedte ene femårspassen. Ikke gjør nye generelle
+modell-/lossjusteringer uten målt begrunnelse fra læringsresultatet.
 
-Hovedtrening er ikke innrømmet eller startet. Alle treningsporter er stengt;
-main-planen er uclaimet, og outputroten finnes ikke. Ingen live/paper, broker,
-ordre, spending eller promotion. Native TEST fra 01.07.2026 er forseglet.
+Hovedtrening er IKKE innrømmet eller startet. Alle treningsporter er stengt,
+CLAIM=0, remaining=0 og outputroten finnes ikke. Neste steg krever egen engangs-
+admisjon med fersk kilde-/maskinvarekontroll; ingen gammel plan relanseres.
+Gjeldende observasjonsfokus er den fortsatt forberedte, uclaimede main-planen.
+
+Samlet kvittering under `/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001`:
+`FULL_PROJECT_FINAL_REPORT001.json`, SHA
+`6c04063733befd2df4d4f12d82efa1d3a64e52f769b1f7ffb68ed63f151eaa69`.
+`TRAINING_READY_FULL_PROJECT_AUDIT001.json`, SHA
+`778872b2f141bf12d9f9e287ea387f061e08b62e5bd94719a239597519c24edc`.
+Eksakte øvrige referanser/SHA står i policy og disse kvitteringene.
+
+## Gjeldende datasett og plan
 
 | Flate | UTC-periode | Inputissues |
 |---|---|---:|
 | TRAIN | 2021–2025 | 354550 |
 | Utviklings-VAL / internt CONTROL | Første halvår 2026 | 34934 |
-| Native TEST | Fra 01.07.2026 | Ikke lest |
+| Native TEST | Fra 01.07.2026, forseglet | Ikke lest |
 
 Retning bruker bare native M5 med lukket M15/H1/H4/D1. M1 er utelukket også
 indirekte via input, mål, masker, rader, normalisering, prior eller warmstart.
-Alle åtte spesialistfamilier og D1/makrokonteksten beholdes; GC/MBP er bevart
-separat. Journalunntaket gjelder den navngitte D1/swing-ruten, ikke M5-modellen.
+Åtte spesialistfamilier og D1/makrokonteksten beholdes; GC/MBP er bevart separat.
+Ingen live/paper, broker, ordre, spending eller promotion. Journalunntaket gjelder
+den navngitte D1/swing-ruten, ikke denne M5-modellen.
 
-## Fullført og målt
+`NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json` er PREPARED_NOT_ADMITTED,
+SHA `e8c865982bcce9ec60e4078640366276ef484ab53e191f349c0baf247088cb03`.
+Én kronologisk B64-pass: 5540 updates, 11626 forwards, maksimalt10800s.
+Kun source_base_commit ble metadata-rebundet til siste kodecommit2cee1dfe etter
+målt blokkering fra endret retention-/pensjonert utilitykode. Alle53aktive
+kildehashene, inputs, recipe, normalisering/prior og initialtilstand er uendret.
+Originalplan og gamle kvitteringer er bevart i Git/RUNS. Fersk metadata-preflight
+bestod med Windowsboot667 og0CLAIM/modell/optimizer/featureverdidekoding.
 
-Bevisrot: `/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001`.
-Alle aktuelle referanser og SHA-verdier står i policy.
+## Målt kode-, input- og testdekning
 
-- Hele CURRENT: 1402 Python-filer, 20251 definisjoner, 311888 AST-kall og 19693
-  importsetninger. Fullt originalinventar pluss komplette utskiftninger av sju
-  endrede moduler er bevart. Også historiske/stored kildekopier er inventert.
-- Fysisk førsteinventar: 217026 oppføringer, 403488735232 unike allokerte
-  filbytes under de listede prosjekt-/lagringsrøttene, uten symlink-følging.
-  Windows-VHD og innholdet i WSL skal ikke dobbelttelles. Dette er metadata,
-  ikke en semantisk godkjenning av samtlige historiske payloads.
-- 47474 JSON-kandidater ble kartlagt: 44389 strictparse, 3002 konservativt
-  forseglet metadata uåpnet, 76 historisk ugyldige bevart, fem store filer
-  hashet uten dekoding. To opprinnelig root-ulestelige observasjoner er senere
-  strengt lest/SHA-verifisert uten chmod/eierskifte; de har ingen DATA/RUNS-litteraler.
-- `FULL_NATIVE_NUMERIC001`: alle 256 felt på alle fem tidsrammer og lokale
-  ikke-makrofelt, 1609 råfeltposter, alle 27 arrayheaders/bytebindinger og
-  normaliseringsdomener/aritmetikk. Exit0, 5078,675s, peakRSS2551732KiB.
-- `FULL_MACRO_NUMERIC001`: alle 61 makroformler i signal og kontekst, 122
-  feltposter/47528638 celler. Dermed er alle 1731 råfeltposter kontrollert
-  uavhengig. Offentlige kildecontainere ble eksplisitt helhashet også etter
-  forseglingen; bare kvalifiserte tidligere observasjoner/tilgjengelighet brukes
-  til makroverdier. Ingen native TEST-fil inngikk.
-- `FROZEN_TRAIN_STATS003`: hele input-TRAIN og vindusunioner før målmasker;
-  kvartiler/skala, kategorier, domener og alias-eierskap består. 1729 centerbits
-  er eksakte; ett navngitt D1-center har matematisk likt +0/-0, målt separat i
-  `D1_STATS_DIAG001`. Alle skala-/float64-ekstrembits er eksakte ved uendret
-  lagret center. Exit0, 20,582s, peakRSS748472KiB. Ingen fit-API eller nye parametre.
-- Alle 53 aktive main-kildehashene er uendret. Fersk initialbaseline med én
-  modell/6086 forwards og kvalifisert kald mekanikk gjenbrukes. Ingen ny modell,
-  optimizer eller targetdekoding i de tre input-/statistikkauditene.
-- Målrettet testkvalifikasjon: 544 tilfeller, 527 uendrede PASS og alle 17
-  rettede feiltilfeller PASS ved eksakt etterkontroll. 170 retention-tester består.
-  Obligat pre-commit Entry-kontrakter består. Ingen unødvendig fullsuite-repetisjon.
+- Hele CURRENT:1402Pythonfiler,20251definisjoner,311888AST-kall,19693importsetninger.
+  Fullt originalinventar og komplette utskiftninger av sju endrede moduler er
+  bevart. Historiske/stored kildekopier er også inventert. Ingen manglende intern
+  import-/symbolkandidat ble funnet; installerte direkte avhengigheter og pipcheck
+  består. Optional/deferred OpenBB er ikke del av den aktive ruten og er ikke installert.
+- `FULL_NATIVE_NUMERIC001`: alle256felt på femTF og lokale ikke-makrofelt,
+  1609råfeltposter; alle27arrayheaders/bytebindinger og faktisk normaliserings-
+  aritmetikk/domener. Exit0,5078,675s,peakRSS2551732KiB.
+- `FULL_MACRO_NUMERIC001`: alle61makroformler i signal/kontekst,122feltposter/
+  47528638celler. Samlet1731råfeltposter er uavhengig kontrollert. Offentlige
+  kildecontainere ble eksplisitt helhashet også etter forseglingen; bare tidligere
+  kvalifiserte observasjoner/tilgjengelighet brukes til makroverdier. Ingen nativeTEST-fil.
+- `FROZEN_TRAIN_STATS003`: hele input-TRAIN/vindusunioner før målmasker, kvartiler/
+  skala, domener, kategorier og132aliaser består.1729centerbits er eksakte; ett
+  navngitt D1-center er numerisk likt +0/-0, dokumentert i `D1_STATS_DIAG001`.
+  Alle skala-/float64-ekstrembits er eksakte ved uendret faktisk lagret center.
+  Exit0,20,582s,peakRSS748472KiB. Ingen fit-API eller nye parametre.
+- Fersk initialbaseline med én modell/6086forwards og kvalifisert kald mekanikk
+  gjenbrukes. Ingen endret ONLINE-funksjon krever ny baseline. De tre uavhengige
+  input-/statistikkauditene konstruerte ingen modell/optimizer eller dekodet targets.
+- Målrettet testkvalifikasjon:544tilfeller,527uendredePASS og alle17rettede feil
+  består ved eksakt etterkontroll.170retention-tester består. Obligatoriske
+  pre-commit Entry-kontrakter består. Ingen unødvendig fullsuite-repetisjon.
+- Hele testsamlingen:15058tilfeller samlet/importert med0feil. Ingen testkropper
+  i denne innsamlingen. Normale modell-/optimizer-/genuine-data-/nettverkskall var
+  sperret.18nektede operasjoner var egen kildeintrospeksjon/cachemkdir. Vakter er
+  prosesslokale trusted-code hooks, ikke OS-sandbox. Ikke kall dette15058kjørte tester.
 
-## Rettelser og faktisk opprydding
+## Rettelser og opprydding
 
-Retention kontrollerer nå nye dokumentreferanser også etter planlegging og før
-staged sletting. `docs/*.json` er inkludert i dokumentvernet. Sikker gjenoppretting
-er bevart. Fire konsumerte GC-dokumenter har eksplisitt pensjonert scratch-
-lagringskrav med originale Git-/RUNS-bevis intakte. Feilaktig PENDING-prosa er rettet.
+Retention stanser nå nye dokumentreferanser også etter planlegging og før staged
+sletting. `docs/*.json` inngår i dokumentvernet; sikker gjenoppretting er bevart.
+Fire konsumerte GC-dokumenter pensjonerte eksplisitt scratch-lagringskrav med
+originale Git-/RUNS-bevis intakte; feilaktig PENDING-prosa er rettet.
 
-Fem frakoblede historiske workers og gammel fysisk V38-designkopi er fjernet fra
-CURRENT med Git-gjenoppretting. Ti ekte designlesinger i fem testmoduler bruker
-nå syntetiske fixtures i eksisterende eier. En gammel teacher-test fjernet alle
-familienormer; nå avgrenser den korrekt til hovedencoderens norm og bevarer streng
+Fem frakoblede historiske workers og gammel fysisk V38-designkopi er fjernet
+fra CURRENT med Git-gjenoppretting. Ti ekte designlesinger i fem testmoduler bruker
+nå syntetiske fixtures i eksisterende eier. Gammel teacher-test fjernet feilaktig
+alle familienormer; den er korrekt avgrenset til hovedencoderens norm med streng
 Entry/Exit/state/RNG-paritet. Ingen produksjonsmodell eller toleranse er endret.
 
-Retention-eieren fullførte eksakt plan → godkjenning → fersk dry-run → execute:
-åtte mål, 22 filer, 35728523861 logiske bytes og 35728601088 allokerte payloadbytes
-(+4096 katalogbytes). WSL tilgjengelig plass økte 35728494592 bytes ved etterkontroll.
-Sluttkvittering: `RETENTION_EXECUTION001/GX1_EVIDENCE_CLEANUP_EXECUTION_20261120T191602651775Z.json`,
-SHA `50ecbbf128efcf314a06c52b73784e54b640e07d0171606cf6d97f0a777a3635`.
+Eieren fullførte eksakt plan→godkjenning→fersk dry-run→execute:8mål/22filer,
+35728523861logiske bytes,35728601088allokerte payloadbytes (+4096katalogbytes).
+WSL tilgjengelig plass økte35728494592bytes ved umiddelbar etterkontroll.
+Owner `DELETE_COMPLETE` SHA:
+`50ecbbf128efcf314a06c52b73784e54b640e07d0171606cf6d97f0a777a3635`.
+Beholdte TRAIN/VAL-kopier matcher forventet SHA også etter slettingen; nødvendig
+signalfil er lesbar/stabil. Rådata, øvrig GC/MBP og originale checkpoints beholdes.
 
-Byteidentiske beholdte TRAIN/VAL-kopier, nødvendig signalfil, rådata og originale
-checkpoints/kvitteringer er bevart. De to kopiparene ble faktisk SHA-kontrollert
-på 42320360170 bytes før sletting. Postdelete SHA følger i siste byteaudit.
+Ingen root-FD-tabell ble hoppet over. Bare slettetreets prosesser fikk midlertidig
+SYS_PTRACE+DAC_READ_SEARCH med alleUID-felt1000 før uendret capped-wrapper.
+Samme FD9-lås dev78/inode35,4GiB/512MiB/1tråd/64tasks og alle writer-/byte-/
+autoritets-/dokumentvakter bestod. Ingen filcap/kernel-/permissionendring; vanlig
+sesjon har effektive/ambient capabilities0. Windows-VHD er ikke komprimert.
 
-Ulesbare root-FD-tabeller ble ikke hoppet over. Bare slettetreets prosesser fikk
-midlertidig SYS_PTRACE+DAC_READ_SEARCH med alle UID-felt1000 før uendret capped-
-wrapper. Samme FD9-lås dev78/inode35, audit4GiB/512MiB/1tråd/64tasks og alle
-writer-/byte-/autoritet-/dokumentvakter bestod. Ingen filcap/kernel-/permission-
-endring. Vanlig sesjon har igjen effektive/ambient capabilities0. Ingen VHD-komprimering.
+## Diskkontroll og ubeviste grenser
 
-## Hovedplan og neste kontroll
+Førsteinventar:217026oppføringer/403488735232unike allokerte filbytes over21røtter.
+Sluttinventar:217422oppføringer/368725549056bytes,0metadatafeil,ingen symlink-
+følging. Nye revisjonsbevis forklarer at nettoreduksjonen er mindre enn slettede
+payloadbytes; sluttinventarets egne arkivkopier/sluttkvitteringer ble skrevet etter
+snapshot. Alle22manglende DATA/RUNS-filer er eksakt eieravstemt; øvrige6manglende
+kilder er de Git-gjenopprettbare pensjoneringene. VHD og WSL skal ikke dobbelttelles.
 
-`NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json` er fortsatt PREPARED_NOT_ADMITTED,
-SHA `e8c865982bcce9ec60e4078640366276ef484ab53e191f349c0baf247088cb03`.
-Bare source_base_commit ble metadata-rebundet til siste kodecommit2cee1dfe etter
-målt utility-sourceguard-blokkering; inputs, alle 53 kildehashene, recipe og
-initialtilstand er uendret. Originalplan/kvitteringer er bevart i Git/RUNS.
-Fersk metadata-preflight består med Windowsboot667, ingen CLAIM/forwards/updates.
-Planen er én kronologisk B64-pass, 5540 updates/11626 forwards, maksimalt10800s.
-
-Neste: innsamle hele testsamlingen med normale modell-/optimizer-/genuine-data-
-kall sperret, deretter hash bare positivt dokumenterte preseal-/kodefiler med
-alle fysiske aliaser kvalifisert. UNKNOWN/SEALED/MIXED skal ikke åpnes eller
-omklassifiseres ved antagelse. Avslutt med oppdatert fysisk inventar, diff/syntaks,
-handover og ny samlet beredskapskvittering. Ikke start hovedtrening.
-
-## Ubeviste grenser
+`PRESEAL_BYTE_AUDIT002` bestod34441fysiske filer/94198463861logiske bytes på255,225s.
+81513799539bytes matcher opprinnelig forventet SHA;12684664322bytes har kun fersk
+stabil checksum/lesbarhet.0bytefeil/arraydekodere/modeller/fit/nativeTEST-lesinger.
+ALLE opprinnelige filstier og nye tilføyelser er metadataført; positive fysiske
+aliaser er kvalifisert sammen. UNKNOWN/MIXED/SEALED/øvrige ukvalifiserte payloads
+ble ikke åpnet. Regel106/764/812 tillater heller ikke blindhash av nativeTEST.
+Dermed er ikke alle403GB eller antatte670GB innholdsgodkjent.
 
 AST/ruting er ikke full atferdsgaranti for alle historiske funksjoner. Full
-historisk vendor-/revisjonsledger og per-felt gradient/nytte er ikke bevist.
-0,3 ATR er en kausal nettoendringsproxy, ikke bevist rolig prisbane/økonomisk FLAT.
-Juni 2026 er gjenbrukt utvikling. TRAIN-fit, senere generalisering, referanseverdi
-og realisert økonomi holdes adskilt. Retning, generalisering og edge er fortsatt
-ubevist; ingen handels-/profittpåstand følger av tekniske PASS.
-
-Testinnsamling001 stoppet før innsamling fordi pytest åpnet /dev/null som logg.
-Ny002 bruker eksplisitt logg i privat output; alle vakter er uendret. Integrert
-smoke samlet én generert test med exit0/ingen blokkerte operasjoner. Faktisk
-repo-collection002 er innrømmet, uten testkropper eller nye modell-/datarettigheter.
-
-Faktisk collection002 er fullført:15058tilfeller,0innsamlingsfeil,17,954s,
-uendret policy og ingen testkropper.18nektede operasjoner var bare egen
-auditkildeintrospeksjon og cachemkdir, ingen genuine payload-/modellforsøk.
-Dette er import/innsamlingsdekning;544tilfeller er kjørt separat, ikke15058.
-
-Siste byteaudit002 klargjøres med fire eksplisitte positive klasser. Første
-metadata-prep001 var uclaimet; den utelot én bevart source050-signalfil fra
-positiv featurekopiklasse. Fire manifestbindinger dokumenterer preseal-opphavet.
-Ny hviteliste skal være identisk pluss akkurat inode2096/2013 (12,434GB).
-For denne finnes ingen opprinnelig forventet mmap-SHA:kun fersk stabil checksum/
-lesbarhet kan bevises. UNKNOWN/MIXED/SEALED og51makroårs-filer får ingen ny
-generell adgang; de offentlige makrokildene er allerede kontrollert separat.
-14syntetiske kontroller består; kilde/policy fryses under faktisk byteaudit.
-
-Siste byteaudit002 bestod:34441fysiske filer/94198463861logiske bytes,
-255,225s, peakRSS184144KiB.81513799539bytes matcher opprinnelig forventet SHA;
-12684664322bytes har kun fersk stabil checksum/lesbarhet. Ingen bytefeil,
-arraydekoding, modeller, fit eller nativeTEST-lesing. Beholdte TRAIN/VAL-kopier
-matcher SHA også etter sletting; source050signal er lesbar/stabil (ingen originalSHA).
-Alle opprinnelige filer+tilføyelser er metadataført;22slettede er eieravstemt.
-Regel106/764/812 stenger også blind lesing av nativeTEST; ukvalifisert/mikset
-materiale forblir uten innholdspåstand. Fersk fysisk21rotsnapshot følger nå.
+vendor-/revisjonsledger, per-felt gradient/nytte og blanket numerikk for utsatt GC/
+historiske flater er ikke bevist.0,3ATR er nettoendringsproxy, ikke bevist rolig
+prisbane/økonomisk FLAT. Juni2026 er gjenbrukt utvikling. TRAIN-fit, senere
+generalisering, referanseverdi og realisert økonomi holdes adskilt. Edge/profitt er
+fortsatt ubevist. Teknisk beredskap betyr ikke bedre handelsbeslutninger.
