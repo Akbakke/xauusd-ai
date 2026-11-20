@@ -120,6 +120,43 @@ D1-open har0prediktivstøtte. Ingen falsk kreditt fra kjent-open/ukjent-tail.
 Uavhengig scorekontroll av alle faser/hoder og384batchhashes ga maksavvik0.
 Source/policy var uendret og originalcheckpoint/captures er bevart.
 
+## Målt seksårs fasitstøtte uten ny fit
+
+Én audit4G/512M fullførte på4,840s/RSS232,20MiB. Alle425320inputissues
+matcher både source_row og issue_ns i AKTIV target003 (SHA49be65ca…).
+Policyens eldre002-felt er historisk; active_native_bar_target_tape i
+current_work peker nå eksplisitt003. Alle future-fortegn er kontrollert
+mot faktabarene, med strict validity<2024-10-01, ekte predecessor/mature-
+masker, kjent-open separat og ukjent/cutoff aldri som LIK.
+
+| TF | Kjente framtidige sluttmål | NED / LIK / OPP | Unike målbarer | Prediktive åpninger |
+|---|---:|---|---:|---:|
+|M5|425319|210329 / 1186 / 213804|425319|425319|
+|M15|425317|210077 / 561 / 214679|141824|141771|
+|H1|425308|208474 / 287 / 216547|35472|35425|
+|H4|425297|204840 / 228 / 220229|9275|8239|
+|D1|425297|196786 / 0 / 228511|1550|507|
+
+M5-fordeling49,4521/0,27885/50,2691prosent; én cutoffcelle. OPP/NED-
+masse er nær balansert, LIK er sjelden eksakt prislikhet. Dette er ingen
+fasit for sideveis marked. D1-open har507prediktive celler i HELEvinduet;
+det endrer ikke nullstøtten i gammel1536FIT-kohort og beviser ikke læring.
+Nye priors/støtte må bindes til framtidig deklarert TRAIN-fold/kohort.
+
+Års-klassetellinger/cellesummer stemmer; høyere-TF-årsunikheter overlapper
+vedårsgrenser og summeres ikke som globalunikheter. Fast last-closed
+persistens var kausal (available<=issue), M5hit48,2313prosent mot
+forhåndsvalgt alltidOPP50,2691. Ingen fortegns-/modell-/terskelutvelging
+ble gjort fra dette. Klassifikasjonsreferanser er ikke økonomi/edge.
+
+SIX_YEAR_BAR_SUPPORT_AUDIT/REVIEW/script/cappedlog er immutable og
+hashbundet i policy. Evidence-agenten reviderte script+aggregataritmetikk,
+uten egen nyarraydekoding. Hashbookends gjelder policy/inputartefakter,
+ikke en NY41-kodefilkontroll. Kilden ble holdt urørt; tidligere kvalifikasjon
+beholdes. Første /tmp-scriptstart manglet repo i sys.path og stoppet før
+data; canonical importrute ble rettet, deretter én fullført lesning.
+Ingen prisarrays/modell/fit, ny klassevekt/prior/fold eller fasitendring.
+
 ## Neste nødvendige avklaring
 
 FLAT-semantikken er fortsatt ubesvart. Dagens nullklasse er eksakt LIK
@@ -131,6 +168,7 @@ bullish/bearish/sideveis markedsfasit. Ingen ny terskel, klassekvote, vekt
 eller fasitendring er gjort. Originale prisfakta skal beholdes.
 
 Avklar om FLAT skal være separat markedsregime, før neste target-/fitkontrakt.
+Dette brukeravklaringspunktet er fortsatt ubesvart; intet svar er tolket som ja.
 Deretter trengs forhåndsbundet TRAIN-fold, TRAIN-only normalisering og
 genuin fersk initialbaseline for den nye seksårscachen før en ny kort fit.
 Ingen ny trening/produksjon er innrømmet og ingen automatisk epoke-/seedserie.
