@@ -301,7 +301,7 @@ M5-close1535celler med470/611/454NED/nøytral/OPP. Fersk modell32forwards
 på1536FIT/512CONTROL hadde eksakt priorlogits,0updates og0M1-nektelser.
 InitialSHA6c9aca38468ed8137b3d2941b254aae6e1ae4b71fe591496efa542e416201315.
 CPU-baseline binder ny dataset-/modell-/objective-/prioridentitet.
-Ny ATR03_MECHANICS001 er klargjort, ikke innrømmet:3tekniskeupdates,67F,
+Ny ATR03_MECHANICS001 er eksakt innrømmet etter CLI/hardwarepreflight:3tekniskeupdates,67F,
 6autogradprober og kald neste-steg-replay. Hovedfit er ikke startet.
 Siste brukerpresisering: FLAT er små bevegelser vi ikke får utnyttet, altså
 støy det ikke er verdt å trade.0,3ATR er første netto-støyproxy; denne
