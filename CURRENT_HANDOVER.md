@@ -23,6 +23,26 @@ Samlet kvittering under `/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_0
 `778872b2f141bf12d9f9e287ea387f061e08b62e5bd94719a239597519c24edc`.
 Eksakte øvrige referanser/SHA står i policy og disse kvitteringene.
 
+## Aktiv effektiviseringsbølge 20.11.2026
+
+Brukeren har nå bestilt faktisk maksimal effektivisering. Bare målte runtime-
+flaskehalser og én fast B256/equal-length-TF-scorekandidat kvalifiseres. TRAIN
+beholder B64, samtlige inputs/TF, mål, FP32, recipe og vakter. Ingen main er
+startet. Kildeendringer krever nye kildebundne paritets-/mekanikkbevis; gammel
+initial, konsumerte planer og kvitteringer omskrives ikke. Main001 er fortsatt
+uclaimet, men teknisk admisjonsklarhet er trukket tilbake under denne bølgen.
+
+Kvitteringsrot: `GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001`.
+
+Kilde er nå skrevet: lokal gjenbruk av én fersk inputbindingskontroll og grouped
+finite-forward i aktiv fit/score. Ingen varig cache eller endret TRAIN-matematikk.
+Uavhengig AST-restitusjon består for kontraktmodul og fit/score; wrapperdiffen
+består eksakt inversekontroll.295fokustester+8nye negative/positive porttester
+består. De opprinnelige295gjenbrukes ved bevist uendret testfilprefix og52øvrige
+kildeeiere; ikke kalt303nye tester i samme prosess. Kildebroen SHA-binder begge
+bevis. Genuine throughput003 og kald mekanikk002 gjenstår; B256/equalTF er kun
+kildeimplementert og har ennå ingen bruksadmisjon. Main001/002 er ikke startet.
+
 ## Bestilt restart og effektivitet 20.11.2026
 
 Fysisk Windows-restart er utført og målt: boot667→668, ny LastBootUpTime og

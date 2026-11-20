@@ -1334,6 +1334,15 @@ def finite_all_per_device(tensors):
         flags_by_device.setdefault(flag.device, []).append(flag)
     return all((bool(torch.stack(flags).all()) for flags in flags_by_device.values()))
 
+def native_fit_forward(model,features,*,grouped=True):
+    """Complete every finite predicate before exposing the model output."""
+    from contextlib import nullcontext
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import model_finite_check_scope
+    need(type(grouped)is bool,'FIT_FORWARD_FINITE_SCOPE')
+    with model_finite_check_scope('grouped')if grouped else nullcontext():
+        return model(features)
+
+
 def fit_step(model,optimizer,provider,cohort,rows,plan):
     import torch
     from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_direction_loss
@@ -1344,7 +1353,7 @@ def fit_step(model,optimizer,provider,cohort,rows,plan):
         for value in features.values():
             if value.is_floating_point():value.requires_grad_(True)
     truth=slice_truth(cohort,rows,fit=True)
-    output=model(features)
+    output=native_fit_forward(model,features)
     loss=native_bar_direction_loss(model_output=output,truth=truth,fold_upper_ns=plan['metadata']['fit_end_ns']if _larger_fit(plan)else FIT_END_NS,
         target_contract_sha256=plan['metadata']['target_contract']['contract_sha256'],**noise_target_kwargs(plan))
     need(not loss['skip_update']and bool(torch.isfinite(loss['loss'])),'FIT_SUPERVISED_FINITE_LOSS')
@@ -1370,6 +1379,14 @@ def fit_step(model,optimizer,provider,cohort,rows,plan):
         'output_sha256':{key:digest(value.detach().cpu().numpy())for key,value in output.items()}}
 
 
+def native_fit_score_forward(model,features,plan):
+    from contextlib import nullcontext
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import batch_equal_length_mtf_eval_scope
+    grouped_tf=_larger_main(plan)and plan['recipe']['score_batch_rows']==256
+    with batch_equal_length_mtf_eval_scope()if grouped_tf else nullcontext():
+        return native_fit_forward(model,features)
+
+
 def fit_score(model,context,panels,plan):
     import torch
     from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_direction_score_sums,native_bar_train_prior_logits
@@ -1381,7 +1398,7 @@ def fit_score(model,context,panels,plan):
                 outputs={'open_logits':[],'close_logits':[]};rows=np.concatenate(batches)
                 for batch in batches:
                     raw=context['provider'].gather(batch,max_rows=plan['recipe']['score_batch_rows'])
-                    output=model({key:torch.from_numpy(value).to(next(model.parameters()).device)for key,value in raw.items()})
+                    output=native_fit_score_forward(model,{key:torch.from_numpy(value).to(next(model.parameters()).device)for key,value in raw.items()},plan)
                     for key,value in output.items():outputs[key].append(value.detach().cpu().numpy().copy())
                 outputs={key:np.concatenate(value)for key,value in outputs.items()}
                 cohort=context['cohorts'][name];truth=slice_truth(cohort,rows)
@@ -1672,6 +1689,26 @@ def require_cold_resume_proof(proof,*,parent_pid):
     return proof
 
 
+def runtime_mechanics_trajectory(report,plan):
+    import torch
+    qualification=plan['metadata']['runtime_qualification']
+    old=read(qualification['reference_mechanics_result'])['report']
+    need(old['initial_state_sha256']==report['initial_state_sha256']
+        and old['final_state_sha256']==report['final_state_sha256'],'RUNTIME_MECHANICS_MODEL_TRAJECTORY')
+    refs=[old['final_checkpoint'],report['final_checkpoint']]
+    for binding in refs:need(ref(binding['path'])==binding,'RUNTIME_MECHANICS_CHECKPOINT_HASH')
+    checkpoints=[torch.load(binding['path'],map_location='cpu',weights_only=True)for binding in refs]
+    fields=('model_state','optimizer_state','rng_state','cursor','training','optimizer_parameter_names','schedule_position')
+    identities={key:[state_sha(checkpoint[key])for checkpoint in checkpoints]for key in fields}
+    need(all(a==b for a,b in identities.values()),'RUNTIME_MECHANICS_OPTIMIZER_RNG_TRAJECTORY')
+    steps=[{k:v for k,v in step.items()if k!='elapsed_seconds'}for step in report['steps']]
+    previous=[{k:v for k,v in step.items()if k!='elapsed_seconds'}for step in old['steps']]
+    need(steps==previous,'RUNTIME_MECHANICS_LOSS_GRAD_OUTPUT_TRAJECTORY')
+    return {'bitexact':True,'reference_mechanics_result':qualification['reference_mechanics_result'],
+        'reference_checkpoint':refs[0],'current_checkpoint':refs[1],
+        'state_sha256':{key:pair[0]for key,pair in identities.items()},'actual_step_reports_bitexact':True}
+
+
 def run_native_fit(plan_sha,mode):
     import os,sys
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
@@ -1702,6 +1739,8 @@ def run_native_fit(plan_sha,mode):
             require_cold_resume_proof(proof,parent_pid=os.getpid())
             for key,value in proof['actual_counts'].items():report['actual_counts'][key]+=value
             report['cold_resume']={'proof':proof_ref,'bitexact':True,'new_process':True}
+        if mode=='ta_five_year_mechanics':
+            report['runtime_reference_trajectory']=runtime_mechanics_trajectory(report,plan)
         checked_fit_inputs(plan)
         need(report['actual_counts']==plan['limits'],'FIT_ACTUAL_COUNT_LIMITS')
         need(fit_source_clean(plan)and ref(POLICY)==policy_ref and ref(path)==plan_ref,'FIT_SOURCE_POLICY_BOOKEND')
@@ -2691,39 +2730,85 @@ def prepare_noise_native_fit(plan,root,*,reload_normalization=None,reload_prior=
         'normalization_fits':0,'prior_fits':0,'feature_requalification':admission}
 
 
-# PRIVATE integration fragment. Add main() dispatch before fit_cli; do not run standalone.
-THROUGHPUT_STAGE='native_m5_ta_atr03_throughput_20261120_002'
-THROUGHPUT_PLAN=REPO/'configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_002.json'
-THROUGHPUT_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_002')
+# Each throughput scope is one-use; consumed001/002 are not executable aliases.
+THROUGHPUT_STAGE='native_m5_ta_atr03_throughput_20261120_003'
+THROUGHPUT_PLAN=REPO/'configs/research/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003.json'
+THROUGHPUT_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003')
+THROUGHPUT_SOURCE_COMPATIBILITY_PATH=Path('/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001/SOURCE_COMPATIBILITY001.json')
 THROUGHPUT_INPUTS={
-    'mechanics_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_MECHANICS_20261120_001/RESULT.json',
-        'sha256':'0cec57bd2de0de21d4d201249cdbc6a70feb8a06e80b2dbbdb45ab068f760334'},
-    'mechanics_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_MECHANICS_20261120_001/TERMINAL.json',
-        'sha256':'cbf99bb810a204f57c1491841c993214d8c6f45176114d0e07db38085bca22f1'}}
-THROUGHPUT_LIMITS={'model_constructions':1,'checkpoint_loads':1,'model_forwards':6,
+    'mechanics_result':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001/RESULT.json',
+        'sha256':'7b099711b52f12312d94cefd9fb427a2e26bd1abbdc529dcc1e4f523f1b394e5'},
+    'mechanics_terminal':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001/TERMINAL.json',
+        'sha256':'a7a592aee1c0d0afe7c114b5cba2df7960ce56436590767000f4e5ffad096aa9'}}
+THROUGHPUT_RUNTIME_SOURCE_PATHS=(
+    'gx1/audit/qualify_native_m5_full_gc_direction_v1.py',
+    'gx1/contracts/market_state_ta_integrated_model_v1.py',
+    'scripts/gx1_capped_run.sh',
+    'tests/test_qualify_native_m5_full_gc_direction_v1.py',
+    'tests/test_market_state_ta_integrated_model_v1.py',
+    'tests/test_gx1_capped_run_native_year_contract.py')
+THROUGHPUT_LIMITS={'model_constructions':1,'checkpoint_loads':1,'model_forwards':15,
     'backward_calls':6,'autograd_calls':0,'optimizer_constructions':0,'optimizer_steps':0}
 THROUGHPUT_EXECUTION={'class':'trainer','device':'cuda','memory':'20G','swap':'512M','tasks_max':128,
     'numerical_threads':8,'outer_seconds':1800,'internal_seconds':1770,'kill_after_seconds':10,
     'cuda_peak_reserved_bytes_max':12*1024**3}
+THROUGHPUT_EVAL_TOLERANCE={'atol':1e-6,'rtol':1e-5,
+    'owner':'tests/test_entry_v10_ctx_model_shapes.py::test_equal_length_mtf_batches_only_eval_without_grad'}
+
+
+def throughput_source_compatibility(binding,parent):
+    need(type(binding)is dict and set(binding)=={'path','sha256'}
+        and binding['path']==str(THROUGHPUT_SOURCE_COMPATIBILITY_PATH),'THROUGHPUT_SOURCE_REVIEW_PATH')
+    review=read(binding)
+    fields={'schema_version','status','old_base_commit','source_base_commit','old_source_owners',
+        'current_source_owners','allowed_changed_paths','baseline_prepare_result',
+        'reference_mechanics_result','reference_model_blob_sha256','unit_proof','source_diff_review'}
+    need(type(review)is dict and fields<=set(review)
+        and review['schema_version']=='gx1_native_m5_runtime_source_compatibility_v1'
+        and review['status']=='QUALIFIED_RUNTIME_ONLY_SOURCE_COMPATIBILITY'
+        and review['old_source_owners']==parent['source_owners']
+        and set(review['old_source_owners'])==set(LARGER_SOURCE_PATHS)
+        and review['current_source_owners']=={name:sha(REPO/name)for name in LARGER_SOURCE_PATHS}
+        and review['baseline_prepare_result']==parent['inputs']['prepare_result']
+        and review['reference_mechanics_result']==THROUGHPUT_INPUTS['mechanics_result'],
+        'THROUGHPUT_SOURCE_REVIEW_BINDINGS')
+    changed=sorted(name for name,old in review['old_source_owners'].items()
+        if review['current_source_owners'][name]!=old)
+    need(changed==review['allowed_changed_paths']
+        and set(changed)<=set(THROUGHPUT_RUNTIME_SOURCE_PATHS)
+        and set(THROUGHPUT_RUNTIME_SOURCE_PATHS[:2])<=set(changed),
+        'THROUGHPUT_ONLY_REVIEWED_RUNTIME_OWNERS')
+    source=subprocess.check_output(['git','show',review['old_base_commit']+':'+THROUGHPUT_RUNTIME_SOURCE_PATHS[1]],cwd=REPO)
+    need(hashlib.sha256(source).hexdigest()==review['reference_model_blob_sha256']
+        ==parent['source_owners'][THROUGHPUT_RUNTIME_SOURCE_PATHS[1]],'THROUGHPUT_ORIGINAL_REFERENCE_BLOB')
+    unit,diff=read(review['unit_proof']),read(review['source_diff_review'])
+    need(unit.get('status')=='PASS'and unit.get('exit_code')==0
+        and unit.get('current_source_owners')==review['current_source_owners']
+        and diff.get('status')=='PASS_STATIC_MODEL_AND_WRAPPER_CONTROL_ONLY'
+        and diff.get('current_source_owners')==review['current_source_owners']
+        and all(diff.get(k)is True for k in('contract_math_and_remaining_module_ast_unchanged',
+            'wrapper_inverse_diff_exact','fit_and_score_pipeline_unchanged_after_unwrap')),
+        'THROUGHPUT_QUALIFIED_UNIT_AND_SOURCE_REVIEW')
+    return review
 
 
 def build_throughput_plan(*,inputs,source_base_commit=None):
-    need(inputs==THROUGHPUT_INPUTS,'THROUGHPUT_EXACT_INPUTS')
+    need(type(inputs)is dict and set(inputs)==set(THROUGHPUT_INPUTS)|{'source_compatibility'}
+        and all(inputs[k]==v for k,v in THROUGHPUT_INPUTS.items()),'THROUGHPUT_EXACT_INPUTS')
     r,t=read(inputs['mechanics_result']),read(inputs['mechanics_terminal'])
     parent=read(r['plan']);claim=read(r['claim']);proof=r['report']
-    need(r['stage']==t['stage']==parent['stage']==claim['stage']==FIT_SCOPES['ta_noise_mechanics'][0]
-        and r['status']=='COMPLETE_NATIVE_M5_TA_ATR03_MECHANICS'and t['status']=='COMPLETE'
+    need(r['stage']==t['stage']==parent['stage']==claim['stage']=='native_m5_ta_atr03_five_year_mechanics_20261120_001'
+        and parent['mode']=='ta_five_year_mechanics'
+        and r['status']=='COMPLETE_NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS'and t['status']=='COMPLETE'
         and t['exit_code']==0 and t['result']==inputs['mechanics_result']and t['plan']==claim['plan']==r['plan']
         and t['claim']==r['claim']and r['source_unchanged']is True
         and r['test_data_used']is t['test_data_used']is False
         and proof['cold_resume']['bitexact']is True and proof['actual_counts']==parent['limits']
         and proof['normalization_fits']==proof['prior_fits']==0,'THROUGHPUT_PARENT')
-    ta_plan=parent['metadata']['ta_plan']
-    need(ta_audit.candidate_metadata(ta_plan['inputs'],ta_plan['feature_contract'])==ta_plan['candidate_requalification'],
-        'THROUGHPUT_PROVIDER_METADATA_GATE')
+    review=throughput_source_compatibility(inputs['source_compatibility'],parent)
     from gx1.contracts.market_state_ta_integrated_model_v1 import native_bar_model_contract
     from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_bar_train_prior
-    prepared=read(parent['metadata']['prepared']['result'])['report'];spec=parent['metadata']['target_contract']
+    prepared=parent['metadata']['prepared'];spec=parent['metadata']['target_contract']
     prior=require_native_bar_train_prior(read(proof['prior']),target_contract=spec)
     normalization=read(proof['normalization']);input_binding=prepared['input_binding']
     need(input_binding['source_axes_sha256']==normalization['source_axes_sha256']
@@ -2731,25 +2816,30 @@ def build_throughput_plan(*,inputs,source_base_commit=None):
         and prepared['model_contract']==native_bar_model_contract(input_binding,train_prior=prior,
             backbone_gradient_policy=parent['backbone_gradient_policy'],target_contract=spec),
         'THROUGHPUT_BOUND_INPUT_NORM_MODEL_IDENTITY')
-    paths=NOISE_SOURCE_PATHS
-    for path in ('gx1/contracts/market_state_ta_integrated_model_v1.py',
-        'gx1/contracts/market_state_ta_integrated_objective_v1.py',
-        'gx1/contracts/entry_model_native_input_normalization_v1.py',
-        'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py'):
-        need(sha(REPO/path)==parent['source_owners'][path],'THROUGHPUT_UNCHANGED_MATH:'+path)
+    base=source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
+    need(base==review['source_base_commit'],'THROUGHPUT_REVIEWED_SOURCE_BASE')
     deps={**parent['metadata']['dependencies'],'mechanics_plan':r['plan'],'mechanics_claim':r['claim'],
-        'final_checkpoint':proof['final_checkpoint'],'normalization':proof['normalization'],'prior':proof['prior']}
-    return {'schema_version':'gx1_native_m5_atr03_throughput_plan_v1','stage':THROUGHPUT_STAGE,
+        'final_checkpoint':proof['final_checkpoint'],'normalization':proof['normalization'],'prior':proof['prior'],
+        'source_compatibility':inputs['source_compatibility'],'runtime_unit_proof':review['unit_proof'],
+        'runtime_diff_review':review['source_diff_review']}
+    return {'schema_version':'gx1_native_m5_atr03_throughput_plan_v2','stage':THROUGHPUT_STAGE,
         'status':'PREPARED_NOT_ADMITTED','output_root':str(THROUGHPUT_ROOT),'inputs':inputs,
-        'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
-        'source_owners':{p:sha(REPO/p)for p in paths},'metadata':{'dependencies':deps,
-            'analysis_parent':r['plan'],'normalization':proof['normalization'],'prior':proof['prior'],
+        'source_base_commit':base,'source_owners':dict(review['current_source_owners']),
+        'metadata':{'dependencies':deps,'analysis_parent':r['plan'],
+            'normalization':proof['normalization'],'prior':proof['prior'],
+            'reference_base_commit':review['old_base_commit'],
+            'reference_model_blob_sha256':review['reference_model_blob_sha256'],
             'initial_state_sha256':proof['initial_state_sha256'],'final_state_sha256':proof['final_state_sha256']},
         'execution':THROUGHPUT_EXECUTION,'limits':THROUGHPUT_LIMITS,
-        'panel_rule':'first_four_frozen_TRAIN_B16_blocks_concatenated_B64',
+        'panel_rule':'first64_TRAIN_for_train_first256_TRAIN_and_last2_TRAIN_for_eval_no_label_selection',
         'lanes':['warmup_immediate','reference_immediate','grouped_uninstrumented','reference_repeat','grouped_repeat','grouped_profiled'],
-        'candidate_finite_guard':'same_dense_predicates_one_scalar_sync_per_device_plus_existing_grouped_forward_scope',
-        'model_mode':'train','same_rng_per_lane':True,'analysis_weights_only':True,
+        'reference_finite_guard':'old_exact_binding_method_immediate_forward_current_main_per_device_grad_parameter_guards',
+        'candidate_finite_guard':'current_binding_method_grouped_forward_same_per_device_grad_parameter_guards',
+        'evaluation':{'rows':256,'reference_batch_rows':64,'candidate_batch_rows':256,'tail_rows':2,
+            'equal_length_TF_candidate':True,'capture_backbone_timeframe_hidden':True,
+            'output_tolerance':THROUGHPUT_EVAL_TOLERANCE,'counts_confusion_ties':'exact',
+            'state_rng':'bitexact','memory_failure_retry':False,'candidate_not_main_admission':True},
+        'model_mode':'train_and_eval_no_grad','same_rng_per_lane':True,'analysis_weights_only':True,
         'training_authorized':False,'test_data_used':False,'GC_used':False,'economic_edge_proven':False}
 
 
@@ -2757,7 +2847,7 @@ def inspect_throughput(plan_sha,*,admitted):
     need(Path.cwd().resolve()==REPO and not THROUGHPUT_ROOT.exists(),'THROUGHPUT_CWD_OUTPUT')
     binding={'path':str(THROUGHPUT_PLAN),'sha256':plan_sha};plan=read(binding)
     need(plan==build_throughput_plan(inputs=plan['inputs'],source_base_commit=plan['source_base_commit'])
-        and noise_source_clean(plan),'THROUGHPUT_PLAN_SOURCE')
+        and larger_source_clean(plan),'THROUGHPUT_PLAN_SOURCE')
     policy_ref=ref(POLICY);policy=read(policy_ref);gate=policy.get(THROUGHPUT_STAGE,{})
     need(all(policy.get(k)is False for k in ta_audit.data.CLOSED_FLAGS)
         and gate.get('plan')==binding and gate.get('output_root')==str(THROUGHPUT_ROOT)
@@ -2783,12 +2873,43 @@ def throughput_profile_summary(profiler):
             'require_native_m5_input_binding','compile_feature_profile')]}
 
 
-def throughput_lane(model,context,rows,parent,*,grouped,profiled,rng):
+def throughput_reference_method(source):
+    """Prepare authenticated reference code before any lane is timed."""
+    import ast
+    from gx1.contracts import market_state_ta_integrated_model_v1 as contract
+    tree=ast.parse(source)
+    classes=[n for n in tree.body if isinstance(n,ast.ClassDef)and n.name=='NativeM5BarDirectionModel']
+    need(len(classes)==1,'THROUGHPUT_REFERENCE_CLASS')
+    methods=[n for n in classes[0].body if isinstance(n,ast.FunctionDef)and n.name=='_require_binding']
+    need(len(methods)==1 and not methods[0].decorator_list,'THROUGHPUT_REFERENCE_METHOD')
+    namespace=dict(vars(contract))
+    exec(compile(ast.fix_missing_locations(ast.Module(body=methods,type_ignores=[])),
+        '<verified_old_native_binding>','exec'),namespace)
+    return namespace['_require_binding']
+
+
+def throughput_reference_binding(model,method):
+    """Restore the live method even when the reference raises."""
+    import types
+    from contextlib import contextmanager
+    @contextmanager
+    def scope():
+        need(isinstance(method,types.FunctionType)and method.__name__=='_require_binding',
+            'THROUGHPUT_PREPARED_REFERENCE_METHOD')
+        had_override='_require_binding'in model.__dict__;original=model.__dict__.get('_require_binding')
+        model._require_binding=types.MethodType(method,model)
+        try:yield
+        finally:
+            if had_override:model._require_binding=original
+            else:delattr(model,'_require_binding')
+    return scope()
+
+
+def throughput_lane(model,context,rows,parent,*,grouped,profiled,rng,reference_method):
     import cProfile
     from contextlib import nullcontext
     import torch
     from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_direction_loss
-    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import model_finite_check_scope
     model.zero_grad(set_to_none=True);restore_training_rng(rng);model.train()
     events=[];phases={}
     def phase(name,fn):
@@ -2808,20 +2929,19 @@ def throughput_lane(model,context,rows,parent,*,grouped,profiled,rng):
         features=phase('host_to_device',lambda:{k:torch.from_numpy(v).to('cuda')for k,v in raw.items()})
         truth=phase('truth_slice',lambda:slice_truth(context['cohorts']['TRAIN'],rows,fit=True))
         def forward():
-            with model_finite_check_scope('grouped')if grouped else nullcontext():
-                return model(features)
+            with nullcontext()if grouped else throughput_reference_binding(model,reference_method):
+                return native_fit_forward(model,features,grouped=grouped)
         output=phase('forward',forward)
-        loss=phase('loss',lambda:native_bar_direction_loss(model_output=output,truth=truth,fold_upper_ns=FIT_END_NS,
+        loss=phase('loss',lambda:native_bar_direction_loss(model_output=output,truth=truth,fold_upper_ns=parent['metadata']['fit_end_ns'],
             target_contract_sha256=parent['metadata']['target_contract']['contract_sha256'],**noise_target_kwargs(parent)))
         need(not loss['skip_update']and bool(torch.isfinite(loss['loss'])),'THROUGHPUT_FINITE_LOSS')
         phase('backward',lambda:loss['loss'].backward())
         gradients=[p for p in model.parameters()if p.grad is not None]
-        phase('finite_gradients',lambda:need(gradients and (finite_all_per_device(p.grad for p in gradients)if grouped
-            else all(bool(torch.isfinite(p.grad).all())for p in gradients)),'THROUGHPUT_FINITE_GRADIENTS'))
+        phase('finite_gradients',lambda:need(gradients and finite_all_per_device(p.grad for p in gradients),
+            'THROUGHPUT_FINITE_GRADIENTS'))
         norm=phase('clip_grad_norm',lambda:torch.nn.utils.clip_grad_norm_(gradients,
             parent['recipe']['gradient_clip_norm'],error_if_nonfinite=True))
-        phase('finite_parameters',lambda:need(finite_all_per_device(model.parameters())if grouped else
-            all(bool(torch.isfinite(p).all())for p in model.parameters()),'THROUGHPUT_FINITE_PARAMETERS'))
+        phase('finite_parameters',lambda:need(finite_all_per_device(model.parameters()),'THROUGHPUT_FINITE_PARAMETERS'))
         if profiled:cpu.disable()
     torch.cuda.synchronize();elapsed=time.perf_counter()-started
     for name,a,b in events:phases[name]['cuda_stream_elapsed_ms']=a.elapsed_time(b)
@@ -2842,21 +2962,81 @@ def throughput_lane(model,context,rows,parent,*,grouped,profiled,rng):
     return {'wall_seconds':elapsed,'identity':identity,**detail}
 
 
+def throughput_eval_lane(model,context,rows,parent,*,batch_rows,grouped,equal_tf,rng,reference_method):
+    import torch
+    from contextlib import nullcontext
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import batch_equal_length_mtf_eval_scope
+    need(batch_rows in(64,256)and type(grouped)is type(equal_tf)is bool,'THROUGHPUT_EVAL_GEOMETRY')
+    before=state_sha(model.state_dict());restore_training_rng(rng);rng_sha=state_sha(training_rng())
+    training=model.training;model.eval();hidden=[];outputs={'open_logits':[],'close_logits':[]}
+    def observe(module,args,output):
+        need(isinstance(output,dict)and 'entry_q_timeframe_hidden'in output,'THROUGHPUT_HIDDEN_HOOK')
+        hidden.append(output['entry_q_timeframe_hidden'].detach())
+    hook=model.backbone.register_forward_hook(observe);torch.cuda.synchronize();started=time.perf_counter()
+    try:
+        with torch.no_grad(),(batch_equal_length_mtf_eval_scope()if equal_tf else nullcontext()),(
+                nullcontext()if grouped else throughput_reference_binding(model,reference_method)):
+            for batch in all_score_batches(rows,batch_rows):
+                raw=context['provider'].gather(batch,max_rows=batch_rows)
+                output=native_fit_forward(model,{k:torch.from_numpy(v).to('cuda')for k,v in raw.items()},grouped=grouped)
+                for key,value in output.items():outputs[key].append(value.detach().cpu().numpy().copy())
+                need(len(hidden)==1,'THROUGHPUT_ONE_HIDDEN_PER_FORWARD')
+                outputs.setdefault('timeframe_hidden',[]).append(hidden.pop().cpu().numpy().copy())
+        torch.cuda.synchronize();elapsed=time.perf_counter()-started
+    finally:hook.remove();hidden.clear();model.train(training)
+    need(state_sha(model.state_dict())==before and state_sha(training_rng())==rng_sha
+        and all(p.grad is None for p in model.parameters()),'THROUGHPUT_EVAL_IMMUTABLE')
+    arrays={key:np.concatenate(parts)for key,parts in outputs.items()}
+    return {'wall_seconds':elapsed,'batch_rows':batch_rows,'grouped_forward':grouped,'equal_length_TF':equal_tf,
+        'rows':len(rows),'source_rows_sha256':digest(rows),'output_sha256':{k:digest(v)for k,v in arrays.items()},
+        'state_unchanged':True,'rng_unchanged':True,'training_mode_restored':model.training==training},arrays
+
+
+def throughput_eval_parity(reference,candidate,truth,parent,*,bitexact):
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_bar_direction_score_sums
+    tolerance=THROUGHPUT_EVAL_TOLERANCE;differences={};numerical=True
+    need(set(reference)==set(candidate)=={'open_logits','close_logits','timeframe_hidden'},'THROUGHPUT_EVAL_OUTPUT_KEYS')
+    for key,expected in reference.items():
+        value=candidate[key]
+        need(value.shape==expected.shape and value.dtype==expected.dtype==np.float32,'THROUGHPUT_EVAL_OUTPUT_DOMAIN')
+        exact=np.array_equal(expected,value)
+        close=bool(np.allclose(expected,value,atol=tolerance['atol'],rtol=tolerance['rtol']))
+        numerical=numerical and(exact if bitexact else close)
+        differences[key]={'bitexact':exact,'within_tolerance':close,
+            'max_absolute_difference':float(np.max(np.abs(expected.astype(np.float64)-value.astype(np.float64))))}
+    kwargs={'truth':truth,'fold_upper_ns':parent['metadata']['fit_end_ns'],
+        'target_contract_sha256':parent['metadata']['target_contract']['contract_sha256'],**noise_target_kwargs(parent)}
+    scores=[native_bar_direction_score_sums(model_output={k:v for k,v in output.items()if k!='timeframe_hidden'},**kwargs)
+        for output in(reference,candidate)]
+    counts_exact=True;score_close=True
+    for task,by_tf in scores[0]['per_task'].items():
+        for tf,expected in by_tf.items():
+            value=scores[1]['per_task'][task][tf]
+            for key in('count','unique_target_rows','confusion_truth_by_prediction','max_logit_ties'):
+                counts_exact=counts_exact and expected[key]==value[key]
+            for key in('log_loss_sum','brier_sum'):
+                score_close=score_close and(expected[key]==value[key]if bitexact else
+                    bool(np.isclose(expected[key],value[key],atol=tolerance['atol'],rtol=tolerance['rtol'])))
+    return {'qualified':bool(numerical and counts_exact and score_close),'required_bitexact':bitexact,
+        'output_differences':differences,'counts_confusion_ties_exact':bool(counts_exact),
+        'score_sums_within_declared_tolerance':bool(score_close),'reference_scores':scores[0],'candidate_scores':scores[1]}
+
+
 def throughput_physical(plan):
     import torch
     from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_bar_direction_model
     from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
     parent=read(plan['metadata']['analysis_parent']);started=time.monotonic()
-    # Read-only existing context; never call old inspect/run/claim or any optimizer factory.
-    context=prepare_noise_native_fit(parent,THROUGHPUT_ROOT)
+    context=prepare_larger_native_fit(parent,THROUGHPUT_ROOT)
     prep_seconds=time.monotonic()-started;provider=context['provider'];meta=plan['metadata']
     need(context['normalization_ref']==meta['normalization']and context['prior_ref']==meta['prior'],
         'THROUGHPUT_EXACT_STATS')
-    seed_native_fit(parent['recipe']['seed']);torch.cuda.reset_peak_memory_stats()
+    source=subprocess.check_output(['git','show',meta['reference_base_commit']+':'+THROUGHPUT_RUNTIME_SOURCE_PATHS[1]],cwd=REPO)
+    need(hashlib.sha256(source).hexdigest()==meta['reference_model_blob_sha256'],'THROUGHPUT_REFERENCE_BLOB_BEFORE_EXEC')
+    reference_method=throughput_reference_method(source.decode());seed_native_fit(parent['recipe']['seed']);torch.cuda.reset_peak_memory_stats()
     total_memory=torch.cuda.get_device_properties(0).total_memory
     memory_fraction=plan['execution']['cuda_peak_reserved_bytes_max']/total_memory
-    need(0<memory_fraction<=1,'THROUGHPUT_ALLOCATOR_LIMIT')
-    torch.cuda.set_per_process_memory_fraction(memory_fraction,0)
+    need(0<memory_fraction<=1,'THROUGHPUT_ALLOCATOR_LIMIT');torch.cuda.set_per_process_memory_fraction(memory_fraction,0)
     model=build_native_bar_direction_model(input_normalization=context['normalization'],
         input_binding=provider.input_binding(context['normalization']),architecture=parent['metadata']['architecture'],
         device=torch.device('cuda',0),train_prior=context['prior'],
@@ -2871,32 +3051,66 @@ def throughput_physical(plan):
     need(checkpoint['plan']==meta['analysis_parent']and checkpoint['bindings']==expected,'THROUGHPUT_PRECOPY_BINDINGS')
     model.load_state_dict(checkpoint['model_state'],strict=True);del checkpoint
     need(canonical_model_state_sha256(model.state_dict())==meta['final_state_sha256'],'THROUGHPUT_TRAINED_IDENTITY')
+    nonzero_heads={task:{tf:int(torch.count_nonzero(head.weight))for tf,head in heads.items()}
+        for task,heads in(('open',model.open_heads),('close',model.close_heads))}
+    need(nonzero_heads['close']['M5']>0,'THROUGHPUT_NONZERO_M5_READOUT')
     before=state_sha(model.state_dict());norm_sha=state_sha(context['normalization']);prior_sha=state_sha(context['prior'])
     rng=training_rng();rng_sha=state_sha(rng);reports={};counts={'forwards':0,'backwards':0}
-    def count(module,args):counts['forwards']+=1;need(counts['forwards']<=6,'THROUGHPUT_FORWARD_LIMIT')
-    hook=model.register_forward_pre_hook(count)
-    selected,_=selected_small_cohorts(parent,context);blocks=all_score_batches(selected['FIT'],16)
+    def count(module,args):
+        counts['forwards']+=1;need(counts['forwards']<=plan['limits']['model_forwards'],'THROUGHPUT_FORWARD_LIMIT')
+    hook=model.register_forward_pre_hook(count);all_rows=context['cohorts']['TRAIN']['rows'];rows=all_rows[:64]
+    evaluation={};partial={'plan_stage':plan['stage'],'qualification_authority':False,'optimizer_steps':0}
     try:
-        for size,rows in [(64,np.concatenate(blocks[:4]))]:
-            lanes={}
-            for name,grouped,profiled in [('warmup_immediate',False,False),('reference_immediate',False,False),
-                ('grouped_uninstrumented',True,False),('reference_repeat',False,False),
-                ('grouped_repeat',True,False),('grouped_profiled',True,True)]:
-                lanes[name]=throughput_lane(model,context,rows,parent,grouped=grouped,profiled=profiled,rng=rng)
-                counts['backwards']+=1
-            reference=lanes['reference_immediate']['identity']
-            need(all(v['identity']==reference for v in lanes.values()),'THROUGHPUT_SAME_RNG_OUTPUT_LOSS_GRAD_PARITY')
-            reports[str(size)]={'source_rows_sha256':digest(rows),'issue_ns_sha256':digest(provider.issue_ns[rows]),'lanes':lanes}
-            need(torch.cuda.max_memory_reserved()<=plan['execution']['cuda_peak_reserved_bytes_max'],'THROUGHPUT_VRAM_LIMIT')
+        lanes={}
+        for name,grouped,profiled in [('warmup_immediate',False,False),('reference_immediate',False,False),
+            ('grouped_uninstrumented',True,False),('reference_repeat',False,False),
+            ('grouped_repeat',True,False),('grouped_profiled',True,True)]:
+            lanes[name]=throughput_lane(model,context,rows,parent,grouped=grouped,profiled=profiled,rng=rng,
+                reference_method=reference_method);counts['backwards']+=1
+        reference=lanes['reference_immediate']['identity']
+        need(all(v['identity']==reference for v in lanes.values()),'THROUGHPUT_SAME_RNG_OUTPUT_LOSS_GRAD_PARITY')
+        reports['64']={'source_rows_sha256':digest(rows),'issue_ns_sha256':digest(provider.issue_ns[rows]),'lanes':lanes}
+        publish(THROUGHPUT_ROOT/'TRAIN_PARITY_PARTIAL.json',{**partial,'train_bitexact':True,'panels':reports})
+        eval_rows=all_rows[:256];truth=slice_truth(context['cohorts']['TRAIN'],eval_rows)
+        base_report,base=throughput_eval_lane(model,context,eval_rows,parent,batch_rows=64,grouped=False,equal_tf=False,
+            rng=rng,reference_method=reference_method)
+        b64_report,b64=throughput_eval_lane(model,context,eval_rows[:64],parent,batch_rows=64,grouped=True,equal_tf=False,
+            rng=rng,reference_method=reference_method)
+        b64_parity=throughput_eval_parity({k:v[:64]for k,v in base.items()},b64,
+            slice_truth(context['cohorts']['TRAIN'],eval_rows[:64]),parent,bitexact=True)
+        need(b64_parity['qualified'],'THROUGHPUT_B64_EVAL_BITEXACT')
+        evaluation.update(reference_b64=base_report,candidate_b64=b64_report,b64_parity=b64_parity)
+        publish(THROUGHPUT_ROOT/'B64_EVAL_PARITY_PARTIAL.json',{**partial,'train_bitexact':True,'evaluation':evaluation})
+        for name,equal_tf in(('candidate_b256',False),('candidate_b256_equal_tf',True)):
+            report,arrays=throughput_eval_lane(model,context,eval_rows,parent,batch_rows=256,grouped=True,equal_tf=equal_tf,
+                rng=rng,reference_method=reference_method)
+            evaluation[name]={'run':report,'parity':throughput_eval_parity(base,arrays,truth,parent,bitexact=False)}
+        tail=all_rows[-2:];tail_truth=slice_truth(context['cohorts']['TRAIN'],tail)
+        ref_tail,tail_arrays=throughput_eval_lane(model,context,tail,parent,batch_rows=64,grouped=False,equal_tf=False,
+            rng=rng,reference_method=reference_method)
+        new_tail,new_arrays=throughput_eval_lane(model,context,tail,parent,batch_rows=256,grouped=True,equal_tf=True,
+            rng=rng,reference_method=reference_method)
+        evaluation['short_tail']={'reference':ref_tail,'candidate':new_tail,
+            'parity':throughput_eval_parity(tail_arrays,new_arrays,tail_truth,parent,bitexact=False)}
+        need(torch.cuda.max_memory_reserved()<=plan['execution']['cuda_peak_reserved_bytes_max'],'THROUGHPUT_VRAM_LIMIT')
     finally:hook.remove();model.zero_grad(set_to_none=True);restore_training_rng(rng)
-    need(counts=={'forwards':6,'backwards':6}and state_sha(model.state_dict())==before
+    need(counts=={'forwards':15,'backwards':6}and state_sha(model.state_dict())==before
         and state_sha(context['normalization'])==norm_sha and state_sha(context['prior'])==prior_sha
-        and state_sha(training_rng())==rng_sha and all(p.grad is None for p in model.parameters()),'THROUGHPUT_IMMUTABLE_BOOKEND')
-    return {'panels':reports,'actual_counts':plan['limits'],'prepare_seconds':prep_seconds,
-        'model_state_sha256':meta['final_state_sha256'],'normalization':meta['normalization'],'prior':meta['prior'],
-        'normalization_fits':0,'prior_fits':0,'weights_unchanged':True,'rng_restored':True,'grad_fields_none':True,
+        and state_sha(training_rng())==rng_sha and all(p.grad is None for p in model.parameters())
+        and '_require_binding'not in model.__dict__,'THROUGHPUT_IMMUTABLE_BOOKEND')
+    return {'panels':reports,'evaluation':evaluation,'actual_counts':{**plan['limits'],
+            'model_forwards':counts['forwards'],'backward_calls':counts['backwards']},'prepare_seconds':prep_seconds,
+        'train_bitexact':True,'b64_eval_bitexact':True,
+        'b256_candidate_qualified':evaluation['candidate_b256']['parity']['qualified'],
+        'b256_equal_tf_candidate_qualified':bool(evaluation['candidate_b256_equal_tf']['parity']['qualified']
+            and evaluation['short_tail']['parity']['qualified']),
+        'b256_equal_tf_measured_faster':evaluation['candidate_b256_equal_tf']['run']['wall_seconds']
+            <evaluation['reference_b64']['wall_seconds'],
+        'nonzero_readout_weights':nonzero_heads,'model_state_sha256':meta['final_state_sha256'],
+        'normalization':meta['normalization'],'prior':meta['prior'],'normalization_fits':0,'prior_fits':0,
+        'weights_unchanged':True,'rng_restored':True,'grad_fields_none':True,
         'cuda_peak_allocated_bytes':torch.cuda.max_memory_allocated(),'cuda_peak_reserved_bytes':torch.cuda.max_memory_reserved(),
-        'scope':'DIAGNOSTIC_TRAIN_ONLY_NO_UPDATES_SINGLE_PAIR_TIMINGS_NOT_ROBUST_SPEEDUP_OR_ADAMW_THROUGHPUT'}
+        'scope':'DIAGNOSTIC_TRAIN_EVAL_NO_UPDATES_NO_MAIN_BATCH_ADMISSION_OR_ROBUST_ADAMW_THROUGHPUT'}
 
 
 def throughput_cli(args):
@@ -2920,7 +3134,7 @@ def throughput_cli(args):
         remaining=1770-(time.monotonic()-began);need(remaining>0,'THROUGHPUT_TIME_BEFORE_INPUTS')
         signal.signal(signal.SIGALRM,expired);signal.setitimer(signal.ITIMER_REAL,remaining)
         report=throughput_physical(plan);checked_inputs(plan)
-        need(noise_source_clean(plan)and ref(POLICY)==policy_ref and ref(THROUGHPUT_PLAN)==binding
+        need(larger_source_clean(plan)and ref(POLICY)==policy_ref and ref(THROUGHPUT_PLAN)==binding
             and common.firewall_state()['denied_attempts']==0,'THROUGHPUT_SOURCE_POLICY_BOOKEND')
         result=publish(THROUGHPUT_ROOT/'RESULT.json',{'stage':THROUGHPUT_STAGE,'status':'COMPLETE_ATR03_THROUGHPUT_DIAGNOSTIC',
             'plan':binding,'claim':claim,'report':report,'source_unchanged':True,'guard':guard,
@@ -3071,11 +3285,16 @@ def larger_recipe(value, mode, metadata):
     need(mode in LARGER_FIT_MODES and value['optimizer'] == ADAMW_RECIPE
         and value['gradient_clip_norm'] == 1. and value['scheduler'] is None
         and value['seed'] == 20260911 and value['batch_rows'] == 64
-        and value['score_batch_rows'] == 64 and value['passes'] == 1
+        and value['score_batch_rows'] in (64,256) and value['passes'] == 1
         and value['score_batches_per_split'] is None
         and type(value['required_windows_boot_id_greater_than']) is int
         and value['required_windows_boot_id_greater_than'] == 666,
         'LARGER_UNCHANGED_NUMERIC_RECIPE')
+    if value['score_batch_rows']==256:
+        qualification=metadata.get('runtime_qualification',{})
+        need(mode=='ta_five_year_main'and qualification.get('b256_equal_tf_candidate_qualified')is True
+            and qualification.get('b256_equal_tf_measured_faster')is True,
+            'LARGER_SCORE_256_EXACT_QUALIFICATION')
     for key in ('fit_batches','checkpoint_every_updates','outer_seconds',
                 'internal_seconds'):
         need(type(value[key]) is int and value[key] > 0, 'LARGER_INTEGER:'+key)
@@ -3175,7 +3394,8 @@ def larger_schedule_position(plan, cursor):
 
 def larger_limits(recipe, mode, metadata):
     mech = _mechanics(mode); updates = 3 if mech else recipe['fit_batches']
-    final_score = sum((v['rows']+63)//64 for v in metadata['selected_cohorts'].values())
+    score_rows=recipe['score_batch_rows']
+    final_score = sum((v['rows']+score_rows-1)//score_rows for v in metadata['selected_cohorts'].values())
     return {'model_constructions':2 if mech else 1,
         'model_forwards':updates+(4 if mech else final_score),
         'backward_calls':updates,'optimizer_steps':updates,
@@ -3481,6 +3701,41 @@ def load_larger_initial(model,context,plan):
     return larger_initial_reuse(model,context,plan,saved,scores,captures)
 
 
+def qualified_runtime_throughput(inputs,prepared_parent):
+    need({'throughput_result','throughput_terminal'}<=set(inputs),'LARGER_RUNTIME_QUALIFICATION_ROLES')
+    need(inputs['throughput_result']['path']==str(THROUGHPUT_ROOT/'RESULT.json')
+        and inputs['throughput_terminal']['path']==str(THROUGHPUT_ROOT/'TERMINAL.json'),
+        'LARGER_RUNTIME_EXACT_DIAGNOSTIC_SCOPE')
+    result,terminal=read(inputs['throughput_result']),read(inputs['throughput_terminal'])
+    parent=read(result['plan']);claim=read(result['claim']);report=result['report']
+    need(result['stage']==terminal['stage']==parent['stage']==claim['stage']==THROUGHPUT_STAGE
+        and result['status']=='COMPLETE_ATR03_THROUGHPUT_DIAGNOSTIC'
+        and terminal['status']=='COMPLETE'and terminal['exit_code']==0
+        and terminal['result']==inputs['throughput_result']and terminal['plan']==result['plan']==claim['plan']
+        and terminal['claim']==result['claim']and result['source_unchanged']is True
+        and result['optimizer_steps']==0 and report['actual_counts']==THROUGHPUT_LIMITS
+        and report['train_bitexact']is report['b64_eval_bitexact']is True
+        and all(report[k]is True for k in('weights_unchanged','rng_restored','grad_fields_none'))
+        and report['normalization_fits']==report['prior_fits']==0
+        and result['test_data_used']is terminal['test_data_used']is False
+        and result['clean_process_io_firewall']['denied_attempts']==0
+        and parent==build_throughput_plan(inputs=parent['inputs'],source_base_commit=parent['source_base_commit'])
+        and larger_source_clean(parent),'LARGER_RUNTIME_QUALIFIED_THROUGHPUT')
+    original_mechanics=read(parent['metadata']['analysis_parent'])
+    need(original_mechanics['inputs']['prepare_result']==inputs['prepare_result']
+        and original_mechanics['inputs']['prepare_terminal']==inputs['prepare_terminal']
+        and original_mechanics['source_owners']==prepared_parent['source_owners']
+        and parent['metadata']['initial_state_sha256']==read(inputs['prepare_result'])['report']['initial_state_sha256'],
+        'LARGER_RUNTIME_ORIGINAL_PREPARATION')
+    return {'result':inputs['throughput_result'],'terminal':inputs['throughput_terminal'],
+        'plan':result['plan'],'claim':result['claim'],'source_compatibility':parent['inputs']['source_compatibility'],
+        'reference_mechanics_result':parent['inputs']['mechanics_result'],
+        'reference_mechanics_terminal':parent['inputs']['mechanics_terminal'],
+        'train_bitexact':True,'b64_eval_bitexact':True,
+        'b256_equal_tf_candidate_qualified':report['b256_equal_tf_candidate_qualified'],
+        'b256_equal_tf_measured_faster':report['b256_equal_tf_measured_faster']}
+
+
 def larger_prepared_metadata(inputs):
     required={'prepare_result','prepare_terminal'}
     need(required<=set(inputs),'LARGER_PREPARED_INPUTS')
@@ -3500,9 +3755,12 @@ def larger_prepared_metadata(inputs):
         and report['cuda_peak_reserved_bytes']<=LARGER_VRAM_MAX
         and result['test_data_used']is last['test_data_used']is False
         and result['clean_process_io_firewall']['denied_attempts']==0,'LARGER_COMPLETE_PREPARATION')
-    need(set(parent['source_owners'])==set(LARGER_SOURCE_PATHS)
-        and all(sha(REPO/k)==v for k,v in parent['source_owners'].items()),
-        'LARGER_PREPARED_IDENTICAL_SOURCE')
+    need(set(parent['source_owners'])==set(LARGER_SOURCE_PATHS),'LARGER_PREPARED_SOURCE_SET')
+    qualification=None
+    if 'throughput_result'in inputs or 'throughput_terminal'in inputs:
+        qualification=qualified_runtime_throughput(inputs,parent)
+    else:
+        need(all(sha(REPO/k)==v for k,v in parent['source_owners'].items()),'LARGER_PREPARED_IDENTICAL_SOURCE')
     from gx1.contracts.entry_model_native_input_normalization_v1 import require_native_m5_input_normalization_contract
     from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_bar_train_prior
     from gx1.contracts.market_state_ta_integrated_model_v1 import native_bar_model_contract
@@ -3529,12 +3787,16 @@ def larger_prepared_metadata(inputs):
         'initial_scores':report['initial_score_artifact'],'initial_capture':report['initial_capture']},
         'prepared':prepared,'raw_gradient_design_evidence':{
             'role':'same_qualified_primary_backbone_policy_fresh_year_mechanics_required'}}
+    if qualification is not None:
+        metadata['runtime_qualification']=qualification
+        metadata['dependencies'].update(runtime_throughput_result=qualification['result'],
+            runtime_throughput_terminal=qualification['terminal'],runtime_source_compatibility=qualification['source_compatibility'])
     return metadata
 
 
 def build_larger_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
     need(mode in LARGER_FIT_MODES,'LARGER_FIT_MODE')
-    fields={'prepare_result','prepare_terminal'}|({'mechanics_result','mechanics_terminal'}if _larger_main({'mode':mode})else set())
+    fields={'prepare_result','prepare_terminal'}|({'throughput_result','throughput_terminal'}if mode in('ta_five_year_mechanics','ta_five_year_main')else set())|({'mechanics_result','mechanics_terminal'}if _larger_main({'mode':mode})else set())
     need(type(inputs)is dict and set(inputs)==fields,'LARGER_FIT_INPUT_ROLES')
     metadata=larger_prepared_metadata(inputs);selected_scope=_larger_spec(mode)
     need(metadata['prepared']['plan']['path']==str(selected_scope['prepare_plan']),'LARGER_SAME_PREPARED_SCOPE')
@@ -3578,6 +3840,11 @@ def build_larger_fit_plan(*,inputs,recipe,mode,source_base_commit=None):
             and parent['metadata']['prepared']==metadata['prepared']
             and set(parent['source_owners'])==set(LARGER_SOURCE_PATHS)
             and all(sha(REPO/k)==v for k,v in parent['source_owners'].items()),'LARGER_MAIN_QUALIFIED_MECHANICS')
+        if mode=='ta_five_year_main':
+            need(proof.get('runtime_reference_trajectory',{}).get('bitexact')is True
+                and proof['runtime_reference_trajectory']['reference_mechanics_result']
+                    ==metadata['runtime_qualification']['reference_mechanics_result'],
+                'LARGER_MAIN_RUNTIME_TRAJECTORY_BITEXACT')
         metadata['mechanics']={'result':inputs['mechanics_result'],'terminal':inputs['mechanics_terminal'],
             'plan':done['plan'],'claim':done['claim'],'initial_state_sha256':proof['initial_state_sha256'],
             'physical_windows_boot_id':done['physical_windows_boot_id']}
@@ -3610,11 +3877,11 @@ FIT_SCOPES.update({
 
 
 FIT_SCOPES.update({
-    'ta_five_year_mechanics':('native_m5_ta_atr03_five_year_mechanics_20261120_001',
-        REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001.json',
-        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001')),
-    'ta_five_year_main':('native_m5_ta_atr03_five_year_fit_20261120_001',
-        REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001.json',
-        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001'))})
+    'ta_five_year_mechanics':('native_m5_ta_atr03_five_year_mechanics_20261120_002',
+        REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002')),
+    'ta_five_year_main':('native_m5_ta_atr03_five_year_fit_20261120_002',
+        REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002.json',
+        Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002'))})
 
 if __name__=='__main__':main()

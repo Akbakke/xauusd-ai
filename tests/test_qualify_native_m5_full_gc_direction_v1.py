@@ -1400,7 +1400,7 @@ def test_throughput_metadata_role_gate_precedes_any_receipt_or_model_io(monkeypa
 
 
 def test_throughput_profile_contract_has_zero_optimizer_and_bounded_rows_and_memory():
-    assert owner.THROUGHPUT_LIMITS=={'model_constructions':1,'checkpoint_loads':1,'model_forwards':6,
+    assert owner.THROUGHPUT_LIMITS=={'model_constructions':1,'checkpoint_loads':1,'model_forwards':15,
         'backward_calls':6,'autograd_calls':0,'optimizer_constructions':0,'optimizer_steps':0}
     assert owner.THROUGHPUT_EXECUTION['cuda_peak_reserved_bytes_max']==12*1024**3
     assert owner.THROUGHPUT_EXECUTION['internal_seconds']<owner.THROUGHPUT_EXECUTION['outer_seconds']==1800
@@ -1431,7 +1431,7 @@ def test_throughput_success_and_failure_publish_consumed_terminal(tmp_path,monke
     real_ref=owner.ref
     monkeypatch.setattr(owner,'ref',lambda p:policy if p==owner.POLICY else real_ref(p))
     monkeypatch.setattr(owner,'checked_inputs',lambda *_:None)
-    monkeypatch.setattr(owner,'noise_source_clean',lambda *_:True)
+    monkeypatch.setattr(owner,'larger_source_clean',lambda *_:True)
     monkeypatch.setattr(owner.common,'firewall_state',lambda:{'denied_attempts':0})
     def physical(_):
         if fail:raise ValueError('unit_profile_failure')
@@ -1565,7 +1565,7 @@ def test_five_year_explicit_scope_routes_preserve_year_and_require_own_prepare_b
         if phase!='prepare':
             assert owner._primary_fit({'mode':mode})
             stage,path,root=owner.FIT_SCOPES[mode]
-            assert stage=='native_m5_ta_atr03_five_year_'+('fit'if phase=='main'else phase)+'_20261120_001'
+            assert stage=='native_m5_ta_atr03_five_year_'+('fit'if phase=='main'else phase)+'_20261120_002'
             assert path.stem==root.name
     # Missing explicit five-year budget rejects before any artifact/model access.
     monkeypatch.setattr(owner,'read',lambda *_:pytest.fail('artifact read before explicit budget'))
@@ -1632,9 +1632,11 @@ def test_five_year_checkpoint_at_arbitrary_main_cursor_binds_actual_next_source_
 
 
 @pytest.mark.parametrize('mode',['ta_larger_main','ta_five_year_main'])
-def test_larger_main_exact_four_input_roles_reach_prepared_validator_before_any_io(monkeypatch,mode):
+def test_larger_main_exact_current_input_roles_reach_prepared_validator_before_any_io(monkeypatch,mode):
     inputs={name:{'path':'synthetic_'+name,'sha256':'1'*64}for name in
         ('prepare_result','prepare_terminal','mechanics_result','mechanics_terminal')}
+    if mode=='ta_five_year_main':
+        inputs.update({name:{'path':'synthetic_'+name,'sha256':'3'*64}for name in('throughput_result','throughput_terminal')})
     calls=[]
     def prepared(value):
         calls.append(copy.deepcopy(value))
@@ -1651,3 +1653,324 @@ def test_larger_main_exact_four_input_roles_reach_prepared_validator_before_any_
         with pytest.raises(ValueError,match='LARGER_FIT_INPUT_ROLES'):
             owner.build_larger_fit_plan(inputs=bad,recipe={},mode=mode)
     assert calls==[inputs]
+
+
+@pytest.mark.parametrize('grouped',[False,True])
+def test_native_fit_forward_keeps_output_loss_gradient_and_rng(grouped):
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import _assert_finite,_MODEL_FINITE_CHECK_SCOPE
+    class Forward(torch.nn.Module):
+        def forward(self,features):
+            value=features['x']*torch.rand_like(features['x'])
+            _assert_finite('active_native_activation',value)
+            return {'close_logits':value}
+    torch.manual_seed(31);before=torch.get_rng_state().clone()
+    x=torch.arange(1.,5.,requires_grad=True)
+    reference=owner.native_fit_forward(Forward(),{'x':x},grouped=False)['close_logits']
+    reference_loss=reference.square().sum();reference_loss.backward()
+    expected=(reference.detach().clone(),reference_loss.detach().clone(),x.grad.clone(),torch.get_rng_state().clone())
+    torch.set_rng_state(before);other=x.detach().clone().requires_grad_(True)
+    output=owner.native_fit_forward(Forward(),{'x':other},grouped=grouped)['close_logits']
+    loss=output.square().sum();loss.backward()
+    actual=(output.detach(),loss.detach(),other.grad,torch.get_rng_state())
+    assert all(torch.equal(a,b)for a,b in zip(actual,expected))
+    assert _MODEL_FINITE_CHECK_SCOPE.get()is None
+
+
+@pytest.mark.parametrize('grouped',[False,True])
+def test_native_fit_forward_rejects_nonfinite_before_exposing_output(grouped):
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import _assert_finite,_MODEL_FINITE_CHECK_SCOPE
+    class Forward(torch.nn.Module):
+        def forward(self,features):
+            _assert_finite('first_native_activation',features['x'])
+            _assert_finite('later_native_activation',torch.tensor(float('inf')))
+            return {'close_logits':torch.zeros(1)}
+    reached=[]
+    with pytest.raises(RuntimeError,match='NONFINITE: first_native_activation'):
+        output=owner.native_fit_forward(Forward(),{'x':torch.tensor(float('nan'))},grouped=grouped)
+        reached.append(output)
+    assert reached==[] and _MODEL_FINITE_CHECK_SCOPE.get()is None
+
+
+def test_native_fit_and_score_share_explicit_forward_owner():
+    import ast,inspect
+    for fn in (owner.fit_step,owner.fit_score):
+        tree=ast.parse(inspect.getsource(fn))
+        calls=[n.func.id for n in ast.walk(tree)if isinstance(n,ast.Call)and isinstance(n.func,ast.Name)]
+        expected='native_fit_forward'if fn is owner.fit_step else'native_fit_score_forward'
+        assert expected in calls and 'model'not in calls
+    for invalid in (None,'grouped',1):
+        with pytest.raises(ValueError,match='FIT_FORWARD_FINITE_SCOPE'):
+            owner.native_fit_forward(None,{},grouped=invalid)
+
+
+@pytest.mark.parametrize('override',[False,True])
+@pytest.mark.parametrize('fail',[False,True])
+def test_runtime_reference_method_is_prepared_once_and_restored_on_all_exits(override,fail):
+    from types import MethodType
+    source="class NativeM5BarDirectionModel:\n def _require_binding(self):\n  self.calls.append('old')\n"
+    method=owner.throughput_reference_method(source)
+    class Model:
+        def __init__(self):self.calls=[]
+        def _require_binding(self):self.calls.append('current')
+    model=Model()
+    if override:model._require_binding=MethodType(lambda self:self.calls.append('override'),model)
+    original=model._require_binding
+    try:
+        with owner.throughput_reference_binding(model,method):
+            model._require_binding()
+            assert model.calls==['old']
+            if fail:raise RuntimeError('reference_failure')
+    except RuntimeError as error:assert fail and str(error)=='reference_failure'
+    assert model._require_binding==original
+    assert ('_require_binding'in model.__dict__)==override
+    model._require_binding()
+    assert model.calls==['old','override'if override else'current']
+
+
+def test_throughput_reference_preparation_and_old_fold_scope_are_outside_timed_forward():
+    import ast,inspect
+    lane=ast.parse(inspect.getsource(owner.throughput_lane))
+    calls=[n.func.id for n in ast.walk(lane)if isinstance(n,ast.Call)and isinstance(n.func,ast.Name)]
+    assert 'throughput_reference_method'not in calls and 'exec'not in calls and 'compile'not in calls
+    text=inspect.getsource(owner.throughput_lane)
+    assert "fold_upper_ns=parent['metadata']['fit_end_ns']"in text
+    assert "finite_all_per_device(p.grad for p in gradients)"in text
+    assert "finite_all_per_device(model.parameters())"in text
+    assert 'else all(bool(torch.isfinite'not in text
+
+
+def test_runtime_score_scope_is_only_for_explicit_larger_main256_and_restores(monkeypatch):
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import _BATCH_EQUAL_LENGTH_MTF_EVAL
+    seen=[]
+    monkeypatch.setattr(owner,'native_fit_forward',lambda *a,**k:seen.append(_BATCH_EQUAL_LENGTH_MTF_EVAL.get()))
+    for mode,rows,expected in [('ta_five_year_main',64,False),('ta_five_year_mechanics',64,False),('ta_five_year_main',256,True)]:
+        owner.native_fit_score_forward(None,{},dict(mode=mode,recipe={'score_batch_rows':rows}))
+        assert seen[-1]is expected and _BATCH_EQUAL_LENGTH_MTF_EVAL.get()is False
+
+
+def test_larger_score256_requires_qualified_measured_candidate_and_preserves_train_geometry():
+    n=354550;epoch=(n+63)//64
+    recipe=dict(owner.ADAMW_RECIPE)
+    recipe={'optimizer':recipe,'gradient_clip_norm':1.,'scheduler':None,'seed':20260911,
+        'batch_rows':64,'score_batch_rows':256,'fit_batches':epoch,'passes':1,
+        'score_batches_per_split':None,'checkpoint_every_updates':1024,'outer_seconds':10800,
+        'internal_seconds':10770,'required_windows_boot_id_greater_than':666}
+    meta={'prepared':{'full_selected_cohorts':{'FIT':{'rows':n}}},'epoch_batches':epoch}
+    for qualification in ({},{'b256_equal_tf_candidate_qualified':False,'b256_equal_tf_measured_faster':True},
+            {'b256_equal_tf_candidate_qualified':True,'b256_equal_tf_measured_faster':False}):
+        with pytest.raises(ValueError,match='LARGER_SCORE_256_EXACT_QUALIFICATION'):
+            owner.larger_recipe(recipe,'ta_five_year_main',{**meta,'runtime_qualification':qualification})
+    qualified={**meta,'runtime_qualification':{'b256_equal_tf_candidate_qualified':True,'b256_equal_tf_measured_faster':True}}
+    assert owner.larger_recipe(recipe,'ta_five_year_main',qualified)==recipe
+    with pytest.raises(ValueError,match='LARGER_SCORE_256_EXACT_QUALIFICATION'):
+        owner.larger_recipe(recipe,'ta_five_year_mechanics',qualified)
+    limits=owner.larger_limits(recipe,'ta_five_year_main',{'selected_cohorts':{'FIT':{'rows':n},'CONTROL':{'rows':34934}}})
+    assert limits['optimizer_steps']==limits['backward_calls']==epoch==5540
+    assert limits['model_forwards']==epoch+(n+255)//256+(34934+255)//256
+
+
+def _synthetic_runtime_score(monkeypatch):
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    counts={'count':2,'unique_target_rows':2,'confusion_truth_by_prediction':[[2,0,0],[0,0,0],[0,0,0]],
+        'max_logit_ties':0,'log_loss_sum':1.,'brier_sum':.5}
+    monkeypatch.setattr(objective,'native_bar_direction_score_sums',lambda **k:{'per_task':{'close':{'M5':dict(counts)}}})
+    parent={'metadata':{'fit_end_ns':10,'target_contract':{'contract_sha256':'a'*64}}}
+    monkeypatch.setattr(owner,'noise_target_kwargs',lambda *_:{})
+    arrays={k:np.ones((2,5,3),np.float32)for k in('open_logits','close_logits','timeframe_hidden')}
+    return parent,arrays,counts
+
+
+def test_runtime_eval_checks_hidden_even_when_all_readouts_are_zero(monkeypatch):
+    parent,reference,_=_synthetic_runtime_score(monkeypatch)
+    for key in('open_logits','close_logits'):reference[key][:]=0
+    candidate={k:v.copy()for k,v in reference.items()};candidate['timeframe_hidden'][0,0,0]+=.01
+    report=owner.throughput_eval_parity(reference,candidate,{},parent,bitexact=False)
+    assert report['qualified']is False
+    assert report['output_differences']['open_logits']['bitexact']is True
+    assert report['output_differences']['timeframe_hidden']['within_tolerance']is False
+
+
+def test_runtime_eval_declares_tolerance_without_relaxing_bitexact_baseline(monkeypatch):
+    parent,reference,_=_synthetic_runtime_score(monkeypatch)
+    candidate={k:np.nextafter(v,np.float32(2.))for k,v in reference.items()}
+    assert owner.throughput_eval_parity(reference,candidate,{},parent,bitexact=False)['qualified']is True
+    assert owner.throughput_eval_parity(reference,candidate,{},parent,bitexact=True)['qualified']is False
+    assert owner.THROUGHPUT_EVAL_TOLERANCE['atol']==1e-6
+    assert owner.THROUGHPUT_EVAL_TOLERANCE['rtol']==1e-5
+
+
+def test_runtime_eval_rejects_changed_ties_even_when_logits_within_tolerance(monkeypatch):
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    parent,reference,counts=_synthetic_runtime_score(monkeypatch)
+    calls=[]
+    def score(**kwargs):
+        result=copy.deepcopy(counts);result['max_logit_ties']=len(calls);calls.append(True)
+        return {'per_task':{'close':{'M5':result}}}
+    monkeypatch.setattr(objective,'native_bar_direction_score_sums',score)
+    report=owner.throughput_eval_parity(reference,reference,{},parent,bitexact=False)
+    assert report['qualified']is False and report['counts_confusion_ties_exact']is False
+
+
+@pytest.fixture
+def runtime_source_review(monkeypatch):
+    import hashlib
+    driver,model=owner.THROUGHPUT_RUNTIME_SOURCE_PATHS[:2]
+    paths=(driver,model,'gx1/unchanged_owner.py');blob=b'original_model_blob'
+    old={driver:'a'*64,model:hashlib.sha256(blob).hexdigest(),paths[2]:'b'*64}
+    current={**old,driver:'c'*64,model:'d'*64}
+    prepare={'path':'old_prepare','sha256':'e'*64};mechanics=owner.THROUGHPUT_INPUTS['mechanics_result']
+    unit={'status':'PASS','exit_code':0,'current_source_owners':current}
+    diff={'status':'PASS_STATIC_MODEL_AND_WRAPPER_CONTROL_ONLY','current_source_owners':current,
+        'contract_math_and_remaining_module_ast_unchanged':True,'wrapper_inverse_diff_exact':True,
+        'fit_and_score_pipeline_unchanged_after_unwrap':True}
+    review={'schema_version':'gx1_native_m5_runtime_source_compatibility_v1',
+        'status':'QUALIFIED_RUNTIME_ONLY_SOURCE_COMPATIBILITY','old_base_commit':'old_base','source_base_commit':'new_base',
+        'old_source_owners':old,'current_source_owners':current,'allowed_changed_paths':sorted([driver,model]),
+        'baseline_prepare_result':prepare,'reference_mechanics_result':mechanics,
+        'reference_model_blob_sha256':old[model],'unit_proof':{'path':'unit','sha256':'f'*64},
+        'source_diff_review':{'path':'diff','sha256':'1'*64}}
+    binding={'path':str(owner.THROUGHPUT_SOURCE_COMPATIBILITY_PATH),'sha256':'2'*64}
+    store={binding['path']:review,'unit':unit,'diff':diff}
+    monkeypatch.setattr(owner,'LARGER_SOURCE_PATHS',paths)
+    monkeypatch.setattr(owner,'read',lambda ref:store[ref['path']])
+    monkeypatch.setattr(owner,'sha',lambda path:current[str(path.relative_to(owner.REPO))])
+    monkeypatch.setattr(owner.subprocess,'check_output',lambda *a,**k:blob)
+    parent={'source_owners':old,'inputs':{'prepare_result':prepare}}
+    return binding,parent,review,unit,diff
+
+
+def test_runtime_source_review_keeps_original_owners_and_rejects_unlisted_changes(runtime_source_review):
+    binding,parent,review,unit,diff=runtime_source_review
+    assert owner.throughput_source_compatibility(binding,parent)is review
+    before=copy.deepcopy(parent)
+    extra='gx1/unchanged_owner.py';review['current_source_owners'][extra]='3'*64
+    review['allowed_changed_paths']=sorted([*review['allowed_changed_paths'],extra])
+    with pytest.raises(ValueError,match='THROUGHPUT_ONLY_REVIEWED_RUNTIME_OWNERS'):
+        owner.throughput_source_compatibility(binding,parent)
+    assert parent==before
+
+
+@pytest.mark.parametrize('bad',['unit_failure','unit_stale','diff_failure','diff_stale','math_changed','wrapper_changed','pipeline_changed'])
+def test_runtime_source_review_requires_current_positive_proof(runtime_source_review,bad):
+    binding,parent,review,unit,diff=runtime_source_review
+    if bad=='unit_failure':unit['status']='FAIL'
+    elif bad=='unit_stale':unit['current_source_owners']={}
+    elif bad=='diff_failure':diff['status']='FAIL'
+    elif bad=='diff_stale':diff['current_source_owners']={}
+    elif bad=='math_changed':diff['contract_math_and_remaining_module_ast_unchanged']=False
+    elif bad=='wrapper_changed':diff['wrapper_inverse_diff_exact']=False
+    else:diff['fit_and_score_pipeline_unchanged_after_unwrap']=False
+    with pytest.raises(ValueError,match='THROUGHPUT_QUALIFIED_UNIT_AND_SOURCE_REVIEW'):
+        owner.throughput_source_compatibility(binding,parent)
+
+
+def test_new_efficiency_scopes_never_alias_consumed_outputs():
+    assert owner.THROUGHPUT_PLAN.name=='NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003.json'
+    assert owner.THROUGHPUT_ROOT.name==owner.THROUGHPUT_PLAN.stem
+    for mode in('ta_five_year_mechanics','ta_five_year_main'):
+        stage,path,root=owner.FIT_SCOPES[mode]
+        assert stage.endswith('_002')and path.stem==root.name and path.stem.endswith('_002')
+    assert owner.THROUGHPUT_LIMITS['model_forwards']==15
+    assert owner.THROUGHPUT_LIMITS['backward_calls']==6
+    assert owner.THROUGHPUT_LIMITS['optimizer_steps']==owner.THROUGHPUT_LIMITS['optimizer_constructions']==0
+
+
+@pytest.mark.parametrize('field',['train_bitexact','b64_eval_bitexact','weights_unchanged','rng_restored','grad_fields_none','actual_counts'])
+def test_failed_or_partial_runtime_diagnostic_cannot_bridge_preparation(monkeypatch,field):
+    refs={name:{'path':name,'sha256':'a'*64}for name in('plan','claim','prepare_result','prepare_terminal')}
+    inputs={**{k:v for k,v in refs.items()if k.startswith('prepare_')},
+        'throughput_result':{'path':str(owner.THROUGHPUT_ROOT/'RESULT.json'),'sha256':'b'*64},
+        'throughput_terminal':{'path':str(owner.THROUGHPUT_ROOT/'TERMINAL.json'),'sha256':'c'*64}}
+    report={'actual_counts':dict(owner.THROUGHPUT_LIMITS),'normalization_fits':0,'prior_fits':0,
+        **{k:True for k in('train_bitexact','b64_eval_bitexact','weights_unchanged','rng_restored','grad_fields_none')}}
+    report[field]={}if field=='actual_counts'else False
+    result={'stage':owner.THROUGHPUT_STAGE,'status':'COMPLETE_ATR03_THROUGHPUT_DIAGNOSTIC',
+        'plan':refs['plan'],'claim':refs['claim'],'report':report,'source_unchanged':True,'optimizer_steps':0,
+        'test_data_used':False,'clean_process_io_firewall':{'denied_attempts':0}}
+    terminal={'stage':owner.THROUGHPUT_STAGE,'status':'COMPLETE','exit_code':0,
+        'result':inputs['throughput_result'],'plan':refs['plan'],'claim':refs['claim'],'test_data_used':False}
+    store={inputs['throughput_result']['path']:result,inputs['throughput_terminal']['path']:terminal,
+        'plan':{'stage':owner.THROUGHPUT_STAGE},'claim':{'stage':owner.THROUGHPUT_STAGE,'plan':refs['plan']}}
+    monkeypatch.setattr(owner,'read',lambda binding:store[binding['path']])
+    monkeypatch.setattr(owner,'build_throughput_plan',lambda **kw:pytest.fail('unqualified report reached source builder'))
+    with pytest.raises(ValueError,match='LARGER_RUNTIME_QUALIFIED_THROUGHPUT'):
+        owner.qualified_runtime_throughput(inputs,{})
+
+
+@pytest.mark.parametrize('change',[None,'optimizer_state','rng_state','step'])
+def test_runtime_mechanics_requires_original_final_optimizer_rng_and_step_trajectory(monkeypatch,change):
+    old_ref={'path':'old_report','sha256':'a'*64};old_checkpoint={'path':'old_checkpoint','sha256':'b'*64}
+    new_checkpoint={'path':'new_checkpoint','sha256':'c'*64}
+    step={'loss':1.25,'gradient_norm':2.,'output_sha256':{'close_logits':'d'*64},'elapsed_seconds':1.}
+    previous={'initial_state_sha256':'e'*64,'final_state_sha256':'f'*64,'final_checkpoint':old_checkpoint,'steps':[step]}
+    report={**previous,'final_checkpoint':new_checkpoint,'steps':[{**step,'elapsed_seconds':10.}]}
+    checkpoint={'model_state':{'weight':torch.ones(2)},'optimizer_state':{'moment':torch.ones(2)},
+        'rng_state':{'cpu':torch.tensor([1,2],dtype=torch.uint8)},'cursor':2,'training':True,
+        'optimizer_parameter_names':['weight'],'schedule_position':{'completed_updates':2}}
+    current=copy.deepcopy(checkpoint)
+    if change in('optimizer_state','rng_state'):
+        current[change][next(iter(current[change]))][0]+=1
+    elif change=='step':report['steps'][0]['loss']=1.5
+    monkeypatch.setattr(owner,'read',lambda binding:{'report':previous})
+    monkeypatch.setattr(owner,'ref',lambda path:old_checkpoint if path=='old_checkpoint'else new_checkpoint)
+    monkeypatch.setattr(torch,'load',lambda path,**kw:checkpoint if path=='old_checkpoint'else current)
+    plan={'metadata':{'runtime_qualification':{'reference_mechanics_result':old_ref}}}
+    if change is None:
+        result=owner.runtime_mechanics_trajectory(report,plan)
+        assert result['bitexact']is True and result['actual_step_reports_bitexact']is True
+        assert set(result['state_sha256'])==set(checkpoint)
+    else:
+        with pytest.raises(ValueError,match='RUNTIME_MECHANICS_'):
+            owner.runtime_mechanics_trajectory(report,plan)
+
+
+# Admission-gate witnesses appended after the qualified295-case prefix.
+def test_runtime_review_admission_positive_requires_both_current_proofs(runtime_source_review):
+    binding,parent,review,unit,diff=runtime_source_review
+    original=copy.deepcopy(parent['source_owners'])
+    result=owner.throughput_source_compatibility(binding,parent)
+    assert result is review
+    assert result['current_source_owners']==unit['current_source_owners']==diff['current_source_owners']
+    assert parent['source_owners']==original
+
+
+@pytest.mark.parametrize('fault',['failed_unit','stale_unit','failed_diff','stale_diff','unknown_owner'])
+def test_runtime_review_admission_rejects_each_failed_stale_or_unknown_owner(runtime_source_review,fault):
+    binding,parent,review,unit,diff=runtime_source_review
+    if fault=='failed_unit':
+        # Even a PASS label cannot hide a failed process exit.
+        unit['exit_code']=1
+    elif fault=='stale_unit':unit['current_source_owners']=dict(parent['source_owners'])
+    elif fault=='failed_diff':diff['status']='FAILED_STATIC_REVIEW'
+    elif fault=='stale_diff':diff['current_source_owners']=dict(parent['source_owners'])
+    else:
+        path='gx1/unchanged_owner.py'
+        review['current_source_owners'][path]='4'*64
+        review['allowed_changed_paths']=sorted([*review['allowed_changed_paths'],path])
+    message='THROUGHPUT_ONLY_REVIEWED_RUNTIME_OWNERS'if fault=='unknown_owner'else'THROUGHPUT_QUALIFIED_UNIT_AND_SOURCE_REVIEW'
+    with pytest.raises(ValueError,match=message):owner.throughput_source_compatibility(binding,parent)
+
+
+@pytest.mark.parametrize('coordinate',['optimizer_state','rng_state'])
+def test_runtime_trajectory_admission_rejects_changed_nonmodel_state_with_identical_model(monkeypatch,coordinate):
+    old_ref={'path':'gate_old_report','sha256':'5'*64}
+    old_checkpoint={'path':'gate_old_checkpoint','sha256':'6'*64}
+    new_checkpoint={'path':'gate_new_checkpoint','sha256':'7'*64}
+    checkpoint={'model_state':{'weight':torch.tensor([1.,2.])},
+        'optimizer_state':{'exp_avg':torch.tensor([.25,.5])},
+        'rng_state':{'cpu':torch.tensor([9,10],dtype=torch.uint8)},
+        'cursor':2,'training':True,'optimizer_parameter_names':['weight'],
+        'schedule_position':{'completed_updates':2}}
+    changed=copy.deepcopy(checkpoint)
+    changed[coordinate][next(iter(changed[coordinate]))][0]+=1
+    assert owner.state_sha(checkpoint['model_state'])==owner.state_sha(changed['model_state'])
+    assert owner.state_sha(checkpoint[coordinate])!=owner.state_sha(changed[coordinate])
+    previous={'initial_state_sha256':'8'*64,'final_state_sha256':'9'*64,
+        'final_checkpoint':old_checkpoint,'steps':[{'loss':.5,'gradient_norm':.25}]}
+    report={**previous,'final_checkpoint':new_checkpoint}
+    monkeypatch.setattr(owner,'read',lambda binding:{'report':previous})
+    monkeypatch.setattr(owner,'ref',lambda path:old_checkpoint if path==old_checkpoint['path']else new_checkpoint)
+    monkeypatch.setattr(torch,'load',lambda path,**kwargs:checkpoint if path==old_checkpoint['path']else changed)
+    plan={'metadata':{'runtime_qualification':{'reference_mechanics_result':old_ref}}}
+    with pytest.raises(ValueError,match='RUNTIME_MECHANICS_OPTIMIZER_RNG_TRAJECTORY'):
+        owner.runtime_mechanics_trajectory(report,plan)

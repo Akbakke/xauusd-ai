@@ -777,3 +777,92 @@ def test_native_noise_model_binds_new_prior_classes_and_rejects_equal_checkpoint
             with pytest.raises(ValueError,match='NATIVE_BAR_TRAIN_PRIOR_SCHEMA'):
                 owner.NativeM5BarDirectionModel(model.backbone,input_binding=binding,
                     train_prior=init_prior,backbone_gradient_policy=policy,target_contract=init_target)
+
+
+
+def _synthetic_native_binding_guard(monkeypatch):
+    """Only exercise metadata guards and ten tiny Linear heads, no backbone."""
+    from copy import deepcopy
+    from types import SimpleNamespace
+    from gx1.contracts import market_state_ta_integrated_model_v1 as owner
+    binding = {'schema_version': 'gx1_native_m5_bar_direction_inputs_v1',
+        'execution_profile': {'name': 'synthetic', 'contract_sha256': '1' * 64},
+        'source_axes_sha256': '2' * 64,
+        'feature_provider_contract_sha256': '3' * 64,
+        'input_normalization_sha256': '4' * 64}
+    calls = {'binding': 0, 'normalization': 0, 'objective': 0}
+    def validate(value):
+        calls['binding'] += 1
+        return deepcopy(value)
+    def normalize():
+        calls['normalization'] += 1
+    def objective(value, **kwargs):
+        calls['objective'] += 1
+        assert value == binding
+        return {'contract_sha256': '5' * 64}
+    monkeypatch.setattr(owner, 'require_native_bar_input_binding', validate)
+    monkeypatch.setattr(owner, '_native_bar_model_contract_from_binding', objective)
+    backbone = SimpleNamespace(entry_execution_profile=deepcopy(binding['execution_profile']),
+        _native_bar_direction_only=True,
+        cfg=SimpleNamespace(dynamic_m5_query_minutes=None, d_model=1),
+        _input_normalization_contract={'schema_version': 'gx1_native_m5_input_normalization_v2',
+            'source_axes_sha256': binding['source_axes_sha256'],
+            'feature_provider_contract_sha256': binding['feature_provider_contract_sha256']},
+        input_norm_contract_sha256=torch.tensor([0x44] * 32, dtype=torch.uint8),
+        require_input_normalization_state=normalize,
+        entry_q_joint_in=SimpleNamespace(weight=torch.zeros(1)))
+    model = SimpleNamespace(input_binding=deepcopy(binding), backbone=backbone,
+        _train_prior=None, _backbone_gradient_policy=None, _target_contract=None,
+        _gc_binding_matches=lambda value: True,
+        native_bar_objective_sha256=torch.tensor([0x55] * 32, dtype=torch.uint8),
+        open_heads=torch.nn.ModuleDict({tf: torch.nn.Linear(1, 3) for tf in owner.TIMEFRAMES}),
+        close_heads=torch.nn.ModuleDict({tf: torch.nn.Linear(1, 3) for tf in owner.TIMEFRAMES}))
+    return owner, model, calls
+
+
+def test_native_bar_binding_reuses_only_one_local_validation(monkeypatch):
+    owner, model, calls = _synthetic_native_binding_guard(monkeypatch)
+    for _ in range(2):
+        owner.NativeM5BarDirectionModel._require_binding(model)
+    assert calls == {'binding': 2, 'normalization': 2, 'objective': 2}
+
+
+def test_native_bar_binding_rejects_mutation_during_local_reuse(monkeypatch):
+    owner, model, calls = _synthetic_native_binding_guard(monkeypatch)
+    def mutate():
+        model.input_binding['source_axes_sha256'] = '6' * 64
+    model.backbone.require_input_normalization_state = mutate
+    with pytest.raises(ValueError, match='NATIVE_INPUT_BINDING_MUTATED_DURING_VALIDATION'):
+        owner.NativeM5BarDirectionModel._require_binding(model)
+    assert calls['binding'] == 1 and calls['objective'] == 0
+
+
+@pytest.mark.parametrize('field', ['normalization', 'objective', 'head'])
+def test_native_bar_binding_rechecks_mutable_state_on_every_call(monkeypatch, field):
+    owner, model, calls = _synthetic_native_binding_guard(monkeypatch)
+    owner.NativeM5BarDirectionModel._require_binding(model)
+    if field == 'normalization':
+        model.backbone.input_norm_contract_sha256[0] = 0
+        reason = 'NATIVE_BACKBONE_IDENTITY'
+    elif field == 'objective':
+        model.native_bar_objective_sha256[0] = 0
+        reason = 'NATIVE_MODEL_BINDING'
+    else:
+        with torch.no_grad():
+            model.open_heads['M5'].weight.fill_(float('nan'))
+        reason = 'NATIVE_HEAD_BINDING'
+    with pytest.raises(ValueError, match=reason):
+        owner.NativeM5BarDirectionModel._require_binding(model)
+    assert calls['binding'] == 2
+
+
+def test_native_bar_public_contract_always_validates_input(monkeypatch):
+    owner, model, calls = _synthetic_native_binding_guard(monkeypatch)
+    for _ in range(2):
+        assert owner.native_bar_model_contract(model.input_binding) == {'contract_sha256': '5' * 64}
+    assert calls['binding'] == calls['objective'] == 2
+    def reject(value):
+        raise ValueError('synthetic_invalid_binding')
+    monkeypatch.setattr(owner, 'require_native_bar_input_binding', reject)
+    with pytest.raises(ValueError, match='synthetic_invalid_binding'):
+        owner.native_bar_model_contract(model.input_binding)

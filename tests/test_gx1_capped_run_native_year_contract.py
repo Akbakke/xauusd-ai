@@ -13,7 +13,10 @@ BASENAMES=('NATIVE_M5_TA_ATR03_YEAR_PREPARE_20261120_001',
     'NATIVE_M5_TA_ATR03_YEAR_FIT_20261120_001',
     'NATIVE_M5_TA_ATR03_FIVE_YEAR_PREPARE_20261120_001',
     'NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_001',
-    'NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001')
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_001',
+    'NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_003',
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_002',
+    'NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002')
 
 
 def _fixture(tmp_path,basename):
@@ -51,7 +54,7 @@ def test_native_year_route_is_literal_and_sha_bound(tmp_path,basename,variant):
     assert (result.returncode==0)==(variant in('valid','preflight')),result.stderr
 
 
-@pytest.mark.parametrize('basename,seconds',zip(BASENAMES,(1800,1800,3600,5400,1800,10800)))
+@pytest.mark.parametrize('basename,seconds',zip(BASENAMES,(1800,1800,3600,5400,1800,10800,1800,1800,10800)))
 def test_native_year_route_uses_existing_gpu_guards_and_exact_deadline(tmp_path,basename,seconds):
     _,args,prefix,source=_fixture(tmp_path,basename)
     signature='  if [[ "'+'$'+'{3:-}" == "$NATIVE_M5_FULL_GC_FIT_TRAINER_MODULE" ]]; then'

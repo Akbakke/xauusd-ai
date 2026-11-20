@@ -221,6 +221,13 @@ def _native_bar_target_spec(target_contract,binding,train_prior):
 
 def native_bar_model_contract(input_binding,*,train_prior=None,backbone_gradient_policy=None,target_contract=None):
     binding = require_native_bar_input_binding(input_binding)
+    return _native_bar_model_contract_from_binding(binding,train_prior=train_prior,
+        backbone_gradient_policy=backbone_gradient_policy,target_contract=target_contract)
+
+
+def _native_bar_model_contract_from_binding(binding,*,train_prior=None,backbone_gradient_policy=None,target_contract=None):
+    # Only the public validator or one still-equal, freshly validated local
+    # binding may enter here. No proof survives its current validation call.
     _require_backbone_gradient_policy(backbone_gradient_policy, binding, train_prior)
     target_spec=_native_bar_target_spec(target_contract,binding,train_prior)
     value={
@@ -355,8 +362,13 @@ class NativeM5BarDirectionModel(nn.Module):
             _need(torch.equal(self.native_bar_target_contract_sha256.detach().cpu(),expected),
                   'NATIVE_NOISE_TARGET_STATE_BINDING')
         self.backbone.require_input_normalization_state()
+        # The validator returned a deep JSON copy. Detect mutation before
+        # reusing that local proof instead of recompiling the same provider.
+        _need(self.input_binding == binding, 'NATIVE_INPUT_BINDING_MUTATED_DURING_VALIDATION')
+        objective = _native_bar_model_contract_from_binding(binding,train_prior=self._train_prior,
+            backbone_gradient_policy=self._backbone_gradient_policy,target_contract=self._target_contract)
         device = self.backbone.entry_q_joint_in.weight.device
-        expected = torch.tensor(list(bytes.fromhex(self.research_objective['contract_sha256'])),
+        expected = torch.tensor(list(bytes.fromhex(objective['contract_sha256'])),
                                 device=device, dtype=torch.uint8)
         _need(torch.equal(self.native_bar_objective_sha256, expected), 'NATIVE_MODEL_BINDING')
         for heads in (self.open_heads, self.close_heads):
