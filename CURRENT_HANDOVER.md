@@ -6,8 +6,9 @@ originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 ## Gjeldende status 20.11.2026
 
-Det vedvarende OPP/NED/FLAT-målet er blokkert på nødvendig brukeravklaring,
-ikke oppnådd. Det fulle målet og alt kvalifisert arbeid beholdes.
+Brukeren har avklart20.11: eksisterende FLAT betyr sideveis marked og
+inkluderer eksakt like priser. Brukeravklaringsblokkeringen er fjernet.
+Målet er ikke oppnådd; neste arbeid er korrekt kobling til markedsklasser.
 Seksårs TA-inputs er produsert og uavhengig kvalifisert.
 Ingen aktiv jobb. ALLE trenings-/kjøringsporter er stengt. Alle tidligere
 engangsplaner er konsumert og relanseres aldri. Ingen ny fit er innrømmet.
@@ -158,28 +159,34 @@ beholdes. Første /tmp-scriptstart manglet repo i sys.path og stoppet før
 data; canonical importrute ble rettet, deretter én fullført lesning.
 Ingen prisarrays/modell/fit, ny klassevekt/prior/fold eller fasitendring.
 
-## Neste nødvendige avklaring
+## Neste tekniske kobling etter avklaringen20.11
 
-FLAT-semantikken er fortsatt ubesvart. Dagens nullklasse er eksakt LIK
-endpointpris, ikke sideveis marked; gamle M5-cohorter har bare4FIT/2CONTROL
-likheter. Minimal prisendring er OPP/NED, usikkerhet/ukjent er ikke FLAT.
-M5-close er sign(nesteobserverteclose−nettopplukketclose), normalt neste5minbar;
-M5-open er åpning-til-åpning. Dette er korrekt prisfasit, ikke egen vedvarende
-bullish/bearish/sideveis markedsfasit. Ingen ny terskel, klassekvote, vekt
-eller fasitendring er gjort. Originale prisfakta skal beholdes.
+Brukeren bekrefter FLAT=sideveis marked og at eksakt like priser inngår.
+Dette viderefører eksisterende forståelse; ingen ny terskel er valgt.
+Den tidligere manglende-avklaring-blokkeringen var unødvendig og er fjernet.
+Ikke spør om samme betydning igjen. Rå åpning-/sluttfakta beholdes fullt.
 
-Avklar om FLAT skal være separat markedsregime, før neste target-/fitkontrakt.
-Dette brukeravklaringspunktet er fortsatt ubesvart gjennom tre målturner;
-intet svar er tolket som ja. Seksårsinput-, fasit-/maskestøtte- og referanse-
-kontrollene er ferdige. Ingen ny nyttig selvstendig kjøring gjenstår før
-klassebetydningen er avklart. Målet settes derfor blokkert, uten refit,
-fasitendring eller omdefinering av suksess.
-Deretter trengs forhåndsbundet TRAIN-fold, TRAIN-only normalisering og
-genuin fersk initialbaseline for den nye seksårscachen før en ny kort fit.
-Ingen ny trening/produksjon er innrømmet og ingen automatisk epoke-/seedserie.
-Det vedvarende målet avsluttes aldri av teknisk PASS eller én liten fit.
-Stabile kjøringer kontrolleres omtrent hver30.minutt, ingen minuttvise runder.
+Kilderevisjon bekrefter et mål-mismatch i den siste barretningstesten:
+native target bruker np.sign, objective labels=raw_sign+1 og samme tegn
+går til prior/score. Modellens tre logits beskriver da pris-NED/LIK/OPP,
+ikke hele sideveis-FLAT-målet. Det er denne koblingen som skal rettes;
+gamle EQUAL-vekter/resultater ommerkes ikke til marked-FLAT.
 
+Tidligere valgt lokal aktivitet er R<0,5ATR14=FLAT, R≥=AKTIV, med egne
+sannferdige sidemasker. En ren nativeM5-v1-eier er bevart i Git og
+native001-planen; M1-loadere gjenåpnes ikke. Den bruker1/3/12/48/288
+nativeM5-barer på femTF og kausalt lukket ATR14. FLAT_NET inkluderte
+eksakt null nettoendring; lokal range og netto må fortsatt ikke blandes.
+Dette er eksisterende definisjoner, ingen ny parameterbestilling.
+
+Gammel nativev1 resetter span på ethvert5min-gap og hadde0kompletteD1-span.
+Dekning/gap og framtidsreferanse kan derfor ikke ommerkes som kvalifisert.
+Neste minste arbeid er å gjenbruke riktig native eier og samordne
+market-target/output/prior/loss/score, med eksisterende dokumenterte
+pause-/ukjentregler, mens alle rå barfakta beholdes. Alle8TA-familier,
+61makro og femTF består; GC utsatt og M1 aldri til retning.
+Ingen ny fit/produksjon er innrømmet. Endret markedsfunksjon krever
+genuin fersk initialbaseline og eksakt ny engangsadmisjon før kort trening.
 ## Bevart grunnlag og oppryddingsgrense
 
 Hele native prisfasit2009–2026 før TEST er tidligere merket og alle76arrays

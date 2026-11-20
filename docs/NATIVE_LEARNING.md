@@ -13,6 +13,14 @@ normalisering, tap, modellutvalg, evaluering og dataklargjøring/metadata.
 M1 tilhører senere oppfølging av en åpnet handel. Entry er pauset.
 M1-avledede modeller/checkpoints brukes ikke som retnings-warmstart.
 
+Markedsmålet er OPP/NED/FLAT. Brukeren bekreftet20.11 at FLAT betyr
+sideveis marked og inkluderer eksakt like priser, slik det var ment før.
+Usikkerhet og manglende kilde er ikke FLAT. Gjenbruk eksisterende valgt
+markedsdefinisjon; ingen ny terskel eller klassekvote følger av avklaringen.
+Target/output/loss/prior/score skal følge samme markedsklasser. Rå barfakta
+beholdes som selvstendig kjent prisinformasjon og må ikke snevres inn av
+markedets aktivitets-/sidemasker.
+
 Gjeldende barfasit er to separate sammenligninger på hver tidsramme:
 
 - åpning nå minus forrige observerte bars åpning
@@ -188,10 +196,13 @@ kontrollen. Bare den eksakte nye orkestreringen og dens guard-/teststier
 kan avvike. Eksisterende genuine cold-resume-bevis gjenbrukes sammen med
 fokusert negativ kontroll av den nye schedule/cursor-bindingen.
 
-OPP/NED-kalibrering vurderes med proper scores og klassevise sannsynligheter;
-endret argmaxfordeling alene beviser ingen retningsverdi. Eksakt pris-LIK er
-ikke et sideveis FLAT-marked eller usikkerhet. Dagens prisfasit beholdes til
-en eventuell separat FLAT-definisjon er uttrykkelig avklart. Det vedvarende
+OPP/NED/FLAT-kalibrering vurderes med proper scores og klassevise
+sannsynligheter; endret argmaxfordeling alene beviser ingen retningsverdi.
+FLAT er sideveis marked og inkluderer eksakt like priser. Eksakt pris-LIK
+alene dekker ikke hele den valgte markedsdefinisjonen. Bevar råbarfakta og
+gjenbruk den eksisterende lokale aktivitets-/netto-eieren med sanne masker;
+koble markedsklassene samlet til target, output, prior, loss og score.
+Avklaringen20.11 er gitt; ikke spør om samme semantikk igjen. Det vedvarende
 vektingsmålet avsluttes ikke av én teknisk kontroll eller én liten fit.
 
 En oppdateringsfri shared-gradient-diagnose kan gjenbruke et hashbundet

@@ -42,6 +42,29 @@ M5-barer med kausal M15/H1/H4/D1-kontekst, M1-avledet nåtilstand bare
 ved M5-tidspunkter, og ingen egen M1-Entry-klokke. Tettere overvåking av
 en åpen handel og Exit hører til senere faser.
 
+## Operatørpresisering20.11.2026: eksisterende FLAT videreføres
+
+Brukeren bekrefter at FLAT betyr sideveis marked, at eksakt like priser
+inngår i FLAT, og at dette skal fortsette som før. Dette er en avklaring
+av den eksisterende markedsbetydningen, ikke bestilling av nye terskler.
+Manglende svar om FLAT skal ikke lenger være en arbeidsblokkering.
+
+Alle rå åpning-/sluttfakta fra19.11 beholdes som lavere/lik/høyere uten
+ATR-port. Disse faktaene skal ikke alene erstatte den valgte løpende
+markedsdefinisjonen: null fra np.sign dekker bare eksakt prislikhet.
+Eksakt likhet er et FLAT-tilfelle, mens sideveis marked også skal fanges
+av den eksisterende valgte markeds-/skaladefinisjonen. Modellusikkerhet
+og manglende observasjon er fortsatt egne begreper, aldri gjettet FLAT.
+Bevar lokal aktivitet og nettoendring der eksisterende S/F-eier skiller
+dem; store motgående bevegelser skal ikke skjules i en nettosammenligning.
+
+Gjenbruk tidligere vedtatt FLAT-eier og valgte skalaer, ikke nye gjettede
+tall eller klassekvoter. Native M5/høyere kilde, framtidstidspunkt,
+dekning/gap, target, output, loss, prior og score må samsvare. Historisk
+M1-kode/kvitteringer åpnes aldri igjen. Gammel native D1-span/dekning
+må kvalifiseres fysisk før læringspåstander. Avklaringen åpner ingen
+gammel engangsplan, trening, TEST, Entry/Exit, broker eller handel.
+
 ## Operatørpresisering 19.11.2026: vedvarende retningsvekting
 
 Brukeren ber om et mål som fortsetter til vi er fornøyde med OPP/NED/FLAT.
