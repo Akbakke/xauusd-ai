@@ -775,8 +775,11 @@ def test_authority_change_between_staged_deletes_stops_remaining_target(
     assert (second_wrapper / "payload").read_bytes() == b"obsolete-1"
 
 
+@pytest.mark.parametrize("new_document_reference", [False, True])
 def test_interrupted_pre_staged_cleanup_restores_exact_source_paths(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    new_document_reference: bool,
 ) -> None:
     targets = [
         tmp_path / "evidence" / "obsolete-a.bin",
@@ -832,6 +835,12 @@ def test_interrupted_pre_staged_cleanup_restores_exact_source_paths(
             "launch_authority": False,
         },
     )
+
+    if new_document_reference:
+        # Restoration preserves newly referenced data; it is not a delete.
+        monkeypatch.setattr(retention_contract, "current_document_named_paths", lambda _: {
+            str(tmp_path / "CURRENT_HANDOVER.md"): tuple(map(str, targets)),
+        })
 
     assert (
         recover_interrupted_cleanup(
@@ -2371,3 +2380,84 @@ def test_incident_witness_without_binding_fails_closed(tmp_path: Path) -> None:
             json.loads(registry.read_text()), json.loads(launch.read_text()), json.loads(incident.read_text()),
             artifact_registry_json=registry, launch_contract_json=launch, delete_incident_json=incident,
         )
+
+
+@pytest.mark.parametrize("action", ["validate", "approve", "dry_run", "execute"])
+def test_new_document_reference_after_plan_blocks_delete_clearance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, action: str,
+) -> None:
+    target = tmp_path / "obsolete.bin"
+    target.write_bytes(b"synthetic obsolete payload")
+    registry, launch = _authority_files(tmp_path)
+    plan_path, plan_sha = _published_plan(
+        tmp_path, target=target, registry=registry, launch=launch,
+    )
+    common = dict(
+        plan_json=plan_path, plan_sha256=plan_sha, vedtak=VEDTAK,
+        allowed_roots=(tmp_path,), required_artifact_registry_json=registry,
+        required_launch_contract_json=launch,
+    )
+    approval_path, approval_sha = publish_cleanup_approval(
+        **common, approved_by="test-operator", out_dir=tmp_path / "approvals",
+    )
+    authority_hashes = tuple(map(sha256_file, (registry, launch)))
+    monkeypatch.setattr(retention_contract, "current_document_named_paths", lambda _: {
+        str(tmp_path / "CURRENT_HANDOVER.md"): (str(target),),
+    })
+    with pytest.raises(EvidenceRetentionError, match="named by current document"):
+        if action == "validate":
+            validate_cleanup_plan(**common)
+        elif action == "approve":
+            publish_cleanup_approval(
+                **common, approved_by="test-operator", out_dir=tmp_path / "new-approvals",
+            )
+        else:
+            execute_cleanup(
+                **common, out_dir=tmp_path / "reports", execute=action == "execute",
+                quiet=True, approval_json=approval_path, approval_sha256=approval_sha,
+            )
+    assert tuple(map(sha256_file, (registry, launch))) == authority_hashes
+    assert target.read_bytes() == b"synthetic obsolete payload"
+    assert not (tmp_path / "new-approvals").exists()
+    assert not (tmp_path / "reports").exists()
+
+
+def test_new_document_reference_blocks_resume_on_original_staged_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = _staged_transaction(tmp_path)
+    targets = state["targets"]
+    assert all(not target.exists() for target in targets)
+    monkeypatch.setattr(retention_contract, "current_document_named_paths", lambda _: {
+        str(tmp_path / "CURRENT_HANDOVER.md"): (str(targets[1]),),
+    })
+    with pytest.raises(RuntimeError, match="named by current document"):
+        _resume(state, tmp_path)
+    assert [Path(x["quarantine_path"]).read_bytes() for x in state["stage_plan"]] == [
+        b"obsolete-0", b"obsolete-1",
+    ]
+    reports = list((tmp_path / "reports").glob(f"{EXECUTION_PREFIX}_*.json"))
+    assert len(reports) == 1
+    assert json.loads(reports[0].read_text())["deleted"] == []
+
+
+def test_new_document_reference_between_staged_deletes_stops_remaining_target(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    state = _staged_transaction(tmp_path)
+    real_delete = cleanup_script._delete_staged_manifest_exact
+    calls = []
+
+    def name_remaining_target(staged_target, plan_target, **kwargs):
+        real_delete(staged_target, plan_target, **kwargs)
+        calls.append(plan_target["path"])
+        monkeypatch.setattr(retention_contract, "current_document_named_paths", lambda _: {
+            str(tmp_path / "CURRENT_HANDOVER.md"): (str(state["targets"][1]),),
+        })
+
+    monkeypatch.setattr(cleanup_script, "_delete_staged_manifest_exact", name_remaining_target)
+    with pytest.raises(RuntimeError, match="named by current document"):
+        _resume(state, tmp_path)
+    assert calls == [str(state["targets"][0])]
+    assert not Path(state["stage_plan"][0]["quarantine_wrapper"]).exists()
+    assert Path(state["stage_plan"][1]["quarantine_path"]).read_bytes() == b"obsolete-1"

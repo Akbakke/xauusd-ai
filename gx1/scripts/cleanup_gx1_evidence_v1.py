@@ -19,6 +19,7 @@ from gx1.contracts.evidence_retention_v1 import (
     REPO_ROOT,
     build_cleanup_plan_payload,
     inventory_path,
+    require_targets_unnamed_in_current_documents,
     sha256_file,
     validate_cleanup_plan,
 )
@@ -366,13 +367,13 @@ def _validate_cleanup_staged_event(
     return path, event
 
 
-def _require_staged_delete_authority_unchanged(
+def _require_staged_authority_unchanged(
     *,
     validated_plan: dict[str, Any],
     approval_json: Path,
     approval_sha256: str,
 ) -> None:
-    """Recheck immutable authority without rescanning every staged target."""
+    """Recheck immutable authority for a staged delete or safe restoration."""
 
     plan_path = Path(validated_plan["plan_json"])
     if sha256_file(plan_path) != validated_plan["plan_sha256"]:
@@ -407,6 +408,24 @@ def _require_staged_delete_authority_unchanged(
         or sha256_file(approval_path) != expected_approval_sha
     ):
         raise RuntimeError("cleanup approval changed after staging")
+
+
+def _require_staged_delete_authority_unchanged(
+    *,
+    validated_plan: dict[str, Any],
+    approval_json: Path,
+    approval_sha256: str,
+) -> None:
+    """Recheck deletion clearance against original paths, not quarantine names."""
+
+    _require_staged_authority_unchanged(
+        validated_plan=validated_plan,
+        approval_json=approval_json,
+        approval_sha256=approval_sha256,
+    )
+    require_targets_unnamed_in_current_documents(
+        [Path(target["path"]) for target in validated_plan["targets"]]
+    )
 
 
 def _same_inventory(declared: dict[str, Any], observed: dict[str, Any]) -> bool:
@@ -845,7 +864,7 @@ def recover_interrupted_cleanup(
         ):
             if state["state"] == "SOURCE_PRESENT":
                 continue
-            _require_staged_delete_authority_unchanged(
+            _require_staged_authority_unchanged(
                 validated_plan=validated,
                 approval_json=approval_json,
                 approval_sha256=approval_sha256,

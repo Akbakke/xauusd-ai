@@ -94677,7 +94677,7 @@
     "training_authorized": false,
     "test_authorized": false,
     "deletion_scope": "Rule9 sole retention owner for GX1_DATA/RUNS; separate reversible repo cleanup after references/imports/tests/evidence ownership.",
-    "physical_inventory_complete": false,
+    "physical_inventory_complete": true,
     "dependency_function_coverage_complete": false,
     "all_feature_numerical_coverage_complete": false,
     "retention_reachability_complete": false,
@@ -94690,6 +94690,31 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "WSL ext4 reports416GiB used; user670GB scope must be reconciled against actual project paths and Windows/VHD accounting; no deletion-size assumption."
+    "latest_observation": "Entire retention owner tests169PASS underaudit4GiB; sourcepatchblocks newdocumentrefs afterplanning whileallowingsafe restoration. Featurematrix identifies4x5currentnumeric coverage gaps plus source/clock bridgepending. No training.",
+    "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
+    "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
+    "metadata_inventory": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/STORAGE_METADATA_SUMMARY.json",
+      "sha256": "99a673258fd026b7b440caacfefb241e581aeefe6afe8676a2ce7a9c0c244611"
+    },
+    "metadata_inventory_sqlite": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/STORAGE_METADATA_FILES.sqlite",
+      "sha256": "e294aef527f9b45070791620443c15c0d21bef908d023a6d34027bc0565d94d7"
+    },
+    "retention_scope": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_SCOPE_INITIAL.json",
+      "sha256": "d1a8539e1d3b01bac9e11b088776b427887853d1e932d772df2075983c5ef81d"
+    },
+    "retention_candidates_unapproved": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_SCRATCH_CANDIDATES_INITIAL.json",
+      "sha256": "38d74bcfc111b864744ad2b3a9dd6a838ff1548445ad6bf2b22dbcd36e876179"
+    },
+    "retention_document_change_defect_fixed": true,
+    "retention_owner_tests": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETENTION_OWNER_TESTS.xml",
+      "sha256": "b8f4b791f13a84eaa2b99ed0649fafb38534067ab7e2f7f9e1ad083493238a85"
+    },
+    "retention_owner_tests_passed": 169,
+    "retention_real_deletions": 0
   }
 }

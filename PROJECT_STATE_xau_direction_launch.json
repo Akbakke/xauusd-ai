@@ -873,7 +873,8 @@
       "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/target_audit.log",
       "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/test_guard.log",
       "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/train_reconstruction.log",
-      "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/val_reconstruction.log"
+      "/home/andre2/GX1_DATA/data/data/prebuilt/V46_20260825T170935Z_CHAIN/artifacts/V9_FIVE_YEAR_ENTRY_NOTIONAL_20260905T132535Z/val_reconstruction.log",
+      "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001"
     ],
     "note": "Operator hard-delete request 16.10.2026: protect every non-retired file/subtree from the former research/V9 blanket roots. Only 112 proven byte-equivalent compression copies, one unusable partial transfer and seven disconnected legacy V9 dataset Parquets are retired. Original model weights/checkpoints, canonical gzip source bytes and receipts remain protected. Evidence: RETENTION_OBSOLETE_PAYLOADS_20261016_001/GC_DUPLICATE_PROOF.json and retention plan 002."
   }

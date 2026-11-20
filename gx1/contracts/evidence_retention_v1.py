@@ -1322,6 +1322,12 @@ def validate_cleanup_plan(
         observed["inventory_jsonl_sha256"] = manifest_sha
         validated_targets.append(observed)
 
+    if require_targets_exist:
+        # A plan is not clearance for references added after its publication.
+        # Missing-source recovery cannot require delete clearance: destructive
+        # staged callers recheck the original logical paths before each delete.
+        require_targets_unnamed_in_current_documents(target_paths)
+
     if sha256_file(plan_path) != plan_hash:
         raise EvidenceRetentionError("cleanup plan changed during validation")
     if sha256_file(registry_path) != registry_sha:

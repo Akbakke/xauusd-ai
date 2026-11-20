@@ -27,6 +27,19 @@ GC er utsatt. Entry/Exit, broker, paper/live, ordre, spending og promotion er
 stengt. Journalunntaket gjelder den navngitte D1/swing-ruten, ikke denne M5-modellen.
 Juni 2026 og andre gjenbrukte perioder er utvikling, ikke urørt bekreftelse.
 
+## Aktiv fullprosjektrevisjon
+
+Fysisk metadata-inventar dekker217026oppføringer og403488735232unike
+allokerte filbytes under de listede GX1-røttene, inkludert historiske kopier.
+Ingen innholds-/semantikkgodkjenning følger av dette. Bevis lagres under
+/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001.
+
+En faktisk retention-feil er rettet: nye dokumentreferanser etter planlegging
+stopper nå validering/godkjenning og hver destruktive staged-operasjon.
+Sikker gjenoppretting er bevart. Alle169retention-tester består under audit4GiB.
+Ingen reelle filer er slettet. Feature-/funksjons-/metadatareferansearbeidet
+pågår; historisk numerikk beviser ikke alle nåværende fullprofilfelt.
+
 ## Fysisk kvalifisert grunnlag
 
 FIVE_YEAR_CACHE001 fullførte exit0 på1334,011s, CPU12GiB/512MiB/1tråd/64tasks.
