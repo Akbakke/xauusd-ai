@@ -54,8 +54,13 @@ CONTROL[2024-09-01,2024-10-01)=5789rader; B64gir1109updates/énpass.
 GPUforberedelse er1200forwards/0updates med ferske heleTRAIN-stats/prior.
 Tekniskmekanikk er to ulikeB64-batcher + kald replay:2modeller/7F/3updates/6prober.
 Hovedplanen skal ha1ferskmodell/2309F/1109updates, gjenbrukt faktisk initialscore,
-fullTRAIN+CONTROL-finalscore og3600s hardgrense. Ingenting av dette er ennå
-fysisk kvalifisert på årskohorten; baseline/mekanikk gjenstår før klarstatus.
+fullTRAIN+CONTROL-finalscore og3600s hardgrense. Årsforberedelsen er fysisk
+fullført på566,864s:1modell/1200F/0updates,1ny normalisering og1ny matchedprior.
+Alle initiallogits er eksakt nyeTRAIN-priorlogits; modell/RNG og source/policy
+er uendret, firewall0avvisteforsøk. Hele70935rader brukes i normaliseringen.
+M5close-fasit70934celler:21210NED/27751NEUTRAL_NET/21973OPP
+(29,90/39,12/30,98%). Dette er støymarginfasit, ikke bevist ikke-tradbart marked.
+B64optimizer/kaldmekanikk gjenstår før større hovedtest kan få klarstatus.
 
 ## Ferdig seksårs inputgrunnlag
 
