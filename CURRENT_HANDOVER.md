@@ -15,7 +15,9 @@ helefemårsTRAIN-stats/prior/full initialbaseline, B64optimizer/kaldreplay og
 én eksakt hovedplan må kvalifiseres. NativeTEST er fortsatt forseglet.
 Tidligere YEAR_FIT001 er supersedert utenCLAIM og skal ikke relanseres;
 årskvalifikasjon/profiler er bevart som historisk omfangsbundet evidens.
-Alle globale treningsporter står stengt. Ingen ny tung jobb eller storfit startet.
+Alle globale treningsporter står stengt. FIVE_YEAR_CACHE001 er innrømmet
+én gang forCPU12G/1tråd/3570s,0modeller/targets/fit; kode/policy fryses under
+kjøringen. Storfit er ikke startet.100målrettede tester og metadata-preflight består.
 
 M1 brukes ALDRI til retning: ingen input, fasit, metadataforelder, rader,
 prior, normalisering, evaluering eller warmstart. Bare senere oppfølging

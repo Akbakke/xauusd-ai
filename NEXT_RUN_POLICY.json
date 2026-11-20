@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FIVE_YEAR_CACHE_PREPARED_NOT_ADMITTED",
+  "status": "FIVE_YEAR_CACHE_ADMITTED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -4731,14 +4731,14 @@
     "monitor_interval_minutes": 30,
     "source_bookend_witness": "Original cache003 RESULT and TERMINAL both assert source_unchanged=true.",
     "source_unchanged_at_result": true,
-    "active_stage": "native_m5_ta_atr03_year_mechanics_20261120_001",
+    "active_stage": "native_m5_ta_five_year_cache_20261120_001",
     "latest_native_result": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_YEAR_MECHANICS_20261120_001/RESULT.json",
       "sha256": "a5fa1e3ff6c90aba83d0c4aaa72afdd0ac822bab5daa19cefae91158858a1e02"
     },
     "latest_external_process_exit": {"observation": "YEAR_MECHANICS001 capped guarded CUDA exit0, native COMPLETE terminal and exact cold replay; no main job.", "exit_code": 0, "native_terminal_present": true},
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Build and qualify TRAIN[2021-01-01,2026-01-01) plus developmentVAL[2026-01-01,2026-07-01), all genuine native M5/closedMTF TA families and61D1/macro, .3ATR noise targets alongside raw facts. Audit every active pipeline stage during construction and at completion; fresh wholeTRAIN stats/prior/baseline, B64 cold mechanics, exact bounded mainplan. Notify at starting line; no maintraining/nativeTEST/M1/GC/trading.",
+    "current_activity": "Building native2009prefix and2021-2026H1 genuinefeaturecache; no training.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -4768,7 +4768,7 @@
     "existing_indicator_surface_changed": true,
     "training_started": false,
     "latest_terminal_role": "TECHNICAL_B64_COLD_REPLAY_ONLY_MAIN_NOT_STARTED",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_YEAR_MECHANICS_20261120_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_CACHE_20261120_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_YEAR_MECHANICS_20261120_001/TERMINAL.json",
       "sha256": "31e340231193dd9bb19eacf54bd588a207c4ae321b9e6d4ae2bb08203f01d870"
@@ -25552,7 +25552,7 @@
         "new_model_calls": 0
       }
     },
-    "status": "FIVE_YEAR_BUILD_AND_PIPELINE_AUDIT_ACTIVE",
+    "status": "FIVE_YEAR_CACHE_ADMITTED",
     "observed_utc": "2026-11-20T10:53:12.769451+00:00",
     "current_observation_stage": "market_state_ta_current_update_observation_20261113_003",
     "current_observation_plan": {
@@ -94398,7 +94398,7 @@
     "main_training_authorized": false,
     "M1_direction_allowed": false,
     "GC_used": false,
-    "phase": "EXTENDED_CACHE_PLAN_READY_NOT_ADMITTED",
+    "phase": "EXTENDED_CACHE_ADMITTED",
     "prior_year_preparation_retained_as_historical_evidence": true,
     "five_year_inputs_qualified": false,
     "five_year_normalization_prior_qualified": false,
@@ -94438,10 +94438,11 @@
     "cache_plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_FIVE_YEAR_CACHE_20261120_001.json",
       "sha256": "4a2487ffdc225adbece99ebc047ea6341f63f32bee9a3888683f027956817f94"
-    }
+    },
+    "cache_output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_CACHE_20261120_001"
   },
   "native_m5_ta_five_year_cache_20261120_001": {
-    "status": "PREPARED_NOT_ADMITTED",
+    "status": "ADMITTED_ONE_USE",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_FIVE_YEAR_CACHE_20261120_001.json",
       "sha256": "4a2487ffdc225adbece99ebc047ea6341f63f32bee9a3888683f027956817f94"
@@ -94460,8 +94461,8 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "remaining_invocations": 0,
-    "execution_authorized": false,
+    "remaining_invocations": 1,
+    "execution_authorized": true,
     "training_authorized": false,
     "test_authorized": false,
     "relaunch_allowed": false,
@@ -94472,6 +94473,10 @@
     "normalization_fits": 0,
     "parameter_fits": 0,
     "target_values_decoded": 0,
-    "scope": "native2009fullprefix to2026Jul1; TRAIN2021-2025 anddevelopmentVAL2026H1 features only; exactall27oldsharedrow/prefixparity"
+    "scope": "native2009fullprefix to2026Jul1; TRAIN2021-2025 anddevelopmentVAL2026H1 features only; exactall27oldsharedrow/prefixparity",
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/CACHE001_PREFLIGHT.log",
+      "sha256": "8cf938edca4ac81096e3063ca0e31baf34c73f2feb96d5edc4e3f5a822694842"
+    }
   }
 }
