@@ -6,10 +6,13 @@ Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 ## Gjeldende status 20.11.2026
 
-Femårstesten er ved startstreken. Bygging, kvalifisering og samlet kritisk
-pipelinekontroll er ferdig. Hovedtreningen er IKKE startet eller innrømmet.
-Alle globale treningsporter er stengt; hovedplanen er uclaimet og outputroten
-finnes ikke. Brukeren ba om beskjed ved startstreken.
+Brukeren har bestilt full revisjon av alle avhengigheter, features,
+sammenkoblinger, funksjoner og prosjektets diskinnhold før trening. Denne
+revisjonen og retention-kvalifiseringen pågår; tidligere femårsberedskap er
+et avgrenset grunnlag, ingen fullprosjektrevisjon. Hovedtreningen er IKKE
+startet eller innrømmet. Alle treningsporter er stengt; hovedplanen er
+uclaimet og outputroten finnes ikke. Gjeldende arbeid eies av policyblokken
+full_project_dependency_feature_storage_audit_20261120_001.
 
 | Del | UTC-periode | Inputrader |
 |---|---|---:|
