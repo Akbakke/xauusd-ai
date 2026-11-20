@@ -94702,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Bytepreparation001neveradmitted/claimed. Independentpresealproofaddsexactone retainedsource050signal12.434GB inpositivegenerated-featureclass (other5sameclassfilesretired). Newworker002onlyfourthpositiveclass,14syntheticchecks; noUNKNOWN/MIXED/SEALEDadmission. Newwhitelistmustbeoldset+exactinode2096/2013. Source50hasnoexpectedSHA:checksumreadabilityonly.",
+    "latest_observation": "Byte002metadataqualified:34441physicalinodes/94.198GBlogical positivepreseal+code, exactoldset+source050signal;23008expectedSHA and11433freshchecksumonly.22ownerdeletedfilesfullyreconciled. Allnew/outside/unknown/mixed/sealedclassifiedandexcluded; noarray/modeldecodes. Source/docsfrozenbeforeprep, onlypolicygateadded.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94867,7 +94867,12 @@
     "byte_worker": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/BYTE_AUDIT_WORKER_002.py",
       "sha256": "18e9923b5eb902e164a04a6ee775c57269bb553854e1f650d674008cae7395ec"
-    }
+    },
+    "final_byte_contract": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_PREP002/CONTRACT.json",
+      "sha256": "9cc791a493fa5ec2356aa34b573713a9d89ec493e6071cbebf2d08a77431c802"
+    },
+    "final_byte_stage": "full_project_preseal_code_byte_audit_20261120_002"
   },
   "full_project_current_native_feature_numeric_20261120_001": {
     "status": "COMPLETE_CONSUMED",
@@ -95565,5 +95570,39 @@
     "collected_items": 15058,
     "collection_errors": 0,
     "blocked_cache_or_own_source_operations": 18
+  },
+  "full_project_preseal_code_byte_audit_20261120_002": {
+    "status": "ADMITTED_ONE_USE_POSITIVE_PRESEAL_CODE_BYTES_ONLY",
+    "contract": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_PREP002/CONTRACT.json",
+      "sha256": "9cc791a493fa5ec2356aa34b573713a9d89ec493e6071cbebf2d08a77431c802"
+    },
+    "prep_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_PREP002",
+    "output_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_AUDIT002",
+    "execution_authorized": true,
+    "positive_whitelist_byte_hashing_authorized": true,
+    "training_authorized": false,
+    "test_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 1,
+    "relaunch_allowed": false,
+    "memory": "4G",
+    "swap": "512M",
+    "numerical_threads": 1,
+    "tasks_max": 64,
+    "outer_seconds": 7200,
+    "internal_seconds": 7140,
+    "selected_unique_inodes": 34441,
+    "selected_logical_bytes_unique": 94198463861,
+    "selected_expected_sha_inodes": 23008,
+    "selected_fresh_checksum_only_inodes": 11433,
+    "exact_scope_delta": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/BYTE_WHITELIST_EXACT_DELTA002.json",
+      "sha256": "dc80882ae6ec9b0ce0b7d85ae5d637896c60317bcec3015009b3e77cdf0b7815"
+    },
+    "native_TEST_files_authorized": false,
+    "all_UNKNOWN_MIXED_SEALED_aliases_excluded": true
   }
 }
