@@ -4726,7 +4726,9 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY.json",
       "sha256": "6cb0bcd47013a545130599ac5ff5678bd8736efee7f33c69dc91d209cb3bafe0"
     },
-    "current_function_main_evidence_missing": true
+    "current_function_main_evidence_missing": true,
+    "required_before_more_extensive_training_scope": "MeasuredTRAINlearning andlaterdevelopmentdirectionevidence required beforeextraepochs oradditionalexpansion; exactonefiveyearpass technicallyready butnotadmitted.",
+    "legacy_prefix_baseline_fields_scope": "Historicalprefixexperiments only; no newfiveyearOOFclaim."
   },
   "current_work": {
     "monitoring_needed_for_completed_run": false,
@@ -92948,12 +92950,12 @@
     },
     "current_goal_turn_progress": {
       "evidence": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003/LARGER_YEAR_TRAINING_READY_20261120.json",
-        "sha256": "6e13807b6bfc62be1bb5669e7bc2369267b0cce0e1fd8b09d8489ba189b85862"
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY.json",
+        "sha256": "6cb0bcd47013a545130599ac5ff5678bd8736efee7f33c69dc91d209cb3bafe0"
       },
-      "reason": "Whole-project static audit and active-chain corrections; measured GPU throughput; fresh whole-input-TRAIN year stats/prior/full baseline and genuine B64 cold replay.",
-      "operator_request": "G\u00e5 igjennom HELE prosjektet aktivt for feil/mangler/mismatches, optimaliser treningstid og gj\u00f8r klart til en st\u00f8rre testtrening.",
-      "phase": "LARGER_YEAR_TRAINING_READY_NOT_STARTED",
+      "reason": "Newextendedgenuinecache, freshwholeTRAINnorm/prior/fullinitialbaseline, B64coldmechanics andexactmainplan independentlyqualified; mainnotstarted.",
+      "operator_request": "Lag nytt m\u00e5l for bygging/klargj\u00f8ring av stor fem\u00e5rstest; gjennomg\u00e5 hele pipelinen underveis og tilslutt og si fra ved startstreken.",
+      "phase": "FIVE_YEAR_TEST_READY_NOT_STARTED",
       "first_candidate_margin_atr": 0.3,
       "main_fit_launch_requested": false,
       "full_goal_complete": false,
@@ -92961,7 +92963,8 @@
       "fresh_selected_initialbaseline_qualified": true,
       "optimizer_cold_resume_qualified": true,
       "main_preflight_passed": true,
-      "whole_year_initialbaseline_qualified": true
+      "whole_year_initialbaseline_qualified": true,
+      "whole_five_year_initialbaseline_qualified": true
     },
     "blocked_audit": {
       "same_condition": "Explicit meaning of market FLAT versus exact-price EQUAL remains unanswered; original bar facts cannot be silently redefined.",
@@ -93009,8 +93012,8 @@
       "sha256": "8ff8dd726cdb769f79e474d09c114befb2d0ac27fda7b6c738f73f0da6e5b71f"
     },
     "latest_ATR03_training_readiness": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003/ATR03_TRAINING_READY.json",
-      "sha256": "b323f2db9deaed0c26160cdcc135213a93294094c458a8af468a53cf4ecc381c"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_FIVE_YEAR_PREPARATION_20261120_001/TRAINING_READY.json",
+      "sha256": "6cb0bcd47013a545130599ac5ff5678bd8736efee7f33c69dc91d209cb3bafe0"
     },
     "latest_year_training_readiness": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003/LARGER_YEAR_TRAINING_READY_20261120.json",
