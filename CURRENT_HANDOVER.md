@@ -25,16 +25,35 @@ Eksakte øvrige referanser/SHA står i policy og disse kvitteringene.
 
 ## Bestilt restart og effektivitet 20.11.2026
 
-Fysisk Windows-restart er eksplisitt bestilt. Før kommandoen kreves fersk
-whole-host idle-/writer-/GPU-/låsobservasjon, fil- og katalog-fsync, filesystem
-sync og hash-readback av kvitteringer og kritiske planartefakter. Etterpå skal ny
-Windowsboot og WSL-/SSH-retur måles, og de samme kilde-/artefaktbindingene samt
-metadata-preflight kontrolleres. Restart er foreløpig IKKE utført.
+Fysisk Windows-restart er utført og målt: boot667→668, ny LastBootUpTime og
+WSLboot7b038f7e-eb6c-4140-a374-47bdd0add16a. SSH/WSL er tilbake. Fersk whole-host
+idle-/writer-/GPU-/låsobservasjon ble vurdert før restart; normale OS-/vaktoppgaver
+var tillatt, ingen prosjektjobb/skriver/lås. Fil- og katalog-fsync, filesystem sync
+og SHA-readback var fullført før kommandoen. Alle77kritiske filer og53kildeeiere,
+commit776852f6 og samtlige før-restartkvitteringer bestod etterkontroll.
+
+Etter-boot metadata-preflight bestod exit0 gjennom capped4G/512M på boot668:
+0CLAIM,0rå-/featureverdidekoding,0modell og0optimizersteg. GPU var ledig ved
+etterkontrollen,250W-grensen og vertens effekt-/telemetrivakter kjørte.
 
 Kvitteringsrot: `GX1_FULL_PROJECT_AUDIT_20261120_001/RESTART_TRAINING_PREP_001`.
 Hovedplan og alle53kildeeiere beholdes; ingen treningsadmisjon, CLAIM eller modell.
 Effektivitet gjennomgås som konkrete forslag med målte og umålte tiltak adskilt;
 ingen nye presisjons-/batch-/modellendringer er kvalifisert for denne passen.
+
+[Effektivitetsrapport](docs/TRAINING_EFFICIENCY_20261120.md) samler alle aktuelle
+tiltak, målegrenser og kvalifikasjoner. Allerede gjenbrukt initialbaseline sparer
+2745,427s/6086forwards. Første foreslåtte nye tiltak er eksisterende grouped-forward;
+hele diagnostikkgevinsten kan ikke tilskrives denne alene. Gjentatt bindingsarbeid
+og større scorebatch følger. Ingen robust fullfit-ETA eller ny hastighetsgevinst
+er bevist. Hovedplanens10800s er en hardgrense. Ingen ytelsesendring ble slått på.
+
+`POSTBOOT_INTEGRITY.json` SHA:
+`e4b66f3723f90cb5c2aefbe0cf614aadbb85086ba49cef921b1ce113b82b7e01`.
+`MAIN_POSTBOOT_PREFLIGHT.log` SHA:
+`97a0f11746be86f46086ae352d72242e916cae5c9cf8d9a8b07b091cbfd3eb46`.
+Neste konkrete steg er integratorens eksakte engangsadmisjon av uendret main;
+brukeren har bestilt klargjøring i denne bølgen, hovedtrening er ikke startet.
 
 ## Gjeldende datasett og plan
 
