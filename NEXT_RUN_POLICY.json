@@ -94702,7 +94702,7 @@
       "dependencies_functions_repo_liveness": "full_dependencies",
       "retention_protection_review": "retention_review"
     },
-    "latest_observation": "Fulltestscollection15058items/0errors in17.954s; sourcepolicyunchanged, no testbodies/model/payloaddecodes.18blockedops onlyownworkerreadintrospection/privatecachemkdir; guardsunchanged. Finalpositivepreseal/codebyteauditpreparingafterexactcleanup22files.",
+    "latest_observation": "Bytepreparation001neveradmitted/claimed. Independentpresealproofaddsexactone retainedsource050signal12.434GB inpositivegenerated-featureclass (other5sameclassfilesretired). Newworker002onlyfourthpositiveclass,14syntheticchecks; noUNKNOWN/MIXED/SEALEDadmission. Newwhitelistmustbeoldset+exactinode2096/2013. Source50hasnoexpectedSHA:checksumreadabilityonly.",
     "evidence_root": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001",
     "physical_inventory_scope": "All217026metadataentries underlistedGX1roots includinghistoricalcopies;403488735232uniqueallocatedregularfilebytes. No filepayloadintegrity orsemantics claimed.",
     "metadata_inventory": {
@@ -94855,7 +94855,19 @@
     },
     "collected_test_items": 15058,
     "collection_errors": 0,
-    "test_bodies_executed_in_collection": 0
+    "test_bodies_executed_in_collection": 0,
+    "first_byte_preparation_unclaimed_superseded": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/PRESEAL_BYTE_PREP001/CONTRACT.json",
+      "sha256": "93f28ee074ee39c9dc1dddb46967ab7d3d7a80859db51c1f7e01418db7f48c43"
+    },
+    "additional_positive_retained_signal_scope": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/RETAINED_SOURCE050_SIGNAL_BYTE_ADMISSION_METADATA001.json",
+      "sha256": "3a4fa220d35fe084b24b7e65b3dfd7e307aa6a9dff70bf9803c98ff654bfdffa"
+    },
+    "byte_worker": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/BYTE_AUDIT_WORKER_002.py",
+      "sha256": "18e9923b5eb902e164a04a6ee775c57269bb553854e1f650d674008cae7395ec"
+    }
   },
   "full_project_current_native_feature_numeric_20261120_001": {
     "status": "COMPLETE_CONSUMED",

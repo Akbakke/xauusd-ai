@@ -125,3 +125,12 @@ Faktisk collection002 er fullført:15058tilfeller,0innsamlingsfeil,17,954s,
 uendret policy og ingen testkropper.18nektede operasjoner var bare egen
 auditkildeintrospeksjon og cachemkdir, ingen genuine payload-/modellforsøk.
 Dette er import/innsamlingsdekning;544tilfeller er kjørt separat, ikke15058.
+
+Siste byteaudit002 klargjøres med fire eksplisitte positive klasser. Første
+metadata-prep001 var uclaimet; den utelot én bevart source050-signalfil fra
+positiv featurekopiklasse. Fire manifestbindinger dokumenterer preseal-opphavet.
+Ny hviteliste skal være identisk pluss akkurat inode2096/2013 (12,434GB).
+For denne finnes ingen opprinnelig forventet mmap-SHA:kun fersk stabil checksum/
+lesbarhet kan bevises. UNKNOWN/MIXED/SEALED og51makroårs-filer får ingen ny
+generell adgang; de offentlige makrokildene er allerede kontrollert separat.
+14syntetiske kontroller består; kilde/policy fryses under faktisk byteaudit.
