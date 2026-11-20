@@ -14,7 +14,8 @@ ATR03-targets for alle1215513preTEST-issues, ny matchedTRAIN-prior og fersk
 med3tekniskeupdates,67forwards og6gradientprober. Ingen hovedfit startet.
 Brukeren bestiller nå bred prosjektrevisjon og større testklargjøring.
 Gammel kortplan er supersedert utenCLAIM; alle porter er stengt. Kildeclosure
-rettet med4aktive formel-eiere; ytelse og større kohort/stats kvalifiseres nå.
+rettet med4aktive formel-eiere; GPUytelse, årsstatistikk og kaldB64-mekanikk
+er kvalifisert. Større hovedplan er publisert; siste metadata-preflight gjenstår.
 Målet om tilfredsstillende vekting, prediksjon og edge er fortsatt uoppnådd.
 
 M1 brukes ALDRI til retning: ingen input, fasit, metadataforelder, rader,
@@ -60,7 +61,14 @@ Alle initiallogits er eksakt nyeTRAIN-priorlogits; modell/RNG og source/policy
 er uendret, firewall0avvisteforsøk. Hele70935rader brukes i normaliseringen.
 M5close-fasit70934celler:21210NED/27751NEUTRAL_NET/21973OPP
 (29,90/39,12/30,98%). Dette er støymarginfasit, ikke bevist ikke-tradbart marked.
-B64optimizer/kaldmekanikk gjenstår før større hovedtest kan få klarstatus.
+B64optimizer/kaldmekanikk fullførte på85,383s:2modeller/7F/3updates/6prober,
+bitidentisk andre-batch-replay i ny prosess, uendrede stats/prior og firewall0.
+FørsteM5-sharedgradient0 fra nullreadout er forventet; andre=0,000794187,
+auxiliary→shared er0. Peakreserved6,91GB. Hovedfit bruker ingen slike prober.
+Hovedplan YEAR_FIT001 er publisert utenCLAIM:70935TRAIN/5789CONTROL,
+1ferskmodell/2309F/1109updates/1pass; tidligere1200initialforwards gjenbrukes
+etter eksakt tilstand/input/target/norm/prior-kontroll. Aldri tekniske vekter.
+Hardgrense3600s, ingen hovedfit startet. Endelig metadata-preflight gjenstår.
 
 ## Ferdig seksårs inputgrunnlag
 
