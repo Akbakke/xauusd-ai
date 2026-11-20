@@ -28,7 +28,12 @@ Alle globale treningsporter står stengt. FIVE_YEAR_PREPARE001 er publisert
 for1ferskmodell/6086initialforwards/0updates,1nyheleTRAIN-normalisering/prior,
 CPU20G/CUDA12GiB/8tråder/5400s; COMPLETE. MECHANICS001 er publisert
 for2ferske modeller/7F/3tekniskeupdates/6prober og1800s, før ny storfit.
-Dens metadata-preflight gjenstår; storfit er ikke startet.
+MECHANICS001 er nå COMPLETE84,517s:2modeller/7F/3updates/6prober,
+bitidentisk kald andre-batch-replay ogkorrektM5-sharedgradientflyt. Ingen statsrefit.
+Hovedplan FIVE_YEAR_FIT001 er publisert utenCLAIM:5540B64updates/11626F/
+énpass, full354550TRAIN/34934utviklingsVAL, nyferskmodell og6086tidligere
+initialforwards gjenbrukt etter eksakt identitet. Checkpoint hver1024updates,
+10800s hardgrense. Endelig metadata-/pipelinekontroll gjenstår; storfit er ikke startet.
 100målrettede kilde-/guardtester består. Ingen sourcekode er endret ettercacheclaim.
 
 M1 brukes ALDRI til retning: ingen input, fasit, metadataforelder, rader,
