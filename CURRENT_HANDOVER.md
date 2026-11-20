@@ -10,7 +10,7 @@ Det vedvarende OPP/NED/FLAT-målet er aktivt, ikke oppnådd.
 PRIMARY_BACKBONE_FIT001 er fullført og uavhengig vurdert, exit0 på578,831s
 (9m39):1fersk modell/4fastepass/384updates/544forwards/0autograd-prober.
 Kilde/policy var uendret. Alle trenings-/kjøringsporter er stengt; alle
-tidligere engangsplaner er konsumert. Ingen aktiv modelljobb eller ny fit. Én cache-only CPU-produksjon er innrømmet.
+tidligere engangsplaner er konsumert. Ingen aktiv modelljobb eller ny fit. CACHE_EXPANSION001 er konsumert etter ytre exit137; ingen cache ble produsert.
 Siste målte GPU-idle etter terminal: P8,24,72W,37C,78MiB,0prosentutnyttelse.
 
 Aldri M1 til retning: verken input, fasit, metadataforelder, rader, prior,
@@ -84,8 +84,14 @@ importerteTorch via eksisterende autouse-conftest; renCLI+--noconftest består,
 og produksjonsvakten er beholdt. Eksakt seksårsplan er nå klargjort med41kildeeiere og107bindingsrefs;
 metadata-/CLI-preflight bestod med0decode/fit/modell og ingenCLAIM.
 Uavhengig metadatareview verifiserte41kildehasher/23JSONavhengigheter/107refs.
-Bare denne cacheproduksjonen er nå innrømmet én gang; alle treningsporter
-forblir stengt. Kilde/policy fryses gjennom native TERMINAL. CPU12G/512M,
+Produksjonen er nå avsluttet med ytre exit137 og bareCLAIM, uten native
+RESULT/TERMINAL/cache. Kernel viser cgroup-OOM12GiB i kjøreperioden, og
+userjournal14m48CPU; originalCLAIM mangler direkte cgroup/PID-binding.
+Ingen løpende arbeider;41source/plan/policy var uendret ved ekstern bookend.
+OPERATOR_EXIT_OBSERVATION.json og launcherlog er bevart, ingen original
+terminal er fabrikert. Planen er konsumert og ALLE porter stengt.
+Eksakt feilfase (bygging/serialisering) er ikke isolert. Neste steg er avgrenset
+minne-/kopilivsløpsrevisjon, uten relaunch, capøkning eller ny produksjon. CPU12G/512M,
 1tråd/64tasks og internSIGALRM3570s beholdes; ingen eksternwallcap eller
 seksårs kjøretid/minne er påstått. Rapportert primary_matrix_bytes er
 delvolum; total27-arrayvolum må beregnes fra descriptorene.
