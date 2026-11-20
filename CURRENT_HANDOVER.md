@@ -101,12 +101,20 @@ feil exceptiontype; kun testforventningen ble rettet. Uavhengig source-review
 og genuin metadata utenrawdecode/Torch består. Ny002plan er klargjort, egenidentitet og samme6år/12G/3570s;
 eksaktCLI-preflight bestod med0decode/modell/fit/CLAIM/Torch.
 Uavhengig metadatareview bekreftet41kildehasher/17valueowners/107refs.
-Bare cache002 er innrømmet én gang; alle treningsporter er stengt, og
-source/policy fryses gjennom dens nativeTERMINAL. Obligatoriske precommit-kontrakter
+Cache002 var innrømmet én gang og er nå konsumert etter feilterminal.
+Kilde/policy var fryst til terminal; ingen aktivjobb og alleporter stengt. Obligatoriske precommit-kontrakter
 for modell-nativegrensen bestod også. Workerens
 eksakte COW-setting/dødsfase er ukjent. NyCLAIM må binde cgroup/PID/cap, og
 små fase/maxRSS-kvitteringer skal lokalisere en eventuell ny hardkill.
-Bare ny002cacheproduksjon er innrømmet, ingen trening;001 relanseres aldri. CPU12G/512M,
+Cache002 er nå nativeFAILED_CONSUMED exit1, ingenRESULT/NPZ/cache.
+Feilsporet er makro._research→research_ta_campaign sin eager modellfit-import
+→walkforward→direction_decision→Torch. Kalenderen er ikke årsaken.
+Aliasløkken er passert før denne importfeilen. Native terminal mangler source-
+felt; ekstern OPERATOR_FAILURE_BOOKEND bekrefter41source/plan/policyuendret.
+Originalkvitteringer er bevart. Alleporterer stengt,001/002relanseresaldri.
+Neste minste kildekontroll er å gjøre kun learnerimporten lazy for makrobruk;
+alle61makroformler/asofregler ogcaps skal bevares. Ren genuin macroimport skal
+prøves utenrådata før eventuellny003, ingen nyfullbygger for bareimporttest. CPU12G/512M,
 1tråd/64tasks og internSIGALRM3570s beholdes; ingen eksternwallcap eller
 seksårs kjøretid/minne er påstått. Rapportert primary_matrix_bytes er
 delvolum; total27-arrayvolum må beregnes fra descriptorene.
