@@ -23,6 +23,19 @@ Samlet kvittering under `/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_0
 `778872b2f141bf12d9f9e287ea387f061e08b62e5bd94719a239597519c24edc`.
 Eksakte øvrige referanser/SHA står i policy og disse kvitteringene.
 
+## Bestilt restart og effektivitet 20.11.2026
+
+Fysisk Windows-restart er eksplisitt bestilt. Før kommandoen kreves fersk
+whole-host idle-/writer-/GPU-/låsobservasjon, fil- og katalog-fsync, filesystem
+sync og hash-readback av kvitteringer og kritiske planartefakter. Etterpå skal ny
+Windowsboot og WSL-/SSH-retur måles, og de samme kilde-/artefaktbindingene samt
+metadata-preflight kontrolleres. Restart er foreløpig IKKE utført.
+
+Kvitteringsrot: `GX1_FULL_PROJECT_AUDIT_20261120_001/RESTART_TRAINING_PREP_001`.
+Hovedplan og alle53kildeeiere beholdes; ingen treningsadmisjon, CLAIM eller modell.
+Effektivitet gjennomgås som konkrete forslag med målte og umålte tiltak adskilt;
+ingen nye presisjons-/batch-/modellendringer er kvalifisert for denne passen.
+
 ## Gjeldende datasett og plan
 
 | Flate | UTC-periode | Inputissues |
