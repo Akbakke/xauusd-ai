@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FUTURE_STATE_READINESS_PHYSICAL_DURABILITY002_PREPARATION",
+  "status": "FUTURE_STATE_READINESS_PHYSICAL_DURABILITY003_PREPARATION",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -12321,7 +12321,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare002 cleanclosed-gate source; freshrootWSL+Windowsmetadata, explicitcompletehostreview preservingoneknownselfFD3race; seal thenphysicalrestart onlywhenjobslocksGPUidle. Separatepostbootrecovery, mainpreparedonly.",
+    "next_action": "Prepare003, freshwholehostobservations/knownservicebindings andexactrawselfFD3qualification; boundidle/intent/seal; physicalrestart onlyatidleboundary, thenintegrity andseparaterecoveryprobe. Mainpreparedonly.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -25610,7 +25610,7 @@
         "new_model_calls": 0
       }
     },
-    "status": "FUTURE_STATE_READINESS_PHYSICAL_DURABILITY002_PREPARATION",
+    "status": "FUTURE_STATE_READINESS_PHYSICAL_DURABILITY003_PREPARATION",
     "observed_utc": "2026-11-20T10:53:12.769451+00:00",
     "current_observation_stage": "native_future_state_qualification_20261121_001",
     "current_observation_plan": {
@@ -97155,7 +97155,7 @@
     }
   },
   "native_future_state_train_readiness_20261121_001": {
-    "status": "ACTIVE_PHYSICAL_DURABILITY002_EXACT_SCANNER_RACE_FIXED",
+    "status": "ACTIVE_PHYSICAL_DURABILITY003_CURRENT_WINDOWS_ISO7_QUALIFIED",
     "goal_status": "ACTIVE",
     "goal_thread_id": "01a1f98c-5097-7d23-b0ca-ac7eb14a82f3",
     "goal_created_at": 1795274470,
@@ -97178,7 +97178,7 @@
       "frozen_starting_line_plan": "NOT_PREPARED_NOT_ADMITTED",
       "physical_checkpoint_recovery": "BOTH_COLD_REPLAYS_AND_INDEPENDENT_CURRENT_BACKUP_PASS_PHYSICAL002_PENDING"
     },
-    "next": "Prepare002 cleanclosed-gate source; freshrootWSL+Windowsmetadata, explicitcompletehostreview preservingoneknownselfFD3race; seal thenphysicalrestart onlywhenjobslocksGPUidle. Separatepostbootrecovery, mainpreparedonly.",
+    "next": "Prepare003, freshwholehostobservations/knownservicebindings andexactrawselfFD3qualification; boundidle/intent/seal; physicalrestart onlyatidleboundary, thenintegrity andseparaterecoveryprobe. Mainpreparedonly.",
     "observed_blockers": [
       {
         "id": "COT_2023_DELAY_CALENDAR_MISSING",
@@ -98186,10 +98186,52 @@
       "sha256": "b2111989a76349715d8f9abf40513f05cb9f669f95983225ce525892a9730ae0"
     },
     "physical_durability_002": {
-      "status": "ADMITTED_METADATA_PREPARE_SEAL_POSTBOOT_VERIFY",
+      "status": "PREPARE_COMPLETE_SUPERSEDED_BEFORE_SEAL_WINDOWS_ISO7_PARSER_FIX",
       "plan": {
         "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/PHYSICAL_DURABILITY_PLAN002.json",
         "sha256": "e824862c30d0dced8582e623dd599a41bfd4bec1e8c3723eb1b50e64263f2a59"
+      },
+      "execution_authorized": false,
+      "training_authorized": false,
+      "reboot_authorized_by_this_gate": false,
+      "actions": {
+        "prepare": {
+          "remaining_invocations": 0,
+          "relaunch_allowed": false,
+          "claimed_invocations": 1,
+          "completed_invocations": 1
+        },
+        "seal": {
+          "remaining_invocations": 0,
+          "relaunch_allowed": false,
+          "claimed_invocations": 0,
+          "completed_invocations": 0
+        },
+        "verify_after_physical_boot": {
+          "remaining_invocations": 0,
+          "relaunch_allowed": false,
+          "claimed_invocations": 0,
+          "completed_invocations": 0
+        }
+      },
+      "manifest": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/PHYSICAL_RECOVERY002/MANIFEST002.json",
+        "sha256": "39b1a4940c773ae30cc21f6dde1289e3a93b6ea449b05cce2bc03d2c4d2954ec"
+      },
+      "readback": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/PHYSICAL_RECOVERY002/READBACK002.json",
+        "sha256": "d5af205acc078d7a8ed5ec3f4a13d2952c2fba370fbcc6966cfb0777498ffcb7"
+      }
+    },
+    "physical_durability_source_qualification_002": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/PHYSICAL_DURABILITY_SOURCE_QUALIFICATION002.json",
+      "sha256": "68ad2b54c425abc98f84420305f8f3c66203b297dfce5f7abb09f7b0ba4f29d7"
+    },
+    "physical_durability_003": {
+      "status": "ADMITTED_METADATA_PREPARE_SEAL_POSTBOOT_VERIFY",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/PHYSICAL_DURABILITY_PLAN003.json",
+        "sha256": "0980fdfb57b818bcb806237b2a0788363fec45f68886efa336bf943b9a6cd8d1"
       },
       "execution_authorized": true,
       "training_authorized": false,
@@ -98209,9 +98251,9 @@
         }
       }
     },
-    "physical_durability_source_qualification_002": {
-      "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/PHYSICAL_DURABILITY_SOURCE_QUALIFICATION002.json",
-      "sha256": "68ad2b54c425abc98f84420305f8f3c66203b297dfce5f7abb09f7b0ba4f29d7"
+    "physical_durability_source_qualification_003": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/PHYSICAL_DURABILITY_SOURCE_QUALIFICATION003.json",
+      "sha256": "ee6f4c925e0e9c1e57795b461996514045c671be760d48c97cb7defeabe0afdb"
     }
   }
 }

@@ -313,13 +313,15 @@ signert LibreHardwareMonitor-bro eksponerer GPU, ingen CPU package-watt eller
 CPU-temperatur. Tomgang33C/40Cminne/23,89W er ingen treningsmåling. Ingen
 absolutt optimalisering er påstått. Teknisk PASS er ikke profitt.
 
-Fysiskmetadata001 prepare/readback er COMPLETE for122filer/9binære refs,
-men ingen seal/reboot er utført. Ekte UID0-/proc-snapshot viste bare sin egen
-FD3-close-race,0observasjonshull;001-vakten kunne ikke godta dette. Ny002
-bevarer råcomplete=false/raceobjektet og tillater bare eksaktett UID0-eget
-FD3-tilfelle; alle øvrige kombinasjoner stenger.49fokuserte tester og faktisk
-råkvittering/metadatachain består. Gamle001kode/manifest/råfiler bevares.
-Root-proc-observasjonen bruker eksisterendeWindowsWSLeier og60s timeout.
-Den nye init/Relay-prosessen arver ikke bevist forelderens4GiBcgroup;
-forelderen holder CURRENTlåsen og bare liten /proc-metadata leses,0modeller/
+De tidligere fysiske metadata001/002 prepare/readback er komplette for122
+filer/9binære refs; ingen seal/reboot er utført. Ny003 retter bare to målte
+kontrollblokkerere: eksakt UID0-eget FD3-scanrace og Windows7desimal-ISO mot
+installertPython3.10. Råcomplete=false/raceobjekter/tidsstrenger bevares;
+ingen andre observasjonshull fritas.60tilfeller er dekket:59første PASS og
+én feilaktig testforventning rettet fra1til3desimaler;6berørte/nærliggende
+retester PASS. Hjelper3 er uendret gjennom testreparasjonen. Fem ekte Windows-
+stempler, råselfrace og122filsmetadatakjede er kvalifisert uten payloadlesing.
+Root-/proc-observasjonen bruker eksisterende WindowsWSLeier/60s timeout.
+Den separate init/Relay-prosessen arver ikke bevist forelderens4GiBcgroup;
+forelderen holder CURRENTlåsen, og bare liten /proc-metadata leses,0modeller/
 DATApayload. Faktiskdurabilityprepare/seal/verify er fortsatt audit4GiB.
