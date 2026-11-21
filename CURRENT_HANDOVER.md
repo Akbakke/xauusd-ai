@@ -7,8 +7,9 @@ Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 ## Gjeldende status 21.11.2026
 
 Den bestilte fullprosjektrevisjonen og ekstra checkpoint/resume-sikringen er ferdige
-innen dokumentert omfang. Main003 er PREPARED_NOT_ADMITTED, ikke startet:
-CLAIM=0, remaining=0, outputrot finnes ikke og globale treningsporter er stengt.
+innen dokumentert omfang. Main003 er ADMITTED_ONE_USE, venter på første launch:
+CLAIM=0, remaining=1, outputrot finnes ikke. Bare dens egne training/native-porter
+er åpnet; alle øvrige porter er stengt. Kilde og policy fryses gjennom kjøringen.
 Aktivt nattmål skal nå innrømme og kjøre nøyaktig én full kronologisk TRAIN-epoke,
 deretter vurdere resultatet mot frosset TRAIN-prior og separat utviklings-VAL.
 Bruker valgte én epoke først; ingen automatisk ekstraepoke eller femepoke-earlystop.
