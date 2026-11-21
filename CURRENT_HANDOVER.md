@@ -16,6 +16,8 @@ Alle fem globale treningsporter er stengt; private engangsporter er konsumert.
 Ingen tung jobb er aktiv. Bevisrot:
 `/home/andre2/GX1_RUNS/GX1_PRETRAIN_12_CHECKPOINTS_20261121_001`.
 `TWELVE_CHECKPOINT_REVIEW001.json` samler alle 12 funn og restgrenser.
+`REVIEW_TERMINAL001.json` er overleveringens statuskvittering og binder de
+uendrede CPU-terminalene til deres separate resultat-/kilde-/TEST-bevis.
 
 | # | Kontroll | Målt konklusjon |
 |---|---|---|

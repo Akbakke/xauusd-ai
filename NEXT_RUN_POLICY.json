@@ -4811,11 +4811,11 @@
     "gc_goal_status": "GENUINE_NATIVE_GC_JOINT_TECHNICAL_PASS_DIRECTION_QUALITY_UNQUALIFIED",
     "existing_indicator_surface_changed": true,
     "training_started": true,
-    "latest_terminal_role": "NEW_FUTURE_HIGH_LOW_CPU_TECHNICAL_PREFIX_AND_COLD_PROCESS_REPLAY_COMPLETE",
+    "latest_terminal_role": "TWELVE_CHECKPOINT_REVIEW_COMPLETE_WITH_GENUINE_FUTURE_STATE_CPU_REPLAY",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CPU_MECHANICS_20261121_001/replay/TERMINAL.json",
-      "sha256": "c89846b7de4dc5e6833dc10d462e8b7d5aecee05457079e815a05449772b5b40"
+      "path": "/home/andre2/GX1_RUNS/GX1_PRETRAIN_12_CHECKPOINTS_20261121_001/REVIEW_TERMINAL001.json",
+      "sha256": "3ab3f8e8ea745af569cd67454348ffe2bdc91e10d08b336d51eaf95dcde50c12"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -97135,6 +97135,10 @@
       "Measure the current function's guarded CUDA throughput, memory/power/temperature and durable checkpoint budget before any long GPU run.",
       "Keep D1 selection/coverage and macro historical vintage limits explicit; declared as-of clocks alone do not prove every historical publication/revision time."
     ],
-    "publication_bookend_path": "/home/andre2/GX1_RUNS/GX1_PRETRAIN_12_CHECKPOINTS_20261121_001/FINAL_PUBLICATION_BOOKEND001.json"
+    "publication_bookend_path": "/home/andre2/GX1_RUNS/GX1_PRETRAIN_12_CHECKPOINTS_20261121_001/FINAL_PUBLICATION_BOOKEND001.json",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_PRETRAIN_12_CHECKPOINTS_20261121_001/REVIEW_TERMINAL001.json",
+      "sha256": "3ab3f8e8ea745af569cd67454348ffe2bdc91e10d08b336d51eaf95dcde50c12"
+    }
   }
 }
