@@ -4759,7 +4759,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Newprojectreview active: cooperation/gradient/targetgap; currentmain completed, no newtraining",
+    "current_activity": "Threeprojectreviewscomplete and authorityrepaired; exactcurrentcheckpointCPUgradientplanprepared, noCLAIM/models yet",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -96292,7 +96292,7 @@
     "next_question": "OnfixedcurrentTRAINpanels, dothecurrentauxiliarygradientshelporopposeprimaryM5atsharedparameters, anddotheirfuturetargetsmeasureunknownmovementratherthanalreadyobservedbarprogress?"
   },
   "native_m5_cooperation_project_review_20261121_001": {
-    "status": "ACTIVE_REVIEW_NO_MODEL_ADMISSION",
+    "status": "READ_ONLY_SOURCE_REVIEWS_COMPLETE_CURRENT_GRADIENT_PREPARED",
     "goal_thread_id": "01a1f98c-5097-7d23-b0ca-ac7eb14a82f3",
     "goal_created_utc": "2026-11-21T09:01:53+00:00",
     "output_root": "/home/andre2/GX1_RUNS/GX1_COOPERATION_PROJECT_REVIEW_20261121_001",
@@ -96329,6 +96329,73 @@
       ],
       "M30": "assessadditionalstream;notimplemented,existingM15retained",
       "numeric_task_weights_chosen": false
+    },
+    "gradient_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_CURRENT_COOPERATION_GRADIENT_20261121_001.json",
+      "sha256": "9c8229417e175abcd9eea4e31ab6c3147b64153c32f7fcc91a413e7e0cc8b8f2"
+    },
+    "gradient_helper_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_COOPERATION_PROJECT_REVIEW_20261121_001/CURRENT_GRADIENT_HELPER_QUALIFICATION002.json",
+      "sha256": "b40ab785019559ad04c0b0a548508152122262ee800437bddd88d53ad21f749d"
+    },
+    "source_review_refs": {
+      "PROJECT_SCOPE_REVIEW001.json": {
+        "path": "/home/andre2/GX1_RUNS/GX1_COOPERATION_PROJECT_REVIEW_20261121_001/PROJECT_SCOPE_REVIEW001.json",
+        "sha256": "7f5fec972870bdeb977c7b63138438903d2adec9636a2167b64b5fa18fea0ed7"
+      },
+      "FAMILY_TF_SOURCE_REVIEW001.json": {
+        "path": "/home/andre2/GX1_RUNS/GX1_COOPERATION_PROJECT_REVIEW_20261121_001/FAMILY_TF_SOURCE_REVIEW001.json",
+        "sha256": "339dbb91b2f9588400eb76c8891c11de3ad34711c6cbb3b06068610d06b2e5a7"
+      },
+      "TARGET_GAP_SOURCE_REVIEW001.json": {
+        "path": "/home/andre2/GX1_RUNS/GX1_COOPERATION_PROJECT_REVIEW_20261121_001/TARGET_GAP_SOURCE_REVIEW001.json",
+        "sha256": "2e4e4f87b0dc02ebad63c3194b46238992248f73a8f3659a83ec89f5e9ac58b9"
+      }
     }
+  },
+  "native_m5_ta_current_cooperation_gradient_20261121_001": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_CURRENT_COOPERATION_GRADIENT_20261121_001.json",
+      "sha256": "9c8229417e175abcd9eea4e31ab6c3147b64153c32f7fcc91a413e7e0cc8b8f2"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_CURRENT_COOPERATION_GRADIENT_20261121_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "execution": {
+      "class": "producer",
+      "device": "cpu",
+      "memory": "12G",
+      "swap": "512M",
+      "tasks_max": 64,
+      "numerical_threads": 1,
+      "outer_seconds": 900,
+      "internal_seconds": 870,
+      "kill_after_seconds": 10
+    },
+    "limits": {
+      "model_constructions": 1,
+      "checkpoint_loads": 1,
+      "model_forwards": 20,
+      "autograd_calls": 60,
+      "backward_calls": 0,
+      "optimizer_constructions": 0,
+      "optimizer_steps": 0,
+      "normalization_fits": 0,
+      "prior_fits": 0
+    },
+    "helper_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_COOPERATION_PROJECT_REVIEW_20261121_001/CURRENT_GRADIENT_HELPER_QUALIFICATION002.json",
+      "sha256": "b40ab785019559ad04c0b0a548508152122262ee800437bddd88d53ad21f749d"
+    },
+    "expected_scope": "20sourceclockquarterpanels×16TRAINrows current5540checkpoint; CPUevalactualM5only vs samehiddenhypotheticalaux; no futuretask/M30/newfit claim",
+    "estimated_wall_seconds_from_old_diagnostic": 302,
+    "estimate_scope": "rough60/8autogradscaledfromold40.3s; notrobustthroughput, hardbudget900s"
   }
 }
