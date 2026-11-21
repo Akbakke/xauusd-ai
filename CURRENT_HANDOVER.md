@@ -4,317 +4,156 @@ Arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 Les `GX1_RULES.md` helt. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus.
 Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git.
 
-## Gjeldende status 21.11.2026
+## Gjeldende konklusjon 21.11.2026
 
-Nytt aktivt mål: samlet prosjektgjennomgang av nyttig familie-/TF-samarbeid,
-gradientruting og gapet mellom dagens prognoseoppgave og M5-hovedklokke med
-scalp/intradag/swing-ambisjon. Ny eier er
-`native_m5_cooperation_project_review_20261121_001`; nattmålet nedenfor er ferdig.
-Tidligere fullaudit og beståtte kontroller gjenbrukes. Ingen ny fit er innrømmet.
-Bare én konkret oppdateringsfri currentTRAIN-gradientdiagnose kan kvalifiseres
-separat ved behov. TEST er forseglet; øvrige vakter og porter består.
+Samlet prosjektgjennomgang av samarbeid, gradient og målgap er ferdig.
+Eier: `native_m5_cooperation_project_review_20261121_001`. Beslutningsgrunnlaget
+er konkret; ny framtidstilstand, M30-modell og ny fit er IKKE implementert/innrømmet.
+Alle treningsporter er stengt. Ingen aktiv modelljobb eller automatisk ekstraepoke.
 
-Mål-oppsummeringens foreldede M1-fasit/Entry-først/kompakt-MBP-tekst er rettet;
-ordrett originalbestilling er bevart byteidentisk. Aktive policyaliaser som feilaktig
-sa «main ikke startet» er oppdatert; historiske kvitteringer omskrives ikke.
+M5 er hovedklokke, ikke eneste viktige prognoseoppgave eller fem minutters
+holdetid. Alle TF skal bedømme neste helt framtidige bar/tilstand med de samme
+genuine familiene; pågående utvikling er kontekst. M15 beholdes. M30 er ønsket
+utvidelse som må kvalifiseres; faktisk modell har fortsatt M5/M15/H1/H4/D1.
+M1 er bare for senere oppfølging av allerede åpen handel, aldri retning.
+
 Bevisrot: `/home/andre2/GX1_RUNS/GX1_COOPERATION_PROJECT_REVIEW_20261121_001`.
+`PROJECT_REVIEW_DECISION001.json` binder kilde-/prosjekt-/mål-/M30-/gradientreview
+og målbare delmål; eksakte SHA står i policy. Runtimekode er uendret siden
+fryst060fe55f. 18foreldede aktive policyaliaser og mål-oppsummering er rettet;
+ordrett originalbestilling er bevart byteidentisk. En importfeil i den nye
+operasjonelle diagnosehjelperen ble rettet og eksaktCLI testet før CLAIM.
 
-Operatøren har avklart framtidsprioriteten: neste helt framtidige bar/tilstand
-på samtlige TF, med samme genuine indikator-/OHLC-/chart-/nivåfamilier. M5 er
-hovedklokke, ikke eneste betydningsfulle prognoseoppgave. M30 er nå tatt med som
-ønsket utvidelse som må vurderes; den kjørte modellen har M5/M15/H1/H4/D1 og
-ingen egenM30-strøm. M15 beholdes. Ingen numeriske oppgavevekter er valgt.
+## Samarbeid og mål: gjort og ikke bevist
 
-Main003 er COMPLETE_CONSUMED/exit0: nøyaktig én full kronologisk TRAIN-epoke og
-full utviklings-VAL er ferdig.5540updates/7062forwards,1modell,0autograd og0nye
-norm-/priorfits. Alle treningsporter er stengt; ingen ekstraepoke er innrømmet.
-Varighet7281,263s (~2t1min).23checkpointkvitteringer bevarer cursor0→5540.
-Stabil drift ble fulgt opp hvert30.minutt med kontinuerlige maskinvarevakter.
-Uavhengig integritetsreview består, og læringsreview er ferdig. Nattmålets ene
-epoke og praktiske gjenopptakelse er fullført; ingen videre trening er autorisert.
+Alle8familier og alle5TF er koblet gjennom familie-/TF-attention og felles
+representasjoner til M5. H1/H4-output mates ikke tilbake som retningsstemmer.
+M5-tapet kan lære alle tilkoblede inputencodere; dagens `m5_close_only_backbone_v1`
+kobler bare de9andre hodenes direkte shared-gradient fra. Nytte er ikke bevist
+av kobling, attentionvekter eller positiv gradient alene.
 
-GPUvaktens5682samples: topp67Ccore/74Cmem/231,6W/7488MiB. Ingen vaktavslag
-under main. CPUwatt/temperatur er fortsatt ikke målt. Kilde er uendret og TEST
-urørt etter produsentens kilde-/IO-brannmur. Teknisk fullføring er ikke edge.
-
-## Målt læring og neste beslutning
-
-Frossen TRAIN-prior (identisk med INITIAL) → sluttmodell, alle faktiske predictive
-celler; kjent-open-diagnostikk teller aldri som prediktiv kvalitet:
-
-| Omfang | Log-loss | Brier |
-|---|---:|---:|
-| TRAIN, alle10heads | 1,082061→0,980241 | 0,655284→0,591833 |
-| Utviklings-VAL, alle10heads | 1,085805→0,993167 | 0,657712→0,599772 |
-| TRAIN, primær M5close | 1,091087→1,082956 | 0,661521→0,655787 |
-| Utviklings-VAL, primær M5close | 1,086871→1,077720 | 0,658601→0,652040 |
-
-Alle10TRAINheads og8/10VALheads forbedrer begge proper scores. D1open/-close
-forverres på VAL. M5close velger bare105DOWN på TRAIN og32på VAL; DOWNrecall
-0,031%/0,117%. Dette beviser ikke balansert retningskvalitet eller kalibrering.
-Fullhistorikken har423/44genuine predictiveD1open-celler; de er med i poolen,
-mens kjent-open er utelatt. Gjentatte høy-TF-targetbars er ikke uavhengige prøver.
-
-Én initial/sluttmåling viser læring utover prior, ingen konvergenskurve eller beste
-epoke. Ingen konkret kode-/mål-/optimizerfeil er bevist. Ingen automatisk femserie
-eller earlystop/CONTROL-utvalg er innrømmet. Neste avgrensede beslutning bør bruke
-lagrede bevis til å undersøke M5DOWN-dekning før en separat kvalifisert fortsettelse;
-ingen taps-/terskelendring begrunnes av argmaxtelling alene. Utviklings-VAL er
-gjenbrukt, uavhengig generalisering og økonomisk edge er fortsatt ubevist.
-
-`OVERNIGHT_GOAL_COMPLETION001.json` binder fullføring, integritets-/læringsreview,
-389gjenbrukte fokustester på uendrede runtimekilder og faktiske ressursutfall.
-53kildeeiere er fersk SHA-/syntakskontrollert. Integritetsreview kontrollerer alle
-23JSONkvitteringer/5540steg/prefikser. Mainens24PT-filer tar2230690101bytes;
-sluttreview gjenbruker produsentens PT-SHA/stateproof og leser bare PT-metadata.
-Checkpoint1 fra restartprøven er derimot helhashet før/etter reboot.
-
-### Retningsskjevhet: faktisk opp/ned målt
-
-Ny diagnose av lagrede INITIAL/FINAL-captures og frosset TRAIN-prior:
-0modell/forwards/updates, ingen fit/terskel-/klassekvoteendring. Alle54capturefelt,
-kilde-/tidsakser og sannhetsarrays er kontrollert. Originale nativeINITIAL- og
-FINAL-scorer reproduseres eksakt på begge splitter. AUC-matematikk gjenbrukes fra
-eksisterende ren eier; orientering/ties/konstantprior/tom/enklasse er selvtestet.
-
-Betinget retning er P(UP)/(P(DOWN)+P(UP)), skåret bare der framtidig fasit faktisk
-er DOWN/UP. Dette er diagnostikk, ikke en handelsregel eller et kjent-livefilter.
-M5closeAUC TRAIN0,5201/VAL0,5294. Brier TRAIN0,249962prior→0,250125modell
-(forverring); VAL0,249982→0,249567 (svak forbedring). Alle6VALmåneder har
-AUC0,5243–0,5379; juni har likevel dårligere Brier enn prior. Omtrent95%av
-M5VALs forbedrede treklasse-logloss kommer fra aktivitet/nøytral, bare5%fra side.
-
-På VAL er fasit DOWN/NEUTRAL/UP=10238/14270/10425, modellargmax32/26894/8007.
-Gjennomsnittlig sannsynlighetsmasse er28,49%DOWN/40,29%nøytral/31,22%UP;
-DOWN har altså masse selv om den svært sjelden vinner. Betinget UP-probabilitet
-er52,31% mot faktisk50,45%: UP-skjevhet og svak separasjon, ikke en svært
-UP-tung fasit. Ingen klasseindeks-/maskefeil er påvist.
-
-### Høyere TF: tidligere sterkt samlet tall krever innsnevring
-
-Fasit er nesteTF-bars slutt relativt til forrigeTF-slutt. Når prognosen utstedes
-inne i målbaren, kan deler av denne nettoendringen allerede være observert.
-Dette er tillatt innen dagens kontrakt, men samletAUC er ikke bevis for prognose
-av en helt ukjent bar eller ny prisbevegelse fra utstedelsen.
-
-| Close-retning på utviklings-VAL | Alle utstedelser AUC | En hel nominell TF fram AUC | 5min før slutt AUC |
+| Familie | Lokale felt | Kontekstfelt | Felt per TF |
 |---|---:|---:|---:|
-| M5 | 0,5294 | 0,5300 (n20549) | 0,5300 |
-| M15 | 0,7230 | 0,4743 (n6621) | 0,8944 |
-| H1 | 0,8013 | 0,4776 (n1557) | 0,8899 |
-| H4 | 0,7330 | 0,4718 (n368) | 0,8064 |
+| structure_swing | 30 | 6 | 24 |
+| smc_liquidity | 69 | 14 | 76 |
+| trend_ema | 41 | 21 | 40 |
+| vol_compression | 16 | 6 | 13 |
+| momentum_flow | 35 | 12 | 29 |
+| session_regime | 70 | 70 | 9 |
+| chart_geometry | 34 | 1 | 41 |
+| price_action_candle | 23 | 2 | 24 |
 
-TRAIN viser samme tydelige tidsavhengighet. Full-TF-Brier på M15/H1/H4 er også
-verre enn frosset prior. Alle faktiske ledetider er bokført, ikke valgt bort;
-nominell TF-varighet hentes fra native målkontrakt. Native gap/delvise kilder
-beholdes. D1fullTF har bare24retningsutfall på VAL (AUC0,5), for lite til sterk dom.
+318lokale/132kontinuerlig kontekst/1kategorisk/256perTF og61makro er bredder,
+ikke uavhengige indikatorantall.132eksakte aliaser er eieravstemt. Candlegrunnlag
+bevarer kropp/veker/OHLC-relasjoner/avvisninger; chartgrunnlag linjer/kanaler/
+konvergens/apeks; nivåregistre avstand/berøringer/alder/reaksjoner/brudd/retester.
+Gamle håndskrevne hammer/doji/chart-stemmer er erstattet av geometrien, ikke
+bevist som lærte mønstre. Ingen ny frakobling, feilklokke eller klasse-/maskefeil
+ble påvist. Lært individuell/kollektiv prediktiv nytte og gatesaturasjon er ubevist.
 
-Det finnes et svakt M5-rangeringssignal og klart bedre høyereTF-score nær
-målbarens slutt. Dette isolerer ikke hva modellen har lært eller om delvis
-observert tilstand er årsaken. Robust retningsverdi er ikke bevist. Hovedspørsmålet før flere
-epoker/tapsendringer er en kausal kjent-pris-/persistensreferanse og eksplisitt
-kontroll av ukjent bevegelse fra utstedelsen. Disse er ikke målt av denne analysen.
-Ingen automatisk nyfit, målomskriving, kontrollutvalg eller TEST-adgang åpnes.
+Dagens target er neste faktiske TF-slutt mot forrigeTF-slutt, med0,3ATR
+NEUTRAL_NET. Dette er en nettoendringsproxy, ikke hele rolig/sideveis FLAT eller
+framtidig prisbane. Rå open/close-fakta beholdes. HøyTF-målet kan inneholde
+bevegelse allerede sett gjennom M5. Det er kausalt innen gammel kontrakt, men
+samlet høyTF-score beviser ikke helt ny bevegelse eller høyTFs merverdi for M5.
+Tidligere «tydelig læring av delvis observerte tilstander» var for sterk årsaksformulering.
 
-Bevis: `DIRECTION_BIAS_REVIEW001.json`, `DIRECTION_LEAD_REVIEW001.json` og
-`DIRECTION_FINDINGS001.json` i samme kvitteringsrot, eksakte bindinger i policy.
-CPUdiagnostikkene tok10,41s/3,50s, maksRSS1113056/633376KiB. Ingen original
-modell-/mål-/treningskilde eller gamle kvitteringer er endret.
+## Faktisk current-checkpoint-gradientdiagnose
 
-### Samarbeid mellom tidsrammer og M5
+`NATIVE_M5_TA_CURRENT_COOPERATION_GRADIENT_20261121_001` er
+COMPLETE_CONSUMED_REVIEWED/exit0,209,905s.20kildefaste kvartalspaneler2021–2025,
+320TRAINrader/2046prediktive celler.1CPUmodell/1checkpointload/20forwards/
+60autograd,0backward/optimizer/updates/norm-/priorfits. Ingen CONTROL-forward
+eller gradient; felles loader dekoder/validerer eksisterende utviklingsdata.
+Kilde, modell, statistikk og CPU/Python/NumPy-RNG er uendret. Samme hidden ga
+eksakte attached/detached logits og tap; faktisk aux→shared var eksakt0 i20/20.
 
-Kildesporingen bekrefter H1/H4/M15/D1-inputs og nivåinformasjon helt fram til
-M5-utgangen via familie-/TF-attention og felles representasjon. Nivåregistre
-omfatter avstand, berøringer, alder, reaksjoner, brudd og retester. Bare lukkede
-TF-vinduer med tilgjengelighet senest ved utstedelsen konsumeres. H1/H4-output-
-sannsynligheter mates ikke tilbake som stemmer; det er feature-/representasjons-
-samarbeid. Om støtte+H1/H4-vending faktisk forbedrer M5 er ennå ikke isolert målt.
+Samlet hypotetisk aux/M5-gradientnorm=30,75 og pooledcosinus+0,0656.
+Aux-kryssdot var negativ i8/20paneler; naiv råsum motarbeidet M5 i7/20.
+Dette er blandet lokal geometri ved et M5-primary-trent checkpoint, ikke
+AdamW-oppdateringer, felles treningsforløp, optimale vekter eller nyttig samarbeid.
+Ingen per-TF/familiegradientdom eller generell motstand mot multitask er bevist.
+Den eldre råbar-testen med63M5-celler avgjør heller ikke dagens oppgave.
+Seks fokuserte syntetiske kontroller og to uavhengige kildereviews består;
+metadata-preflight og ekte CPUkjøring er verifisert. Alle originalkvitteringer beholdes.
 
-Den bundne main003 bruker `m5_close_only_backbone_v1`: bare close.M5 gir direkte
-tapsgradient til fellesnettverket. Alle øvrige9utgangshoder lærer egne parametre
-på detached fellesvektorer. Dette er ikke full gjensidig multitasktrening, selv
-om alle TF-inputs er tilgjengelige og kan læres brukt gjennom M5-tapet.
-H1/H4s egne prognoseskårer må derfor ikke tolkes som målt verdi av H1/H4-kontekst
-for M5. En test av hele H1-baren framover svarer heller ikke på det spørsmålet.
+## Besluttede delmål og neste steg
 
-«Tydelig læring av delvis observerte tilstander» var sterkere enn målingen:
-vi har målt bedre skår nær barens slutt, ingen isolert årsaks-/persistensanalyse.
-Eksempel: ved10:55 kan M5-historikken vise55min av10–11-barens bevegelse,
-selv om H1-input fortsatt er siste lukkede H1-bar. Sluttkl11 sammenlignes med
-sluttkl10; mye av målbevegelsen kan derfor allerede være kjent. Dette er
-kausal kontekst innen valgt kontrakt, og er forskjellig fra å bevise helt ny
-framtidig bevegelse. Bevar høyereTF-konteksten og mål dens bidrag til M5.
+1. **Ferdig:** riktig aktiv autoritet, eksisterende kilde-/inputbevis og diagnose.
+2. **Neste:** kvalifiser native mål for neste helt framtidige lokale tilstand på
+   eksisterende5TF. Nominell målbarstart er ved/etter issue. Bevar råbarfakta;
+   aktivitet/side/ukjent må følge valgt semantikk og samme output/loss/prior/score.
+  0,5ATR lokal aktivitet og0,3ATR nettnøytralitet er forskjellige kontrakter.
+   Ingen ny terskel, fast issue-prisanker eller barrekkefølge gjettes.
+3. Kvalifiser én kontrollert delt-gradientkandidat med reelle framtidsoppgaver
+   for alle TF, mot samme-funksjons M5-primary-referanse. Isoler ruting med like
+   data/initial/mål/masker/stats/prior/schedule/budsjett. Ingen blind «alle på»
+   eller prosentvekter fra et enkelt normforhold. Endret funksjon krever fersk
+   initialbaseline og ekte gradient-/resume-/ressursbevis før ny engangsfit.
+4. Kvalifiser M30 som tillegg: clock/familier/vinduer/normalisering/modellgeometri/
+   hoder/targets/score/cache må ha ny sammenhengende identitet. M30 har ingen
+   aktiv strøm nå. M30-statistikk må passe TRAIN; eksisterende stats gjenbrukes
+   bare ved identisk populasjonsbevis. Nye celler endrer Ntotal selv ved detach.
+5. Mål prediktiv merverdi og samarbeid med matched TRAIN proper side-/
+   aktivitetsskårer, klassevis kalibrering, målbar-/tidsblokkusikkerhet og
+   kausal kjent-pris-/persistensreferanse. TF-inputnytte og gradientruting er
+   separate kontroller. Posthoc nulling kan være OOD. Kandidat fryses før
+   senere utviklingsrapport; ingen CONTROL-utvalg eller automatisk fitserie.
+6. Bevar videre mål: kvalifisert prognose → mean-consistent cost/path Entry →
+   Entry-bevarende Exit → komplett økonomi. Native uavhengig bekreftelse har
+   ennå ingen åpnet rute; forseglet TEST og D1-journalunntak er forskjellige.
 
-Bevis: `MTF_M5_WIRING_REVIEW001.json`, kilde-/planbundet; ingen modell/data/TEST
-lest eller endret i denne kildesporingen. Ingen ny treningsadmisjon.
+Dette er et gjennomgått beslutningsgrunnlag, ikke implementert ny læringsfunksjon.
+Ingen Entry/Exit, broker/live/paper/ordre/spending/promotion er åpnet.
 
-### Nyttig samarbeid: presisert mål og neste kvalifisering
+## Fullført hovedepoke og målte kvalitetsgrenser
 
-Brukeren presiserer M5 som hovedklokke med høyereTF-støtte for scalp/intradag/
-swing, alle8familier, OHLC-spikes/candles/chart/SR/trend/EMA/ATR. M1 er bare for
-senere oppfølging av åpen handel. Beslutningsklokke er ingen holdetidsgrense.
-Dette er ført i GX1_RULES og metodekrav, ikke innført som ny runtime/loss.
+Main003-planSHA20c964020752318c507957ec0b71645e419e023defd7275637cc85fd48b2b5fd
+fulgte354550TRAINissues2021–2025 og34934utviklings-VALissues2026H1.
+5540updates/7062forwards på7281,263s (~2t1min), exit0 og kilde uendret.
+23checkpointkvitteringer/24PT-filer2230690101bytes er bevart. Gjenopptakelse
+etter fysisk boot668→669 var bitidentisk mot uavbrutt2update-referanse.
+Ingen kvalifiseringsvekter i main. Oppfølging hvert30.min ved stabil drift.
 
-Eksakt fullTA-profil matcher main003. De8familiene er structure_swing,
-smc_liquidity, trend_ema, vol_compression, momentum_flow, session_regime,
-chart_geometry og price_action_candle. Aktive flater:318lokale/132kontinuerlig
-kontekst/1kategorisk/256perTF og61makrofelt (bredder, ikke antall uavhengige
-indikatorer). Hammer/doji/fullbar har rå formgrunnlag, ikke gamle navngitte
-håndregelflagg; chartgeometri omfatter linjer/kanaler/konvergens/apeks.
-Tilgjengelighet er kontrollert, faktisk lært mønsternytte er ikke bevist.
+FrossenTRAINprior→slutt, pooled10predictiveheads: TRAINLL1,082061→0,980241,
+VAL1,085805→0,993167. Kjent-open-diagnostikk er utelatt. M5close betinget
+AUC TRAIN0,5201/VAL0,5294; Brier TRAIN0,249962→0,250125 (verre),
+VAL0,249982→0,249567 (svakt bedre). Omtrent95%av M5VAL treklasse-LL-gevinsten
+kommer fra aktivitet/nøytral,5%fra side. VALargmax DOWN/NEUTRAL/UP=32/26894/8007
+mot fasit10238/14270/10425; sannsynlighetsmassen DOWN er28,49%, ikke null.
 
-M5-tapet kan allerede lære alle tilkoblede familie-/TF-encodere. Bare de øvrige
-hodenes direkte shared-gradient er avkoblet. Ruten ble begrunnet av en tidligere
-liten råbar-test:63M5close-celler, pooledcosinus−0,289 og råfellesgradient som
-motarbeidet M5. Den brukte annen målidentitet enn dagens0,3ATR/heleTRAIN og
-beviser ikke at kontrollert multitasklæring nå er dårligere. Ingen AdamW-/
-læringshistorisk årsak eller generell modellbegrensning følger av rågradienten.
+| VAL close-retning | Alle issue AUC | En hel nominell TF fram AUC |
+|---|---:|---:|
+| M5 | 0,5294 | 0,5300 (n20549) |
+| M15 | 0,7230 | 0,4743 (n6621) |
+| H1 | 0,8013 | 0,4776 (n1557) |
+| H4 | 0,7330 | 0,4718 (n368) |
 
-Neste konkrete spørsmål er om dagens ekte framtidshjelpemål støtter M5 gjennom
-fellesgradienten eller motarbeider den på faste TRAIN-paneler. Deretter kan én
-begrunnet M5-primary/delt-gradient-kandidat kvalifiseres. Ingen algoritme,
-prosentvekter eller framtidshorisonter erklæres optimale eller endres nå.
-`COOPERATION_DESIGN_RECORD001.json` binder dette; alle treningsporter er stengt.
+D1fullTF har bare24retningsutfall på VAL. TRAIN har samme klare ledetidsavhengighet.
+Ingen uavhengig generalisering, økonomisk edge eller beste epokeantall er bevist.
+Tidligere bevis: `/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001`.
 
-## Praktisk gjenopptakelse og lagring
+## Gjenbrukt fullprosjektkontroll, drift og ubeviste grenser
 
-Fryst runtimekilde060fe55f.389målrettede testtilfeller består. Modellens numeriske
-kjerne/fit/score/restore/schedule er uendret; throughput004 og mekanikk003 er
-COMPLETE_CONSUMED/exit0. Mekanikken matcher original modell/AdamW/RNG eksakt.
-Et ferskt uavbrutt WINDOW002 utførte2updates; separat WINDOW001 utførte1update.
-Deretter ble maskinen kontrollert ledig, fil-/katalog-fsync og filesystemsync utført,
-og Windows ble restartet668→669 med ny WSLboot. Alle102kritiske filer og10arkiverte
-hjelpere matchet etter boot. Ny engangsCONTINUE001 fra prefix1 utførte1ny update.
-Modell, AdamW, RNG, schedule/bindinger og stegrapporter er bitidentiske med
-uavbrutt2; eksakt uavhengig bevis er bundet i policy/readiness. Ingen levendeparent.
-Main bruker fersk initialmodell, aldri vekter fra kvalifiseringene.
+Fullaudit1402Pythonfiler/20251definisjoner/311888AST-kall/19693importsetninger
+og1731numeriske feltposter gjenbrukes.27fysiske featurearrays og helTRAINstatistikk
+var kontrollert.15058tester ble samlet/importert, ikke kjørt.389runtimefokustilfeller
+på uendret kode gjenbrukes; nye diagnosekontroller kommer i tillegg.73installerte
+pakker har fersk pipcheckPASS. Dette er ikke vendor-/revisjonsledger eller en
+atferdsgaranti for alle historiske funksjoner/indikatorer.
 
-Checkpoints publiseres bare etter fullført optimizersteg, hver256updates (~22PT,
-~2,1GB per fullpass), med immutable SHA/state/cursor/komplett stegprefiks-kvitteringer.
-Nye CONTINUE-planer bruker siste komplette receipt og egen engangsadmisjon;
-konsumert plan relanseres aldri. Tilstand etter siste komplette receipt ved hardkill
-forblir UNKNOWN. Trygg tidsgrensepause bevarer prefix; avbrutt sluttscoring må gjøres
-på nytt uten flereupdates. Originale checkpoints og terminaler beholdes.
+Retentions eier slettet35728523861logiske bytes (~35,7GB), ikke flere hundreGB.
+34441positive fysiske filer/94198463861bytes var bytekontrollert; øvrige UNKNOWN/
+MIXED/SEALED var ikke åpnet. Alle stier er inventert, men alle antatte670GB er
+ikke innholdsgodkjent. DATA/RUNS ryddes bare gjennom retention-eieren. Ingen ny
+sletting i denne gjennomgangen. FullauditSHA6c04063733befd2df4d4f12d82efa1d3a64e52f769b1f7ffb68ed63f151eaa69.
 
-Etter boot manglet aktiv telemetritransport igjen. Samme etablerte private
-portproxy38128→127.0.0.1:38127 ble reetablert, signert query bestod og ingen
-cert/brannmur/vaktgrense ble endret. Første wrapperforsøk ble avvist før CLAIM;
-faktisk CONTINUE utførte deretter eksakt én admisjon. Windowskommandoer kjøres
-med stdin=DEVNULL for å unngå at de konsumerer resten av SSH-scriptet.
-
-Bevisrot: `/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001`.
-Readiness: `MAIN003_READINESS001.json`; fullføring: `OVERNIGHT_GOAL_COMPLETION001.json`.
-Aktuelle eksakte SHA/referanser står i policy.
-
-## Gjeldende datasett, plan og effektivitet
-
-`NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003.json`, SHA
-20c964020752318c507957ec0b71645e419e023defd7275637cc85fd48b2b5fd.
-TRAIN2021–2025:354550issues, B64/5540updates, én kronologisk pass.
-Utviklings-VAL2026H1:34934issues. B256/equalTF-sluttscoring:1522forwards;
-samlet7062forwards.10800s ytre hardgrense, trygg pause før intern10770sgrense.
-Gjenopptakelsesruten gjelder en avbrutt epoke med ny engangsplan; denne epoken
-er ferdig. Ekstraepoker krever separat kvalifikasjon og ny eksakt plan.
-Native TEST fra01.07.2026 er forseglet og ikke lest. M1 er utelukket også indirekte.
-Alle genuine M5/lukketM15/H1/H4/D1-features, åttefamilier og D1/makro beholdes.
-GC/MBP er bevart separat. Ingen live/paper/broker/ordre/spending/promotion.
-
-Målt tidligere par: B64forward/backward uten AdamW1,12137→1,05918s; eval256rader
-2,11099→0,53442s. B64bitidentisk og B256 innen forhåndsbundet FP32-toleranse,
-eksakte tellinger/confusion/ties. Ingen robust full-AdamW-ETA eller globalt optimum
-hevdes. Fullinitial6086forwards gjenbrukes med autentisert kildebro, ingen nyfit.
-
-CPU i9-10900K har10fysiske kjerner/20logiske tråder; WSL eksponerer19vCPUer.
-Treneraffinity0–18, numeriskpool8,20GiBram/512MiBswap/128tasks. CPUboost0 beholdes
-som vedtatt stabilitetsprofil etter tidligere HyperV-krasj. CPU-packagewatt/temperatur
-kan ikke måles via etablert sensorrute; ingen CPU-termisk/wattstop hevdes.
-GPU RTX3090 har250Wfysiskcap. Uendrede GPUvakter:85Ccore/80Cmem,300Wcapgrense,
-310Wdrawgrense,12288MiBVRAMbruk/12GiBallocator. Ingen driver/boost/powerendring.
-
-## Målt kode-, input- og testdekning
-
-- Fullauditens snapshot av CURRENT:1402Pythonfiler,20251definisjoner,311888AST-kall,19693importsetninger.
-  Fullt originalinventar og komplette utskiftninger av sju endrede moduler er
-  bevart. Historiske/stored kildekopier er også inventert. Ingen manglende intern
-  import-/symbolkandidat ble funnet; installerte direkte avhengigheter og pipcheck
-  består. Optional/deferred OpenBB er ikke del av den aktive ruten og er ikke installert.
-- `FULL_NATIVE_NUMERIC001`: alle256felt på femTF og lokale ikke-makrofelt,
-  1609råfeltposter; alle27arrayheaders/bytebindinger og faktisk normaliserings-
-  aritmetikk/domener. Exit0,5078,675s,peakRSS2551732KiB.
-- `FULL_MACRO_NUMERIC001`: alle61makroformler i signal/kontekst,122feltposter/
-  47528638celler. Samlet1731råfeltposter er uavhengig kontrollert. Offentlige
-  kildecontainere ble eksplisitt helhashet også etter forseglingen; bare tidligere
-  kvalifiserte observasjoner/tilgjengelighet brukes til makroverdier. Ingen nativeTEST-fil.
-- `FROZEN_TRAIN_STATS003`: hele input-TRAIN/vindusunioner før målmasker, kvartiler/
-  skala, domener, kategorier og132aliaser består.1729centerbits er eksakte; ett
-  navngitt D1-center er numerisk likt +0/-0, dokumentert i `D1_STATS_DIAG001`.
-  Alle skala-/float64-ekstrembits er eksakte ved uendret faktisk lagret center.
-  Exit0,20,582s,peakRSS748472KiB. Ingen fit-API eller nye parametre.
-- Fersk initialbaseline med én modell/6086forwards og kvalifisert kald mekanikk
-  gjenbrukes. Ingen endret ONLINE-funksjon krever ny baseline. De tre uavhengige
-  input-/statistikkauditene konstruerte ingen modell/optimizer eller dekodet targets.
-- Målrettet testkvalifikasjon:544tilfeller,527uendredePASS og alle17rettede feil
-  består ved eksakt etterkontroll.170retention-tester består. Obligatoriske
-  pre-commit Entry-kontrakter består. Ingen unødvendig fullsuite-repetisjon.
-- Fullauditens testsamling:15058tilfeller samlet/importert med0feil. Ingen testkropper
-  i denne innsamlingen. Normale modell-/optimizer-/genuine-data-/nettverkskall var
-  sperret.18nektede operasjoner var egen kildeintrospeksjon/cachemkdir. Vakter er
-  prosesslokale trusted-code hooks, ikke OS-sandbox. Ikke kall dette15058kjørte tester.
-
-## Rettelser og opprydding
-
-Retention stanser nå nye dokumentreferanser også etter planlegging og før staged
-sletting. `docs/*.json` inngår i dokumentvernet; sikker gjenoppretting er bevart.
-Fire konsumerte GC-dokumenter pensjonerte eksplisitt scratch-lagringskrav med
-originale Git-/RUNS-bevis intakte; feilaktig PENDING-prosa er rettet.
-
-Fem frakoblede historiske workers og gammel fysisk V38-designkopi er fjernet
-fra CURRENT med Git-gjenoppretting. Ti ekte designlesinger i fem testmoduler bruker
-nå syntetiske fixtures i eksisterende eier. Gammel teacher-test fjernet feilaktig
-alle familienormer; den er korrekt avgrenset til hovedencoderens norm med streng
-Entry/Exit/state/RNG-paritet. Ingen produksjonsmodell eller toleranse er endret.
-
-Eieren fullførte eksakt plan→godkjenning→fersk dry-run→execute:8mål/22filer,
-35728523861logiske bytes,35728601088allokerte payloadbytes (+4096katalogbytes).
-WSL tilgjengelig plass økte35728494592bytes ved umiddelbar etterkontroll.
-Owner `DELETE_COMPLETE` SHA:
-`50ecbbf128efcf314a06c52b73784e54b640e07d0171606cf6d97f0a777a3635`.
-Beholdte TRAIN/VAL-kopier matcher forventet SHA også etter slettingen; nødvendig
-signalfil er lesbar/stabil. Rådata, øvrig GC/MBP og originale checkpoints beholdes.
-
-Ingen root-FD-tabell ble hoppet over. Bare slettetreets prosesser fikk midlertidig
-SYS_PTRACE+DAC_READ_SEARCH med alleUID-felt1000 før uendret capped-wrapper.
-Samme FD9-lås dev78/inode35,4GiB/512MiB/1tråd/64tasks og alle writer-/byte-/
-autoritets-/dokumentvakter bestod. Ingen filcap/kernel-/permissionendring; vanlig
-sesjon har effektive/ambient capabilities0. Windows-VHD er ikke komprimert.
-
-## Diskkontroll og ubeviste grenser
-
-Førsteinventar:217026oppføringer/403488735232unike allokerte filbytes over21røtter.
-Sluttinventar:217422oppføringer/368725549056bytes,0metadatafeil,ingen symlink-
-følging. Nye revisjonsbevis forklarer at nettoreduksjonen er mindre enn slettede
-payloadbytes; sluttinventarets egne arkivkopier/sluttkvitteringer ble skrevet etter
-snapshot. Alle22manglende DATA/RUNS-filer er eksakt eieravstemt; øvrige6manglende
-kilder er de Git-gjenopprettbare pensjoneringene. VHD og WSL skal ikke dobbelttelles.
-
-`PRESEAL_BYTE_AUDIT002` bestod34441fysiske filer/94198463861logiske bytes på255,225s.
-81513799539bytes matcher opprinnelig forventet SHA;12684664322bytes har kun fersk
-stabil checksum/lesbarhet.0bytefeil/arraydekodere/modeller/fit/nativeTEST-lesinger.
-ALLE opprinnelige filstier og nye tilføyelser er metadataført; positive fysiske
-aliaser er kvalifisert sammen. UNKNOWN/MIXED/SEALED/øvrige ukvalifiserte payloads
-ble ikke åpnet. Regel106/764/812 tillater heller ikke blindhash av nativeTEST.
-Dermed er ikke alle403GB eller antatte670GB innholdsgodkjent.
-
-AST/ruting er ikke full atferdsgaranti for alle historiske funksjoner. Full
-vendor-/revisjonsledger, per-felt gradient/nytte og blanket numerikk for utsatt GC/
-historiske flater er ikke bevist.0,3ATR er nettoendringsproxy, ikke bevist rolig
-prisbane/økonomisk FLAT. Juni2026 er gjenbrukt utvikling. TRAIN-fit, senere
-generalisering, referanseverdi og realisert økonomi holdes adskilt. Edge/profitt er
-fortsatt ubevist. Teknisk beredskap betyr ikke bedre handelsbeslutninger.
-
-Aktuell diagnoseadmisjon: `NATIVE_M5_TA_CURRENT_COOPERATION_GRADIENT_20261121_001`,
-planSHA9c8229417e175abcd9eea4e31ab6c3147b64153c32f7fcc91a413e7e0cc8b8f2.
-20kildevalgte kvartalspaneler×16TRAINrader,1CPUmodell/20forwards/60autograd,
-0optimizer/updates/norm-/priorfits.12GiB/512MiB/1tråd/64tasks,870s intern/900s ytre.
-Dette analyserer dagens5TF-referanse og valgte mål, ingen nyframtids-/M30-kandidat.
-Alle treningsporter forblir stengt; kilde/policy fryses gjennom diagnosen.
+CPU i9-10900K:10fysiske/20logiske,19WSLvCPUer. Treneraffinity0–18/numeriskpool8,
+20GiB/512MiB/128tasks; CPUdiagnose12GiB/512MiB/1tråd/64tasks. CPUboost0 beholdes.
+CPU-packagewatt/temperatur mangler etablert måling; CPU-termisk/wattstop hevdes ikke.
+GPU250Wcap; uendrede vakter85Ccore/80Cmem/300Wcapgrense/310Wdraw/12288MiBbruk.
+Mainens5682samples hadde topper67C/74C/231,6W/7488MiB. Signert telemetri/guards
+og atomisk no-replace+fil/katalog-fsync beholdes. Ingen driver-/effekt-/boostendring.
+GC/MBP er beholdt og utsatt. Senere Entry direct-Q-v3 er design, ikke kvalifisert
+implementasjon; historisk Huber-v2 er ikke bevist forventet verdi. Exit/økonomi
+og per-familie-/TF-nytte er fortsatt ukvalifisert. Teknisk PASS er ikke profitt.

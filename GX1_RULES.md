@@ -1,4 +1,4 @@
-# GX1-regler — bindende for alle agenter (mål senest presisert 06.11.2026)
+# GX1-regler — bindende for alle agenter (mål senest presisert 21.11.2026)
 
 Originalbestillingen er bevart ordrett i
 [docs/ORIGINAL_PROJECT_GOAL.md](docs/ORIGINAL_PROJECT_GOAL.md).
@@ -17,7 +17,8 @@ arkivfiler på disk er aldri kjøreautoritet.
 
 ## Varig prosjektmål og arbeidsmåte
 
-Siste målpresisering19.11 nedenfor styrer den aktive prognosefasen;
+Operatørpresiseringen21.11 om M5-hovedklokke, nyttig samarbeid og neste
+helt framtidige TF-bar/tilstand styrer den aktive prognosefasen.
 01.11-definisjonen av markedstilstand består. Eldre daterte beskrivelser
 er bakgrunn der de er avløst.
 
@@ -56,6 +57,18 @@ EMA/ATR og øvrige genuine felt bevares. Barenes slutt er observasjonsklokke;
 high/low og prisforløpets form skal ikke reduseres til bare sluttfortegn.
 Modellen skal lære betinget betydning av kombinasjonene, ikke håndskrevne stemmer
 eller et krav om at alle TF peker samme vei. Kildekobling alene beviser ikke nytte.
+
+Operatøren avklarte at dette gjelder samtlige TF: hver tidsramme skal bruke
+sine genuine indikator-/OHLC-/chart-/nivåfamilier til å vurdere neste helt
+framtidige bar/tilstand, slik M5 må vurdere den kommende M5-baren. M5 er
+hovedklokke, ikke eneste meningsfulle læringsoppgave. Neste fullt framtidige
+TF-bar har nominell start ved eller etter utstedelsen; pågående bars observerte
+utvikling beholdes som kausal kontekst. Eksakte mål-/tilstands-/dekningsmasker
+må bindes før ny fit, uten å ommerke gamle barfakta eller NEUTRAL_NET til FLAT.
+M30 er en ønsket ekstra strøm som skal vurderes ved siden av M15. Den aktive
+kjørte modellen har M5/M15/H1/H4/D1; M30 er ikke allerede implementert.
+Utvidelsen krever egen sammenhengende data-/modell-/mål-/normaliseringsidentitet
+og målt nytte; ingen vinduslengde, oppgavevekt eller merverdi antas.
 
 Beste shared-gradientopplegg må kvalifiseres på faktisk gjeldende oppgave.
 Dagens M5-primary-rute beholdes som referanse inntil en konkret kandidat er

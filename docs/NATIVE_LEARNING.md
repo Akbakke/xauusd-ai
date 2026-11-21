@@ -158,7 +158,13 @@ eller den avløste ATR-/intrabarfasiten i det aktive retningsarbeidet.
 
 Beslutningstakt, prognoseskala og senere holdetid er forskjellige begreper.
 M5 er hovedklokke; høyere TF og alle åtte familier støtter forståelsen av
-korte og lange forløp. Lukkede OHLC-baserte geometrier/relasjoner bevarer
+korte og lange forløp. Hver TF har en reell framtidsoppgave; M5-klokken
+innebærer ikke at bare M5 skal lære eller at høyere TF alltid skal være enige.
+Operatørvalget er neste helt framtidige TF-bar/tilstand: nominell barstart ved
+eller etter utstedelsen. Pågående barprogresjon er input-/referansekontekst,
+ikke bevis for å ha forutsett en helt ukjent bar. Eksakt observasjon, modenhet,
+lokal aktivitet og kjent/ukjent side bindes i samme target/output/loss/score.
+ Lukkede OHLC-baserte geometrier/relasjoner bevarer
 kropp, veker, avvisning, brudd, retest, trend og mønsterkontekst. Ingen navngitt
 candle-klasse trenger et eget supervisert hode bare fordi den er en inputform.
 OHLC alene beviser ikke high/low-rekkefølge inne i samme bar.
@@ -184,6 +190,24 @@ prior/score, fersk initialbaseline når funksjonen endres og ekte gradient-/
 resume-kontroll. Nyttig samarbeid vurderes på primær framtidig retningskvalitet
 og de deklarerte øvrige skalaene, ikke store attentionvekter eller hvor ofte
 TF-ene er enige. TEST og alle modell-/treningsporter består.
+
+### M30 og kontrollerte videre steg
+
+M30 vurderes som sjette strøm sammen med beholdt M15. Det er en ny identitet,
+ikke bare et nytt navn i en TF-liste: clocks, faktisk nativeM5-resampling,
+varmehistorikk, familieflater, vinduer, TRAIN-kalibrering/normalisering, modell-
+geometri, hoder, mål, score og cache må stemme. Eksisterende stats gjenbrukes
+bare der identisk fysisk TRAIN-populasjon bevises. Ingen M30-vinduslengde eller
+kost/nytte gjettes; verdiene bindes fra målt datadekning og kapasitet.
+Nye prediktive celler endrer Ntotal selv når hjelpehoder er detached.
+
+Kvalifiser ny framtidssemantikk på den eksisterende fem-TF-referansen før en
+rutingseffekt vurderes. Isoler deretter én kontrollert delt-gradientkandidat
+med samme input/initial/mål/masker/stats/prior/schedule/budsjett. M30s ekstra
+informasjonsverdi krever en egen sammenligning med fast framtidssemantikk;
+endrede mål og ekstraTF må ikke blandes til en udokumentert årsaksforklaring.
+Oppgaver kan være legitime og likevel ha ulike retninger. Gradientnorm eller
+et enkelt checkpoints cosinus gir ingen automatisk taskvekt/optimal algoritme.
 
 ## Kort native barretnings-fit
 
@@ -270,8 +294,8 @@ Ved nullnorm er cosinus udefinert. Modell/statistikk/RNG/.grad=None skal
 bevares; ingen optimizer opprettes. Egen eksakt CPU-produceradmisjon,
 kilde-/checkpointporter og intern tidsgrense kreves med alle treningsporter stengt.
 
-Den målte shared-gradientkonflikten begrunner én eksplisitt, valgfri
-M5-close-primary kandidat: bare M5-close-headen mottar attached hidden,
+En tidligere, avgrenset råbar-gradientkonflikt begrunnet én eksplisitt, valgfri
+M5-close-primary referanse; dette er ingen generell dom over dagens oppgave: bare M5-close-headen mottar attached hidden,
 øvrige ni hoder mottar detached hidden. Alle hoder lærer fortsatt egne
 parametre; alle features, TF, mål, masker, tapsledd og native Ntotal beholdes.
 Dette endrer gradientruting, ikke klassevekter eller forwardverdier ved like

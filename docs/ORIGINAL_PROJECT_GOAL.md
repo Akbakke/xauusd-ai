@@ -19,6 +19,9 @@ Mål: lage en fullautomatisk tradingbot mot xauusd. Vi skal handle på M5 timefr
   kausalt lukket M15/H1/H4/D1 og alle åtte familier samt D1/makro skal støtte
   nyttig framtidig prognose. Scalp/intradag/swing er senere anvendelser av
   lærte muligheter; beslutningstakt er ingen fast holdetidsgrense.
+- Hver TF skal bedømme neste helt framtidige bar/tilstand med de samme genuine
+  familiene. M30 vurderes som en ekstra strøm ved siden av M15; dagens kjørte
+  profil har fortsatt bare M5/M15/H1/H4/D1. Ingen numeriske taskvekter er valgt.
 - M1 brukes bare i senere hands-on-analyse/oppfølging av en allerede åpen handel.
   Retningsinputs, fasit, akser, masker, prior, normalisering og utvalg bruker
   native M5 eller høyere, aldri M1 eller gamle M1-avledede artefakter.
