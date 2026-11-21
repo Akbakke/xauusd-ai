@@ -50,6 +50,57 @@ gjenbrukt, uavhengig generalisering og økonomisk edge er fortsatt ubevist.
 sluttreview gjenbruker produsentens PT-SHA/stateproof og leser bare PT-metadata.
 Checkpoint1 fra restartprøven er derimot helhashet før/etter reboot.
 
+### Retningsskjevhet: faktisk opp/ned målt
+
+Ny diagnose av lagrede INITIAL/FINAL-captures og frosset TRAIN-prior:
+0modell/forwards/updates, ingen fit/terskel-/klassekvoteendring. Alle54capturefelt,
+kilde-/tidsakser og sannhetsarrays er kontrollert. Originale nativeINITIAL- og
+FINAL-scorer reproduseres eksakt på begge splitter. AUC-matematikk gjenbrukes fra
+eksisterende ren eier; orientering/ties/konstantprior/tom/enklasse er selvtestet.
+
+Betinget retning er P(UP)/(P(DOWN)+P(UP)), skåret bare der framtidig fasit faktisk
+er DOWN/UP. Dette er diagnostikk, ikke en handelsregel eller et kjent-livefilter.
+M5closeAUC TRAIN0,5201/VAL0,5294. Brier TRAIN0,249962prior→0,250125modell
+(forverring); VAL0,249982→0,249567 (svak forbedring). Alle6VALmåneder har
+AUC0,5243–0,5379; juni har likevel dårligere Brier enn prior. Omtrent95%av
+M5VALs forbedrede treklasse-logloss kommer fra aktivitet/nøytral, bare5%fra side.
+
+På VAL er fasit DOWN/NEUTRAL/UP=10238/14270/10425, modellargmax32/26894/8007.
+Gjennomsnittlig sannsynlighetsmasse er28,49%DOWN/40,29%nøytral/31,22%UP;
+DOWN har altså masse selv om den svært sjelden vinner. Betinget UP-probabilitet
+er52,31% mot faktisk50,45%: UP-skjevhet og svak separasjon, ikke en svært
+UP-tung fasit. Ingen klasseindeks-/maskefeil er påvist.
+
+### Høyere TF: tidligere sterkt samlet tall krever innsnevring
+
+Fasit er nesteTF-bars slutt relativt til forrigeTF-slutt. Når prognosen utstedes
+inne i målbaren, kan deler av denne nettoendringen allerede være observert.
+Dette er tillatt innen dagens kontrakt, men samletAUC er ikke bevis for prognose
+av en helt ukjent bar eller ny prisbevegelse fra utstedelsen.
+
+| Close-retning på utviklings-VAL | Alle utstedelser AUC | En hel nominell TF fram AUC | 5min før slutt AUC |
+|---|---:|---:|---:|
+| M5 | 0,5294 | 0,5300 (n20549) | 0,5300 |
+| M15 | 0,7230 | 0,4743 (n6621) | 0,8944 |
+| H1 | 0,8013 | 0,4776 (n1557) | 0,8899 |
+| H4 | 0,7330 | 0,4718 (n368) | 0,8064 |
+
+TRAIN viser samme tydelige tidsavhengighet. Full-TF-Brier på M15/H1/H4 er også
+verre enn frosset prior. Alle faktiske ledetider er bokført, ikke valgt bort;
+nominell TF-varighet hentes fra native målkontrakt. Native gap/delvise kilder
+beholdes. D1fullTF har bare24retningsutfall på VAL (AUC0,5), for lite til sterk dom.
+
+Det finnes et svakt M5-rangeringssignal og lært gjenkjenning av delvis observert
+høyereTF-tilstand. Robust retningsverdi er ikke bevist. Hovedspørsmålet før flere
+epoker/tapsendringer er en kausal kjent-pris-/persistensreferanse og eksplisitt
+kontroll av ukjent bevegelse fra utstedelsen. Disse er ikke målt av denne analysen.
+Ingen automatisk nyfit, målomskriving, kontrollutvalg eller TEST-adgang åpnes.
+
+Bevis: `DIRECTION_BIAS_REVIEW001.json`, `DIRECTION_LEAD_REVIEW001.json` og
+`DIRECTION_FINDINGS001.json` i samme kvitteringsrot, eksakte bindinger i policy.
+CPUdiagnostikkene tok10,41s/3,50s, maksRSS1113056/633376KiB. Ingen original
+modell-/mål-/treningskilde eller gamle kvitteringer er endret.
+
 ## Praktisk gjenopptakelse og lagring
 
 Fryst runtimekilde060fe55f.389målrettede testtilfeller består. Modellens numeriske
@@ -87,7 +138,8 @@ Aktuelle eksakte SHA/referanser står i policy.
 TRAIN2021–2025:354550issues, B64/5540updates, én kronologisk pass.
 Utviklings-VAL2026H1:34934issues. B256/equalTF-sluttscoring:1522forwards;
 samlet7062forwards.10800s ytre hardgrense, trygg pause før intern10770sgrense.
-Eventuell fortsettelse er samme epoke og krever ny engangsplan; ingen ny initialfit.
+Gjenopptakelsesruten gjelder en avbrutt epoke med ny engangsplan; denne epoken
+er ferdig. Ekstraepoker krever separat kvalifikasjon og ny eksakt plan.
 Native TEST fra01.07.2026 er forseglet og ikke lest. M1 er utelukket også indirekte.
 Alle genuine M5/lukketM15/H1/H4/D1-features, åttefamilier og D1/makro beholdes.
 GC/MBP er bevart separat. Ingen live/paper/broker/ordre/spending/promotion.
