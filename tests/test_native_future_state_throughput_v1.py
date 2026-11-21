@@ -15,13 +15,13 @@ def binding(name='plan.json'):
 
 
 def test_frozen_schedule_counts_are_actual_forward_and_backward_geometry():
-    parity=sum(384//b for b in (64,96,128))
-    train=3+sum(384//b for b in o.TRAIN_ORDER)
+    parity=sum(384//b for b in (64,96))
+    train=2+sum(384//b for b in o.TRAIN_ORDER)
     evaluate=2+sum((384+b-1)//b for b in o.EVAL_ORDER)
-    assert (parity,train,evaluate)==(13,29,18)
-    assert o.LIMITS['model_forwards']==o.LIMITS['backbone_forwards']==60==parity+train+evaluate
-    assert o.LIMITS['backward_calls']==42==parity+train and o.LIMITS['gradient_clip_calls']==29
-    assert o.LIMITS['measurement_writes']==14 and o.LIMITS['allocator_boundary_calls']==18
+    assert (parity,train,evaluate)==(10,22,18)
+    assert o.LIMITS['model_forwards']==o.LIMITS['backbone_forwards']==50==parity+train+evaluate
+    assert o.LIMITS['backward_calls']==32==parity+train and o.LIMITS['gradient_clip_calls']==22
+    assert o.LIMITS['measurement_writes']==11 and o.LIMITS['allocator_boundary_calls']==14
     assert all(o.LIMITS[k]==0 for k in ('optimizer_steps','normalization_fits','prior_fits','autograd_calls','CONTROL_rows_scored','TEST_rows'))
     assert o.LIMITS['checkpoint_loads']==o.LIMITS['model_state_restores']==1
 
@@ -70,7 +70,7 @@ def test_first384_is_input_chronology_only():
 
 def test_selection_uses_only_two_completed_fixed_passes_and_throughput():
     records=[]
-    for b,seconds in ((64,2.),(96,1.),(128,1.5)):
+    for b,seconds in ((64,2.),(96,1.)):
         records.extend([{'mode':'train','batch_rows':b,'rows':384,'wall_seconds':seconds,
             'completed_under_limits':True,'fake_accuracy':0. if b==96 else 1.}for _ in range(2)])
     records.append({'mode':'train','batch_rows':256,'rows':384,'wall_seconds':.001,'completed_under_limits':False})
@@ -165,13 +165,13 @@ def _tiny_context(monkeypatch):
 def test_actual_tiny_eval_grad_cross_batch_parity_is_nonvacuous_and_read_only(monkeypatch):
     model,context,rng=_tiny_context(monkeypatch);before=o.c.state_sha(model.state_dict());counts=dict.fromkeys(o.LIMITS,0)
     reference=None;support=None
-    for batch in (64,96,128):
+    for batch in (64,96):
         record,arrays,grads=o._cohort(model,context,context['rows'],batch,'parity',counts,rng)
         if reference is None:reference=(arrays,grads);support=record['support']
         assert o.compare_arrays(reference[0],arrays)
         assert o.compare_gradients(reference[1],grads)['all_qualified']
         assert record['support']==support and record['global_known_activity_cells']==1920
-    assert counts['backward_calls']==13 and counts['gradient_clip_calls']==0
+    assert counts['backward_calls']==10 and counts['gradient_clip_calls']==0
     assert o.c.state_sha(model.state_dict())==before and all(p.grad is None for p in model.parameters())
     assert o.c.state_sha(o.c.future_cpu_rng())==o.c.state_sha(rng)
 
@@ -210,7 +210,7 @@ def test_preclaim_rejection_leaves_no_claim_or_output(monkeypatch,tmp_path):
 def test_OOM_failure_consumes_once_preserves_completed_measurement_and_resets_timer(monkeypatch,tmp_path):
     root,plan,pr=_run_fixture(monkeypatch,tmp_path);calls=[]
     def fail(plan,pr,counts,artifacts,progress):
-        calls.append(True);progress['stage']='parity_B128';counts['model_forwards']=1
+        calls.append(True);progress['stage']='parity_B96';counts['model_forwards']=1
         artifacts.append(o.publish('EVAL_B64_PASS001.json',{'completed':'synthetic'}))
         raise torch.cuda.OutOfMemoryError('synthetic allocation rejection')
     monkeypatch.setattr(o,'physical',fail)
@@ -218,7 +218,7 @@ def test_OOM_failure_consumes_once_preserves_completed_measurement_and_resets_ti
     terminal=json.loads((root/'TERMINAL.json').read_text())
     assert calls==[True]and terminal['status']=='FAILED_CONSUMED'and terminal['remaining_invocations']==0
     assert terminal['relaunch_allowed']is False and terminal['training_authorized']is False
-    assert terminal['failed_stage']=='parity_B128'and len(terminal['completed_measurements'])==1
+    assert terminal['failed_stage']=='parity_B96'and len(terminal['completed_measurements'])==1
     assert (root/'CLAIM.json').is_file()and (root/'EVAL_B64_PASS001.json').is_file()and not(root/'RESULT.json').exists()
     assert o.signal.getitimer(o.signal.ITIMER_REAL)==(0.,0.)
 
@@ -237,10 +237,10 @@ def test_cli_metadata_preflight_is_fixed_and_never_decodes(monkeypatch,capsys):
 def _consumer_fixture(monkeypatch):
     report={'counts':dict(o.LIMITS),'optimizer_steps':0,'whole_TRAIN_INITIAL_replaced':False,
         'production_recipe_selected':False,'selection_criterion':'max_observed_rows_per_second_qualified_under_limits_only',
-        'allocator_policy':'allocator_cold_at_measurement_phase_boundary','allocator_boundaries':[{}for _ in range(18)],
-        'timing_excludes_allocator_cleanup':True}
+        'allocator_policy':'allocator_cold_at_measurement_phase_boundary','allocator_boundaries':[{}for _ in range(14)],
+        'timing_excludes_allocator_cleanup':True,'unqualified_training_batch_rows':[128],'B128_production_candidate':False}
     table={};plan={'stage':o.STAGE,'limits':dict(o.LIMITS),'metadata':{'function':{'same':'current'},'source_bridge':{},'runtime':{}}}
-    for mode,batches in (('train',(64,96,128)),('eval',(64,256))):
+    for mode,batches in (('train',(64,96)),('eval',(64,256))):
         report[mode]={}
         for batch in batches:
             seconds=2. if batch==64 else 1.;refs=[]
@@ -266,16 +266,16 @@ def test_JSON_only_consumer_validates_zero_updates_all_configs_roles_and_parity(
     assert result['train_batch_rows']==96 and result['eval_batch_rows']==256
     report['optimizer_steps']=1
     with pytest.raises(ValueError,match='ZERO_UPDATE'):o.require_throughput_result(binding(),binding())
-    report['optimizer_steps']=0;table['/synthetic/train128_proof.json']['gradients']['all_qualified']=False
+    report['optimizer_steps']=0;table['/synthetic/train96_proof.json']['gradients']['all_qualified']=False
     with pytest.raises(ValueError,match='TRAIN_PARITY'):o.require_throughput_result(binding(),binding())
 
 
-def test_fixed002_allocator_policy_is_postclaim_and_outside_measurement_timer():
+def test_fixed003_allocator_policy_is_postclaim_and_outside_measurement_timer():
     import ast
     source=Path(o.__file__).read_text();tree=ast.parse(source)
-    assert o.STAGE.endswith('_002')and o.GATE=='throughput_002'
-    assert o.PLAN.name=='NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002.json'
-    assert o.ROOT.name=='NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002'
+    assert o.STAGE.endswith('_003')and o.GATE=='throughput_003'
+    assert o.PLAN.name=='NATIVE_FUTURE_STATE_THROUGHPUT_20261121_003.json'
+    assert o.ROOT.name=='NATIVE_FUTURE_STATE_THROUGHPUT_20261121_003'
     assert len(o.SOURCE_PATHS)==64
     assert 'gx1/audit/native_future_state_training_v1.py'in o.SOURCE_PATHS
     physical=next(n for n in tree.body if isinstance(n,ast.FunctionDef)and n.name=='physical')
@@ -283,6 +283,26 @@ def test_fixed002_allocator_policy_is_postclaim_and_outside_measurement_timer():
     calls=[n for n in ast.walk(measure)if isinstance(n,ast.Call)]
     release=next(n for n in calls if isinstance(n.func,ast.Name)and n.func.id=='release_phase_allocator_cache')
     cohort=next(n for n in calls if isinstance(n.func,ast.Name)and n.func.id=='_cohort')
-    assert release.lineno<cohort.lineno
+    diagnostic=next(n for n in calls if isinstance(n.func,ast.Name)and n.func.id=='print')
+    assert release.lineno<diagnostic.lineno<cohort.lineno
+    assert any(k.arg=='flush'and isinstance(k.value,ast.Constant)and k.value.value is True for k in diagnostic.keywords)
     assert not any(isinstance(n,ast.ImportFrom)and n.module=='gx1.audit.native_future_state_training_v1'for n in tree.body)
     assert not any(isinstance(n,ast.Call)and isinstance(n.func,ast.Attribute)and n.func.attr in('empty_cache','reset_peak_memory_stats')for n in ast.walk(tree))
+
+
+def test_003_rejects_old_B128_candidate_scope_before_forward(monkeypatch):
+    monkeypatch.setattr(o.c,'restore_training_rng',lambda *a:pytest.fail('old scope reached CUDA/RNG phase'))
+    with pytest.raises(ValueError,match='MEASUREMENT_GEOMETRY'):
+        o._cohort(None,None,None,128,'train',{},None)
+    records=[{'mode':'train','batch_rows':128,'rows':384,'wall_seconds':1.,'completed_under_limits':True}]*2
+    with pytest.raises(ValueError,match='CANDIDATE_SCOPE'):o.select_fastest(records,'train')
+    monkeypatch.setattr(o.c,'publish',lambda *a:pytest.fail('old scope output was published'))
+    for name in ('TRAIN_B128_PASS001.json','BATCH_PARITY_B128.json'):
+        with pytest.raises(ValueError,match='OUTPUT_NAME'):o.publish(name,{})
+
+
+def test_003_consumer_rejects_old_three_training_candidates(monkeypatch):
+    report,table=_consumer_fixture(monkeypatch)
+    report['train']['128']=copy.deepcopy(report['train']['96'])
+    with pytest.raises(ValueError,match='COMPLETE_CANDIDATES'):
+        o.require_throughput_result(binding('result.json'),binding('terminal.json'))

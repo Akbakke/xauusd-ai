@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FUTURE_STATE_READINESS_MEMORY002_QUALIFIED_GPU_PENDING",
+  "status": "FUTURE_STATE_READINESS_THROUGHPUT003_CODE_QUALIFIED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -4797,7 +4797,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Commit exact unused-cache phase fix; newruntime003 and exact throughput002. Reuse COMPLETE cohort20727/oneSCprior. Pairedlearning/cold/physicalrecovery still pending; no mainfit.",
+    "current_activity": "One-use zero-update throughput002 with symmetric unused-cache phase release; all5globaltrainingflagsFALSE. Source/policy frozen until terminal.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -4850,7 +4850,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Zero-update benchmark001 stopped by signed GPU totalmemory guard12594MiB>12288MiB; native terminal absent, partial outputs not admission authority. No guard widening.",
+    "current_blocker": "Controlled allocator-cold throughput002 still stopped by GPU12618MiB>12288; no qualified throughput yet.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/CHECKPOINT_POSTBOOT_INTEGRITY001.json",
       "sha256": "284e922f1bbd1744cd6635f2085c59814930735813c22ccd532437d8ce327430"
@@ -12321,7 +12321,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Commit exact unused-cache phase fix; newruntime003 and exact throughput002. Reuse COMPLETE cohort20727/oneSCprior. Pairedlearning/cold/physicalrecovery still pending; no mainfit.",
+    "next_action": "Publish sourcefix; fresh runtime004 and exactthroughput003 preflight/admission. Reuse completedcohort001; no mainfit.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -25610,7 +25610,7 @@
         "new_model_calls": 0
       }
     },
-    "status": "FUTURE_STATE_READINESS_MEMORY002_QUALIFIED_GPU_PENDING",
+    "status": "FUTURE_STATE_READINESS_THROUGHPUT003_CODE_QUALIFIED",
     "observed_utc": "2026-11-20T10:53:12.769451+00:00",
     "current_observation_stage": "native_future_state_qualification_20261121_001",
     "current_observation_plan": {
@@ -97155,7 +97155,7 @@
     }
   },
   "native_future_state_train_readiness_20261121_001": {
-    "status": "ACTIVE_MEMORY002_SOURCE_QUALIFIED_THROUGHPUT_PENDING",
+    "status": "ACTIVE_THROUGHPUT003_CODE_QUALIFIED",
     "goal_status": "ACTIVE",
     "goal_thread_id": "01a1f98c-5097-7d23-b0ca-ac7eb14a82f3",
     "goal_created_at": 1795274470,
@@ -97177,7 +97177,7 @@
       "incremental_project_dependency_and_consumer_review": "CHANGED_SOURCE_AND_DIRECT_NEIGHBORS_REVIEWED_CONCRETE_DEFECTS_FIXED_237_FOCUSED_CASES_COVERED",
       "frozen_starting_line_plan": "NOT_PREPARED_NOT_ADMITTED"
     },
-    "next": "Commit exact unused-cache phase fix; newruntime003 and exact throughput002. Reuse COMPLETE cohort20727/oneSCprior. Pairedlearning/cold/physicalrecovery still pending; no mainfit.",
+    "next": "Publish sourcefix; fresh runtime004 and exactthroughput003 preflight/admission. Reuse completedcohort001; no mainfit.",
     "observed_blockers": [
       {
         "id": "COT_2023_DELAY_CALENDAR_MISSING",
@@ -97508,8 +97508,8 @@
       "sha256": "1477a7dba39eda927596f94e078829987656c319cf64fe687a405d07a4bd8c41"
     },
     "current_runtime_proof": {
-      "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/RUNTIME_PROOF002.json",
-      "sha256": "a32857dffbf19f1ef7821b131ec7192749533baf021cb1c12fe23145773ab34d"
+      "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/RUNTIME_PROOF003.json",
+      "sha256": "a931bb5b3c958f3ad26933c18a2e8ccfd67e69b679e0517dbb0516e7577ecf62"
     },
     "cuda_mechanics_code_preflight": {
       "status": "EXACT_CAPPED_COMMAND_EXIT0_NO_MODEL_NO_CLAIM",
@@ -97795,6 +97795,103 @@
     "replay_preflight_source_qualification": {
       "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/REPLAY_PREFLIGHT_SOURCE_QUALIFICATION004.json",
       "sha256": "47cffa672d8a9c2aef818352b993f31632a6034a88e2d9768c87056ebefedd8f"
+    },
+    "throughput_002": {
+      "status": "FAILED_CONSUMED_GPU_MEMORY_GUARD",
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002.json",
+        "sha256": "e148206dd80760284adb2858ced60fd89ebb597fe28d47c84a27f4b1d862024c"
+      },
+      "output_root": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002",
+      "execution": {
+        "class": "trainer",
+        "device": "cuda",
+        "memory": "20G",
+        "swap": "512M",
+        "tasks_max": 128,
+        "numerical_threads": 8,
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "outer_seconds": 1800,
+        "internal_seconds": 1770,
+        "kill_after_seconds": 10,
+        "cuda_peak_reserved_bytes_max": 12884901888,
+        "power_limit_W": 300,
+        "power_draw_stop_W": 310,
+        "GPU_core_stop_C": 85,
+        "GPU_memory_stop_C": 80
+      },
+      "limits": {
+        "model_constructions": 1,
+        "optimizer_constructions": 1,
+        "checkpoint_loads": 1,
+        "model_state_restores": 1,
+        "model_forwards": 60,
+        "backbone_forwards": 60,
+        "backward_calls": 42,
+        "autograd_calls": 0,
+        "gradient_clip_calls": 29,
+        "optimizer_steps": 0,
+        "normalization_fits": 0,
+        "prior_fits": 0,
+        "feature_cache_payload_loads": 1,
+        "target_archive_loads": 1,
+        "truth_fields_decoded": 12,
+        "measurement_writes": 14,
+        "allocator_boundary_calls": 18,
+        "CONTROL_rows_scored": 0,
+        "TEST_rows": 0
+      },
+      "execution_authorized": false,
+      "max_invocations": 1,
+      "claimed_invocations": 1,
+      "completed_invocations": 0,
+      "remaining_invocations": 0,
+      "relaunch_allowed": false,
+      "training_authorized": false,
+      "test_authorized": false,
+      "failed_invocations": 1,
+      "external_terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002/EXTERNAL_TERMINAL002.json",
+        "sha256": "2884d2114273a262dc0e276e7eefc3a65580ebe32290894d34455227a90bb5aa"
+      }
+    },
+    "throughput_preflight_002": {
+      "log": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/THROUGHPUT_CAPPED_PREFLIGHT002.log",
+        "sha256": "2a9aa25321607b5fdf6913fa1803e28231f2bfcdcf36b199b78bf04184f058b7"
+      },
+      "stdio": {
+        "path": "/home/andre2/GX1_RUNS/.NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002.trainer.QnZsAvEr.log",
+        "sha256": "04572af89aa61295da1ec3a5bfef50876208b306afd0f17a72b2ee7e6773963f"
+      },
+      "claim_created": false,
+      "cached_values_decoded": 0,
+      "target_values_decoded": 0,
+      "cuda_initialized": false
+    },
+    "throughput_source_qualification_003": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/THROUGHPUT_SOURCE_QUALIFICATION003.json",
+      "sha256": "650e68a43a37369c262fb376b2894865667f3d4eb26d7a884f14be2f90d462b4"
     }
   }
 }

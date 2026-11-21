@@ -18,11 +18,11 @@ from gx1.audit import qualify_native_m5_full_gc_direction_v1 as c
 
 REPO=c.REPO
 POLICY=c.POLICY
-STAGE='native_future_state_throughput_20261121_002'
+STAGE='native_future_state_throughput_20261121_003'
 PARENT='native_future_state_train_readiness_20261121_001'
-GATE='throughput_002'
-PLAN=REPO/'configs/research/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002.json'
-ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002')
+GATE='throughput_003'
+PLAN=REPO/'configs/research/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_003.json'
+ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_003')
 INITIAL=Path('/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CUDA_INITIAL_20261121_001')
 DONOR=Path('/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CUDA_MECHANICS_20261121_001/continuous')
 PRODUCER_COMMIT='c1cd096cfde51719bb1ba5bbd9036864526081df'
@@ -38,11 +38,11 @@ FIXED_INPUTS={
     'mechanics_terminal':{'path':str(DONOR/'TERMINAL.json'),'sha256':'758e475bdfa83f9a9ef0b426c042916db5b2ae4f8139348702395cb36a7a6b52'}}
 EXECUTION=c.future_cuda_execution('mechanics')
 LIMITS={'model_constructions':1,'optimizer_constructions':1,'checkpoint_loads':1,'model_state_restores':1,
-    'model_forwards':60,'backbone_forwards':60,'backward_calls':42,'autograd_calls':0,
-    'gradient_clip_calls':29,'optimizer_steps':0,'normalization_fits':0,'prior_fits':0,
+    'model_forwards':50,'backbone_forwards':50,'backward_calls':32,'autograd_calls':0,
+    'gradient_clip_calls':22,'optimizer_steps':0,'normalization_fits':0,'prior_fits':0,
     'feature_cache_payload_loads':1,'target_archive_loads':1,'truth_fields_decoded':12,
-    'measurement_writes':14,'allocator_boundary_calls':18,'CONTROL_rows_scored':0,'TEST_rows':0}
-TRAIN_ORDER=(64,96,128,128,96,64)
+    'measurement_writes':11,'allocator_boundary_calls':14,'CONTROL_rows_scored':0,'TEST_rows':0}
+TRAIN_ORDER=(64,96,96,64)
 EVAL_ORDER=(64,256,256,64)
 
 
@@ -120,14 +120,15 @@ def build_plan(*,inputs,source_base_commit=None):
         'status':'PREPARED_NOT_ADMITTED','output_root':str(ROOT),'source_base_commit':head,
         'source_owners':{name:c.sha(REPO/name)for name in SOURCE_PATHS},'inputs':inputs,'metadata':meta,
         'execution':EXECUTION,'limits':LIMITS,'recipe':recipe,
-        'TRAIN_rows':384,'TRAIN_batch_candidates':[64,96,128],'EVAL_batch_candidates':[64,256],
+        'TRAIN_rows':384,'TRAIN_batch_candidates':[64,96],'EVAL_batch_candidates':[64,256],
         'TRAIN_timing_order':list(TRAIN_ORDER),'EVAL_timing_order':list(EVAL_ORDER),
         'warmup_batches_per_configuration':1,'timed_passes_per_configuration':2,
         'allocator_policy':'allocator_cold_at_measurement_phase_boundary',
-        'allocator_boundary_calls':18,'timing_excludes_allocator_cleanup':True,
+        'allocator_boundary_calls':14,'timing_excludes_allocator_cleanup':True,
         'parity_tolerance':c.THROUGHPUT_EVAL_TOLERANCE,
         'selection':'maximum_total_completed_rows_per_total_synchronized_seconds_under_limits_only',
         'analysis_weights':'authenticated_own_cursor3_not_fresh_INITIAL_or_learning_warmstart',
+        'unqualified_training_batch_rows':[128],'B128_production_candidate':False,
         'training_authorized':False,'test_data_used':False,'production_recipe_selected':False}
 
 
@@ -180,6 +181,7 @@ def select_fastest(records,mode):
     grouped={}
     for r in records:
         if r['mode']==mode and r['completed_under_limits']:
+            need(r['batch_rows']in((64,96)if mode=='train'else(64,256)),'CANDIDATE_SCOPE')
             grouped.setdefault(r['batch_rows'],[]).append(r)
     candidates={b:sum(x['rows']for x in runs)/sum(x['wall_seconds']for x in runs)
         for b,runs in grouped.items()if len(runs)==2}
@@ -191,7 +193,7 @@ def select_fastest(records,mode):
 
 
 def configuration_reports(records,artifacts,mode,parity_refs):
-    batches=(64,96,128)if mode=='train'else(64,256)
+    batches=(64,96)if mode=='train'else(64,256)
     output={}
     for batch in batches:
         runs=[r for r in records if r['mode']==mode and r['batch_rows']==batch]
@@ -213,9 +215,10 @@ def require_throughput_result(result_ref,terminal_ref):
         and report['counts']==LIMITS and report['optimizer_steps']==0
         and report['whole_TRAIN_INITIAL_replaced']is False and report['production_recipe_selected']is False
         and report['allocator_policy']=='allocator_cold_at_measurement_phase_boundary'
-        and report['timing_excludes_allocator_cleanup']is True and len(report['allocator_boundaries'])==18,
+        and report['timing_excludes_allocator_cleanup']is True and len(report['allocator_boundaries'])==14
+        and report['unqualified_training_batch_rows']==[128]and report['B128_production_candidate']is False,
         'COMPLETE_ZERO_UPDATE_THROUGHPUT')
-    for mode,batches in (('train',(64,96,128)),('eval',(64,256))):
+    for mode,batches in (('train',(64,96)),('eval',(64,256))):
         configs=report[mode];need(type(configs)is dict and set(configs)==set(map(str,batches)),'COMPLETE_CANDIDATES')
         for key,value in configs.items():
             need(value['qualified']is True and value['measured_rows']==768 and value['elapsed_seconds']>0
@@ -245,7 +248,7 @@ def require_throughput_result(result_ref,terminal_ref):
 def _cohort(model,context,rows,batch_rows,mode,counts,rng,*,phase_sample=False):
     import torch
     from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
-    need(mode in('eval','parity','train')and batch_rows in(64,96,128,256),'MEASUREMENT_GEOMETRY')
+    need(mode in('eval','parity','train')and batch_rows in(64,96,256),'MEASUREMENT_GEOMETRY')
     need(mode=='eval'or batch_rows!=256,'NO_B256_TRAIN')
     c.restore_training_rng(rng);model.zero_grad(set_to_none=True);model.train(mode=='train')
     positions=np.searchsorted(context['rows'],rows);global_known=int(context['truth']['activity_known'][positions].sum())
@@ -327,8 +330,8 @@ def compare_gradients(reference,candidate):
 def publish(name,value):
     import re
     need(name in('CLAIM.json','RESULT.json','TERMINAL.json','PHASE_SAMPLE_TRAIN_B64.json')
-        or re.fullmatch(r'(?:EVAL|TRAIN)_B(?:64|96|128|256)_PASS00[12]\.json',name)
-        or re.fullmatch(r'BATCH_PARITY_B(?:64|96|128)\.json',name),'OUTPUT_NAME')
+        or re.fullmatch(r'(?:EVAL_B(?:64|256)|TRAIN_B(?:64|96))_PASS00[12]\.json',name)
+        or re.fullmatch(r'BATCH_PARITY_B(?:64|96)\.json',name),'OUTPUT_NAME')
     return c.publish(ROOT/name,value)
 
 
@@ -366,7 +369,9 @@ def physical(plan,plan_ref,counts,artifacts,progress):
         boundary=release_phase_allocator_cache(model,optimizer,label=label)
         need(type(boundary)is dict,'ALLOCATOR_BOUNDARY_RECORD')
         allocator_boundaries.append(boundary);counts['allocator_boundary_calls']+=1
-        need(counts['allocator_boundary_calls']<=18,'ALLOCATOR_BOUNDARY_BUDGET')
+        need(counts['allocator_boundary_calls']<=14,'ALLOCATOR_BOUNDARY_BUDGET')
+        print(json.dumps({'event':'ALLOCATOR_PHASE_BOUNDARY','stage':STAGE,'phase':progress['stage'],
+            'boundary':boundary},sort_keys=True,allow_nan=False),flush=True)
         record,arrays,gradients=_cohort(model,context,rows[:batch]if warm else rows,batch,mode,counts,rng,phase_sample=phase)
         record['allocator_boundary']=boundary;record['timing_excludes_allocator_cleanup']=True
         return record,arrays,gradients
@@ -381,7 +386,7 @@ def physical(plan,plan_ref,counts,artifacts,progress):
             record['numerical_parity']=compare_arrays(eval_reference,arrays)
             visits[b]+=1;binding=save('EVAL_B'+str(b)+'_PASS00'+str(visits[b])+'.json',record);eval_parity_refs[b]=binding;records.append(record)
         reference_arrays=None;reference_grads=None;reference_support=None
-        for b in (64,96,128):
+        for b in (64,96):
             record,arrays,grads=measure('parity',b)
             if reference_arrays is None:reference_arrays,reference_grads,reference_support=arrays,grads,record['support']
             need(record['support']==reference_support,'EXACT_SUPPORT_ACROSS_GEOMETRY')
@@ -392,17 +397,17 @@ def physical(plan,plan_ref,counts,artifacts,progress):
                 'allocator_boundary':record['allocator_boundary'],'timing_excludes_allocator_cleanup':True}
             parity_refs[b]=save('BATCH_PARITY_B'+str(b)+'.json',proof)
         del eval_reference,reference_arrays,reference_grads,arrays,grads
-        for b in (64,96,128):
+        for b in (64,96):
             record,_,_=measure('train',b,warm=True,phase=b==64)
             if b==64:
                 record['phase_interpretation']='CPU submit wall and CUDA stream interval; not pure GPU-busy or separate CPU-asinh time'
                 phase_ref=save('PHASE_SAMPLE_TRAIN_B64.json',record)
-        visits={64:0,96:0,128:0}
+        visits={64:0,96:0}
         for b in TRAIN_ORDER:
             record,_,_=measure('train',b);visits[b]+=1
             record['dropout_trajectory']='train dropout0.05; no cross-batch bitexact trajectory or ML quality claim'
             save('TRAIN_B'+str(b)+'_PASS00'+str(visits[b])+'.json',record);records.append(record)
-        need(counts==LIMITS and len(allocator_boundaries)==18,'EXACT_COUNTS')
+        need(counts==LIMITS and len(allocator_boundaries)==14,'EXACT_COUNTS')
         need(c.state_sha(model.state_dict())==frozen['model']and c.state_sha(optimizer.state_dict())==frozen['optimizer']
             and c.state_sha(context['normalization'])==frozen['normalization']and c.state_sha(context['prior'])==frozen['prior']
             and c.state_sha(c.training_rng())==rng_sha and all(p.grad is None for p in model.parameters()),'FROZEN_STATE_RNG_INPUTS')
@@ -415,7 +420,8 @@ def physical(plan,plan_ref,counts,artifacts,progress):
             'selection_criterion':'max_observed_rows_per_second_qualified_under_limits_only',
             'phase_sample_ref':phase_ref,'rows':384,
             'allocator_policy':'allocator_cold_at_measurement_phase_boundary',
-            'allocator_boundaries':allocator_boundaries,'timing_excludes_allocator_cleanup':True,'source_rows_sha256':c.digest(context['provider'].source_row[rows]),
+            'allocator_boundaries':allocator_boundaries,'timing_excludes_allocator_cleanup':True,
+            'unqualified_training_batch_rows':[128],'B128_production_candidate':False,'source_rows_sha256':c.digest(context['provider'].source_row[rows]),
             'issue_ns_sha256':c.digest(context['provider'].issue_ns[rows]),'state_proof':frozen,
             'rng_sha256':rng_sha,'runtime_flags':runtime,'cuda_peak_reserved_bytes':torch.cuda.max_memory_reserved(),
             'peak_reserved_bytes_scope':'process_high_water_not_candidate_specific',

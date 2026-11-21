@@ -182,6 +182,10 @@ ved returnerte fasegrenser. Dette skjer utenfor målt tid, aldri per treningsste
 verifiser uendret liveallokering/modell/AdamW/full RNG og ikke-økende reservasjon.
 Bevar globale peakmål og alle ressursgrenser. En stoppet plan er konsumert;
 ny kilde og nye allocatorforhold krever separat eksakt måleplan.
+Et fortsatt brudd etter kontrollert cachefrigjøring kvalifiserer ingen vinner
+eller bestemt kandidatfeil. Neste eksakte plan kan avgrense kandidater; bevar
+målbare fasegrenser i flush-et logg utenfor tidtaking og merk utelatte batcher
+som ukvalifiserte. Å redusere batchkandidater fjerner ingen genuine features.
 
 Checkpointets uforanderlige trajektorie binder også faktisk inputbygger,
 normalisering, prior, mål, numerisk kilde, rekkefølge og epokebudsjett.

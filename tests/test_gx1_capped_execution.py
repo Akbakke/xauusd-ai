@@ -916,7 +916,7 @@ def test_native_future_state_leaf_reuses_exact_canonical_trainer_proof(monkeypat
     monkeypatch.setattr(capped_execution.Path,'read_text',lambda path,**kw:files[str(path)])
     monkeypatch.setattr(capped_execution,'require_capped_lock_ancestry',lambda:{'canonical':'lock'})
     proof=_native_future_leaf_call(lane)
-    fixed={None:'NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002','main':'NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001',
+    fixed={None:'NATIVE_FUTURE_STATE_THROUGHPUT_20261121_003','main':'NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001',
         'recovery_probe':'NATIVE_FUTURE_STATE_RECOVERY_PROBE_20261121_001','main_resume':'NATIVE_FUTURE_STATE_ONE_EPOCH_RESUME_20261121_001'}
     basename=fixed.get(lane,'NATIVE_FUTURE_STATE_PAIRED_LEARNING_20261121_001')
     assert proof['plan_path'].endswith('/configs/research/'+basename+'.json')

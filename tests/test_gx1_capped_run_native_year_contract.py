@@ -300,7 +300,7 @@ FUTURE_LEAF_LANES=(None,'joint','joint_replay','m5_primary','m5_primary_replay',
 
 def _future_leaf_fixture(tmp_path,lane='joint'):
     folder=tmp_path/'configs/research';folder.mkdir(parents=True)
-    names=('NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002','NATIVE_FUTURE_STATE_PAIRED_LEARNING_20261121_001',
+    names=('NATIVE_FUTURE_STATE_THROUGHPUT_20261121_003','NATIVE_FUTURE_STATE_PAIRED_LEARNING_20261121_001',
         'NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001','NATIVE_FUTURE_STATE_RECOVERY_PROBE_20261121_001',
         'NATIVE_FUTURE_STATE_ONE_EPOCH_RESUME_20261121_001')
     plans={name:folder/(name+'.json')for name in names}
@@ -335,10 +335,10 @@ def test_native_future_state_leaf_exact_fixed_plan_and_lane(tmp_path,lane,prefli
 
 
 @pytest.mark.parametrize('preflight',[False,True])
-def test_native_future_state_leaf_rejects_consumed_throughput001_plan_sha(tmp_path,preflight):
+def test_native_future_state_leaf_rejects_consumed_throughput002_plan_sha(tmp_path,preflight):
     plan,args,prefix,_,_=_future_leaf_fixture(tmp_path,None)
-    consumed=plan.with_name('NATIVE_FUTURE_STATE_THROUGHPUT_20261121_001.json')
-    consumed.write_text(json.dumps({'synthetic_only':'consumed_throughput001'})+'\n')
+    consumed=plan.with_name('NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002.json')
+    consumed.write_text(json.dumps({'synthetic_only':'consumed_throughput002'})+'\n')
     args[4]=hashlib.sha256(consumed.read_bytes()).hexdigest()
     if preflight:args.append('--preflight')
     result=subprocess.run(['bash','-c',prefix+'\nmatches_bound_native_future_state_throughput '+shlex.join(args)],

@@ -27,7 +27,12 @@ målefaser; liveallokering, modell, AdamW og full RNG kontrolleres før/etter.
 Ingen per-steg-tømming, peakreset, inputtap eller grenseøkning.66fokuserte tester
 består med CUDA-initialisering forbudt; tre endrede gamle treningsdefinisjoner
 berører metadata/løp, mens alle kohort-/prior-/support-/schedulefunksjoner er
-AST-uendret. Separat eksakt throughput002 gjenstår;001 relanseres aldri.
+AST-uendret. Throughput002 er også stoppet/konsumert:12618MiB>12288. Ubrukt cache ble
+faktisk redusert fra12067012608 til163577856bytes før TRAINB64-warmup,
+med live162452992bytes og identiske modell/AdamW/RNG-hasher. Dette er ikke
+komplett throughput. Ingen001/002 relanseres; ny separat003 avgrenses til
+64/96 og beholder alle funksjoner/vakter. B128 er ikke kvalifisert.003-kode/vakter har59fokuserte PASS,
+inklusive eksplisitt avvisning av gammelt B128-oppsett og konsumerte002-SHA.
 Naboreview fant også at forberedende replay-preflight feilaktig krevde ferdig
 originalrun. Bare faktisk admitted replay krever dette nå;10metadatacaser
 består, inklusive fortsatt avvisning av manglende/ufullført original, feilpolicy
@@ -144,7 +149,7 @@ checkpoint-/proofmetadata før CLAIM og kravet om reelt ny Windows-/WSL-boot.
 27nye/nærliggende metadatakontroller består;24av dem er nye. Samlet237unike
 fokuserte tilfeller er dekket over bølgene, med overlapp i retestene. Codebridge
 bevarer56gamle kjerneeiere og hele opprinnelige vaktmodulen/shellruten.
-Kohort001 er ferdig. Ny gjennomstrømningsmåling002, paret læring/kald replay og
+Kohort001 er ferdig. Ny gjennomstrømningsmåling003, paret læring/kald replay og
 PC-recovery gjenstår før produksjonsoppskrift fryses. Ingen hovedfit er innrømmet.
 
 Begge armer trenger egne optimizer-/replaybevis før produksjonsvalg. Hovedplanen
