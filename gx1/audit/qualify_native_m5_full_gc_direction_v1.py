@@ -4912,7 +4912,709 @@ def future_cpu_cli():
     else:print(json.dumps(run_future_cpu(args.plan_sha256,args.lane),sort_keys=True))
 
 
+# New, exact CUDA authority; all older CPU/raw qualification paths stay closed.
+FUTURE_CUDA_PARENT='native_future_state_train_readiness_20261121_001'
+FUTURE_CUDA_SCOPES={kind:{'stage':'native_m5_future_state_cuda_'+kind+'_20261121_001',
+    'plan':REPO/('configs/research/NATIVE_M5_FUTURE_STATE_CUDA_'+kind.upper()+'_20261121_001.json'),
+    'root':Path('/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CUDA_'+kind.upper()+'_20261121_001'),
+    'gate':'cuda_'+kind+'_001'}for kind in ('mechanics','initial')}
+FUTURE_CUDA_INPUTS={'corrected_macro_result','corrected_macro_terminal','normalization_result',
+    'normalization_terminal','forward_plan','recipe_plan','runtime_proof'}
+FUTURE_CUDA_INITIAL_INPUTS={'mechanics_result','mechanics_terminal','replay_result','replay_terminal'}
+FUTURE_CUDA_CORRECTED=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001')
+FUTURE_CUDA_NORM=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_NORMALIZATION_20261121_001')
+FUTURE_CUDA_FIXED_REFS={
+    'forward_plan':{'path':str(FUTURE_CPU_B3),'sha256':'06f17df72165c695536c19ccb4e588efa8a3fed680875a6ede96ef37feb41ff1'},
+    'recipe_plan':{'path':str(FUTURE_CPU_RECIPE),'sha256':'20c964020752318c507957ec0b71645e419e023defd7275637cc85fd48b2b5fd'},
+    'corrected_macro_result':{'path':str(FUTURE_CUDA_CORRECTED/'RESULT.json'),'sha256':'6dd7df0fd2f0f2b736ba8034697e1c6a8f5e2e9c20138d76f3154568dffec206'},
+    'corrected_macro_terminal':{'path':str(FUTURE_CUDA_CORRECTED/'TERMINAL.json'),'sha256':'8eaef41cb506f40b20e4c1d0cfd6c76d6469347c211452ab900f42ff8765d50c'},
+    'normalization_result':{'path':str(FUTURE_CUDA_NORM/'RESULT.json'),'sha256':'08ee51600f9cc327490dc88268f7ea5c024c4b52375dfc989f0277da660975fb'},
+    'normalization_terminal':{'path':str(FUTURE_CUDA_NORM/'TERMINAL.json'),'sha256':'b84f4b50d270ebcb96eda3e5953f036ffe94875766bdfdb715238d65c8bc17b0'}}
+FUTURE_CUDA_GPU_UUID='GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29'
+FUTURE_CUDA_SOURCE_PATHS=tuple(dict.fromkeys((*FUTURE_CPU_SOURCE_PATHS,
+    'gx1/audit/build_native_m5_ta_feature_cache_v1.py','tests/test_native_future_state_cuda_qualification_v1.py')))
+FUTURE_CUDA_LIMITS={lane:{'model_constructions':1,'optimizer_constructions':0 if lane=='initial'else 1,
+    'model_forwards':{'continuous':17,'replay':9,'initial':5540}[lane],
+    'backbone_forwards':{'continuous':17,'replay':9,'initial':5540}[lane],
+    'autograd_calls':3 if lane=='continuous'else 0,'backward_calls':{'continuous':6,'replay':1,'initial':0}[lane],
+    'optimizer_steps':{'continuous':4,'replay':1,'initial':0}[lane],
+    'checkpoint_loads':1 if lane=='replay'else 0,'checkpoint_writes':2 if lane=='continuous'else 1,
+    'checkpoint_readbacks':2 if lane=='continuous'else 1,'feature_cache_payload_loads':1,
+    'target_archive_loads':1,'truth_fields_decoded':12,'normalization_fits':0,'prior_fits':0,
+    'CONTROL_rows_scored':0,'TEST_rows':0}for lane in ('continuous','replay','initial')}
+
+
+def future_cuda_lane_root(lane):
+    need(lane in FUTURE_CUDA_LIMITS,'FUTURE_CUDA_LANE_ROOT')
+    return FUTURE_CUDA_SCOPES['initial']['root']if lane=='initial'else FUTURE_CUDA_SCOPES['mechanics']['root']/lane
+
+
+def future_cuda_execution(kind):
+    need(kind in FUTURE_CUDA_SCOPES,'FUTURE_CUDA_KIND')
+    return {'class':'trainer','device':'cuda','memory':'20G','swap':'512M','tasks_max':128,
+        'numerical_threads':8,'cpu_affinity':list(range(19)),
+        'outer_seconds':1800 if kind=='mechanics'else 5400,
+        'internal_seconds':1770 if kind=='mechanics'else 5370,'kill_after_seconds':10,
+        'cuda_peak_reserved_bytes_max':LARGER_VRAM_MAX,
+        'power_limit_W':300,'power_draw_stop_W':310,'GPU_core_stop_C':85,'GPU_memory_stop_C':80}
+
+
+def future_cuda_source_inventory(owners):
+    need(type(owners)is dict and set(owners)==set(FUTURE_CUDA_SOURCE_PATHS),'FUTURE_CUDA_SOURCE_INVENTORY')
+    for name,value in owners.items():
+        path=Path(name)
+        need(type(name)is str and not path.is_absolute()and '..'not in path.parts
+            and str(path)==name and path.suffix in ('.py','.sh')and type(value)is str
+            and len(value)==64 and all(c in '0123456789abcdef'for c in value),'FUTURE_CUDA_SOURCE_SCHEMA')
+        actual=REPO/path
+        need(actual.is_file()and not actual.is_symlink()and actual.resolve()==actual,'FUTURE_CUDA_SOURCE_FILE')
+
+
+def future_cuda_gpu_metadata():
+    import csv
+    rows=list(csv.reader(subprocess.check_output(['nvidia-smi',
+        '--query-gpu=index,uuid,name,driver_version,memory.total','--format=csv,noheader,nounits'],
+        text=True,timeout=20).splitlines()))
+    need(len(rows)==1 and len(rows[0])==5,'FUTURE_CUDA_GPU_QUERY_SCHEMA')
+    index,uuid,name,driver,memory=(x.strip()for x in rows[0])
+    need(index=='0'and uuid==FUTURE_CUDA_GPU_UUID and memory.isdecimal()and bool(name)and bool(driver),
+        'FUTURE_CUDA_GPU_IDENTITY')
+    processes=[]
+    output=subprocess.check_output(['nvidia-smi','--query-compute-apps=pid,process_name',
+        '--format=csv,noheader,nounits'],text=True,timeout=20)
+    for row in csv.reader(output.splitlines()):
+        need(len(row)==2 and row[0].strip().isdecimal()and bool(row[1].strip()),'FUTURE_CUDA_PROCESS_QUERY_SCHEMA')
+        processes.append({'pid':int(row[0].strip()),'process_name':row[1].strip()})
+    return {'index':0,'uuid':uuid,'name':name,'driver_version':driver,
+        'total_memory_bytes':int(memory)*1024**2},processes
+
+
+def future_cuda_current_project_processes():
+    import os
+    excluded=set();pid=os.getpid()
+    while pid>0 and pid not in excluded:
+        excluded.add(pid)
+        try:pid=int((Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()[1])
+        except FileNotFoundError:break
+    found=[]
+    for entry in Path('/proc').iterdir():
+        if not entry.name.isdecimal()or int(entry.name)in excluded:continue
+        try:
+            if entry.stat().st_uid!=os.getuid():continue
+            args=[part.decode()for part in (entry/'cmdline').read_bytes().split(b'\0')if part]
+            if not args or not Path(args[0]).name.startswith('python'):continue
+            cwd=(entry/'cwd').resolve(strict=True)
+        except (FileNotFoundError,ProcessLookupError):continue
+        if cwd==REPO or REPO in cwd.parents:found.append({'pid':int(entry.name),'argv':args,'cwd':str(cwd)})
+    return sorted(found,key=lambda x:x['pid'])
+
+
+def collect_future_cuda_runtime_metadata():
+    """Fresh metadata collector only: no CUDA context, model, checkpoint or arrays."""
+    import datetime,platform,torch
+    need(not torch.cuda.is_initialized(),'FUTURE_CUDA_CONTEXT_BEFORE_CLAIM')
+    gpu,processes=future_cuda_gpu_metadata();project=future_cuda_current_project_processes()
+    need(not processes and not project,'FUTURE_CUDA_LIVE_IDLE')
+    value={'schema_version':'gx1_native_future_state_cuda_runtime_proof_v1',
+        'status':'VERIFIED_IDLE_RUNTIME_CURRENT_BOOT','observed_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
+        'wsl_boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip(),
+        'physical_windows_boot_id':physical_windows_boot_id(),
+        'library_versions':{'python':platform.python_version(),'numpy':np.__version__,'torch':str(torch.__version__),
+            'torch_cuda':torch.version.cuda,'cudnn':torch.backends.cudnn.version()},'gpu':gpu,
+        'idle':{'gpu_compute_processes':processes,'current_project_model_processes':project},
+        'cuda_initialized':False,'no_model_or_checkpoint_opened':True}
+    need(not torch.cuda.is_initialized(),'FUTURE_CUDA_METADATA_INITIALIZED_CONTEXT')
+    future_cuda_require_runtime(value);return value
+
+
+def future_cuda_require_runtime(value):
+    import datetime
+    fields={'schema_version','status','observed_utc','source_commit','wsl_boot_id','physical_windows_boot_id',
+        'library_versions','gpu','idle','cuda_initialized','no_model_or_checkpoint_opened'}
+    need(type(value)is dict and set(value)==fields and value['schema_version']=='gx1_native_future_state_cuda_runtime_proof_v1'
+        and value['status']=='VERIFIED_IDLE_RUNTIME_CURRENT_BOOT'and value['cuda_initialized']is False
+        and value['no_model_or_checkpoint_opened']is True,'FUTURE_CUDA_RUNTIME_SCHEMA')
+    stamp=datetime.datetime.fromisoformat(value['observed_utc']);need(stamp.tzinfo is not None,'FUTURE_CUDA_RUNTIME_TIMEZONE')
+    need(type(value['source_commit'])is str and len(value['source_commit'])==40
+        and all(c in '0123456789abcdef'for c in value['source_commit'])
+        and type(value['physical_windows_boot_id'])is int and value['physical_windows_boot_id']>0
+        and type(value['wsl_boot_id'])is str and bool(value['wsl_boot_id']),'FUTURE_CUDA_RUNTIME_BOOT_SOURCE')
+    libs=value['library_versions'];gpu=value['gpu']
+    need(type(libs)is dict and set(libs)=={'python','numpy','torch','torch_cuda','cudnn'}
+        and all(type(libs[k])is str and bool(libs[k])for k in ('python','numpy','torch','torch_cuda'))
+        and type(libs['cudnn'])is int and libs['cudnn']>0,'FUTURE_CUDA_RUNTIME_LIBRARIES')
+    need(type(gpu)is dict and set(gpu)=={'index','uuid','name','driver_version','total_memory_bytes'}
+        and type(gpu['index'])is int and gpu['index']==0 and gpu['uuid']==FUTURE_CUDA_GPU_UUID
+        and all(type(gpu[k])is str and bool(gpu[k])for k in ('name','driver_version'))
+        and type(gpu['total_memory_bytes'])is int and gpu['total_memory_bytes']>LARGER_VRAM_MAX,
+        'FUTURE_CUDA_RUNTIME_GPU')
+    need(value['idle']=={'gpu_compute_processes':[],'current_project_model_processes':[]},'FUTURE_CUDA_RUNTIME_IDLE')
+    return value
+
+
+def future_cuda_runtime_matches(expected,actual):
+    future_cuda_require_runtime(expected);future_cuda_require_runtime(actual)
+    need(all(actual[k]==expected[k]for k in expected if k!='observed_utc'),'FUTURE_CUDA_CURRENT_RUNTIME_PROOF')
+
+
+def future_cuda_complete(result_ref,terminal_ref,status):
+    result,terminal=future_cpu_read(result_ref),future_cpu_read(terminal_ref)
+    need(result['status']==status and terminal['status']=='COMPLETE'and terminal['exit_code']==0
+        and terminal['result']==result_ref and terminal['plan']==result['plan']and terminal['claim']==result['claim']
+        and result['source_unchanged']is terminal['source_unchanged']is True
+        and result['test_data_used']is terminal['test_data_used']is False,'FUTURE_CUDA_COMPLETE_PARENT')
+    return result,terminal
+
+
+def future_cuda_metadata(inputs,kind,policy):
+    from gx1.contracts.market_state_ta_integrated_model_v1 import native_future_state_model_contract
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_future_state_train_prior
+    from gx1.contracts.market_state_native_m5_targets_v1 import require_fully_future_state_contract
+    need(type(inputs)is dict and set(inputs)==FUTURE_CUDA_INPUTS|(FUTURE_CUDA_INITIAL_INPUTS if kind=='initial'else set()),
+        'FUTURE_CUDA_INPUT_ROLES')
+    need(all(inputs[k]==v for k,v in FUTURE_CUDA_FIXED_REFS.items())
+        and inputs['forward_plan']['path']==str(FUTURE_CPU_B3)
+        and inputs['recipe_plan']['path']==str(FUTURE_CPU_RECIPE),'FUTURE_CUDA_FIXED_INPUTS')
+    corrected,_=future_cuda_complete(inputs['corrected_macro_result'],inputs['corrected_macro_terminal'],
+        'COMPLETE_NATIVE_M5_TA_COT_CLOCK_CORRECTION')
+    completed,_=future_cuda_complete(inputs['normalization_result'],inputs['normalization_terminal'],
+        'COMPLETE_NATIVE_M5_TA_COT_CLOCK_NORMALIZATION')
+    report=completed['report'];parent=future_cpu_read(inputs['forward_plan'])['metadata']
+    norm=future_cpu_read(report['normalization']);binding=future_cpu_read(report['input_binding'])
+    snapshot=future_cpu_read(report['snapshot']);data=future_cpu_read(parent['dataset'])
+    target=require_fully_future_state_contract(data['contract'])
+    prior=require_native_future_state_train_prior(future_cpu_read(parent['prior']),target_contract=target)
+    manifest=future_cpu_read(parent['native_manifest']);runtime=future_cuda_require_runtime(future_cpu_read(inputs['runtime_proof']))
+    pop=norm['fit_population'];p=prior['fit_population'];axes=snapshot['surfaces_metadata']['axes']
+    need(report['snapshot']==corrected['report']['snapshot']and report['archive']==snapshot['archive']==corrected['report']['archive']
+        and report['normalization']['path']==str(FUTURE_CUDA_NORM/'NORMALIZATION.json')
+        and report['input_binding']['path']==str(FUTURE_CUDA_NORM/'INPUT_BINDING.json')
+        and report['prior_refit_performed']is False and report['initialbaseline_qualified']is False,'FUTURE_CUDA_CORRECTED_INPUT_CHAIN')
+    need(pop['issue_rows']==p['issue_rows']==354550 and pop['cutoff_ns']==p['cutoff_ns']==FUTURE_CPU_TRAIN_UPPER
+        and pop['selected_issue_ns_sha256']==p['issue_ns_sha256']==data['TRAIN_issue_ns_sha256']==FUTURE_CPU_TRAIN_SHA
+        and all(pop[k]==p[k]for k in ('first_issue_ns','last_issue_ns')),'FUTURE_CUDA_EXACT_WHOLE_TRAIN')
+    need(snapshot['schema_version']=='gx1_native_m5_bounded_feature_snapshot_v1'and len(snapshot['arrays'])==27
+        and axes['contract_sha256']==norm['source_axes_sha256']==binding['source_axes_sha256']==report['source_axes_sha256']
+        and binding['input_normalization_sha256']==norm['contract_sha256']
+        and norm['native_m5_manifest']==data['native_manifest']==parent['native_manifest']
+        and data['model_input']is False and data['cutoff_ns']==FUTURE_CPU_TRAIN_UPPER
+        and manifest['market_closure_contract']==target['source_closure_contract'],'FUTURE_CUDA_FEATURE_TARGET_BINDINGS')
+    recipe=future_cpu_recipe(future_cpu_read(inputs['recipe_plan']))
+    need(recipe['seed']==20260911 and recipe['optimizer']==ADAMW_RECIPE,'FUTURE_CUDA_SOURCE_QUALIFIED_RECIPE')
+    recipe.update(batch_rows=64,logical_updates=0 if kind=='initial'else 4,checkpoint_cursor=0 if kind=='initial'else 3)
+    model=native_future_state_model_contract(binding,architecture=parent['architecture'],train_prior=prior,
+        target_contract=target,backbone_gradient_policy=policy)
+    meta={'source_snapshot':report['snapshot'],'normalization':report['normalization'],'input_binding_ref':report['input_binding'],
+        'input_binding':binding,'prior':parent['prior'],'dataset':parent['dataset'],'native_manifest':parent['native_manifest'],
+        'target_contract':target,'architecture':parent['architecture'],'model_contract':model,'runtime':runtime,
+        'TRAIN_rows':354550,'TRAIN_issue_ns_sha256':FUTURE_CPU_TRAIN_SHA,'truth_sha256':p['truth_sha256']}
+    if kind=='initial':
+        previous=[]
+        for lane,result_key,terminal_key in (('continuous','mechanics_result','mechanics_terminal'),('replay','replay_result','replay_terminal')):
+            root=FUTURE_CUDA_SCOPES['mechanics']['root']/lane
+            need(inputs[result_key]['path']==str(root/'RESULT.json')and inputs[terminal_key]['path']==str(root/'TERMINAL.json'),
+                'FUTURE_CUDA_INITIAL_MECHANICS_PATH')
+            result,_=future_cuda_complete(inputs[result_key],inputs[terminal_key],'COMPLETE_NATIVE_FUTURE_STATE_CUDA_MECHANICS')
+            plan=future_cpu_read(result['plan']);r=result['report']
+            need(plan['metadata']['model_contract']==model and plan['metadata']['runtime']==runtime
+                and plan['backbone_gradient_policy']==policy and r['lane']==lane,'FUTURE_CUDA_INITIAL_SAME_MECHANICS_FUNCTION')
+            previous.append(result)
+        a,b=(r['report']for r in previous)
+        need(previous[0]['plan']==previous[1]['plan']and a['final_state_proof']==b['final_state_proof']
+            and b['cold_replay_bit_exact']is True and a['equal_tf_evaluation']['qualified']is True
+            and a['equal_tf_evaluation']['candidate_activation']['batch_eval_active']is True,
+            'FUTURE_CUDA_INITIAL_GROUPED_EVAL_QUALIFIED')
+    return meta,recipe
+
+
+
+def build_future_cuda_plan(*,inputs,lane_group,backbone_gradient_policy,source_base_commit=None):
+    need(lane_group in FUTURE_CUDA_SCOPES,'FUTURE_CUDA_KIND')
+    future_cuda_source_inventory(dict.fromkeys(FUTURE_CUDA_SOURCE_PATHS,'0'*64))
+    meta,recipe=future_cuda_metadata(inputs,lane_group,backbone_gradient_policy);scope=FUTURE_CUDA_SCOPES[lane_group]
+    base=source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
+    need(base==meta['runtime']['source_commit'],'FUTURE_CUDA_RUNTIME_SOURCE_COMMIT')
+    lanes=('initial',)if lane_group=='initial'else('continuous','replay')
+    return {'schema_version':'gx1_native_future_state_cuda_qualification_plan_v1','status':'PREPARED_NOT_ADMITTED',
+        'stage':scope['stage'],'lane_group':lane_group,'output_root':str(scope['root']),'source_base_commit':base,
+        'source_owners':{name:sha(REPO/name)for name in FUTURE_CUDA_SOURCE_PATHS},'inputs':inputs,
+        'metadata':meta,'recipe':recipe,'backbone_gradient_policy':backbone_gradient_policy,
+        'execution':future_cuda_execution(lane_group),'limits':{k:FUTURE_CUDA_LIMITS[k]for k in lanes},
+        'batch_rule':'all354550chronological_TRAIN_B64_last54_no_target_filter'if lane_group=='initial'
+            else'first256chronological_whole_TRAIN_four_distinct_B64_no_target_filter',
+        'parity_tolerance':THROUGHPUT_EVAL_TOLERANCE,'training_authorized':False,'test_data_used':False,
+        'production_gradient_policy_selected':False,'whole_TRAIN_generalization_or_edge_qualified':False}
+
+
+def future_cuda_gate_expected(plan_ref,kind,*,admitted):
+    lanes=('initial',)if kind=='initial'else('continuous','replay')
+    return {'status':'ADMITTED_EXACT_CUDA_QUALIFICATION'if admitted else'PREPARED_NOT_ADMITTED',
+        'plan':plan_ref,'execution_authorized':admitted,'relaunch_allowed':False,
+        'limits':{k:FUTURE_CUDA_LIMITS[k]for k in lanes},
+        'lanes':{k:{'execution_authorized':admitted,'remaining_invocations':1 if admitted else 0}for k in lanes}}
+
+
+def future_cuda_validate_gate(policy,plan_ref,kind,*,admitted):
+    gate=policy[FUTURE_CUDA_PARENT][FUTURE_CUDA_SCOPES[kind]['gate']]
+    need(json.dumps(gate,sort_keys=True)==json.dumps(future_cuda_gate_expected(plan_ref,kind,admitted=admitted),sort_keys=True),
+        'FUTURE_CUDA_EXACT_ONEUSE_GATE')
+    training=admitted and kind=='mechanics'
+    need(policy['training_enabled']is training and policy['native_training_enabled']is training
+        and all(policy[k]is False for k in ('native_launch_authorized','full_epoch_training_allowed','full_val_allowed')),
+        'FUTURE_CUDA_NO_OTHER_TRAINING_AUTHORITY')
+
+
+def future_cuda_replay_admission(plan_ref,policy_ref):
+    root=FUTURE_CUDA_SCOPES['mechanics']['root']/'continuous';terminal=future_cpu_read(ref(root/'TERMINAL.json'))
+    need(terminal['status']=='COMPLETE'and terminal['exit_code']==0 and terminal['plan']==plan_ref
+        and terminal['claim']['path']==str(root/'CLAIM.json'),'FUTURE_CUDA_CONTINUOUS_TERMINAL')
+    claim=future_cpu_read(terminal['claim'])
+    need(claim['plan']==plan_ref and claim['lane']=='continuous'and claim['policy_at_claim']==policy_ref,
+        'FUTURE_CUDA_INTERLANE_POLICY_FREEZE')
+    result=future_cpu_read(terminal['result']);future_cpu_parent_stopped(result['process_identity'])
+    return result
+
+
+def inspect_future_cuda(plan_sha,lane,*,admitted):
+    need(lane in FUTURE_CUDA_LIMITS and Path.cwd().resolve()==REPO,'FUTURE_CUDA_CWD_LANE')
+    kind='initial'if lane=='initial'else'mechanics';scope=FUTURE_CUDA_SCOPES[kind]
+    binding={'path':str(scope['plan']),'sha256':plan_sha};plan=future_cpu_read(binding)
+    future_cuda_source_inventory(plan['source_owners'])
+    need(plan==build_future_cuda_plan(inputs=plan['inputs'],lane_group=kind,
+        backbone_gradient_policy=plan['backbone_gradient_policy'],source_base_commit=plan['source_base_commit']),
+        'FUTURE_CUDA_EXACT_PLAN_SOURCE')
+    need(subprocess.check_output(['git','branch','--show-current'],cwd=REPO,text=True).strip()=='work/gx1-current',
+        'FUTURE_CUDA_BRANCH')
+    policy_ref=ref(POLICY);future_cuda_validate_gate(future_cpu_read(policy_ref),binding,kind,admitted=admitted)
+    if admitted and lane=='replay':future_cuda_replay_admission(binding,policy_ref)
+    need(not future_cuda_lane_root(lane).exists()and not future_cuda_lane_root(lane).is_symlink(),
+        'FUTURE_CUDA_ONE_USE_LANE')
+    live=collect_future_cuda_runtime_metadata();future_cuda_runtime_matches(plan['metadata']['runtime'],live)
+    return plan,binding,policy_ref,live
+
+
+def future_cuda_batches(provider,*,initial):
+    rows=np.flatnonzero((provider.issue_ns>=FUTURE_CPU_TRAIN_START)&(provider.issue_ns<FUTURE_CPU_TRAIN_UPPER)).astype(np.int64)
+    need(len(rows)==354550 and provider.input_ready[rows].all()and digest(provider.issue_ns[rows])==FUTURE_CPU_TRAIN_SHA,
+        'FUTURE_CUDA_FULL_UNFILTERED_INPUT_TRAIN')
+    selected=rows if initial else rows[:256];batches=all_score_batches(selected,64)
+    need(len(batches)==(5540 if initial else 4)and len(np.unique(np.concatenate(batches)))==len(selected)
+        and all(len(b)==64 for b in batches[:-1])and len(batches[-1])==(54 if initial else 64),
+        'FUTURE_CUDA_EXACT_BATCH_GEOMETRY')
+    return rows,batches
+
+
+def future_cuda_load(plan,counts):
+    from gx1.audit.build_native_m5_ta_feature_cache_v1 import load_snapshot
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    m=plan['metadata'];norm=future_cpu_read(m['normalization']);prior=future_cpu_read(m['prior']);data=future_cpu_read(m['dataset'])
+    provider=load_snapshot(m['source_snapshot']);counts['feature_cache_payload_loads']+=1
+    rows,batches=future_cuda_batches(provider,initial=plan['lane_group']=='initial')
+    need(provider.input_binding(norm)==m['input_binding']
+        and digest(provider.source_row[rows])==norm['fit_population']['selected_source_rows_sha256'],
+        'FUTURE_CUDA_PHYSICAL_INPUT_BINDING')
+    need(ref(data['arrays']['path'])==data['arrays'],'FUTURE_CUDA_TRAIN_TARGET_ARCHIVE')
+    truth={}
+    with np.load(data['arrays']['path'],allow_pickle=False)as archive:
+        counts['target_archive_loads']+=1
+        for key in FUTURE_CPU_TRUTH_KEYS:
+            a=archive[key];h=data['array_headers'][key]
+            need(a.dtype.str==h['dtype']and list(a.shape)==h['shape']and digest(a)==h['sha256'],
+                'FUTURE_CUDA_TRUTH_BYTES:'+key)
+            truth[key]=a;counts['truth_fields_decoded']+=1
+    need(np.array_equal(truth['issue_ns'],provider.issue_ns[rows])
+        and objective._native_prior_array_sha(truth)==prior['fit_population']['truth_sha256']==m['truth_sha256'],
+        'FUTURE_CUDA_CURRENT_TRAIN_TRUTH_PRIOR_PROOF')
+    objective._native_future_state_truth(truth,rows=len(rows),fold_upper_ns=FUTURE_CPU_TRAIN_UPPER,target_contract=m['target_contract'])
+    order=[{'source_rows_sha256':digest(provider.source_row[b]),'issue_ns_sha256':digest(provider.issue_ns[b]),'rows':len(b)}for b in batches]
+    return {'provider':provider,'rows':rows,'batches':batches,'truth':truth,'normalization':norm,'prior':prior,'order':order}
+
+
+def future_cuda_packet(context,batch):
+    import torch
+    raw=context['provider'].gather(context['provider'].source_row[batch],max_rows=64)
+    at=np.searchsorted(context['rows'],batch)
+    need(np.array_equal(context['rows'][at],batch),'FUTURE_CUDA_SOURCE_TRUTH_JOIN')
+    return {'features':{k:torch.from_numpy(v)for k,v in raw.items()},
+        'truth':{k:v[at]for k,v in context['truth'].items()}}
+
+
+def future_cuda_forward(model,features,*,grouped=True,equal_tf=False,capture=False):
+    import torch
+    from contextlib import nullcontext
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    need(type(grouped)is type(equal_tf)is type(capture)is bool,'FUTURE_CUDA_FORWARD_FLAGS')
+    device=next(model.parameters()).device;features={k:v.to(device)for k,v in features.items()};seen=[];hidden=[]
+    groups={}
+    for tf in ('M5','M15','H1','H4','D1'):groups.setdefault(str(features['seq_'+tf.lower()].shape[1]),[]).append(tf)
+    def before(module,args):
+        active=body._BATCH_EQUAL_LENGTH_MTF_EVAL.get()and not module.training and not torch.is_grad_enabled()
+        seen.append({'batch_eval_active':bool(active),'model_training':module.training,
+            'grad_enabled':torch.is_grad_enabled(),'scope_enabled':body._BATCH_EQUAL_LENGTH_MTF_EVAL.get(),
+            'eligible_equal_length_TF_groups':groups})
+        need(not equal_tf or active and any(len(v)>1 for v in groups.values()),'FUTURE_CUDA_EQUAL_TF_ACTUAL_ACTIVATION')
+    def after(module,args,output):
+        h=output['entry_q_timeframe_hidden']
+        need(h.dtype==torch.float32 and h.ndim==3 and h.shape[:2]==(len(features['seq_x']),5)
+            and bool(torch.isfinite(h).all()),'FUTURE_CUDA_ALL_HIDDEN_FINITE_FLOAT32')
+        if capture:hidden.append(h.detach().cpu().clone())
+    hooks=[model.backbone.register_forward_pre_hook(before),model.backbone.register_forward_hook(after)]
+    try:
+        with torch.autocast(device_type=device.type,enabled=False),(
+                body.model_finite_check_scope('grouped')if grouped else nullcontext()),(
+                body.batch_equal_length_mtf_eval_scope()if equal_tf else nullcontext()):
+            output=model(**features)
+    finally:
+        for hook in hooks:hook.remove()
+    need(len(seen)==1 and all(v.dtype==torch.float32 and bool(torch.isfinite(v).all())for v in output.values()),
+        'FUTURE_CUDA_ONE_BACKBONE_FINITE_OUTPUT')
+    return output,hidden[0]if capture else None,seen[0]
+
+
+def future_cuda_score(model,packets,plan,prior,*,initial,equal_tf):
+    import torch
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    before=state_sha(model.state_dict());rng=training_rng();training=model.training;outputs={};truths={};batches=[]
+    model.eval()
+    try:
+        with torch.no_grad():
+            for packet in packets:
+                output,_,activation=future_cuda_forward(model,packet['features'],equal_tf=equal_tf)
+                cpu={k:v.detach().cpu()for k,v in output.items()};kwargs={'truth':packet['truth'],
+                    'fold_upper_ns':FUTURE_CPU_TRAIN_UPPER,'target_contract':plan['metadata']['target_contract']}
+                loss=objective.native_future_state_loss(model_output=output,**kwargs)
+                if initial:
+                    reference=objective.native_future_state_train_prior_logits(prior,rows=len(packet['truth']['issue_ns']),
+                        target_contract=plan['metadata']['target_contract'])
+                    need(all(torch.equal(cpu[k],v)for k,v in reference.items()),'FUTURE_CUDA_INITIAL_EXACT_PRIOR')
+                for k,v in cpu.items():outputs.setdefault(k,[]).append(v)
+                for k,v in packet['truth'].items():truths.setdefault(k,[]).append(v)
+                batches.append({'rows':len(packet['truth']['issue_ns']),'known_activity_cells':loss['count'],
+                    'partial_NLL':float(loss['loss']),'output_sha256':{k:digest(v.numpy())for k,v in cpu.items()},
+                    'activation':activation})
+        output={k:torch.cat(v)for k,v in outputs.items()};truth={k:np.concatenate(v)for k,v in truths.items()}
+        kwargs={'truth':truth,'fold_upper_ns':FUTURE_CPU_TRAIN_UPPER,'target_contract':plan['metadata']['target_contract']}
+        scores=objective.native_future_state_score_sums(model_output=output,**kwargs)
+        if initial:
+            reference=objective.native_future_state_train_prior_logits(prior,rows=len(truth['issue_ns']),target_contract=plan['metadata']['target_contract'])
+            need(scores==objective.native_future_state_score_sums(model_output=reference,**kwargs),'FUTURE_CUDA_INITIAL_FULL_PROPER_SCORE_EXACT')
+        count=sum(b['known_activity_cells']for b in batches);total=sum(x['partial_log_loss_sum']for x in scores['per_tf'].values())
+        return {'rows':len(truth['issue_ns']),'batch_count':len(batches),'batches':batches,'scores':scores,
+            'known_activity_cells':count,'proper_partial_NLL':total/count if count else None,
+            'initial_prior_exact':initial,'output_sha256':{k:digest(v.numpy())for k,v in output.items()},
+            'score_scope':'observed_activity_and_certified_side_support_not_unconditional_calibration'}
+    finally:
+        model.train(training);restore_training_rng(rng)
+        need(state_sha(model.state_dict())==before and all(p.grad is None for p in model.parameters()),'FUTURE_CUDA_SCORE_STATE_GRAD_MUTATION')
+
+
+
+def future_cuda_array_parity(expected,value):
+    a=np.asarray(expected);b=np.asarray(value);t=THROUGHPUT_EVAL_TOLERANCE
+    need(a.shape==b.shape and a.dtype==b.dtype and np.isfinite(a).all()and np.isfinite(b).all(),'FUTURE_CUDA_PARITY_DOMAIN')
+    delta=np.abs(a.astype(np.float64)-b.astype(np.float64));nonzero=a!=0
+    return {'qualified':bool(np.allclose(a,b,atol=t['atol'],rtol=t['rtol'])),'bitexact':bool(np.array_equal(a,b)),
+        'max_absolute_difference':float(delta.max())if delta.size else 0.,
+        'max_relative_difference_nonzero_reference':float((delta[nonzero]/np.abs(a[nonzero])).max())if np.any(nonzero)else 0.,
+        'nonzero_difference_at_zero_reference':int(np.count_nonzero((~nonzero)&(delta!=0)))}
+
+
+def future_cuda_parity_pair(model,packet,plan,counts,*,equal_tf):
+    """Two eval no-grad TF forwards OR two full-gradient finite-check forwards."""
+    import torch
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+    before=state_sha(model.state_dict());rng=training_rng();training=model.training;records=[];reference_grads={};gradient_differences={}
+    need(all(p.grad is None for p in model.parameters()),'FUTURE_CUDA_PARITY_CLEAN_GRADS')
+    model.eval()if equal_tf else model.train()
+    try:
+        for candidate in (False,True):
+            restore_training_rng(rng);model.zero_grad(set_to_none=True)
+            with torch.set_grad_enabled(not equal_tf):
+                output,hidden,activation=future_cuda_forward(model,packet['features'],
+                    grouped=candidate if not equal_tf else True,equal_tf=candidate if equal_tf else False,capture=True)
+                loss=native_future_state_loss(model_output=output,truth=packet['truth'],fold_upper_ns=FUTURE_CPU_TRAIN_UPPER,
+                    target_contract=plan['metadata']['target_contract'])
+                record={'timeframe_hidden':hidden.numpy(),'loss':loss['loss'].detach().cpu().numpy(),
+                    **{k:v.detach().cpu().numpy()for k,v in output.items()},'activation':activation,
+                    'support':{k:v.detach().cpu().tolist()for k,v in loss['counts'].items()}}
+                if not equal_tf:
+                    loss['loss'].backward();counts['backward_calls']+=1
+                    for name,p in model.named_parameters():
+                        value=None if p.grad is None else p.grad.detach().cpu().numpy().copy()
+                        if not candidate:reference_grads[name]=value
+                        elif value is None or reference_grads[name]is None:
+                            need(value is reference_grads[name],'FUTURE_CUDA_PARITY_UNUSED_PARAMETER')
+                        else:gradient_differences[name]=future_cuda_array_parity(reference_grads[name],value)
+            records.append(record)
+        a,b=records;need(a['support']==b['support'],'FUTURE_CUDA_PARITY_SUPPORT')
+        differences={k:future_cuda_array_parity(a[k],b[k])for k in ('timeframe_hidden','activity_logits','side_logits','loss')}
+        qualified=all(v['qualified']for v in (*differences.values(),*gradient_differences.values()))
+        need(qualified,'FUTURE_CUDA_GROUPED_PARITY')
+        return {'qualified':qualified,'tolerance':THROUGHPUT_EVAL_TOLERANCE,'values':differences,
+            'parameter_gradient_differences':gradient_differences,'parameter_gradients_compared':len(gradient_differences),
+            'reference_activation':a['activation'],'candidate_activation':b['activation'],
+            'scope':'equal_TF_eval_no_grad_only_no_gradient_claim'if equal_tf else'finite_check_scope_full_parameter_gradients_no_equal_TF_batching'}
+    finally:
+        model.zero_grad(set_to_none=True);model.train(training);restore_training_rng(rng)
+        need(state_sha(model.state_dict())==before,'FUTURE_CUDA_PARITY_MODEL_MUTATION')
+
+
+def future_cuda_gradient_probe(model,packet,plan,counts):
+    device=next(model.parameters()).device
+    packet={**packet,'features':{k:v.to(device)for k,v in packet['features'].items()}}
+    rng=training_rng()
+    try:return future_cpu_gradient_probe(model,packet,plan,counts)
+    finally:
+        restore_training_rng(rng)
+        need(state_sha(training_rng())==state_sha(rng),'FUTURE_CUDA_PROBE_ALL_RNG')
+
+
+def future_cuda_step(model,optimizer,packet,plan,counts,index):
+    import torch
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+    optimizer.zero_grad(set_to_none=True);model.train();output,_,_=future_cuda_forward(model,packet['features'])
+    loss=native_future_state_loss(model_output=output,truth=packet['truth'],fold_upper_ns=FUTURE_CPU_TRAIN_UPPER,
+        target_contract=plan['metadata']['target_contract'])
+    need(not loss['skip_update']and bool(torch.isfinite(loss['loss'])),'FUTURE_CUDA_TRAIN_SUPPORT')
+    loss['loss'].backward();counts['backward_calls']+=1
+    gradients=[p for p in model.parameters()if p.grad is not None]
+    need(gradients and finite_all_per_device(p.grad for p in gradients),'FUTURE_CUDA_FINITE_DATA_GRADIENT')
+    device=next(model.parameters()).device
+    def norm(values):return float(torch.sqrt(sum((v.detach().double().square().sum()for v in values),torch.zeros((),device=device,dtype=torch.float64))))
+    data={group+'_data_gradient_l2':norm(p.grad for p in parameters if p.grad is not None)
+        for group,parameters in (('backbone',model.backbone.parameters()),('readout',model.readout.parameters()))}
+    before=[p.detach().cpu().clone()for p in model.backbone.parameters()]if index==0 else None
+    if index==0:need(data['backbone_data_gradient_l2']==0 and data['readout_data_gradient_l2']>0,'FUTURE_CUDA_ZERO_HEAD_INITIAL_GRADIENT')
+    clipped=torch.nn.utils.clip_grad_norm_(gradients,plan['recipe']['gradient_clip_norm'],error_if_nonfinite=True)
+    optimizer.step();counts['optimizer_steps']+=1
+    need(finite_all_per_device(model.parameters()),'FUTURE_CUDA_UPDATED_PARAMETERS_FINITE')
+    if before is not None:
+        data.update(backbone_actual_parameter_delta_l2=norm(p.detach().double()-old.to(p.device).double()for p,old in zip(model.backbone.parameters(),before)),
+            weight_decay=plan['recipe']['optimizer']['weight_decay'],
+            interpretation='data_gradient_before_clip_separate_from_AdamW_decay_actual_parameter_delta')
+        need(any(bool(torch.count_nonzero(h.weight))for h in model.readout.activity_heads.values()),'FUTURE_CUDA_HEAD_DATA_UPDATE')
+    optimizer.zero_grad(set_to_none=True)
+    return {'logical_step':index+1,'loss':float(loss['loss'].detach()),'gradient_norm_pre_clip':float(clipped),
+        'support':{k:v.detach().cpu().tolist()for k,v in loss['counts'].items()},
+        'output_sha256':{k:digest(v.detach().cpu().numpy())for k,v in output.items()},**data}
+
+
+def future_cuda_bindings(plan,plan_ref):
+    return {'plan':plan_ref,'metadata':plan['metadata'],'recipe':plan['recipe'],
+        'backbone_gradient_policy':plan['backbone_gradient_policy'],'runtime_proof':plan['inputs']['runtime_proof'],
+        'scope':'whole_TRAIN_fresh_initial_no_updates'if plan['lane_group']=='initial'else'technical_prefix_of_whole_TRAIN_trajectory_not_small_FIT_or_production_routing_selection'}
+
+
+def future_cuda_checkpoint(model,optimizer,plan,plan_ref,order,cursor,steps):
+    return {'schema_version':'gx1_native_future_state_cuda_qualification_checkpoint_v1','cursor':cursor,
+        'model_state':model.state_dict(),'optimizer_state':None if optimizer is None else optimizer.state_dict(),
+        'scheduler_state':None,'rng_state':training_rng(),'training':model.training,'batch_order':order,
+        'optimizer_parameter_names':[n for n,_ in model.named_parameters()],
+        'bindings':future_cuda_bindings(plan,plan_ref),'steps':steps}
+
+
+def future_cuda_publish_checkpoint(path,checkpoint,counts):
+    rng=state_sha(training_rng());binding=future_cpu_publish_checkpoint(path,checkpoint,counts)
+    need(state_sha(training_rng())==rng,'FUTURE_CUDA_DISK_CHECKPOINT_ALL_RNG');return binding
+
+
+def future_cuda_restore(model,optimizer,checkpoint,plan,plan_ref,order):
+    import torch
+    need(type(checkpoint)is dict and checkpoint.get('schema_version')=='gx1_native_future_state_cuda_qualification_checkpoint_v1'
+        and checkpoint.get('bindings')==future_cuda_bindings(plan,plan_ref),'FUTURE_CUDA_CHECKPOINT_BINDINGS')
+    value=checkpoint['rng_state'];old=training_rng()
+    need(type(value)is dict and set(value)==set(old)and type(value['torch_cuda'])is list
+        and len(value['torch_cuda'])==len(old['torch_cuda'])
+        and all(isinstance(v,torch.Tensor)and v.dtype==torch.uint8 and v.ndim==1
+            and v.device.type=='cpu'for v in value['torch_cuda']),'FUTURE_CUDA_RNG_HEADER_BEFORE_COPY')
+    try:
+        restore_training_rng(value)
+        need(state_sha(training_rng())==state_sha(value),'FUTURE_CUDA_RNG_ROUNDTRIP_BEFORE_COPY')
+    finally:restore_training_rng(old)
+    # Reuse proven strict model/AdamW/name/cursor/pre-copy validation through a
+    # transient CPU-schema view; the persisted CUDA artifact remains unchanged.
+    slots=checkpoint['optimizer_state'];ids=slots['param_groups'][0]['params']
+    heads={ids[i]for i,(name,p)in enumerate(model.named_parameters())if name.startswith('readout.')}
+    need(heads and heads<=set(slots['state'])and all(float(slots['state'][i]['step'])==3 for i in heads),
+        'FUTURE_CUDA_CURSOR3_READOUT_OPTIMIZER_SLOTS')
+    view={**checkpoint,'schema_version':'gx1_native_future_state_cpu_technical_checkpoint_v1',
+        'rng_state':{k:v for k,v in value.items()if k!='torch_cuda'},'bindings':future_cpu_bindings(plan,plan_ref)}
+    future_cpu_restore(model,optimizer,view,plan,plan_ref,order)
+    for p,item in optimizer.state.items():
+        need(item['step'].device.type=='cpu'and item['exp_avg'].device==p.device
+            and item['exp_avg_sq'].device==p.device,'FUTURE_CUDA_RESTORED_OPTIMIZER_DEVICES')
+    restore_training_rng(value)
+    need(state_sha(model.state_dict())==state_sha(checkpoint['model_state'])
+        and state_sha(optimizer.state_dict())==state_sha(checkpoint['optimizer_state'])
+        and state_sha(training_rng())==state_sha(value),'FUTURE_CUDA_ALL_RESTORED_STATE')
+
+
+def future_cuda_seed_and_runtime(plan):
+    import os,torch
+    seed_native_fit(plan['recipe']['seed']);m=plan['metadata']['runtime'];gpu,processes=future_cuda_gpu_metadata()
+    need(gpu==m['gpu']and torch.cuda.device_count()==1,'FUTURE_CUDA_ACTIVE_DEVICE_RUNTIME')
+    properties=torch.cuda.get_device_properties(0)
+    need(properties.name==gpu['name']and LARGER_VRAM_MAX<properties.total_memory<=gpu['total_memory_bytes']
+        and os.environ.get('CUBLAS_WORKSPACE_CONFIG')==':4096:8'
+        and torch.are_deterministic_algorithms_enabled()and torch.backends.cudnn.deterministic
+        and not torch.backends.cudnn.benchmark and not torch.backends.cuda.matmul.allow_tf32
+        and not torch.backends.cudnn.allow_tf32 and not torch.is_autocast_enabled(),
+        'FUTURE_CUDA_DETERMINISTIC_FP32_FLAGS')
+    torch.cuda.set_per_process_memory_fraction(LARGER_VRAM_MAX/properties.total_memory,0)
+    torch.cuda.reset_peak_memory_stats()
+    return {'CUBLAS_WORKSPACE_CONFIG':os.environ['CUBLAS_WORKSPACE_CONFIG'],'deterministic_algorithms':True,
+        'cudnn_deterministic':True,'cudnn_benchmark':False,'matmul_allow_tf32':False,'cudnn_allow_tf32':False,
+        'autocast':False,'parameter_dtype':'float32','device':'cuda:0','gpu':gpu,
+        'cuda_usable_memory_bytes':properties.total_memory}
+
+
+
+def future_cuda_physical(plan,plan_ref,root,lane):
+    import torch
+    from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_future_state_model
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    counts=dict.fromkeys(FUTURE_CUDA_LIMITS[lane],0);context=future_cuda_load(plan,counts)
+    runtime=future_cuda_seed_and_runtime(plan);m=plan['metadata']
+    model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=m['input_binding'],
+        architecture=m['architecture'],device=torch.device('cuda'),train_prior=context['prior'],target_contract=m['target_contract'],
+        backbone_gradient_policy=plan['backbone_gradient_policy']);counts['model_constructions']+=1
+    need(all(p.dtype==torch.float32 for p in model.parameters()),'FUTURE_CUDA_FLOAT32_PARAMETERS')
+    initial_state=canonical_model_state_sha256(model.state_dict());optimizer=None
+    if lane!='initial':
+        options={**plan['recipe']['optimizer'],'betas':tuple(plan['recipe']['optimizer']['betas'])}
+        optimizer=torch.optim.AdamW(model.parameters(),**options);counts['optimizer_constructions']+=1
+        need(not optimizer.state,'FUTURE_CUDA_FRESH_ADAMW')
+    def count(name):
+        def hook(*args):
+            counts[name]+=1;need(counts[name]<=FUTURE_CUDA_LIMITS[lane][name],'FUTURE_CUDA_FORWARD_BUDGET')
+        return hook
+    hooks=[model.register_forward_pre_hook(count('model_forwards')),model.backbone.register_forward_pre_hook(count('backbone_forwards'))]
+    norm_before=state_sha(context['normalization']);prior_before=state_sha(context['prior']);steps=[];probe=None;finite=None;equal=None;checkpoint3=None
+    packets=None if lane=='initial'else[future_cuda_packet(context,b)for b in context['batches']]
+    packet_before=None if packets is None else state_sha(packets)
+    try:
+        initial=future_cuda_score(model,(future_cuda_packet(context,b)for b in context['batches'])if packets is None else packets,
+            plan,context['prior'],initial=True,equal_tf=lane=='initial')
+        need(initial['rows']==(354550 if lane=='initial'else 256)and initial['batch_count']==(5540 if lane=='initial'else 4)
+            and initial['initial_prior_exact']is True and counts['optimizer_steps']==0,'FUTURE_CUDA_ALL_INITIAL_BEFORE_UPDATES')
+        publish(root/'INITIAL_SCORE.json',initial)
+        reference=None
+        if lane=='replay':
+            parent=FUTURE_CUDA_SCOPES['mechanics']['root']/'continuous'
+            terminal=future_cpu_read(ref(parent/'TERMINAL.json'));reference=future_cpu_read(terminal['result'])
+            future_cpu_parent_stopped(reference['process_identity'])
+            need(reference['plan']==plan_ref and reference['report']['initial']==initial
+                and reference['report']['initial_state_sha256']==initial_state,'FUTURE_CUDA_REPLAY_FRESH_INITIAL')
+            receipt=future_cpu_read(reference['report']['checkpoint3_receipt'])
+            need(receipt['plan']==plan_ref and receipt['cursor']==3 and receipt['checkpoint']['path']==str(parent/'CURSOR003.pt')
+                and ref(receipt['checkpoint']['path'])==receipt['checkpoint'],'FUTURE_CUDA_CURSOR3_AUTHORITY')
+            checkpoint=torch.load(receipt['checkpoint']['path'],map_location='cpu',weights_only=True);counts['checkpoint_loads']+=1
+            need(future_cpu_proof(checkpoint)==receipt['state_proof'],'FUTURE_CUDA_CURSOR3_PROOF')
+            future_cuda_restore(model,optimizer,checkpoint,plan,plan_ref,context['order'])
+            steps=list(checkpoint['steps']);checkpoint3=reference['report']['checkpoint3_receipt']
+        if lane!='initial':
+            for index in range(3 if lane=='replay'else 0,4):
+                steps.append(future_cuda_step(model,optimizer,packets[index],plan,counts,index))
+                if lane=='continuous'and index==0:
+                    probe=future_cuda_gradient_probe(model,packets[0],plan,counts)
+                    finite=future_cuda_parity_pair(model,packets[0],plan,counts,equal_tf=False)
+                    equal=future_cuda_parity_pair(model,packets[0],plan,counts,equal_tf=True)
+                if lane=='continuous'and index==2:
+                    checkpoint=future_cuda_checkpoint(model,optimizer,plan,plan_ref,context['order'],3,steps)
+                    binding=future_cuda_publish_checkpoint(root/'CURSOR003.pt',checkpoint,counts)
+                    checkpoint3=publish(root/'CURSOR003.json',{'plan':plan_ref,'cursor':3,'checkpoint':binding,
+                        'state_proof':future_cpu_proof(checkpoint)})
+            final=future_cuda_score(model,packets,plan,context['prior'],initial=False,equal_tf=False)
+        else:final=initial
+        checkpoint=future_cuda_checkpoint(model,optimizer,plan,plan_ref,context['order'],0 if lane=='initial'else 4,steps)
+        binding=future_cuda_publish_checkpoint(root/('INITIAL_STATE.pt'if lane=='initial'else'FINAL_STATE.pt'),checkpoint,counts)
+        proof=future_cpu_proof(checkpoint)
+        if lane=='replay':
+            need(proof==reference['report']['final_state_proof']and steps==reference['report']['steps']
+                and final==reference['report']['final'],'FUTURE_CUDA_COLD_REPLAY_BIT_EXACT')
+        need(counts==FUTURE_CUDA_LIMITS[lane]and state_sha(context['normalization'])==norm_before
+            and state_sha(context['prior'])==prior_before and(packets is None or state_sha(packets)==packet_before),
+            'FUTURE_CUDA_EXACT_COUNTS_FROZEN_INPUTS')
+        if lane=='initial':need(canonical_model_state_sha256(model.state_dict())==initial_state,'FUTURE_CUDA_FULL_INITIAL_STATE_UNCHANGED')
+        peak=torch.cuda.max_memory_reserved();need(peak<=LARGER_VRAM_MAX,'FUTURE_CUDA_VRAM_LIMIT')
+        return {'lane':lane,'counts':counts,'batch_order':context['order'],'initial_state_sha256':initial_state,
+            'initial':initial,'final':final,'steps':steps,'post_first_update_gradient':probe,
+            'finite_check_gradient_parity':finite,'equal_tf_evaluation':equal,'checkpoint3_receipt':checkpoint3,
+            'final_checkpoint':binding,'final_state_proof':proof,'cold_replay_bit_exact':lane=='replay',
+            'runtime_flags':runtime,'cuda_peak_reserved_bytes':peak,'logical_updates':0 if lane=='initial'else 4,
+            'physical_updates_this_lane':counts['optimizer_steps'],'whole_TRAIN_initialbaseline_qualified':lane=='initial',
+            'proper_prefix_NLL_gain':None if lane=='initial'else initial['proper_partial_NLL']-final['proper_partial_NLL'],
+            'production_gradient_policy_selected':False,'generalization_or_economic_edge_qualified':False,
+            'scope':'full354550TRAIN_fresh_INITIAL_only'if lane=='initial'else'four_distinct_B64_TRAIN_prefix_updates_replay_duplicates_only_step4_not_independent_small_FIT',
+            'observability':'weekly_v2_only_partial_positive_ACTIVITY_never_partial_FLAT_or_side; unchanged_truth_masks; no_new_calendar'}
+    finally:
+        for hook in hooks:hook.remove()
+
+
+def run_future_cuda(plan_sha,lane):
+    from gx1.contracts.gx1_capped_execution_v1 import require_native_future_state_cuda_qualification_execution
+    began=time.monotonic();guard=require_native_future_state_cuda_qualification_execution(plan_sha256=plan_sha,lane=lane)
+    plan,plan_ref,policy_ref,live=inspect_future_cuda(plan_sha,lane,admitted=True)
+    kind=plan['lane_group'];scope=FUTURE_CUDA_SCOPES[kind];execution=plan['execution']
+    need(guard['memory_max']==guard['memory_high']==20*1024**3 and guard['swap']==512*1024**2
+        and guard['pids']==128 and guard['numerical_threads']==8 and guard['cpu_affinity']==list(range(19))
+        and guard['plan']==plan_ref and guard['outer_seconds']==execution['outer_seconds']
+        and guard['internal_seconds']==execution['internal_seconds'],'FUTURE_CUDA_EXACT_GUARD')
+    root=future_cuda_lane_root(lane);need(guard['output_root']==str(root),'FUTURE_CUDA_GUARD_OUTPUT_ROOT')
+    root.mkdir(parents=True,exist_ok=False);process=future_cpu_process_identity()
+    claim=publish(root/'CLAIM.json',{'stage':scope['stage'],'status':'CLAIMED_ONE_USE','plan':plan_ref,
+        'policy_at_claim':policy_ref,'lane':lane,'process_identity':process,'fresh_live_idle_runtime':live,
+        'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
+    previous=signal.getsignal(signal.SIGALRM);result=None
+    def expired(*args):raise TimeoutError('FUTURE_CUDA_INTERNAL_DEADLINE')
+    try:
+        remaining=execution['internal_seconds']-(time.monotonic()-began);need(remaining>0,'FUTURE_CUDA_TIME_BEFORE_PAYLOADS')
+        signal.signal(signal.SIGALRM,expired);signal.setitimer(signal.ITIMER_REAL,remaining)
+        report=future_cuda_physical(plan,plan_ref,root,lane)
+        need(all(sha(REPO/k)==v for k,v in plan['source_owners'].items())and ref(POLICY)==policy_ref
+            and ref(scope['plan'])==plan_ref,'FUTURE_CUDA_SOURCE_POLICY_PLAN_BOOKEND')
+        for binding in [*plan['inputs'].values(),*(plan['metadata'][k]for k in
+                ('source_snapshot','normalization','input_binding_ref','prior','dataset','native_manifest'))]:future_cpu_read(binding)
+        snapshot=future_cpu_read(plan['metadata']['source_snapshot']);data=future_cpu_read(plan['metadata']['dataset'])
+        need(ref(snapshot['archive']['path'])==snapshot['archive']and ref(data['arrays']['path'])==data['arrays']
+            and Path('/proc/sys/kernel/random/boot_id').read_text().strip()==live['wsl_boot_id']
+            and physical_windows_boot_id()==live['physical_windows_boot_id']
+            and subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()==live['source_commit'],
+            'FUTURE_CUDA_PAYLOAD_BOOT_BOOKEND')
+        need(common.firewall_state()['denied_attempts']==0,'FUTURE_CUDA_CLEAN_FIREWALL')
+        status='COMPLETE_NATIVE_FUTURE_STATE_CUDA_INITIAL'if kind=='initial'else'COMPLETE_NATIVE_FUTURE_STATE_CUDA_MECHANICS'
+        result=publish(root/'RESULT.json',{'stage':scope['stage'],'status':status,'plan':plan_ref,'claim':claim,
+            'process_identity':process,'report':report,'guard':guard,'source_unchanged':True,'test_data_used':False,
+            'elapsed_seconds':time.monotonic()-began})
+        terminal=publish(root/'TERMINAL.json',{'stage':scope['stage'],'status':'COMPLETE','exit_code':0,
+            'plan':plan_ref,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,
+            'source_unchanged':True,'test_data_used':False})
+        return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        publish(root/'TERMINAL.json',{'stage':scope['stage'],'status':'FAILED_CONSUMED','exit_code':1,
+            'plan':plan_ref,'claim':claim,'result':result,'error':type(error).__name__+':'+str(error)[:2000],
+            'remaining_invocations':0,'relaunch_allowed':False,'source_unchanged':False,'test_data_used':False});raise
+    finally:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,previous)
+
+
+def future_cuda_cli():
+    import sys
+    parser=argparse.ArgumentParser();parser.add_argument('--native-future-state-cuda-qualification',action='store_true',required=True)
+    parser.add_argument('--plan-sha256',required=True);parser.add_argument('--lane',choices=('continuous','replay','initial'),required=True)
+    parser.add_argument('--preflight',action='store_true');args=parser.parse_args()
+    need(sys.argv[1:]==['--native-future-state-cuda-qualification','--plan-sha256',args.plan_sha256,'--lane',args.lane]
+        +(['--preflight']if args.preflight else []),'FUTURE_CUDA_EXACT_CLI')
+    if args.preflight:
+        _,plan_ref,policy_ref,live=inspect_future_cuda(args.plan_sha256,args.lane,admitted=False)
+        print(json.dumps({'status':'PREFLIGHT_FUTURE_STATE_CUDA_METADATA_ONLY','plan':plan_ref,'policy':policy_ref,
+            'lane':args.lane,'cuda_initialized':False,'model_constructions':0,'optimizer_steps':0,
+            'claim_created':False,'live_idle_observed_utc':live['observed_utc']}))
+    else:print(json.dumps(run_future_cuda(args.plan_sha256,args.lane),sort_keys=True))
+
+
 if __name__=='__main__':
     import sys
-    if '--native-future-state-cpu-mechanics'in sys.argv:future_cpu_cli()
+    if '--native-future-state-cuda-qualification'in sys.argv:future_cuda_cli()
+    elif '--native-future-state-cpu-mechanics'in sys.argv:future_cpu_cli()
     else:main()

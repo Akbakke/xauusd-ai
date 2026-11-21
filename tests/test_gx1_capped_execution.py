@@ -805,3 +805,80 @@ def test_native_future_state_cpu_mechanics_rejects_actual_scope_drift(monkeypatc
     with pytest.raises(RuntimeError):
         capped_execution.require_native_future_state_cpu_mechanics_execution(
             plan_sha256='a'*64,lane='continuous',environ=env,read_text=lambda path:files[str(path)])
+
+
+def _native_future_cuda_fixture(lane='continuous'):
+    env, files = _guarded_fixture()
+    seconds = 5400 if lane == 'initial' else 1800
+    env.update(GX1_CAPPED_CLASS='trainer', GX1_CUDA_PRODUCER_GUARD='false',
+        GX1_TRAINER_EXECUTION_MODE='canonical', GX1_CAPPED_MEMORY_BYTES=str(20*1024**3),
+        GX1_CAPPED_TASKS_MAX='128', GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION='true',
+        GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256='a'*64, GX1_NATIVE_FUTURE_STATE_CUDA_LANE=lane,
+        GX1_TRAINER_MAX_WALL_SECONDS=str(seconds), GX1_TRAINER_MODEL_MAX_WALL_SECONDS=str(seconds))
+    for key in ('OMP_NUM_THREADS','MKL_NUM_THREADS','OPENBLAS_NUM_THREADS',
+                'NUMEXPR_NUM_THREADS','VECLIB_MAXIMUM_THREADS','BLIS_NUM_THREADS'):
+        env[key] = '8'
+    env.update(ARROW_NUM_THREADS='1', POLARS_MAX_THREADS='1')
+    for key in ('memory.max','memory.high'):
+        files['/sys/fs/cgroup/gx1-cuda-test.scope/'+key] = str(20*1024**3)
+    files['/sys/fs/cgroup/gx1-cuda-test.scope/pids.max'] = '128'
+    return env, files
+
+
+@pytest.mark.parametrize('lane', ['continuous','replay','initial'])
+def test_native_future_state_cuda_qualification_requires_existing_canonical_trainer_proof(monkeypatch,lane):
+    env, files = _native_future_cuda_fixture(lane)
+    monkeypatch.setattr(capped_execution.os, 'environ', env)
+    monkeypatch.setattr(capped_execution.os, 'sched_getaffinity', lambda pid:set(range(19)))
+    monkeypatch.setattr(capped_execution.Path, 'read_text', lambda path,**kw:files[str(path)])
+    lock = {'canonical_lock':'synthetic'}
+    monkeypatch.setattr(capped_execution, 'require_capped_lock_ancestry', lambda:lock)
+    proof = capped_execution.require_native_future_state_cuda_qualification_execution(plan_sha256='a'*64,lane=lane)
+    basename = 'NATIVE_M5_FUTURE_STATE_CUDA_'+('INITIAL' if lane=='initial' else 'MECHANICS')+'_20261121_001'
+    assert proof['plan_path'].endswith('/configs/research/'+basename+'.json')
+    assert proof['plan']=={'path':proof['plan_path'],'sha256':'a'*64}
+    assert proof['output_root']=='/home/andre2/GX1_RUNS/'+basename+('' if lane=='initial' else '/'+lane)
+    assert proof['class']=='trainer' and proof['execution_mode']=='canonical' and proof['technical_only'] is True
+    assert proof['outer_seconds']==(5400 if lane=='initial' else 1800)
+    assert proof['internal_seconds']==proof['outer_seconds']-30 and proof['kill_after_seconds']==10
+    assert proof['memory_max']==proof['memory_high']==20*1024**3
+    assert proof['swap']==512*1024**2 and proof['pids']==128
+    assert proof['cpu_affinity']==list(range(19)) and proof['numerical_threads']==8 and proof['lock']==lock
+
+
+@pytest.mark.parametrize('field,value', [
+    ('GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION',None),
+    ('GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION','false'),
+    ('GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256','b'*64),
+    ('GX1_NATIVE_FUTURE_STATE_CUDA_LANE','replay'),
+    ('GX1_TRAINER_MAX_WALL_SECONDS','5400'),
+    ('GX1_TRAINER_MODEL_MAX_WALL_SECONDS','5400')])
+def test_native_future_state_cuda_qualification_rejects_private_mode_drift_before_trainer(monkeypatch,field,value):
+    env, _ = _native_future_cuda_fixture()
+    if value is None:env.pop(field)
+    else:env[field]=value
+    monkeypatch.setattr(capped_execution.os,'environ',env)
+    monkeypatch.setattr(capped_execution,'require_guarded_cuda_trainer_execution',
+        lambda:pytest.fail('private mismatch reached canonical trainer proof'))
+    with pytest.raises(RuntimeError,match='GX1_NATIVE_CUDA_QUALIFICATION_'):
+        capped_execution.require_native_future_state_cuda_qualification_execution(plan_sha256='a'*64,lane='continuous')
+
+
+@pytest.mark.parametrize('plan_sha,lane', [('bad','continuous'),('A'*64,'continuous'),
+    ('a'*64,'fit'),('a'*64,True),(None,'initial')])
+def test_native_future_state_cuda_qualification_rejects_invalid_request_before_trainer(monkeypatch,plan_sha,lane):
+    monkeypatch.setattr(capped_execution,'require_guarded_cuda_trainer_execution',
+        lambda:pytest.fail('invalid request reached canonical trainer proof'))
+    with pytest.raises(RuntimeError,match='GX1_NATIVE_CUDA_QUALIFICATION_'):
+        capped_execution.require_native_future_state_cuda_qualification_execution(plan_sha256=plan_sha,lane=lane)
+
+
+@pytest.mark.parametrize('field,value', [('GX1_CAPPED_CLASS','producer'),('GX1_TRAINER_DEVICE','cpu'),
+    ('GX1_TRAINER_EXECUTION_MODE','attended_smoke'),('GX1_CUDA_PRODUCER_GUARD','true'),
+    ('GX1_CAPPED_MEMORY_BYTES',str(12*1024**3)),('OMP_NUM_THREADS','1')])
+def test_native_future_state_cuda_qualification_cannot_bypass_canonical_scope(monkeypatch,field,value):
+    env, _ = _native_future_cuda_fixture();env[field]=value
+    monkeypatch.setattr(capped_execution.os,'environ',env)
+    monkeypatch.setattr(capped_execution.Path,'read_text',lambda *a,**kw:pytest.fail('invalid scope reached cgroup'))
+    with pytest.raises(RuntimeError,match='GX1_CUDA_TRAINER_ENV_INVALID'):
+        capped_execution.require_native_future_state_cuda_qualification_execution(plan_sha256='a'*64,lane='continuous')

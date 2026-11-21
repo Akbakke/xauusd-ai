@@ -605,3 +605,179 @@ def test_cot_publication_correction_actual_clock_witness(fault):
         assert result['rows'][1]['actual_available_ns']==pd.Timestamp('2025-11-20T05:00:00Z').value
         assert result['canonical_rows_sha256']==features._sha(result['rows'])
         assert len(result['actual_as_of_available_at_sha256'])==64
+
+
+
+def _cot_norm_statistics_fixture():
+    names=['ctx_cont.'+f for f in cache.COT_FIELDS]+['ctx_cont.unmodified']
+    ctx=[*cache.COT_FIELDS,'unmodified']
+    def surface(name,fields):
+        return {'surface':name,'field_names':fields,'field_count':len(fields),'stats_sha256':'old',
+            'center':[0.]*len(fields),'scale':[1.]*len(fields),'binary_mask':[0]*len(fields),
+            'categorical_mask':[0]*len(fields),'scale_source':['raw_iqr']*len(fields),
+            'train_transformed_min':[-1.]*len(fields),'train_transformed_max':[1.]*len(fields)}
+    old={'contract_sha256':'old','source_axes_sha256':'old','feature_provider_contract_sha256':'old',
+        'fit_population':{'same':'wholeTRAIN'},'ctx_cat':{'same':'categorical'},'temporal_aliases':['same'],
+        'surfaces':{'signal':surface('signal',names),'ctx_cont':surface('ctx_cont',ctx),
+            **{'mtf_'+tf.lower():surface('mtf_'+tf.lower(),['native'])for tf in features.TIMEFRAMES}}}
+    new=copy.deepcopy(old);new.update(contract_sha256='new',source_axes_sha256='new',feature_provider_contract_sha256='new')
+    for name in ('signal','ctx_cont'):
+        new['surfaces'][name]['center'][0]=2.;new['surfaces'][name]['stats_sha256']='new'
+    return old,new
+
+
+@pytest.mark.parametrize('fault',[None,'noncot','population','mtf','alias','category'])
+def test_cot_normalization_all_unchanged_stats_and_population_are_exact(fault):
+    old,new=_cot_norm_statistics_fixture()
+    if fault=='noncot':new['surfaces']['signal']['scale'][-1]=2.
+    if fault=='population':new['fit_population']['same']='filtered'
+    if fault=='mtf':new['surfaces']['mtf_d1']['center'][0]=2.
+    if fault=='alias':new['temporal_aliases']=['changed']
+    if fault=='category':new['ctx_cat']['same']='changed'
+    if fault:
+        with pytest.raises(ValueError,match='COT_NORM_'):cache.cot_norm_stats_comparison(old,new)
+    else:
+        result=cache.cot_norm_stats_comparison(old,new)
+        assert result['all_nonCOT_perfield_statistics_exact']
+        assert result['all_five_MTF_surface_contracts_exact']
+        assert result['unchanged_field_counts']['signal']==1
+
+
+def test_cot_normalization_independent_window_union_merges_overlap_and_preserves_gaps():
+    rows=np.asarray([95,96,200,202],np.int64)
+    expected=np.r_[np.arange(97,dtype=np.int64),np.arange(105,203,dtype=np.int64)]
+    np.testing.assert_array_equal(cache.cot_norm_local_union(rows,96),expected)
+    with pytest.raises(ValueError,match='LOCAL_UNION'):cache.cot_norm_local_union(np.asarray([94],np.int64),96)
+
+
+def _cot_norm_witness_fixture():
+    provider=_provider();surfaces=dict(provider.surfaces);fields=provider.profile['physical_field_names']
+    signal=surfaces['signal'].copy();ctx=surfaces['ctx_cont'].copy()
+    stats={}
+    for name in ('signal','ctx_cont'):
+        width=len(fields[name]);stats[name]={key:[0.]*width for key in cache.COT_NORM_VECTOR_STATS}
+    for j,field in enumerate(cache.COT_FIELDS):
+        si=fields['signal'].index('ctx_cont.'+field);ci=fields['ctx_cont'].index(field)
+        raw=np.arange(400,dtype=np.float32)+j;signal[:,si]=raw;ctx[:,ci]=raw
+        for name,index,minvalue in (('signal',si,-1.),('ctx_cont',ci,(95.-199.5)/199.5)):
+            expected={'center':199.5+j,'scale':199.5,'scale_source':'raw_iqr','binary_mask':0,'categorical_mask':0,
+                'train_transformed_min':float(np.arcsinh(minvalue)),'train_transformed_max':float(np.arcsinh(1.))}
+            for key,value in expected.items():stats[name][key][index]=value
+    surfaces.update(signal=features._owned(signal,np.float32),ctx_cont=features._owned(ctx,np.float32),
+        observed=features._owned(np.isfinite(signal),np.bool_))
+    provider=features.NativeM5FeatureProvider(surfaces)
+    rows=np.arange(95,400,dtype=np.int64)
+    return provider,rows,{'fit_population':{'local_rows':400},'surfaces':stats}
+
+
+@pytest.mark.parametrize('fault',[None,'signal_stat','ctx_stat','population'])
+def test_cot_normalization_four_actual_raw_columns_have_independent_stats_proof(fault):
+    provider,rows,normalization=_cot_norm_witness_fixture()
+    fields=provider.profile['physical_field_names']
+    if fault=='signal_stat':normalization['surfaces']['signal']['center'][fields['signal'].index('ctx_cont.'+cache.COT_FIELDS[0])]+=1
+    if fault=='ctx_stat':normalization['surfaces']['ctx_cont']['train_transformed_min'][fields['ctx_cont'].index(cache.COT_FIELDS[0])]+=1
+    if fault=='population':normalization['fit_population']['local_rows']=399
+    if fault:
+        with pytest.raises(ValueError,match='COT_NORM_'):cache.cot_norm_four_stats_witness(provider,rows,normalization)
+    else:
+        result=cache.cot_norm_four_stats_witness(provider,rows,normalization)
+        assert result['independent_columns']==4 and result['local_union_rows']==400
+        assert result['per_field'][cache.COT_FIELDS[0]]['signal']['center']==199.5
+        assert result['per_field'][cache.COT_FIELDS[0]]['signal']['scale']==199.5
+        assert result['per_field'][cache.COT_FIELDS[0]]['ctx_cont']['population_rows']==305
+
+
+def test_cot_normalization_source_bridge_preserves_parent_functions_and_numeric_owners(tmp_path,monkeypatch):
+    driver='gx1/audit/build_native_m5_ta_feature_cache_v1.py';numeric='gx1/features/pure.py';guard='scripts/gx1_capped_run.sh'
+    before="def main():\n    return None\n\ndef cot_run():\n    return 1\n"
+    after="def main():\n    if '--cot-normalization' in sys.argv[1:]:\n        return cot_norm_main(sys.argv[1:])\n    return None\n\ndef cot_run():\n    return 1\n"
+    for name,text in ((driver,after),(numeric,'same'),(guard,'new guard')):
+        path=tmp_path/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text)
+    monkeypatch.setattr(cache,'REPO',tmp_path);monkeypatch.setattr(cache,'COT_SOURCE_PATHS',(driver,numeric,guard))
+    monkeypatch.setattr(cache.subprocess,'check_output',lambda *a,**k:before.encode())
+    parent={'source_owners':{driver:cache.hashlib.sha256(before.encode()).hexdigest(),numeric:cache.sha(tmp_path/numeric),guard:'0'*64}}
+    proof=cache.cot_norm_parent_source_bridge(parent)
+    assert proof['preserved_parent_source_hashes']=={numeric:cache.sha(tmp_path/numeric)}
+    assert proof['old_functions_AST_preserved_except_exact_norm_dispatch']==2
+    (tmp_path/driver).write_text(after.replace('return 1','return 2'))
+    with pytest.raises(ValueError,match='OLD_FUNCTION_CHANGED:cot_run'):cache.cot_norm_parent_source_bridge(parent)
+    (tmp_path/driver).write_text(after);(tmp_path/numeric).write_text('changed')
+    with pytest.raises(ValueError,match='NUMERIC_SOURCE_CHANGED'):cache.cot_norm_parent_source_bridge(parent)
+
+
+def test_cot_normalization_preflight_validates_inventory_before_hash_and_closed_policy(tmp_path,monkeypatch):
+    monkeypatch.setattr(cache,'COT_NORM_ROOT',tmp_path/'absent')
+    pr={'path':str(cache.COT_NORM_PLAN),'sha256':'1'*64};policy_ref={'path':str(cache.POLICY),'sha256':'2'*64}
+    plan={'source_owners':{name:'1'*64 for name in cache.COT_SOURCE_PATHS},'source_base_commit':'unit'}
+    gate={'plan':pr,'output_root':str(cache.COT_NORM_ROOT),'execution':cache.COT_NORM_EXECUTION,'limits':cache.COT_NORM_COUNTS,
+        'max_invocations':1,'claimed_invocations':0,'completed_invocations':0,'remaining_invocations':0,
+        'relaunch_allowed':False,'training_authorized':False,'test_authorized':False,
+        'status':'PREPARED_NOT_ADMITTED','execution_authorized':False}
+    policy={key:False for key in cache.owner.data.CLOSED_FLAGS}
+    policy[cache.COT_NORM_PARENT]={'goal_status':'ACTIVE','large_training_qualified':False,cache.COT_NORM_GATE:gate}
+    monkeypatch.setattr(cache,'cot_read',lambda binding:plan if binding==pr else policy)
+    monkeypatch.setattr(cache,'cot_json_ref',lambda path:policy_ref)
+    monkeypatch.setattr(cache,'cot_norm_build_plan',lambda **kw:plan);monkeypatch.setattr(cache,'cot_source_clean',lambda p:True)
+    checks=[];monkeypatch.setattr(cache,'cot_norm_checked_inputs',lambda p,**kw:checks.append(kw))
+    assert cache.cot_norm_inspect('1'*64,admitted=False)[0]is plan and checks==[{'payloads':False}]
+    policy['training_enabled']=True
+    with pytest.raises(ValueError,match='CLOSED_POLICY'):cache.cot_norm_inspect('1'*64,admitted=False)
+    plan['source_owners']['/unit/weights.pt']='2'*64
+    monkeypatch.setattr(cache,'sha',lambda *a:pytest.fail('invalid inventory hash'))
+    with pytest.raises(ValueError,match='SOURCE_SET'):cache.cot_norm_inspect('1'*64,admitted=False)
+    assert not cache.COT_NORM_ROOT.exists()
+
+
+def test_cot_normalization_consumed_failure_and_success_are_separate_one_use_roots(tmp_path,monkeypatch):
+    root=tmp_path/'failed';monkeypatch.setattr(cache,'COT_NORM_ROOT',root)
+    monkeypatch.setattr(cache.owner,'require_capped_cpu_research_producer_execution',lambda:{'unit':'exact_guard'})
+    monkeypatch.setattr(cache,'cot_norm_timeout_ancestry',lambda sha:{'outer_seconds':900})
+    def blocked(*a,**k):raise ValueError('preclaim gate')
+    monkeypatch.setattr(cache,'cot_norm_inspect',blocked)
+    with pytest.raises(ValueError,match='preclaim gate'):cache.cot_norm_run('1'*64)
+    assert not root.exists()
+    pr={'path':'/unit/plan.json','sha256':'1'*64};policy={'path':'/unit/policy.json','sha256':'2'*64}
+    monkeypatch.setattr(cache,'cot_norm_inspect',lambda *a,**k:({},pr,policy));monkeypatch.setattr(cache,'cot_norm_bookend',lambda *a:True)
+    def failed(*a,**k):raise ValueError('synthetic statistics failure')
+    monkeypatch.setattr(cache,'cot_norm_produce',failed)
+    with pytest.raises(ValueError,match='statistics failure'):cache.cot_norm_run('1'*64)
+    terminal=json.loads((root/'TERMINAL.json').read_text())
+    assert terminal['status']=='FAILED_CONSUMED'and terminal['result']is None
+    assert terminal['source_unchanged']is True and terminal['test_data_used']is False
+    assert terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False
+    assert cache.signal.getitimer(cache.signal.ITIMER_REAL)==(0.,0.)
+    monkeypatch.setattr(cache,'COT_NORM_ROOT',tmp_path/'success')
+    monkeypatch.setattr(cache,'cot_norm_produce',lambda p:{'actual_counts':dict(cache.COT_NORM_COUNTS)})
+    monkeypatch.setattr(cache,'cot_norm_checked_inputs',lambda *a,**k:None)
+    refs=cache.cot_norm_run('1'*64);terminal=json.loads(Path(refs['terminal']['path']).read_text())
+    assert terminal['status']=='COMPLETE'and terminal['result']==refs['result']
+    assert terminal['training_authorized']is terminal['test_data_used']is False
+
+
+def test_cot_normalization_fixed_cli_and_immutable_readback(tmp_path,monkeypatch):
+    calls=[];monkeypatch.setattr(cache,'cot_norm_inspect',lambda *a,**kw:(calls.append((a,kw))or({}, {}, {})))
+    cache.cot_norm_main(['--cot-normalization','--plan-sha256','1'*64,'--preflight'])
+    assert calls==[(('1'*64,),{'admitted':False})]
+    with pytest.raises(ValueError,match='EXACT_CLI'):
+        cache.cot_norm_main(['--cot-normalization','--plan','/wrong','--plan-sha256','1'*64])
+    monkeypatch.setattr(cache,'COT_NORM_ROOT',tmp_path)
+    binding=cache.cot_norm_publish('NORMALIZATION.json',{'qualified':'once'})
+    assert cache.cot_json_ref(binding['path'])==binding and cache.cot_read(binding)=={'qualified':'once'}
+    with pytest.raises(ImmutableEventAuthorityError):cache.cot_norm_publish('NORMALIZATION.json',{'qualified':'twice'})
+    assert cache.COT_NORM_COUNTS['normalization_fits']==cache.COT_NORM_COUNTS['snapshot_loads']==1
+    assert cache.COT_NORM_COUNTS['prior_fits']==cache.COT_NORM_COUNTS['target_values_decoded']==0
+
+
+@pytest.mark.parametrize('fault',[None,'wrong_mode','wrong_sha','missing'])
+def test_cot_normalization_requires_its_exact_outer_timeout(fault,monkeypatch):
+    argv=['timeout','--kill-after=10s','900s','.venv/bin/python','-m',cache.COT_MODULE,
+        '--cot-normalization','--plan-sha256','1'*64]
+    if fault=='wrong_mode':argv[6]='--cot-publication-correction'
+    if fault=='wrong_sha':argv[-1]='2'*64
+    if fault=='missing':argv=['bash']
+    monkeypatch.setattr(cache.os,'getppid',lambda:123)
+    monkeypatch.setattr(cache.Path,'read_bytes',lambda self:('\0'.join(argv)+'\0').encode())
+    monkeypatch.setattr(cache.Path,'read_text',lambda self,*a,**k:'PPid:\t0\n')
+    if fault:
+        with pytest.raises(ValueError,match='COT_NORM_.*TIMEOUT'):cache.cot_norm_timeout_ancestry('1'*64)
+    else:assert cache.cot_norm_timeout_ancestry('1'*64)['outer_seconds']==900

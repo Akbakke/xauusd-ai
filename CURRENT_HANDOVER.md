@@ -13,7 +13,8 @@ et dokumentert startpunkt for stortrening. Aktiv eier er
 Hver kodeendring følges også gjennom direkte oppstrøms-/nedstrømseiere og
 beslektede feiltilfeller. Uendrede beståtte bevis gjenbrukes.
 **Stortrening er fortsatt stengt. Alle globale treningsporter er false.**
-Ingen tung jobb er aktiv; nye normaliserings-/GPU-/læringsplaner er ikke innrømmet.
+Ingen tung jobb er aktiv. Ny normalisering er COMPLETE; ingen CUDA-/læringsplan
+er innrømmet ennå.
 
 ### Rettet faktisk COT-tidslekkasje
 
@@ -65,10 +66,25 @@ forward-/state-/RNG-paritet og avvist cross-policy-load før parameterkopiering.
 Dette velger ingen produksjonsvinner og åpner ingen fit. Forrige CPU-prefix-
 mekanikk gjelder gamle makroinputs, ikke ny funksjonsklarhet.
 
-Neste nødvendige steg er én fersk whole-TRAIN-normalisering gjennom eksisterende
-eier på den korrigerte cachen; ingen patch av fire løse konstanter. Deretter
-kvalifiseres ny CUDA-mekanikk, kald replay, effekt/temperatur/throughput og fersk
-helkohort-INITIAL samt en eksplisitt begrenset lærings-/gradientoppskrift.
+Den ferske whole-TRAIN-normaliseringen er COMPLETE/exit0,39,485s, én kanonisk
+fit på354550issues og samme ufiltrerte vindusunion. Fire COT-kolonner/ctx-aliaser
+har uavhengig råkolonne-/support-/statistikkbevis; alle øvrige stats er eksakte.
+Ny NORMALIZATION.json har fil-SHA46f1cb1c...3dc og kontraktf37b7d8b...0dd7;
+INPUT_BINDING.json har SHA14c4f1ce...0970e. Ingen priorfit, targetfilter eller
+modell i dette steget. Runrot:
+`/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_NORMALIZATION_20261121_001`.
+19normaliseringstester og51nye strikte CUDA-guardtilfeller består samlet.
+42syntetiske CUDA-qualifiertilfeller består separat. To nabofeil ble rettet før
+kjøring: INITIALs outputrot og avvisning av hengende outputsymlink.186gamle
+qualifierdefinisjoner er AST-bevart. Dette er ingen genuin CUDA-kvalifisering.
+
+Neste steg er eksakt engangs-CUDA-mekanikk med4updates og separat kald
+replay av siste update, disk-readback og alle RNG-stater; fullTRAIN-INITIAL
+har5540forwards og0updates. Equal-TF-eval måles separat under no_grad, mens
+finite-check-paritet også omfatter gradienter. Fullt koblet defaultNone er
+mekanikkreferanse; ingen produksjonsgradientvinner er valgt. Nye private
+mekanikkporter åpner bare dette avgrensede forsøket, aldri hovedfitten.
+Deretter gjenstår faktisk ressursprofil og eksplisitt begrenset læringsoppskrift.
 Ingen gammel engangsplan relanseres. TEST/M1/GC/handel/Exit er fortsatt stengt
 for den aktive retningsruten. Ingen ny sletting eller full TA-rebuild er gjort.
 
@@ -192,5 +208,9 @@ lærte vektene. Tidligere gradientnorm30,75 avgjør ikke den nye oppgavens vekte
 Fullprosjektaudit og beståtte uendrede kontroller gjenbrukes. Alle antatte670GB
 er ikke innholdsgodkjent; tidligere retention slettet35,7GB. Ingen ny sletting.
 DATA/RUNS følger retention-eieren. Ingen live/paper/broker/ordre/spending/promotion.
-CPUboost0 og eksisterende cgroups/hardwarevakter er uendret; ingen ny CPU-watt/
-termisk måling eller absolutt optimalisering er påstått. Teknisk PASS er ikke profitt.
+CPUboost0 og eksisterende cgroups/hardwarevakter er uendret. Windows har faktisk
+Intel i9-10900K,10fysiske kjerner/20logiske tråder; WSL har19vCPU,0–18.
+Numeriske arbeidstråder er fortsatt8 innen denne CPU-affiniteten. Eksisterende
+signert LibreHardwareMonitor-bro eksponerer GPU, ingen CPU package-watt eller
+CPU-temperatur. Tomgang33C/40Cminne/23,89W er ingen treningsmåling. Ingen
+absolutt optimalisering er påstått. Teknisk PASS er ikke profitt.

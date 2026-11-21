@@ -599,6 +599,43 @@ def require_native_future_state_cpu_mechanics_execution(
             "lane": lane, "outer_seconds": 900, "kill_after_seconds": 10}
 
 
+
+def require_native_future_state_cuda_qualification_execution(
+    *, plan_sha256: str, lane: str,
+) -> dict[str, Any]:
+    """Exact one-use CUDA qualification inside the unchanged canonical trainer guard.
+
+    The qualifier separately authenticates the recipe, runtime, input identities
+    and closed one-use policy. This proof grants no main-fit or producer route.
+    """
+    if type(plan_sha256) is not str or re.fullmatch(r"[0-9a-f]{64}", plan_sha256) is None:
+        raise RuntimeError("[GX1_NATIVE_CUDA_QUALIFICATION_PLAN_SHA256_INVALID]")
+    if type(lane) is not str or lane not in ("continuous", "replay", "initial"):
+        raise RuntimeError("[GX1_NATIVE_CUDA_QUALIFICATION_LANE_INVALID]")
+    seconds = 5400 if lane == "initial" else 1800
+    expected = {
+        "GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION": "true",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256": plan_sha256,
+        "GX1_NATIVE_FUTURE_STATE_CUDA_LANE": lane,
+        "GX1_TRAINER_MAX_WALL_SECONDS": str(seconds),
+        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": str(seconds),
+    }
+    for name, value in expected.items():
+        if os.environ.get(name) != value:
+            raise RuntimeError(f"[GX1_NATIVE_CUDA_QUALIFICATION_{name}_INVALID]")
+    proof = require_guarded_cuda_trainer_execution()
+    root = Path("/home/andre2/GX1_RUNS")
+    basename = ("NATIVE_M5_FUTURE_STATE_CUDA_INITIAL_20261121_001" if lane == "initial"
+                else "NATIVE_M5_FUTURE_STATE_CUDA_MECHANICS_20261121_001")
+    plan_path = Path(__file__).resolve().parents[2] / "configs/research" / (basename + ".json")
+    output_root = root / basename if lane == "initial" else root / basename / lane
+    return {**proof, "class": "trainer", "execution_mode": "canonical", "technical_only": True,
+            "plan": {"path": str(plan_path), "sha256": plan_sha256}, "plan_path": str(plan_path),
+            "output_root": str(output_root), "lane": lane, "outer_seconds": seconds,
+            "internal_seconds": seconds - 30, "kill_after_seconds": 10,
+            "cpu_affinity": list(range(19)), "numerical_threads": 8}
+
+
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")
     operation = parser.add_mutually_exclusive_group(required=True)

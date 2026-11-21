@@ -147,6 +147,18 @@ Krev57uendrede makrofelt og bare4endrede COT-kolonner/aliaser/masker, deretter
 full immutable publisering/reload. Normalisering refittes av eksisterende
 whole-TRAIN-eier; fire løse konstantpatcher beviser ikke support, extrema eller
 statistikkbinding. Gamle input/checkpoint-bevis beholder sitt tidligere omfang.
+Den korrigerte whole-TRAIN-normaliseringen krever eksakt uendret native issue-
+ og vindusunion, uendrede ikke-COT-statistikker og uavhengig råkolonneberegning
+av berørte robuststatistikker, ikke bare like outputdimensjoner.
+
+CUDA-mekanikk bruker ny eksakt plan og aktuell idle-/boot-/bibliotek-/GPU-
+identitet uten CUDA-initialisering før CLAIM. Kvalifiser faktisk optimizer,
+alle Python/NumPy/CPU/CUDA-RNG-stater, disk-readback og bitidentisk kald replay.
+Full INITIAL er en separat null-update-plan på hele ufiltrerte input-TRAIN.
+Equal-length-TF-optimalisering kvalifiseres i sin faktiske no_grad-evalrute;
+slik outputparitet er ikke alene bevis for treningsgradientparitet. Bevar
+umiddelbar/gruppert finite-check-paritet separat gjennom backward.
+
 
 En teknisk optimizerprøve med whole-TRAIN-statistikk/prior er et avgrenset
 prefiks av denne trajektorien, ikke en uavhengig liten FIT-sammenligning.

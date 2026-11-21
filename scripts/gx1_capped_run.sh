@@ -84,6 +84,9 @@ TRAINER_EXECUTION_MODE=canonical
 NATIVE_FUTURE_STATE_CPU_MECHANICS=false
 NATIVE_FUTURE_STATE_CPU_MECHANICS_SHA256=
 NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE=
+NATIVE_FUTURE_STATE_CUDA_QUALIFICATION=false
+NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256=
+NATIVE_FUTURE_STATE_CUDA_LANE=
 TRAINER_MAX_WALL_SECONDS=7200
 TRAINER_MODEL_MAX_WALL_SECONDS=7200
 TRAINER_ATTENDED_STAGE_REQUIRED=false
@@ -719,10 +722,32 @@ matches_bound_native_future_state_cpu_mechanics() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$6" ]]
 }
 
+matches_bound_native_future_state_cuda_qualification() {
+  local expected_plan
+  if [[ $# -eq 9 ]]; then
+    [[ "${9}" == --preflight ]] || return 1
+    set -- "${@:1:8}"
+  fi
+  [[ $# -eq 8 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$NATIVE_M5_FULL_GC_FIT_TRAINER_MODULE" \
+    && "$4" == --native-future-state-cuda-qualification \
+    && "$5" == --plan-sha256 && "$6" =~ ^[0-9a-f]{64}$ \
+    && "$7" == --lane ]] || return 1
+  case "$8" in
+    continuous|replay) expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_FUTURE_STATE_CUDA_MECHANICS_20261121_001.json" ;;
+    initial) expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_FUTURE_STATE_CUDA_INITIAL_20261121_001.json" ;;
+    *) return 1 ;;
+  esac
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$6" ]]
+}
+
 validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
   local trainer_reference=false hardware_smoke_reference=false h4_line_reference=false
-  local native_cpu_mechanics_reference=false
+  local native_cpu_mechanics_reference=false native_cuda_qualification_reference=false
   local trainer_flag_count=0 trainer_device_count=0 hardware_smoke_flag_count=0
   local profile_count=0 execution_tier_count=0 out_bundle_dir_count=0 out_dir_count=0
   local checkpoint_dir_count=0 launch_manifest_count=0 stage_count=0 arm_batch_size_count=0
@@ -748,6 +773,9 @@ validate_target_command() {
     if [[ "$target_arg" == *"$TA_M5_PROJECTED_H4_LINE_AUDIT_MODULE"* ]]; then
       h4_line_reference=true
     fi
+    if [[ "$target_arg" == *--native-future-state-cuda-qualification* ]]; then
+      native_cuda_qualification_reference=true
+    fi
     if [[ "$target_arg" == *--native-future-state-cpu-mechanics* ]]; then
       native_cpu_mechanics_reference=true
     fi
@@ -755,6 +783,39 @@ validate_target_command() {
       trainer_flag_count=$((trainer_flag_count + 1))
     fi
   done
+
+  if [[ "$native_cuda_qualification_reference" == true ]]; then
+    if [[ "$JOB_CLASS" != trainer || "$ATTENDED_SMOKE" != false \
+      || "$CUDA_PRODUCER_GUARD" != false || "$MEM" != 20G || "$SWAP" != 512M \
+      || -n "$POWER_BENCHMARK_SCOPE_JSON" || -n "$POWER_BENCHMARK_SCOPE_SHA256" ]] \
+      || ! matches_bound_native_future_state_cuda_qualification "$@"; then
+      echo "FATAL: native future-state CUDA qualification is not exactly bound" >&2
+      exit 75
+    fi
+    local future_cuda_output future_cuda_seconds
+    if [[ "$8" == initial ]]; then
+      future_cuda_output=/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CUDA_INITIAL_20261121_001
+      future_cuda_seconds=5400
+    else
+      future_cuda_output="/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CUDA_MECHANICS_20261121_001/$8"
+      future_cuda_seconds=1800
+    fi
+    [[ ! -e "$future_cuda_output" && ! -L "$future_cuda_output" ]] || {
+      echo "FATAL: native future-state CUDA output is not fresh" >&2
+      exit 75
+    }
+    NATIVE_FUTURE_STATE_CUDA_QUALIFICATION=true
+    NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256="${6}"
+    NATIVE_FUTURE_STATE_CUDA_LANE="${8}"
+    TRAINER_DEVICE=cuda
+    TRAINER_OUT_BUNDLE_DIR="$future_cuda_output"
+    TRAINER_MAX_WALL_SECONDS="$future_cuda_seconds"
+    TRAINER_MODEL_MAX_WALL_SECONDS="$future_cuda_seconds"
+    TRAINER_GPU_MAX_POWER_LIMIT_W=300
+    TRAINER_GPU_MAX_POWER_DRAW_W=310
+    TRAINER_GPU_MAX_CORE_TEMP_C=85
+    return
+  fi
 
   if [[ "$native_cpu_mechanics_reference" == true ]]; then
     if [[ "$JOB_CLASS" != producer || "$ATTENDED_SMOKE" != false \
@@ -1568,6 +1629,17 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
     echo "FATAL: nested capped job canonical lock ancestry proof failed" >&2
     exit 75
   }
+  if [[ "$NATIVE_FUTURE_STATE_CUDA_QUALIFICATION" == true ]]; then
+    [[ "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-}" == true \
+      && "${GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256:-}" == "$NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256" \
+      && "${GX1_NATIVE_FUTURE_STATE_CUDA_LANE:-}" == "$NATIVE_FUTURE_STATE_CUDA_LANE" \
+      && "${GX1_TRAINER_EXECUTION_MODE:-}" == canonical \
+      && "${GX1_TRAINER_MAX_WALL_SECONDS:-}" == "$TRAINER_MAX_WALL_SECONDS" \
+      && "${GX1_TRAINER_MODEL_MAX_WALL_SECONDS:-}" == "$TRAINER_MODEL_MAX_WALL_SECONDS" ]] || {
+      echo "FATAL: nested native CUDA qualification differs from protected parent mode" >&2
+      exit 75
+    }
+  fi
   if [[ "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ]]; then
     exec "$GPU_GUARD_PATH" "$@"
   fi
@@ -1763,6 +1835,9 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS="$NATIVE_FUTURE_STATE_CPU_MECHANICS" \
   --setenv=GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256="$NATIVE_FUTURE_STATE_CPU_MECHANICS_SHA256" \
   --setenv=GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE="$NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE" \
+  --setenv=GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION="$NATIVE_FUTURE_STATE_CUDA_QUALIFICATION" \
+  --setenv=GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256="$NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_FUTURE_STATE_CUDA_LANE="$NATIVE_FUTURE_STATE_CUDA_LANE" \
   --setenv=GX1_POWER_BENCHMARK_SCOPE_JSON="$POWER_BENCHMARK_SCOPE_JSON" \
   --setenv=GX1_POWER_BENCHMARK_SCOPE_SHA256="$POWER_BENCHMARK_SCOPE_SHA256" \
   --setenv=GX1_CAPPED_MEMORY_BYTES="$((requested_mem_kib * 1024))" \

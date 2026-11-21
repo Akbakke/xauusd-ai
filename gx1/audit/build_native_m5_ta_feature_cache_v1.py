@@ -453,6 +453,8 @@ def run(plan_sha):
 
 
 def main():
+    if '--cot-normalization' in sys.argv[1:]:
+        return cot_norm_main(sys.argv[1:])
     if '--cot-publication-correction' in sys.argv[1:]:
         return cot_main(sys.argv[1:])
     parser=argparse.ArgumentParser();parser.add_argument('--plan',required=True);parser.add_argument('--plan-sha256',required=True)
@@ -866,6 +868,307 @@ def cot_main(argv):
             'claim_created':False,'raw_values_decoded':0,'cached_values_decoded':0,'Torch_imported':False,
             'normalization_fits':0,'model_constructions':0,'optimizer_steps':0}))
     else:print(json.dumps(cot_run(args.plan_sha256),sort_keys=True))
+
+
+# Separate statistics qualification; the corrected cache is the sole data authority.
+COT_NORM_STAGE='native_m5_ta_cot_clock_normalization_20261121_001'
+COT_NORM_PARENT=COT_PARENT
+COT_NORM_GATE='cot_normalization_001'
+COT_NORM_PLAN=REPO/'configs/research/NATIVE_M5_TA_COT_CLOCK_NORMALIZATION_20261121_001.json'
+COT_NORM_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_NORMALIZATION_20261121_001')
+COT_NORM_EXECUTION=dict(COT_EXECUTION)
+COT_NORM_COUNTS={**COUNTS,'normalization_fits':1,'prior_fits':0,'snapshot_loads':1,
+    'cached_arrays_decoded':27,'TA_rebuilds':0,'macro_materializations':0,
+    'normalization_publications':1,'input_binding_publications':1,
+    'normalization_readbacks':1,'input_binding_readbacks':1}
+COT_NORM_INPUTS={
+    'cache_result':{'path':str(COT_ROOT/'RESULT.json'),'sha256':'6dd7df0fd2f0f2b736ba8034697e1c6a8f5e2e9c20138d76f3154568dffec206'},
+    'cache_terminal':{'path':str(COT_ROOT/'TERMINAL.json'),'sha256':'8eaef41cb506f40b20e4c1d0cfd6c76d6469347c211452ab900f42ff8765d50c'},
+    'old_normalization':{'path':'/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_PREPARE_20261120_001/NORMALIZATION.json',
+        'sha256':'157b9604970434590e2745bf62c182d53c51e39c7e6c37c6b070b8631c09e993'}}
+COT_NORM_PRODUCER_COMMIT='6fc5453ab69f753b57add459d087765e6fc7b1c5'
+COT_NORM_CHANGED_SOURCE_OWNERS=('gx1/audit/build_native_m5_ta_feature_cache_v1.py',
+    'tests/test_build_native_m5_ta_feature_cache_v1.py','gx1/contracts/gx1_capped_execution_v1.py',
+    'scripts/gx1_capped_run.sh')
+COT_NORM_VECTOR_STATS=('center','scale','binary_mask','categorical_mask','scale_source',
+    'train_transformed_min','train_transformed_max')
+
+
+def cot_norm_parent_source_bridge(parent):
+    need(set(parent['source_owners'])==set(COT_SOURCE_PATHS),'COT_NORM_PARENT_SOURCE_SET')
+    preserved={}
+    for name,value in parent['source_owners'].items():
+        if name not in COT_NORM_CHANGED_SOURCE_OWNERS:
+            need(sha(REPO/name)==value,'COT_NORM_NUMERIC_SOURCE_CHANGED:'+name);preserved[name]=value
+    path='gx1/audit/build_native_m5_ta_feature_cache_v1.py'
+    old_raw=subprocess.check_output(['git','show',COT_NORM_PRODUCER_COMMIT+':'+path],cwd=REPO)
+    need(hashlib.sha256(old_raw).hexdigest()==parent['source_owners'][path],'COT_NORM_PARENT_DRIVER_GIT')
+    old=ast.parse(old_raw);current=ast.parse((REPO/path).read_text())
+    old_functions={n.name:n for n in old.body if isinstance(n,ast.FunctionDef)}
+    functions={n.name:n for n in current.body if isinstance(n,ast.FunctionDef)}
+    for name,node in old_functions.items():
+        need(name in functions,'COT_NORM_OLD_FUNCTION_MISSING')
+        actual=functions[name]
+        if name=='main':
+            expected=ast.parse("if '--cot-normalization' in sys.argv[1:]:\n    return cot_norm_main(sys.argv[1:])").body[0]
+            need(ast.dump(actual.body[0])==ast.dump(expected),'COT_NORM_EXACT_DISPATCH')
+            actual=ast.FunctionDef(name=actual.name,args=actual.args,body=actual.body[1:],
+                decorator_list=actual.decorator_list,returns=actual.returns,type_comment=actual.type_comment)
+        need(ast.dump(node,include_attributes=False)==ast.dump(actual,include_attributes=False),
+            'COT_NORM_OLD_FUNCTION_CHANGED:'+name)
+    return {'producer_commit':COT_NORM_PRODUCER_COMMIT,'parent_driver_sha256':hashlib.sha256(old_raw).hexdigest(),
+        'preserved_parent_source_hashes':preserved,'explicit_changed_control_owners':list(COT_NORM_CHANGED_SOURCE_OWNERS),
+        'old_functions_AST_preserved_except_exact_norm_dispatch':len(old_functions)}
+
+
+def cot_norm_metadata():
+    from gx1.contracts import entry_model_native_input_normalization_v1 as norm
+    r=cot_read(COT_NORM_INPUTS['cache_result']);t=cot_read(COT_NORM_INPUTS['cache_terminal'])
+    need(r['stage']==t['stage']==COT_STAGE and r['status']=='COMPLETE_NATIVE_M5_TA_COT_CLOCK_CORRECTION'
+        and t['status']=='COMPLETE'and t['exit_code']==0 and t['result']==COT_NORM_INPUTS['cache_result']
+        and r['source_unchanged']is t['source_unchanged']is True
+        and r['test_data_used']is t['test_data_used']is False
+        and r['training_authorized']is t['training_authorized']is False
+        and r['plan']==t['plan']and r['claim']==t['claim'],'COT_NORM_COMPLETE_PARENT')
+    parent=cot_read(r['plan']);claim=cot_read(r['claim']);report=r['report']
+    need(parent['stage']==claim['stage']==COT_STAGE and claim['plan']==r['plan']
+        and r['actual_counts']==report['actual_counts']==COT_COUNTS
+        and report['COT_clock_witness']['matched_rows']==21,'COT_NORM_PARENT_PROOF')
+    snapshot=cot_read(report['snapshot']);contract=features.native_m5_feature_provider_contract()
+    metadata=snapshot['surfaces_metadata'];axes=metadata['axes']
+    need(snapshot['schema_version']=='gx1_native_m5_bounded_feature_snapshot_v1'and len(snapshot['arrays'])==27
+        and snapshot['archive']==report['archive']
+        and snapshot['reload_all_arrays_dtype_shape_equal_nan_and_bytes_sha256']is True
+        and metadata['provider_contract']==report['input_provider_contract']==contract
+        and metadata['macro_binding']==report['macro_binding']and axes==report['source_axes']
+        and axes['contract_sha256']==features._sha({k:v for k,v in axes.items()if k!='contract_sha256'})
+        and axes['issue_start_ns']==START_NS and axes['issue_end_ns']==END_NS
+        and report['TRAIN_rows']==354550 and report['development_rows']==34934,
+        'COT_NORM_CORRECTED_SNAPSHOT')
+    old=norm.require_native_m5_input_normalization_contract(cot_read(COT_NORM_INPUTS['old_normalization']))
+    need(old['native_m5_manifest']==metadata['source_binding']['native_m5_manifest']
+        and old['source_axes_sha256']!=axes['contract_sha256']
+        and old['fit_population']['issue_rows']==354550 and old['fit_population']['cutoff_ns']==1767225600000000000
+        and old['fit_population']['selected_issue_ns_sha256']==report['TRAIN_issue_ns_sha256'],
+        'COT_NORM_REFERENCE_POPULATION_ONLY')
+    dependencies={}
+    for binding in [*COT_NORM_INPUTS.values(),r['plan'],r['claim'],report['snapshot'],
+            metadata['source_binding']['native_m5_manifest'],
+            parent['metadata']['current_source_spec'],parent['metadata']['current_clock']]:
+        cot_read(binding);dependencies[binding['path']]=binding
+    return {'dependencies':dependencies,'snapshot':report['snapshot'],'archive':cot_binding(report['archive']),
+        'source_axes':axes,'feature_contract':contract,'old_normalization':COT_NORM_INPUTS['old_normalization'],
+        'fit_population':old['fit_population'],'TRAIN_issue_ns_sha256':report['TRAIN_issue_ns_sha256'],
+        'parent_source_bridge':cot_norm_parent_source_bridge(parent)}
+
+
+def cot_norm_build_plan(*,source_base_commit=None):
+    metadata=cot_norm_metadata()
+    head=source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
+    return {'schema_version':'gx1_native_m5_ta_cot_clock_normalization_plan_v1','stage':COT_NORM_STAGE,
+        'status':'PREPARED_NOT_ADMITTED','output_root':str(COT_NORM_ROOT),'source_base_commit':head,
+        'source_owners':{name:sha(REPO/name)for name in COT_SOURCE_PATHS},'inputs':COT_NORM_INPUTS,
+        'metadata':metadata,'execution':COT_NORM_EXECUTION,'limits':COT_NORM_COUNTS,
+        'training_authorized':False,'test_data_used':False,'GC_used':False,'M1_used':False}
+
+
+def cot_norm_checked_inputs(plan,*,payloads):
+    for binding in plan['metadata']['dependencies'].values():cot_read(binding)
+    if payloads:
+        binding=plan['metadata']['archive'];need(ref(binding['path'])==binding,'COT_NORM_ARCHIVE_BOOKEND')
+    no_torch()
+
+
+def cot_norm_inspect(plan_sha,*,admitted):
+    need(Path.cwd().resolve()==REPO and not COT_NORM_ROOT.exists()and not COT_NORM_ROOT.is_symlink(),'COT_NORM_CWD_OUTPUT')
+    pr=cot_binding({'path':str(COT_NORM_PLAN),'sha256':plan_sha},json_only=True);plan=cot_read(pr)
+    need(type(plan.get('source_owners'))is dict and set(plan['source_owners'])==set(COT_SOURCE_PATHS),'COT_NORM_SOURCE_SET')
+    need(plan==cot_norm_build_plan(source_base_commit=plan['source_base_commit'])and cot_source_clean(plan),'COT_NORM_PLAN_SOURCE')
+    policy_ref=cot_json_ref(POLICY);policy=cot_read(policy_ref);parent=policy.get(COT_NORM_PARENT,{})
+    gate=parent.get(COT_NORM_GATE,{})
+    need(all(policy.get(k)is False for k in owner.data.CLOSED_FLAGS)
+        and parent.get('goal_status')=='ACTIVE'and parent.get('large_training_qualified')is False
+        and gate.get('plan')==pr and gate.get('output_root')==str(COT_NORM_ROOT)
+        and gate.get('execution')==COT_NORM_EXECUTION and gate.get('limits')==COT_NORM_COUNTS
+        and gate.get('max_invocations')==1 and gate.get('claimed_invocations')==gate.get('completed_invocations')==0
+        and gate.get('relaunch_allowed')is False and gate.get('training_authorized')is False
+        and gate.get('test_authorized')is False,'COT_NORM_CLOSED_POLICY')
+    expected=('ADMITTED_ONE_USE',True,1)if admitted else('PREPARED_NOT_ADMITTED',False,0)
+    need((gate.get('status'),gate.get('execution_authorized'),gate.get('remaining_invocations'))==expected,'COT_NORM_ONE_USE')
+    cot_norm_checked_inputs(plan,payloads=False);return plan,pr,policy_ref
+
+
+def cot_norm_stats_comparison(old,new):
+    need(set(old)==set(new)and old['fit_population']==new['fit_population'],'COT_NORM_EXACT_POPULATION')
+    for key in old:
+        if key not in ('contract_sha256','source_axes_sha256','feature_provider_contract_sha256','surfaces'):
+            need(old[key]==new[key],'COT_NORM_UNCHANGED_CONTRACT:'+key)
+    compared={}
+    need(set(old['surfaces'])==set(new['surfaces']),'COT_NORM_SURFACE_SET')
+    for name,previous in old['surfaces'].items():
+        current=new['surfaces'][name]
+        if name not in ('signal','ctx_cont'):
+            need(previous==current,'COT_NORM_UNCHANGED_MTF:'+name);compared[name]=previous['field_count'];continue
+        fields=previous['field_names'];allowed={'ctx_cont.'+f if name=='signal'else f for f in COT_FIELDS}
+        need(set(previous)==set(current)and fields==current['field_names'],'COT_NORM_STATS_KEYS')
+        for key,value in previous.items():
+            if key=='stats_sha256':continue
+            if key in COT_NORM_VECTOR_STATS:
+                need(len(value)==len(current[key])==len(fields)and all(value[i]==current[key][i]
+                    for i,field in enumerate(fields)if field not in allowed),'COT_NORM_NONCOT_STATS:'+name+':'+key)
+            else:need(value==current[key],'COT_NORM_UNCHANGED_STATS:'+name+':'+key)
+        compared[name]=len(fields)-len(allowed)
+    return {'all_nonCOT_perfield_statistics_exact':True,'all_five_MTF_surface_contracts_exact':True,
+        'ctx_cat_temporal_aliases_population_exact':True,'unchanged_field_counts':compared}
+
+
+def cot_norm_local_union(rows,length):
+    """Independent interval merge, avoiding a second call to the fitter's union helper."""
+    need(rows.dtype==np.int64 and rows.ndim==1 and len(rows)>0 and np.all(np.diff(rows)>0)
+        and type(length)is int and length>0 and rows[0]>=length-1,'COT_NORM_LOCAL_UNION')
+    start=int(rows[0])-length+1;end=int(rows[0]);parts=[]
+    for tail in rows[1:]:
+        left=int(tail)-length+1
+        if left>end+1:parts.append(np.arange(start,end+1,dtype=np.int64));start=left
+        end=int(tail)
+    parts.append(np.arange(start,end+1,dtype=np.int64))
+    return np.concatenate(parts)
+
+
+def cot_norm_four_stats_witness(provider,rows,normalization):
+    fields=provider.profile['physical_field_names'];local=cot_norm_local_union(rows,features.MODEL_NATIVE_SEQ_LEN)
+    local_positions=provider._feature_positions(local);positions=provider._feature_positions(rows);reports={}
+    need(len(local)==normalization['fit_population']['local_rows'],'COT_NORM_LOCAL_POPULATION')
+    for field in COT_FIELDS:
+        si=fields['signal'].index('ctx_cont.'+field);ci=fields['ctx_cont'].index(field)
+        raw=provider.surfaces['signal'][local_positions,si].astype(np.float64)
+        context=provider.surfaces['ctx_cont'][positions,ci].astype(np.float64)
+        need(np.isfinite(raw).all()and np.isfinite(context).all(),'COT_NORM_WITNESS_FINITE')
+        q25,median,q75=np.quantile(raw,[.25,.5,.75]);center=np.float32(median);scale=np.float32(q75-q25);source='raw_iqr'
+        if not np.isfinite(scale)or scale<=np.float32(0):
+            positive=np.abs(raw-float(center));positive=positive[positive>0]
+            need(len(positive)>=2,'COT_NORM_WITNESS_UNSCALEABLE')
+            scale=np.float32(np.median(positive));source='median_positive_abs_deviation'
+        need(np.isfinite(scale)and scale>np.float32(0),'COT_NORM_WITNESS_UNSCALEABLE')
+        supports={}
+        for name,column,index in (('signal',raw,si),('ctx_cont',context,ci)):
+            transformed=np.arcsinh((column-float(center))/float(scale));surface=normalization['surfaces'][name]
+            expected={'center':float(center),'scale':float(scale),'scale_source':source,'binary_mask':0,'categorical_mask':0,
+                'train_transformed_min':float(transformed.min()),'train_transformed_max':float(transformed.max())}
+            need(all(surface[key][index]==value for key,value in expected.items()),'COT_NORM_FOUR_STATS:'+name+':'+field)
+            supports[name]={'population_rows':len(column),'raw_F64_sha256':digest(column),**expected}
+        reports[field]=supports
+    return {'independent_columns':4,'formula':'F64 quantile(.25,.5,.75); F32 median/IQR; canonical positive-deviation fallback; F64 asinh support',
+        'local_union_rows':len(local),'local_union_source_rows_sha256':digest(local),'per_field':reports}
+
+
+def cot_norm_publish(name,value):
+    need(name in ('CLAIM.json','NORMALIZATION.json','INPUT_BINDING.json','RESULT.json','TERMINAL.json'),'COT_NORM_OUTPUT_NAME')
+    raw=(json.dumps(value,sort_keys=True,allow_nan=False)+'\n').encode();path=COT_NORM_ROOT/name;_publish_bytes(path,raw)
+    return {'path':str(path),'sha256':hashlib.sha256(raw).hexdigest()}
+
+
+def cot_norm_produce(plan):
+    from gx1.contracts import entry_model_native_input_normalization_v1 as norm
+    meta=plan['metadata'];counts={k:0 for k in COT_NORM_COUNTS};cot_norm_checked_inputs(plan,payloads=True)
+    provider=load_snapshot(meta['snapshot']);counts['snapshot_loads']=1;counts['cached_arrays_decoded']=27
+    old=norm.require_native_m5_input_normalization_contract(cot_read(meta['old_normalization']))
+    need(provider.surfaces['axes']==meta['source_axes']and provider.surfaces['provider_contract']==meta['feature_contract'],
+        'COT_NORM_CURRENT_PROVIDER')
+    all_rows=provider.surfaces['retained_issue_rows'];issues=provider.issue_ns[all_rows]
+    rows=all_rows[(issues>=START_NS)&(issues<1767225600000000000)]
+    need(len(rows)==354550 and provider.input_ready[all_rows].all()
+        and digest(provider.issue_ns[rows])==meta['TRAIN_issue_ns_sha256']
+        and digest(rows)==old['fit_population']['selected_source_rows_sha256'],'COT_NORM_WHOLE_TRAIN_INPUT_AXIS')
+    normalization=features.fit_native_m5_feature_normalization(provider,fit_source_rows=rows,cutoff_ns=1767225600000000000)
+    counts['normalization_fits']+=1
+    norm.require_native_m5_input_normalization_contract(normalization)
+    comparison=cot_norm_stats_comparison(old,normalization)
+    witness=cot_norm_four_stats_witness(provider,rows,normalization)
+    binding=provider.input_binding(normalization)
+    need(binding['source_axes_sha256']==meta['source_axes']['contract_sha256']
+        and binding['feature_provider_contract_sha256']==meta['feature_contract']['contract_sha256']
+        and normalization['fit_population']==meta['fit_population'],'COT_NORM_NEW_INPUT_BINDING')
+    norm_ref=cot_norm_publish('NORMALIZATION.json',normalization);counts['normalization_publications']=1
+    binding_ref=cot_norm_publish('INPUT_BINDING.json',binding);counts['input_binding_publications']=1
+    need(cot_json_ref(norm_ref['path'])==norm_ref,'COT_NORM_DISK_HASH')
+    saved=norm.require_native_m5_input_normalization_contract(cot_read(norm_ref));counts['normalization_readbacks']=1
+    need(saved==normalization and cot_json_ref(binding_ref['path'])==binding_ref,'COT_NORM_DISK_READBACK')
+    saved_binding=cot_read(binding_ref);counts['input_binding_readbacks']=1
+    need(saved_binding==binding==provider.input_binding(saved)and counts==COT_NORM_COUNTS,'COT_NORM_BINDING_READBACK_COUNTS')
+    no_torch()
+    return {'normalization':norm_ref,'input_binding':binding_ref,'snapshot':meta['snapshot'],
+        'archive':meta['archive'],'fit_population':saved['fit_population'],'TRAIN_issue_ns_sha256':meta['TRAIN_issue_ns_sha256'],
+        'source_axes_sha256':provider.source_axes_sha256,'statistics_comparison':comparison,
+        'COT_statistics_witness':witness,'actual_counts':counts,'Torch_imported':False,'test_data_used':False,
+        'initialbaseline_qualified':False,'prior_refit_performed':False,'old_normalization_reference_only':True}
+
+
+def cot_norm_timeout_ancestry(plan_sha):
+    tail=['--kill-after=10s','900s'];command=['-m',COT_MODULE,'--cot-normalization','--plan-sha256',plan_sha]
+    pid=os.getppid()
+    for _ in range(64):
+        argv=[os.fsdecode(v)for v in Path('/proc/'+str(pid)+'/cmdline').read_bytes().split(b'\0')if v]
+        if argv and Path(argv[0]).name=='timeout':
+            need(len(argv)==9 and argv[1:3]==tail and argv[4:]==command
+                and argv[3]in ('.venv/bin/python',str(REPO/'.venv/bin/python')),'COT_NORM_EXACT_OUTER_TIMEOUT')
+            return {'argv':argv,'pid':pid,'outer_seconds':900,'kill_after_seconds':10}
+        parents=[line.split(':',1)[1].strip()for line in Path('/proc/'+str(pid)+'/status').read_text().splitlines()if line.startswith('PPid:')]
+        need(len(parents)==1 and int(parents[0])>0,'COT_NORM_OUTER_TIMEOUT_MISSING');pid=int(parents[0])
+    need(False,'COT_NORM_OUTER_TIMEOUT_MISSING')
+
+
+def cot_norm_bookend(plan,pr,policy_ref):
+    return cot_source_clean(plan)and cot_json_ref(POLICY)==policy_ref and cot_json_ref(COT_NORM_PLAN)==pr
+
+
+def cot_norm_run(plan_sha):
+    began=time.monotonic();no_torch();firewall=install_native_m5_direction_io_firewall()
+    cap=owner.require_capped_cpu_research_producer_execution();timeout=cot_norm_timeout_ancestry(plan_sha)
+    need(signal.getitimer(signal.ITIMER_REAL)==(0.,0.),'COT_NORM_TIMER_ALREADY_ACTIVE')
+    plan,pr,policy_ref=cot_norm_inspect(plan_sha,admitted=True);COT_NORM_ROOT.mkdir(exist_ok=False)
+    claim=cot_norm_publish('CLAIM.json',{'stage':COT_NORM_STAGE,'status':'CLAIMED_ONE_USE','plan':pr,
+        'policy_at_claim':policy_ref,'max_invocations':1,'remaining_invocations':0,'test_data_used':False,
+        'timestamp_utc':datetime.now(timezone.utc).isoformat(),'pid':os.getpid(),'capped_execution':cap,
+        'outer_timeout':timeout,'training_authorized':False})
+    old=signal.getsignal(signal.SIGALRM);result=None
+    def expired(*args):raise TimeoutError('NATIVE_TA_COT_NORM_INTERNAL_870S')
+    try:
+        remaining=870-(time.monotonic()-began);need(remaining>0,'COT_NORM_TIME_BEFORE_DECODE')
+        signal.signal(signal.SIGALRM,expired);signal.setitimer(signal.ITIMER_REAL,remaining)
+        report=cot_norm_produce(plan);cot_norm_checked_inputs(plan,payloads=True)
+        need(report['actual_counts']==COT_NORM_COUNTS and cot_norm_bookend(plan,pr,policy_ref)
+            and firewall['denied_attempts']==0,'COT_NORM_SOURCE_POLICY_COUNTS_FIREWALL_BOOKEND')
+        result=cot_norm_publish('RESULT.json',{'stage':COT_NORM_STAGE,'status':'COMPLETE_NATIVE_M5_TA_COT_CLOCK_NORMALIZATION',
+            'plan':pr,'claim':claim,'report':report,'source_unchanged':True,'actual_counts':report['actual_counts'],
+            'clean_process_io_firewall':firewall,'training_authorized':False,'test_data_used':False,
+            'elapsed_seconds':time.monotonic()-began})
+        terminal=cot_norm_publish('TERMINAL.json',{'stage':COT_NORM_STAGE,'status':'COMPLETE','exit_code':0,
+            'plan':pr,'claim':claim,'result':result,'source_unchanged':True,'remaining_invocations':0,
+            'relaunch_allowed':False,'training_authorized':False,'test_data_used':False})
+        return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        try:unchanged=cot_norm_bookend(plan,pr,policy_ref)
+        except BaseException:unchanged=False
+        cot_norm_publish('TERMINAL.json',{'stage':COT_NORM_STAGE,'status':'FAILED_CONSUMED','exit_code':1,
+            'plan':pr,'claim':claim,'result':result,'source_unchanged':unchanged,'remaining_invocations':0,
+            'relaunch_allowed':False,'training_authorized':False,'test_data_used':False,
+            'error':type(error).__name__+':'+str(error)[:2000]})
+        raise
+    finally:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old)
+
+
+def cot_norm_main(argv):
+    parser=argparse.ArgumentParser();parser.add_argument('--cot-normalization',action='store_true',required=True)
+    parser.add_argument('--plan-sha256',required=True);parser.add_argument('--preflight',action='store_true');args=parser.parse_args(argv)
+    need(argv==['--cot-normalization','--plan-sha256',args.plan_sha256]+(['--preflight']if args.preflight else []),'COT_NORM_EXACT_CLI')
+    no_torch();install_native_m5_direction_io_firewall()
+    if args.preflight:
+        _,pr,policy_ref=cot_norm_inspect(args.plan_sha256,admitted=False)
+        print(json.dumps({'status':'PREFLIGHT_NATIVE_TA_COT_NORMALIZATION_METADATA_ONLY','plan':pr,'policy':policy_ref,
+            'claim_created':False,'raw_values_decoded':0,'cached_values_decoded':0,'Torch_imported':False,
+            'normalization_fits':0,'model_constructions':0,'optimizer_steps':0}))
+    else:print(json.dumps(cot_norm_run(args.plan_sha256),sort_keys=True))
 
 
 if __name__=='__main__':main()
