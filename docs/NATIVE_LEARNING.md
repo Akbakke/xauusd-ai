@@ -164,7 +164,9 @@ Klokkeutvalget forsegles før kohortens måloppslag: alle observerte22UTC-døgn,
 opptil16jevnt spredte issues per døgn, inkludert endepunktene.
 Ingen targetfilter, klassekvote eller top-up. Whole-TRAIN-normalisering og
 factoryprior beholdes. En ny kohortprior er kun sammenligningsgrunnlag ved
-scoring; den mates ikke til modellen. Null støtte bestemmes av fit_status/
+scoring; den mates ikke til modellen. HelTRAIN-hovedrapporten bruker bare
+whole_TRAIN_factory-referansen fra354550issues; studieprior20727 kan finnes
+i studieevidensen, men merkes aldri som matchet fullTRAIN-referanse. Null støtte bestemmes av fit_status/
 count, selv om den kanoniske Laplace-representasjonen har0,5 som plassholder.
 Uidentifiserte priorer gir ingen estimert sannsynlighet eller avhengig
 fulltreklasse-/Brier-/rangeringkreditt.

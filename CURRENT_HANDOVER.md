@@ -325,3 +325,26 @@ Root-/proc-observasjonen bruker eksisterende WindowsWSLeier/60s timeout.
 Den separate init/Relay-prosessen arver ikke bevist forelderens4GiBcgroup;
 forelderen holder CURRENTlåsen, og bare liten /proc-metadata leses,0modeller/
 DATApayload. Faktiskdurabilityprepare/seal/verify er fortsatt audit4GiB.
+
+Fysiskomstart er utført én gang etter forseglet maskinvidledighet: Windows
+669→670, WSLnyboot a8a8b35d-6eff-4028-af6c-4541a7ed7755.122kritiske filer/
+9binære refs og3hjelpere er SHA-identiske etterpå; ren Git-kilde er uendret.
+Midlertidige /tmp-hjelpere var borte og er gjenopprettet bare fra eksakt
+whitelistarkiv. SeparatMac inneholder også21prebootkontrollfiler/281113bytes.
+Ny recovery-probe er PREPARED_NOT_ADMITTED: fra m5_primaryCP1 til opprinnelig
+CP2-proof, bare1FW/BW/update,0stat-/priorfits. Hovedfit er fortsattstengt.
+
+Postbootrecovery er COMPLETE/exit0,35,578s: valgt m5_primaryCP1 lastet etter
+Windows670/nyWSL, opprinneligsteg2 gjenskapt bitidentisk for modell/AdamW/
+fullRNG/schedule/cursor/stegrapporter.1FW/BW/update,1CPload/write/readback,
+0stat-/priorfits/CONTROL/VAL/TEST. Alle treningsporter er lukket igjen.
+Eksisterende V4-portproxy ble fornyet på eksakt samme privateadresse etter
+boot; uendret pin/signertprobe35/42°C,23,01W,250Wlimit,78MiB. Ingenvaktsvekkelse.
+Tilgrensende MAINreview fant en ren rapportfeil: fysiskMAIN bruker korrekt
+wholeTRAINfactoryprior354550, men en referanse ble merket matched_SCORING_ONLY
+mens metadata pekte på studieprior20727. Bare MAIN-rapportnavn/metadata er rettet: én whole_TRAIN_factoryreferanse,
+metadata peker på samme354550prior; studieprior20727 beholdes bare som
+studieevidens.5fokuserte/tilgrensende tester består. Bare score_with_capture og
+metadata er AST-endret; alle øvrige modulnoder, særlig load/step/runloop/
+serializer/restore/recovery, er identiske med den faktiske fysiskprodusenten.
+Helemodul-byteidentitet påstås ikke; ingen input/loss/inferens eller statfit endret.

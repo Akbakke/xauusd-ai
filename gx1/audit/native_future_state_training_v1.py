@@ -427,13 +427,15 @@ def score_with_capture(model,packets,plan,factory_prior,scoring_prior,truth,*,in
     finally:handle.remove()
     output={k:np.concatenate(v)for k,v in captured.items()}
     need(len(next(iter(output.values())))==len(truth['issue_ns']),'SCORE_CAPTURE_AXIS')
+    references=(('whole_TRAIN_factory',factory_prior),('matched_SCORING_ONLY',scoring_prior))
+    if plan.get('mode')=='whole_train_one_epoch':references=references[:1]
     constants={}
-    for name,prior in (('whole_TRAIN_factory',factory_prior),('matched_SCORING_ONLY',scoring_prior)):
+    for name,prior in references:
         constants[name]=constant_prior_scores(prior,truth,plan['metadata']['target_contract'])
     return {**base,'rank_and_variation':rank_metrics(output,truth,plan['metadata']['target_contract']),
         'constant_references':constants,
         'constant_rank_and_variation':{name:constant_rank_metrics(prior,truth,plan['metadata']['target_contract'])
-            for name,prior in (('whole_TRAIN_factory',factory_prior),('matched_SCORING_ONLY',scoring_prior))},
+            for name,prior in references},
         'capture_used_existing_forwards':True}
 
 
@@ -584,7 +586,8 @@ def metadata(inputs,*,mode,train_batch_rows,eval_batch_rows,backbone_gradient_po
     for arm,policy in (('joint',None),('m5_primary','M5_primary')):
         meta['arm_model_contracts'][arm]=native_future_state_model_contract(meta['input_binding'],architecture=meta['architecture'],
             train_prior=factory,target_contract=meta['target_contract'],backbone_gradient_policy=policy)
-    meta['cohort_report']=r;meta['cohort_snapshot']=r['cohort_snapshot'];meta['matched_scoring_prior']=r['matched_scoring_prior']
+    meta['cohort_report']=r;meta['cohort_snapshot']=r['cohort_snapshot']
+    meta['matched_scoring_prior']=meta['prior']if mode=='whole_train_one_epoch'else r['matched_scoring_prior']
     if mode=='whole_train_one_epoch':meta['selected_policy_evidence']=selected_policy_evidence(inputs,backbone_gradient_policy,meta,recipe)
     return meta,recipe,schedule,bridge,q
 

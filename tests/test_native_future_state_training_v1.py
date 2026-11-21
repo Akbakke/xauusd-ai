@@ -563,3 +563,76 @@ def test_admitted_replay_still_requires_original_terminal_policy_and_stopped_pro
     with pytest.raises((ValueError,FileNotFoundError),match='MISSING_CONTINUOUS_TERMINAL|REPLAY_AUTHENTIC_ORIGINAL_CLAIM_POLICY|PARENT_STILL_RUNNING'):
         owner.inspect(pr['sha256'],lane,admitted=True)
     assert len(terminal_refs)==1
+
+
+@pytest.mark.parametrize('main',[False,True])
+def test_main_reference_population_and_paired_labels_survive_weights_only_readback(monkeypatch,main):
+    factory={'fit_population':{'issue_rows':354550}};study={'fit_population':{'issue_rows':20727}}
+    hooks=[];removed=[];truth={'issue_ns':np.arange(3,dtype=np.int64)}
+    model=SimpleNamespace(register_forward_hook=lambda hook:(hooks.append(hook)or SimpleNamespace(remove=lambda:removed.append(True))))
+    def score(actual_model,packets,plan,prior,**kwargs):
+        assert actual_model is model and prior is factory and kwargs=={'initial':False,'equal_tf':True}
+        hooks[0](model,(),{key:torch.zeros((3,5),dtype=torch.float32)for key in ('activity_logits','side_logits')})
+        return {'rows':3,'existing_score':0.25}
+    monkeypatch.setattr(owner.core,'future_cuda_score',score)
+    monkeypatch.setattr(owner,'rank_metrics',lambda *a:{'unchanged_rank':True})
+    primitive=lambda prior,*a:{'fit_rows':prior['fit_population']['issue_rows']}
+    monkeypatch.setattr(owner,'constant_prior_scores',primitive);monkeypatch.setattr(owner,'constant_rank_metrics',primitive)
+    monkeypatch.setattr(torch.cuda,'init',lambda:pytest.fail('reference-only test initialized CUDA'))
+    plan={'mode':'whole_train_one_epoch'if main else'paired_learning','metadata':{'target_contract':'synthetic'}}
+    result=owner.score_with_capture(model,(),plan,factory,factory if main else study,truth,initial=False)
+    expected={'whole_TRAIN_factory':{'fit_rows':354550}}
+    if not main:expected['matched_SCORING_ONLY']={'fit_rows':20727}
+    assert result['constant_references']==result['constant_rank_and_variation']==expected
+    assert result['rank_and_variation']=={'unchanged_rank':True}and result['existing_score']==0.25 and removed==[True]
+    stream=__import__('io').BytesIO();torch.save({'scores':{'PASS1':result}},stream);stream.seek(0)
+    assert torch.load(stream,map_location='cpu',weights_only=True)=={'scores':{'PASS1':result}}
+
+
+@pytest.mark.parametrize('main',[False,True])
+def test_main_metadata_reference_matches_factory_and_keeps_study_provenance(monkeypatch,main):
+    from gx1.audit import measure_native_future_state_throughput_v1 as throughput
+    from gx1.contracts import market_state_ta_integrated_model_v1 as model_owner
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    static=('source_snapshot','normalization','input_binding_ref','input_binding','prior','dataset','native_manifest','target_contract','architecture')
+    meta={key:reference(key+'.json')for key in static};meta['runtime']={'library_versions':{},'gpu':{}}
+    bridge={'metadata':copy.deepcopy(meta)};matched_ref=reference('study_prior.json')
+    matched={'fit_population':{'issue_rows':20727,'truth_sha256':'study_truth','issue_ns_sha256':'study_issues'}}
+    factory={'fit_population':{'issue_rows':354550,'issue_ns_sha256':owner.TRAIN_SHA}}
+    r={'cohort_snapshot':reference('snapshot.json'),'selection':reference('selection.json'),'arrays':reference('arrays.npz'),
+        'rows':20727,'truth_sha256':'study_truth','matched_scoring_prior':matched_ref,
+        'source_snapshot':meta['source_snapshot'],'normalization':meta['normalization'],
+        'input_binding':meta['input_binding_ref'],'factory_prior':meta['prior']}
+    for field,rows,passes in [('batch_geometries',20727,2),('whole_TRAIN_batch_geometries',354550,1)]:
+        r[field]={'96':{'first_two_supported':True,'schedule':owner.seal({'rows':rows,'passes':passes,
+            'batch_rows':96,'batches_per_pass':(rows+95)//96})}}
+    snapshot={'schema_version':'gx1_native_future_state_study_cohort_v1','arrays':r['arrays'],'selection':r['selection'],
+        'rows':20727,'truth_sha256':'study_truth'}
+    selection={'rows':20727,'design':owner.DESIGN,'whole_TRAIN_issue_ns_sha256':owner.TRAIN_SHA,'selected_issue_ns_sha256':'study_issues'}
+    values={owner.DESIGN['path']:{'selection_frozen_before_new_cohort_target_or_support_inspection':True},
+        r['cohort_snapshot']['path']:snapshot,r['selection']['path']:selection,matched_ref['path']:matched,meta['prior']['path']:factory}
+    monkeypatch.setattr(owner,'read',lambda binding:copy.deepcopy(values[binding['path']]))
+    monkeypatch.setattr(owner,'verify_initial_source_bridge',lambda inputs:bridge)
+    recipe={'optimizer':owner.core.ADAMW_RECIPE,'gradient_clip_norm':1.,'scheduler':None,'seed':20260911}
+    monkeypatch.setattr(owner.core,'future_cuda_metadata',lambda *a:(meta,recipe))
+    monkeypatch.setattr(owner,'runtime_compatible',lambda *a:True)
+    q={'train_batch_rows':96,'eval_batch_rows':256,'function_metadata':copy.deepcopy(meta)}
+    monkeypatch.setattr(throughput,'require_throughput_result',lambda *a:q)
+    monkeypatch.setattr(owner.core,'future_cuda_complete',lambda *a:({'report':r},{}))
+    monkeypatch.setattr(objective,'require_native_future_state_train_prior',lambda prior,**k:prior)
+    def model_contract(binding,**kwargs):
+        assert kwargs['train_prior']==factory
+        return {'policy':kwargs['backbone_gradient_policy']}
+    monkeypatch.setattr(model_owner,'native_future_state_model_contract',model_contract)
+    monkeypatch.setattr(owner,'selected_policy_evidence',lambda *a:{'unchanged_selected_policy':True})
+    keys=set(owner.core.FUTURE_CUDA_INPUTS)|{'initial_result','initial_terminal','cohort_result','cohort_terminal',
+        'throughput_result','throughput_terminal','design'}
+    if main:keys|={'selected_arm_result','selected_arm_terminal','selected_arm_replay_result','selected_arm_replay_terminal','policy_decision'}
+    inputs={key:reference(key+'.json')for key in keys};inputs['design']=owner.DESIGN
+    inputs['cohort_result']={'path':str(owner.ROOT/'PAIRED_COHORT_RESULT001.json'),'sha256':'a'*64}
+    result,actual_recipe,schedule,_,_=owner.metadata(inputs,mode='whole_train_one_epoch'if main else'paired_learning',
+        train_batch_rows=96,eval_batch_rows=256,backbone_gradient_policy='M5_primary'if main else None)
+    assert result['matched_scoring_prior']==(meta['prior']if main else matched_ref)
+    assert values[result['matched_scoring_prior']['path']]['fit_population']['issue_rows']==(354550 if main else 20727)
+    assert result['cohort_report']['matched_scoring_prior']==matched_ref
+    assert schedule['rows']==(354550 if main else 20727)and actual_recipe['passes']==(1 if main else 2)
