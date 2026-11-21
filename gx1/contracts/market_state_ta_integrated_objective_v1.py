@@ -439,3 +439,295 @@ def _native_noise_truth(truth,*,rows,raw_masks,spec):
         masks[task]=eligible
     masks['open_known']=truth[spec['tasks']['open']['known']]&truth['open_known_at_issue']
     return masks
+
+
+# Opt-in fully-future state algebra. Existing raw/noise objectives are unchanged.
+def _native_future_state_need(ok, reason):
+    if not bool(ok):
+        raise ValueError('NATIVE_FUTURE_STATE_' + reason)
+
+
+def _native_future_state_spec(target_contract):
+    from gx1.contracts.market_state_native_m5_targets_v1 import require_fully_future_state_contract
+    spec = require_fully_future_state_contract(target_contract)
+    _native_future_state_need(spec['schema_version'] ==
+        'gx1_native_m5_fully_future_state_dataset_v1', 'TARGET_CONTRACT')
+    return spec
+
+
+def native_future_state_objective_contract(*, target_contract):
+    spec = _native_future_state_spec(target_contract)
+    return _native_prior_seal({
+        'schema_version': 'gx1_native_m5_fully_future_state_objective_v1',
+        'target_contract_sha256': spec['contract_sha256'],
+        'timeframes': list(TIMEFRAMES), 'class_order': ['DOWN', 'FLAT', 'UP'],
+        'primitive_logit_order': ['ACTIVE', 'UP_GIVEN_ACTIVE'],
+        'factorization': {'DOWN': 'active*(1-up_given_active)',
+                          'FLAT': '1-active', 'UP': 'active*up_given_active'},
+        'loss': 'sum_known_activity_BCE_plus_certified_side_BCE_divided_by_known_activity_count',
+        'unknown_side': 'exact_zero_direct_side_logit_and_free_side_head_parameter_gradient',
+        'unknown_storage': 'false_values_behind_false_masks_are_never_labels',
+        'score': 'activity_and_certified_conditional_side_binary_proper_scores_and_partial_LL',
+        'threeclass_score': 'only_known_FLAT_or_certified_side_singletons',
+        'empty_support': 'zero_loss_anchored_to_both_logits_skip_update',
+        'future_target_metadata_as_forward_input': False,
+        'role': 'research_only_no_training_or_trading_authority',
+    })
+
+
+def _native_future_state_output(model_output):
+    need = _native_future_state_need
+    need(type(model_output) is dict and set(model_output) ==
+         {'activity_logits', 'side_logits'}, 'OUTPUT')
+    activity = model_output['activity_logits']
+    need(isinstance(activity, torch.Tensor) and activity.dtype == torch.float32
+         and activity.ndim == 2 and activity.shape[0] > 0
+         and activity.shape[1] == len(TIMEFRAMES), 'LOGITS')
+    side = model_output['side_logits']
+    need(isinstance(side, torch.Tensor) and side.dtype == torch.float32
+         and side.shape == activity.shape and side.device == activity.device
+         and bool(torch.isfinite(activity).all()) and bool(torch.isfinite(side).all()), 'LOGITS')
+    return activity, side
+
+
+def native_future_state_log_probabilities(*, model_output, target_contract):
+    """One factorization for output, partial likelihood and proper scores."""
+    _native_future_state_spec(target_contract)
+    activity, side = _native_future_state_output(model_output)
+    f = torch.nn.functional.logsigmoid
+    result = torch.stack((f(activity) + f(-side), f(-activity),
+                          f(activity) + f(side)), dim=-1)
+    _native_future_state_need(bool(torch.isfinite(result).all()), 'NONFINITE_PROBABILITIES')
+    return result
+
+
+def _native_future_state_truth(truth, *, rows, fold_upper_ns, target_contract):
+    spec = _native_future_state_spec(target_contract)
+    need = _native_future_state_need
+    tick = 300_000_000_000
+    need(type(truth) is dict and type(fold_upper_ns) is int
+         and fold_upper_ns > 0 and fold_upper_ns % tick == 0, 'TRUTH')
+    shape = (rows, len(TIMEFRAMES))
+    issues = truth.get('issue_ns')
+    need(isinstance(issues, np.ndarray) and issues.dtype == np.int64
+         and issues.shape == (rows,) and np.all(issues > 0)
+         and np.all(issues < fold_upper_ns) and np.all(issues % tick == 0), 'ISSUE_AXIS')
+    for name in ('target_start_ns', 'validity_ns'):
+        value = truth.get(name)
+        need(isinstance(value, np.ndarray) and value.dtype == np.int64
+             and value.shape == shape, 'AXIS_' + name)
+    for name in ('target_present', 'mature', 'nominal_complete', 'activity_known',
+                 'activity', 'side_known', 'side_up'):
+        value = truth.get(name)
+        need(isinstance(value, np.ndarray) and value.dtype == np.bool_
+             and value.shape == shape, 'MASK_' + name)
+    present, mature = truth['target_present'], truth['mature']
+    starts, validity = truth['target_start_ns'], truth['validity_ns']
+    duration = np.asarray([spec['tf_duration_ns'][tf] for tf in TIMEFRAMES], np.int64)
+    origin = np.asarray([spec['tf_origin_ns'][tf] for tf in TIMEFRAMES], np.int64)
+    expected_origin = np.broadcast_to(origin, shape)
+    expected_duration = np.broadcast_to(duration, shape)
+    issue_grid = np.broadcast_to(issues[:, None], shape)
+    need(np.all(starts[~present] == -1) and np.all(validity[~present] == -1)
+         and np.all(starts[present] >= issue_grid[present])
+         and np.all(starts[present] % tick == 0)
+         and np.all((starts[present] - expected_origin[present]) % expected_duration[present] == 0)
+         and np.all(validity[present] > starts[present])
+         and np.all(validity[present] - starts[present] == expected_duration[present])
+         and np.array_equal(mature, present & (validity < fold_upper_ns))
+         and not np.any(truth['nominal_complete'] & ~present), 'OBSERVABILITY')
+    known, active = truth['activity_known'], truth['activity']
+    side_known, side_up = truth['side_known'], truth['side_up']
+    need(not np.any(known & ~(mature & truth['nominal_complete']))
+         and not np.any(active & ~known)
+         and not np.any(side_known & ~(known & active))
+         and not np.any(side_up & ~side_known), 'STATE_MASKS')
+    return {'activity': known, 'side': side_known,
+            'singleton': (known & ~active) | side_known}
+
+
+def native_future_state_loss(*, model_output, truth, fold_upper_ns, target_contract):
+    """Partial likelihood uses known activity and only certified conditional side."""
+    activity, side = _native_future_state_output(model_output)
+    masks = _native_future_state_truth(truth, rows=len(activity),
+        fold_upper_ns=fold_upper_ns, target_contract=target_contract)
+    sums, counts = {}, {}
+    for name, logits, label in (('activity', activity, 'activity'), ('side', side, 'side_up')):
+        mask = torch.as_tensor(masks[name], device=logits.device)
+        target = torch.as_tensor(truth[label], dtype=logits.dtype, device=logits.device)
+        nll = torch.nn.functional.binary_cross_entropy_with_logits(logits, target, reduction='none')
+        sums[name] = torch.where(mask, nll, torch.zeros_like(nll)).sum(dim=0)
+        counts[name] = mask.sum(dim=0)
+    total = sums['activity'].sum() + sums['side'].sum()
+    count = counts['activity'].sum()
+    _native_future_state_need(bool(torch.isfinite(total)), 'NONFINITE')
+    return {'loss': total / count.clamp(min=1), 'loss_sums': sums, 'counts': counts,
+        'count': int(count), 'skip_update': not bool(count),
+        'contract_sha256': native_future_state_objective_contract(
+            target_contract=target_contract)['contract_sha256']}
+
+
+def native_future_state_score_sums(*, model_output, truth, fold_upper_ns, target_contract):
+    """Per-TF sums retain separate activity, certified side and singleton supports."""
+    activity, side = _native_future_state_output(model_output)
+    masks = _native_future_state_truth(truth, rows=len(activity),
+        fold_upper_ns=fold_upper_ns, target_contract=target_contract)
+    raw = {'activity': activity.detach().cpu().numpy().astype(np.float64),
+           'side': side.detach().cpu().numpy().astype(np.float64)}
+    logp = {name: -np.logaddexp(0.0, -value) for name, value in raw.items()}
+    logq = {name: -np.logaddexp(0.0, value) for name, value in raw.items()}
+    probs = {name: np.exp(value) for name, value in logp.items()}
+    class_logp = np.stack((logp['activity'] + logq['side'], logq['activity'],
+                           logp['activity'] + logp['side']), axis=-1)
+    class_probs = np.exp(class_logp)
+    report = {}
+    for j, tf in enumerate(TIMEFRAMES):
+        cells = {}
+        partial_sum = 0.0
+        for name, label in (('activity', 'activity'), ('side', 'side_up')):
+            mask = masks[name][:, j]
+            y = truth[label][mask, j]
+            nll = -np.where(y, logp[name][mask, j], logq[name][mask, j])
+            partial_sum += float(nll.sum())
+            cells[name] = {'count': int(mask.sum()),
+                'unique_target_starts': int(np.unique(truth['target_start_ns'][mask, j]).size),
+                'brier_sum': float(np.square(probs[name][mask, j] - y).sum()),
+                'log_loss_sum': float(nll.sum())}
+        mask = masks['singleton'][:, j]
+        labels = np.where(~truth['activity'][mask, j], 1,
+                          np.where(truth['side_up'][mask, j], 2, 0))
+        selected = class_probs[mask, j]
+        cells['three_class'] = {'count': int(mask.sum()),
+            'unique_target_starts': int(np.unique(truth['target_start_ns'][mask, j]).size),
+            'brier_sum': float(np.square(selected - np.eye(3)[labels]).sum()),
+            'log_loss_sum': float(-class_logp[mask, j][np.arange(len(labels)), labels].sum())}
+        cells['partial_log_loss_sum'] = partial_sum
+        report[tf] = cells
+    return {'schema_version': 'gx1_native_m5_fully_future_state_score_sums_v1',
+        'contract_sha256': native_future_state_objective_contract(
+            target_contract=target_contract)['contract_sha256'],
+        'class_order': ['DOWN', 'FLAT', 'UP'], 'per_tf': report}
+
+
+def native_future_state_train_prior_contract(*, target_contract):
+    spec = _native_future_state_spec(target_contract)
+    return _native_prior_seal({
+        'schema_version': 'gx1_native_m5_fully_future_state_train_prior_contract_v1',
+        'target_contract_sha256': spec['contract_sha256'],
+        'objective_contract_sha256': native_future_state_objective_contract(
+            target_contract=target_contract)['contract_sha256'],
+        'timeframes': list(TIMEFRAMES), 'binary_class_order': [False, True],
+        'pseudocount_per_class': 1,
+        'formula': '(TRAIN_binary_class_count+1)/(TRAIN_binary_count+2)',
+        'activity_fit_mask': 'activity_known', 'side_fit_mask': 'side_known',
+        'zero_support': 'UNFITTED_uniform_pseudocount_reference',
+        'control_selection_or_refit': False,
+    })
+
+
+def require_native_future_state_train_prior(value, *, target_contract):
+    from gx1.contracts.entry_model_native_input_normalization_v1 import NATIVE_M5_TRAIN_FIT_CUTOFF_NS
+    need = _native_future_state_need
+    spec = native_future_state_train_prior_contract(target_contract=target_contract)
+    need(type(value) is dict and set(value) == {'schema_version', 'prior_contract_sha256',
+        'target_contract_sha256', 'objective_contract_sha256', 'timeframes',
+        'fit_population', 'per_task', 'contract_sha256'} and value['schema_version'] ==
+        'gx1_native_m5_fully_future_state_train_prior_v1', 'PRIOR_SCHEMA')
+    need(all(value[key] == spec[key] for key in ('target_contract_sha256',
+        'objective_contract_sha256', 'timeframes'))
+        and value['prior_contract_sha256'] == spec['contract_sha256'], 'PRIOR_IDENTITY')
+    population = value['fit_population']
+    need(type(population) is dict and set(population) == {'scope', 'cutoff_ns', 'issue_rows',
+        'first_issue_ns', 'last_issue_ns', 'issue_ns_sha256', 'truth_sha256'}
+        and population['scope'] == 'TRAIN', 'PRIOR_POPULATION')
+    need(type(population['cutoff_ns']) is int
+        and 0 < population['cutoff_ns'] <= NATIVE_M5_TRAIN_FIT_CUTOFF_NS
+        and population['cutoff_ns'] % 300_000_000_000 == 0
+        and type(population['issue_rows']) is int and population['issue_rows'] > 0
+        and type(population['first_issue_ns']) is int and type(population['last_issue_ns']) is int
+        and 0 < population['first_issue_ns'] <= population['last_issue_ns'] < population['cutoff_ns']
+        and population['first_issue_ns'] % 300_000_000_000 == 0
+        and population['last_issue_ns'] % 300_000_000_000 == 0, 'PRIOR_TRAIN_CUTOFF')
+    need(type(value['per_task']) is dict and set(value['per_task']) == {'activity', 'side'}, 'PRIOR_TASKS')
+    hashes = [population['issue_ns_sha256'], population['truth_sha256']]
+    for task, cells in value['per_task'].items():
+        need(type(cells) is dict and set(cells) == set(TIMEFRAMES), 'PRIOR_TIMEFRAMES')
+        for tf, cell in cells.items():
+            need(type(cell) is dict and set(cell) == {'class_counts', 'count', 'unique_target_starts',
+                'mask_sha256', 'population_sha256', 'probabilities', 'fit_status'}, 'PRIOR_CELL_SCHEMA')
+            counts, count, unique = cell['class_counts'], cell['count'], cell['unique_target_starts']
+            need(type(counts) is list and len(counts) == 2
+                and all(type(n) is int and n >= 0 for n in counts)
+                and type(count) is int and count == sum(counts) and count <= population['issue_rows']
+                and type(unique) is int and 0 <= unique <= count and (unique > 0) == (count > 0)
+                and cell['fit_status'] == ('FITTED' if count else 'UNFITTED'), 'PRIOR_COUNTS')
+            probabilities = cell['probabilities']
+            need(type(probabilities) is list and len(probabilities) == 2
+                and all(type(p) is float and np.isfinite(p) and 0 < p < 1 for p in probabilities)
+                and probabilities == [(n + 1) / (count + 2) for n in counts], 'PRIOR_LAPLACE_ONE')
+            hashes += [cell['mask_sha256'], cell['population_sha256']]
+    for tf in TIMEFRAMES:
+        need(value['per_task']['side'][tf]['count'] <=
+             value['per_task']['activity'][tf]['class_counts'][1], 'PRIOR_SIDE_SUPPORT')
+    need(all(isinstance(h, str) and len(h) == 64 and all(c in '0123456789abcdef' for c in h)
+             for h in hashes), 'PRIOR_HASH_FIELDS')
+    need(value == _native_prior_seal({k: v for k, v in value.items() if k != 'contract_sha256'}), 'PRIOR_HASH')
+    return json.loads(json.dumps(value))
+
+
+def fit_native_future_state_train_prior(*, truth, fold_upper_ns, target_contract):
+    """Separate frozen TRAIN-only Laplace-one binary reference probabilities."""
+    from gx1.contracts.entry_model_native_input_normalization_v1 import NATIVE_M5_TRAIN_FIT_CUTOFF_NS
+    need = _native_future_state_need
+    need(type(truth) is dict and isinstance(truth.get('issue_ns'), np.ndarray)
+        and truth['issue_ns'].ndim == 1 and len(truth['issue_ns']) > 0
+        and type(fold_upper_ns) is int
+        and 0 < fold_upper_ns <= NATIVE_M5_TRAIN_FIT_CUTOFF_NS, 'PRIOR_TRAIN_CUTOFF')
+    issues = truth['issue_ns']
+    need(np.all(np.diff(issues) > 0), 'PRIOR_ISSUE_ORDER')
+    masks = _native_future_state_truth(truth, rows=len(issues), fold_upper_ns=fold_upper_ns,
+        target_contract=target_contract)
+    per_task = {}
+    for task, label in (('activity', 'activity'), ('side', 'side_up')):
+        cells = {}
+        for j, tf in enumerate(TIMEFRAMES):
+            mask = masks[task][:, j]
+            labels = truth[label][mask, j]
+            starts = truth['target_start_ns'][mask, j]
+            counts = np.bincount(labels.astype(np.int64), minlength=2).tolist()
+            count = int(mask.sum())
+            cells[tf] = {'class_counts': counts, 'count': count,
+                'unique_target_starts': int(np.unique(starts).size),
+                'mask_sha256': hashlib.sha256(np.ascontiguousarray(mask).tobytes()).hexdigest(),
+                'population_sha256': _native_prior_array_sha({'issue_ns': issues[mask],
+                    'target_start_ns': starts, 'label': labels}),
+                'probabilities': [(n + 1) / (count + 2) for n in counts],
+                'fit_status': 'FITTED' if count else 'UNFITTED'}
+        per_task[task] = cells
+    spec = native_future_state_train_prior_contract(target_contract=target_contract)
+    keys = ('issue_ns', 'target_start_ns', 'validity_ns', 'target_present', 'mature',
+            'nominal_complete', 'activity_known', 'activity', 'side_known', 'side_up')
+    prior = _native_prior_seal({
+        'schema_version': 'gx1_native_m5_fully_future_state_train_prior_v1',
+        'prior_contract_sha256': spec['contract_sha256'],
+        **{key: spec[key] for key in ('target_contract_sha256', 'objective_contract_sha256', 'timeframes')},
+        'fit_population': {'scope': 'TRAIN', 'cutoff_ns': fold_upper_ns, 'issue_rows': len(issues),
+            'first_issue_ns': int(issues[0]), 'last_issue_ns': int(issues[-1]),
+            'issue_ns_sha256': hashlib.sha256(np.ascontiguousarray(issues).tobytes()).hexdigest(),
+            'truth_sha256': _native_prior_array_sha({key: truth[key] for key in keys})},
+        'per_task': per_task})
+    return require_native_future_state_train_prior(prior, target_contract=target_contract)
+
+
+def native_future_state_train_prior_logits(prior, *, rows, target_contract):
+    """Frozen constant primitive logits; output only, never model input."""
+    prior = require_native_future_state_train_prior(prior, target_contract=target_contract)
+    _native_future_state_need(type(rows) is int and rows > 0, 'PRIOR_SCORE_ROWS')
+    result = {}
+    for task, key in (('activity', 'activity_logits'), ('side', 'side_logits')):
+        probabilities = np.asarray([prior['per_task'][task][tf]['probabilities']
+                                    for tf in TIMEFRAMES], np.float64)
+        logits = np.log(probabilities[:, 1]) - np.log(probabilities[:, 0])
+        result[key] = torch.from_numpy(np.broadcast_to(logits.astype(np.float32),
+            (rows, len(TIMEFRAMES))).copy())
+    return result

@@ -6,6 +6,68 @@ Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 ## Gjeldende konklusjon 21.11.2026
 
+Aktivt mål er `native_future_state_qualification_20261121_001`.
+**Del B1 er ferdig:** opt-in neste helt framtidige native TF-bar og ren
+observasjonsalgebra for aktivitet/side er implementert og kontrollert.
+Full tilstandsfasit og modellkobling er IKKE kvalifisert. Målet er fortsatt
+aktivt; alle treningsporter er stengt og ingen tung jobb kjører.
+
+Bevisrot: `/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001`.
+`BAR_AUDIT_RESULT002.json` og `BAR_AUDIT_TERMINAL002.json` er COMPLETE/exit0,
+3,155s under4GiB/512MiB/1tråd. Eksakt354550-TRAIN-issueakse matcher tidligere
+hovedfit (`c0805f39...997ea`).1215513 allerede kvalifiserte native kilderader
+2009–2026H1 dekodes fra bevart målfil; ingen CONTROL-issues scores, ingen TEST.
+Ingen modell/forward/optimizer/normfit/priorfit eller ny statefasit genereres.
+
+| TF | Modne prognoseceller | Strengt komplett nominell bar | Unike modne målbarer |
+|---|---:|---:|---:|
+| M5 | 354549 | 354549 | 354549 |
+| M15 | 354547 | 354423 | 118206 |
+| H1 | 354538 | 353822 | 29566 |
+| H4 | 354502 | 291579 | 7732 |
+| D1 | 354274 | 0 | 1289 |
+
+Dette er gjentatte prognoseceller, ikke uavhengige utfall. Velgeren bruker første
+observerte bar med nominell start>=issue; ingen tomme barer fylles. M5-målet er
+uendret; høyere TF går videre fra pågående bar. Modning er fortsatt strikt
+slutt<foldgrense. Rå open/close-fakta forblir kjente også ved kildegap; komplett
+range/path har separat streng medlemsklokke. Ekstern gap før en komplett bar
+er ikke et internt hull. ATR er siste lukkede TF ved hvert issue; produsenten
+beregner bare kohortens maksimalt nødvendige lukkede prefiks. ATR-tilgjengelighet
+beviser ikke komplett historisk prisbane eller ferdig aktivitetsdefinisjon.
+
+**Påvist hindring:** kontinuerlig24t-dekning gir null komplette D1-mål.
+Denne masken kan derfor ikke innrømmes som en ferdig alle-TF-tilstandsfasit.
+Kildemanifestets native closurekontrakt dokumenterer ukentlig stenging, ikke
+en full historisk daglig/helligdagskalender. Dokumenterte markedspauser og
+ukjente kildehull må skilles med en kvalifisert native eier; ingen pauser eller
+manglende priser gjettes. D1 beholdes, og rå D1-fakta har fortsatt1289unike mål.
+
+Ny ren algebra bruker ACTIVE og UP|ACTIVE: DOWN=a(1-s), FLAT=1-a, UP=as.
+Ukjent side bidrar bare aktivitetstap; autograd på frie sidehodeparametre er0,
+mens aktivitetshodet lærer. Helt ukjent støtte gir skip_update. TRAIN-priorer
+og skårer bruker samme masker; fraværende støtte er UNFITTED. Kontrakten sier
+uttrykkelig algebra-only: lokalt vindu, aktivitetsoppskrift og sidebevis er ikke
+bundet til en produksjonsgenerator. Dagens faktiske modellhoder er uendret.
+
+75fokuserte eiertilfeller+14hjelpervakter består etter fasekorreksjonen.
+89-resultatet er agentens eksakte tool-output-attestasjon, ikke en bevart
+originallogg; tidligere74logg er bevart separat. H4/D1-feilfase ble avvist
+med ny negativtest. Alle10opprinnelige targetfunksjoner og16objectivefunksjoner
+er AST-uendret; gammel rå/.3ATR-identitet og funksjon er bevart.
+Audit001 ble konsumert med feil: min feilaktige500000-kilderadersgrense
+stoppet før projeksjon.002 er en ny eksakt plan bundet til produsentens1215513,
+ikke relansering. Alle originaler og hjelpere beholdes, ingen ny sletting.
+
+**Neste:** avklar framtidsbarens high–low versus rullerende lokalt vindu
+(spørsmål sendt), bind konservativt sidebevis og native markeds-/kilde-dekning,
+og kvalifiser en ekte stategenerator før modellkobling. Deretter kreves fersk
+initialbaseline og separat kontrollert gradient-/resume-kandidat. Ingen ny fit
+eller ekstraepoke er innrømmet. M30 er fortsatt egen senere utvidelse ved siden
+av M15; alle8familier, makro og TEST-forsegling beholdes.
+
+## Fullført samarbeidsrevisjon før B1
+
 Samlet prosjektgjennomgang av samarbeid, gradient og målgap er ferdig.
 Eier: `native_m5_cooperation_project_review_20261121_001`. Beslutningsgrunnlaget
 er konkret; ny framtidstilstand, M30-modell og ny fit er IKKE implementert/innrømmet.
@@ -19,8 +81,8 @@ M1 er bare for senere oppfølging av allerede åpen handel, aldri retning.
 
 Bevisrot: `/home/andre2/GX1_RUNS/GX1_COOPERATION_PROJECT_REVIEW_20261121_001`.
 `PROJECT_REVIEW_DECISION001.json` binder kilde-/prosjekt-/mål-/M30-/gradientreview
-og målbare delmål; eksakte SHA står i policy. Runtimekode er uendret siden
-fryst060fe55f. 18foreldede aktive policyaliaser og mål-oppsummering er rettet;
+og målbare delmål; eksakte SHA står i policy. Ved den avsluttede gjennomgangen var runtimekode uendret siden
+fryst060fe55f; B1 tilfører nå de opt-in-funksjonene beskrevet over. 18foreldede aktive policyaliaser og mål-oppsummering er rettet;
 ordrett originalbestilling er bevart byteidentisk. En importfeil i den nye
 operasjonelle diagnosehjelperen ble rettet og eksaktCLI testet før CLAIM.
 
@@ -65,7 +127,7 @@ COMPLETE_CONSUMED_REVIEWED/exit0,209,905s.20kildefaste kvartalspaneler2021–202
 320TRAINrader/2046prediktive celler.1CPUmodell/1checkpointload/20forwards/
 60autograd,0backward/optimizer/updates/norm-/priorfits. Ingen CONTROL-forward
 eller gradient; felles loader dekoder/validerer eksisterende utviklingsdata.
-Kilde, modell, statistikk og CPU/Python/NumPy-RNG er uendret. Samme hidden ga
+Kilde, modell, statistikk og CPU/Python/NumPy-RNG var uendret i diagnosen. Samme hidden ga
 eksakte attached/detached logits og tap; faktisk aux→shared var eksakt0 i20/20.
 
 Samlet hypotetisk aux/M5-gradientnorm=30,75 og pooledcosinus+0,0656.

@@ -302,3 +302,131 @@ def test_noise_dataset_validator_rejects_relabeling_mask_or_metadata_contract_ch
             target.require_noise_margin_dataset_contract(altered(change))
     with pytest.raises(ValueError,match='NOISE_DATASET_CONTRACT'):
         target.require_noise_margin_dataset_contract({})
+
+
+def test_fully_future_bar_selects_start_ge_issue_on_every_tf(tape):
+    issues = tape.issue_ns[[0, 2, 11, 47, 287, 499]]
+    out = tape.gather_fully_future_bar(issues, fold_upper_ns=tape.cutoff_ns)
+    for j, tf in enumerate(target.TIMEFRAMES):
+        bars = tape.bars_by_timeframe[tf]
+        selected = np.searchsorted(bars.bar_start_ns, issues, side='left')
+        present = selected < len(bars.bar_start_ns)
+        np.testing.assert_equal(out['target_present'][:, j], present)
+        np.testing.assert_equal(out['target_start_ns'][present, j], bars.bar_start_ns[selected[present]])
+        assert np.all(out['target_start_ns'][present, j] >= issues[present])
+        assert np.all(out['open_available_ns'][present, j] > issues[present])
+        assert not out['open_known_at_issue'][:, j].any()
+        mature = present & (out['validity_ns'][:, j] < tape.cutoff_ns)
+        np.testing.assert_equal(out['target_ohlc'][mature, j], bars.ohlc[selected[mature]])
+    # At M15 start select that bar; inside it skip to the following start.
+    assert out['target_start_ns'][0, 1] == 3 * target.TICK_NS
+    assert out['target_start_ns'][1, 1] == issues[1]
+    old = tape.gather_next_bar(issues, fold_upper_ns=tape.cutoff_ns)
+    assert old['validity_ns'][0, 1] < out['validity_ns'][0, 1]
+
+
+def test_fully_future_bar_maturity_before_price_and_coverage_labels(tape):
+    issue = tape.issue_ns[[0]]
+    upper = 6 * target.TICK_NS
+    out = tape.gather_fully_future_bar(issue, fold_upper_ns=upper)
+    j = target.TIMEFRAMES.index('M15')
+    assert out['target_present'][0, j] and out['validity_ns'][0, j] == upper
+    assert not out['mature'][0, j] and out['target_row'][0, j] == -1
+    assert np.isnan(out['target_ohlc'][0, j]).all()
+    assert np.isnan(out['target_range'][0, j])
+    for field in ('nominal_complete', 'observed_previous', 'eligible', 'source_gap'):
+        assert not out[field][0, j]
+    assert out['open_sign'][0, j] == out['close_sign'][0, j] == out['m5_count'][0, j] == 0
+
+
+def test_fully_future_bar_does_not_invent_empty_bins_or_conflate_gap_with_coverage():
+    starts, values = source(15)
+    keep = np.array([0, 1, 2, 6, 7, 8, 9, 10, 11, 12, 13, 14])
+    tape = build(starts[keep], values[keep])
+    out = tape.gather_fully_future_bar(np.array([3 * target.TICK_NS], np.int64),
+                                      fold_upper_ns=tape.cutoff_ns)
+    j = target.TIMEFRAMES.index('M15')
+    assert out['target_start_ns'][0, j] == 6 * target.TICK_NS
+    assert out['source_gap'][0, j] and out['nominal_complete'][0, j]
+    assert out['observed_previous'][0, j] and out['eligible'][0, j]
+    # A missing interior member is incomplete; raw comparison remains observed.
+    keep = keep[keep != 7]
+    tape = build(starts[keep], values[keep])
+    out = tape.gather_fully_future_bar(np.array([3 * target.TICK_NS], np.int64),
+                                      fold_upper_ns=tape.cutoff_ns)
+    assert not out['nominal_complete'][0, j]
+    assert out['m5_count'][0, j] == 2 and out['eligible'][0, j]
+
+
+def test_fully_future_bar_source_coverage_includes_boundary_members():
+    starts, values = source(16)
+    for missing in (3, 4, 5):
+        keep = np.arange(16) != missing
+        tape = build(starts[keep], values[keep])
+        # Issue 5min is before target start 15min regardless of the omitted member.
+        out = tape.gather_fully_future_bar(tape.issue_ns[[0]], fold_upper_ns=tape.cutoff_ns)
+        assert not out['nominal_complete'][0, target.TIMEFRAMES.index('M15')]
+    tape = build(starts, values)
+    out = tape.gather_fully_future_bar(tape.issue_ns[[0]], fold_upper_ns=tape.cutoff_ns)
+    assert out['nominal_complete'][0, target.TIMEFRAMES.index('M15')]
+
+
+def test_fully_future_bar_absent_target_has_only_unknown_storage(tape):
+    out = tape.gather_fully_future_bar(tape.issue_ns[[-1]], fold_upper_ns=tape.cutoff_ns)
+    assert not out['target_present'].any()
+    for field in ('target_row', 'target_start_ns', 'validity_ns', 'open_available_ns'):
+        assert (out[field] == -1).all()
+    assert np.isnan(out['target_ohlc']).all()
+    assert not out['mature'].any() and not out['nominal_complete'].any()
+
+
+def test_fully_future_bar_asof_atr_is_unchanged_by_future_prices():
+    starts, values = source(5000)
+    tape = build(starts, values)
+    issue = tape.issue_ns[[4200]]
+    left = tape.gather_fully_future_bar(issue, fold_upper_ns=tape.cutoff_ns)
+    changed = values.copy()
+    changed[4201:, 1] += 10000.
+    right_tape = build(starts, changed)
+    right = right_tape.gather_fully_future_bar(issue, fold_upper_ns=tape.cutoff_ns)
+    assert np.isfinite(left['atr14_asof']).all()
+    np.testing.assert_equal(left['atr14_asof'], right['atr14_asof'])
+    np.testing.assert_equal(left['atr_asof_row'], right['atr_asof_row'])
+    assert (left['atr_asof_available_ns'] <= issue[:, None]).all()
+    assert (left['target_start_ns'] >= issue[:, None]).all()
+    assert (left['target_range'] != right['target_range']).all()
+
+
+def test_fully_future_bar_projection_append_invariance_and_independent_arrays(tape):
+    issues = tape.issue_ns[[1, 287, 499]]
+    longer = build(*source(1400))
+    left = tape.gather_fully_future_bar(issues, fold_upper_ns=tape.cutoff_ns)
+    right = longer.gather_fully_future_bar(issues, fold_upper_ns=tape.cutoff_ns)
+    for name in left:
+        if isinstance(left[name], np.ndarray):
+            np.testing.assert_equal(left[name], right[name])
+        else:
+            assert left[name] == right[name]
+    left['target_ohlc'][:] = 0
+    fresh = tape.gather_fully_future_bar(issues, fold_upper_ns=tape.cutoff_ns)
+    assert np.nanmax(fresh['target_ohlc']) > 0
+
+
+def test_fully_future_state_identity_is_algebra_only_and_not_old_noise():
+    spec = target.fully_future_state_contract()
+    assert target.require_fully_future_state_contract(spec) == spec
+    assert spec['production_training_admitted'] is False
+    assert spec['local_window'].startswith('unbound_')
+    changed = copy.deepcopy(spec)
+    changed['side_certificate'] = 'close_sign'
+    with pytest.raises(ValueError, match='FULLY_FUTURE_STATE_CONTRACT'):
+        target.require_fully_future_state_contract(changed)
+    with pytest.raises(ValueError, match='FULLY_FUTURE_STATE_CONTRACT'):
+        target.require_fully_future_state_contract(target.noise_margin_dataset_contract(.3))
+
+
+def test_fully_future_bar_rejects_outside_native_issue_axis(tape):
+    with pytest.raises(ValueError, match='ISSUE_AXIS'):
+        tape.gather_fully_future_bar(np.array([1], np.int64), fold_upper_ns=tape.cutoff_ns)
+    with pytest.raises(ValueError, match='QUERY'):
+        tape.gather_fully_future_bar(tape.issue_ns[:1], fold_upper_ns=tape.cutoff_ns + target.TICK_NS)

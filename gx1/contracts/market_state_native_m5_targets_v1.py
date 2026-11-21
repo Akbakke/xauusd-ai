@@ -13,7 +13,8 @@ import pandas as pd
 from gx1.features.technical_indicators_v1 import EMA50_200_ATR_PERIOD, wilder_atr
 
 from gx1.features.htf_features import (
-    MULTI_TF_RESAMPLE_ORIGIN_CONTRACT, MULTI_TF_SHIFT, MULTI_TF_TIMEFRAMES,
+    MULTI_TF_RESAMPLE_ORIGIN_CONTRACT, MULTI_TF_RESAMPLE_ORIGIN_OFFSET,
+    MULTI_TF_SHIFT, MULTI_TF_TIMEFRAMES,
     _resample_ohlc_for_model_native_scalars, multi_tf_resample,
 )
 
@@ -135,6 +136,62 @@ def require_noise_margin_dataset_contract(value):
     return expected
 
 
+
+def fully_future_bar_contract():
+    """Opt-in reference for an entirely unstarted native TF bar, not a FLAT rule."""
+    value = {
+        'schema_version': 'gx1_native_m5_fully_future_bar_reference_v1',
+        'raw_target_contract_sha256': contract()['contract_sha256'],
+        'timeframes': list(TIMEFRAMES),
+        'tf_duration_ns': {tf: int(MULTI_TF_SHIFT[tf].value) for tf in TIMEFRAMES},
+        'tf_origin_ns': {tf: int(MULTI_TF_RESAMPLE_ORIGIN_OFFSET[tf].value) for tf in TIMEFRAMES},
+        'selection': 'first_observed_TF_bar_with_nominal_start_ns_ge_issue_ns',
+        'empty_bins': 'never_invented_or_filled',
+        'maturity': 'selected_available_ns_strictly_before_fold_upper_ns',
+        'immature': 'time_metadata_only_no_price_sign_or_coverage_labels',
+        'raw_comparisons': 'unchanged_previous_observed_TF_open_and_close',
+        'complete': 'all_nominal_M5_member_starts_present_exactly_once',
+        'source_gap': 'raw_gap_reported_separately_not_used_as_completeness_mask',
+        'atr_owner': 'gx1.features.technical_indicators_v1.wilder_atr',
+        'atr_period': EMA50_200_ATR_PERIOD,
+        'atr_asof': 'last_observed_TF_available_ns_le_issue_ns_only',
+        'state_labels': 'none_raw_range_is_not_a_direction_or_a_FLAT_label',
+        'target_arrays_and_metadata_as_model_input': False,
+    }
+    raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+    return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
+
+
+def fully_future_state_contract():
+    """Pure partial-observation interface; deliberately grants no label recipe."""
+    value = {
+        'schema_version': 'gx1_native_m5_fully_future_state_dataset_v1',
+        'qualification': 'observation_algebra_only_no_qualified_state_label_generator',
+        'future_bar_contract_sha256': fully_future_bar_contract()['contract_sha256'],
+        'timeframes': list(TIMEFRAMES),
+        'tf_duration_ns': {tf: int(MULTI_TF_SHIFT[tf].value) for tf in TIMEFRAMES},
+        'tf_origin_ns': {tf: int(MULTI_TF_RESAMPLE_ORIGIN_OFFSET[tf].value) for tf in TIMEFRAMES},
+        'class_order': ['DOWN', 'FLAT', 'UP'],
+        'observation_fields': ['activity_known', 'activity', 'side_known', 'side_up'],
+        'activity_known': 'requires_present_mature_nominally_complete_fully_future_bar',
+        'side_known': 'requires_known_active_and_separately_certified_direction',
+        'unknown_storage': 'false_boolean_payload_is_not_an_observed_class',
+        'local_window': 'unbound_requires_separate_explicit_label_contract',
+        'activity_rule': 'unbound_requires_separate_explicit_label_contract',
+        'side_certificate': 'unbound_requires_separate_explicit_label_contract',
+        'production_training_admitted': False,
+        'target_arrays_and_metadata_as_model_input': False,
+    }
+    raw = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+    return {**value, 'contract_sha256': hashlib.sha256(raw).hexdigest()}
+
+
+def require_fully_future_state_contract(value):
+    """Reject old raw/net/M1 identities and arbitrary self-hashed state recipes."""
+    _need(type(value) is dict and value == fully_future_state_contract(),
+          'FULLY_FUTURE_STATE_CONTRACT')
+    return fully_future_state_contract()
+
 def _owned(array):
     return np.frombuffer(np.ascontiguousarray(array).tobytes(),
                          dtype=array.dtype).reshape(array.shape)
@@ -210,6 +267,87 @@ class NativeM5Targets:
             'open_sign': open_sign, 'close_sign': close_sign,
             'm5_count': count, 'source_gap': gap,
         }
+
+
+    def gather_fully_future_bar(self, issue_ns, *, fold_upper_ns):
+        """Producer projection of next unstarted TF bar with strict source proof.
+
+        Membership uses the source clock, independently of OHLC and raw gap flags.
+        Only mature rows read selected OHLC/signs. ATR is strictly issue-as-of.
+        No local-state rule is inferred from range, net sign or extrema ordering.
+        """
+        _need(isinstance(issue_ns, np.ndarray) and issue_ns.dtype == np.int64
+              and issue_ns.ndim == 1 and len(issue_ns) > 0
+              and type(fold_upper_ns) is int and 0 < fold_upper_ns <= self.cutoff_ns,
+              'QUERY')
+        at = np.searchsorted(self.issue_ns, issue_ns)
+        _need(np.all(at < len(self.issue_ns))
+              and np.array_equal(self.issue_ns[at], issue_ns)
+              and np.all(issue_ns < fold_upper_ns), 'ISSUE_AXIS')
+        shape = (len(issue_ns), len(TIMEFRAMES))
+        out = {'issue_ns': issue_ns.copy(),
+               'fully_future_bar_contract': fully_future_bar_contract()}
+        for name in ('target_row', 'target_start_ns', 'validity_ns',
+                     'open_available_ns', 'atr_asof_row', 'atr_asof_available_ns'):
+            out[name] = np.full(shape, -1, np.int64)
+        for name in ('target_present', 'mature', 'nominal_complete',
+                     'observed_previous', 'eligible', 'open_known_at_issue', 'source_gap'):
+            out[name] = np.zeros(shape, np.bool_)
+        out['m5_count'] = np.zeros(shape, np.int64)
+        for name in ('open_sign', 'close_sign'):
+            out[name] = np.zeros(shape, np.int8)
+        out['target_ohlc'] = np.full((*shape, 4), np.nan, np.float64)
+        out['target_range'] = np.full(shape, np.nan, np.float64)
+        out['atr14_asof'] = np.full(shape, np.nan, np.float64)
+        source_starts = self.issue_ns - TICK_NS
+        for j, tf in enumerate(TIMEFRAMES):
+            bars = self.bars_by_timeframe[tf]
+            duration = int(MULTI_TF_SHIFT[tf].value)
+            selected = np.searchsorted(bars.bar_start_ns, issue_ns, side='left')
+            present = selected < len(bars.bar_start_ns)
+            rows = selected[present]
+            out['target_present'][:, j] = present
+            out['target_start_ns'][present, j] = bars.bar_start_ns[rows]
+            out['validity_ns'][present, j] = bars.available_ns[rows]
+            out['open_available_ns'][present, j] = bars.open_available_ns[rows]
+            ready = present & (out['validity_ns'][:, j] < fold_upper_ns)
+            out['mature'][:, j] = ready
+            rows = selected[ready]
+            out['target_row'][ready, j] = rows
+            out['observed_previous'][ready, j] = bars.observed_previous[rows]
+            out['eligible'][ready, j] = bars.observed_previous[rows]
+            out['open_sign'][ready, j] = bars.open_sign[rows]
+            out['close_sign'][ready, j] = bars.close_sign[rows]
+            out['m5_count'][ready, j] = bars.m5_count[rows]
+            out['source_gap'][ready, j] = bars.source_gap[rows]
+            out['target_ohlc'][ready, j] = bars.ohlc[rows]
+            out['target_range'][ready, j] = bars.ohlc[rows, 1] - bars.ohlc[rows, 2]
+            # Unique aligned source starts let count plus aligned endpoints prove
+            # every expected member: n integer grid points in an n-point interval.
+            lo = np.searchsorted(source_starts, bars.bar_start_ns[rows], side='left')
+            hi = np.searchsorted(source_starts, bars.available_ns[rows], side='left')
+            member_count = hi - lo
+            complete = member_count == duration // TICK_NS
+            nonempty = member_count > 0
+            if nonempty.any():
+                idx = np.flatnonzero(nonempty)
+                complete[idx] &= (source_starts[lo[idx]] == bars.bar_start_ns[rows[idx]])
+                complete[idx] &= (source_starts[hi[idx] - 1]
+                                  == bars.available_ns[rows[idx]] - TICK_NS)
+            out['nominal_complete'][ready, j] = complete
+            # Compute only the maximum closed prefix needed by this cohort.
+            # Each returned ATR still joins its own issue-as-of closed TF row.
+            closed = np.searchsorted(bars.available_ns, issue_ns, side='right') - 1
+            observed = closed >= 0
+            if observed.any():
+                prefix = bars.ohlc[:int(closed[observed].max()) + 1]
+                frame = pd.DataFrame(prefix, columns=('open', 'high', 'low', 'close'), copy=False)
+                full_atr = wilder_atr(frame['high'], frame['low'], frame['close'],
+                                     EMA50_200_ATR_PERIOD).to_numpy(np.float64)
+                out['atr_asof_row'][observed, j] = closed[observed]
+                out['atr_asof_available_ns'][observed, j] = bars.available_ns[closed[observed]]
+                out['atr14_asof'][observed, j] = full_atr[closed[observed]]
+        return out
 
 
     def gather_next_bar_noise_margin(self, issue_ns, *, fold_upper_ns, margin_atr):

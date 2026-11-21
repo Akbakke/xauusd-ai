@@ -303,3 +303,193 @@ def test_noise_contract_prior_and_raw_defaults_never_alias_equal_or_other_margin
     with pytest.raises(ValueError,match='TARGET_CONTRACT'):
         owner.native_bar_direction_loss(model_output=output,truth=truth,fold_upper_ns=upper,
             target_contract_sha256=spec['contract_sha256'])
+
+
+def _future_state_inputs():
+    from gx1.contracts.market_state_native_m5_targets_v1 import fully_future_state_contract
+    spec = fully_future_state_contract()
+    tick = 300_000_000_000
+    issues = np.arange(1, 4, dtype=np.int64) * tick
+    duration = np.asarray([spec['tf_duration_ns'][tf] for tf in spec['timeframes']], np.int64)
+    origin = np.asarray([spec['tf_origin_ns'][tf] for tf in spec['timeframes']], np.int64)
+    starts = ((issues[:, None] - origin + duration - 1) // duration) * duration + origin
+    cutoff = 2 * int(duration.max()) + tick
+    known = np.ones((3, 5), dtype=np.bool_)
+    active = np.array([[True] * 5, [False] * 5, [True] * 5], dtype=np.bool_)
+    side_known = np.zeros((3, 5), dtype=np.bool_)
+    side_known[2] = True
+    side_up = np.zeros((3, 5), dtype=np.bool_)
+    side_up[2] = [True, False, True, False, True]
+    truth = {'issue_ns': issues, 'target_start_ns': starts, 'validity_ns': starts + duration,
+        'target_present': known.copy(), 'mature': known.copy(), 'nominal_complete': known.copy(),
+        'activity_known': known.copy(), 'activity': active, 'side_known': side_known,
+        'side_up': side_up}
+    output = {key: torch.zeros(3, 5, dtype=torch.float32, requires_grad=True)
+              for key in ('activity_logits', 'side_logits')}
+    return {'model_output': output, 'truth': truth, 'fold_upper_ns': cutoff,
+            'target_contract': spec}
+
+
+def test_native_future_state_partial_likelihood_factorization_and_score_support():
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as owner
+    kwargs = _future_state_inputs()
+    output = kwargs['model_output']
+    logp = owner.native_future_state_log_probabilities(model_output=output,
+        target_contract=kwargs['target_contract'])
+    np.testing.assert_allclose(logp.detach().exp().numpy(),
+        np.broadcast_to([.25, .5, .25], (3, 5, 3)), atol=1e-7)
+    result = owner.native_future_state_loss(**kwargs)
+    assert result['count'] == 15 and result['skip_update'] is False
+    assert result['counts']['activity'].tolist() == [3] * 5
+    assert result['counts']['side'].tolist() == [1] * 5
+    assert float(result['loss']) == pytest.approx(20 * np.log(2) / 15)
+    report = owner.native_future_state_score_sums(**kwargs)['per_tf']
+    assert sum(cell['partial_log_loss_sum'] for cell in report.values()) == pytest.approx(
+        float(result['loss']) * result['count'], abs=1e-6)
+    assert sum(cell['activity']['brier_sum'] for cell in report.values()) == 15 / 4
+    assert sum(cell['side']['brier_sum'] for cell in report.values()) == 5 / 4
+    assert sum(cell['three_class']['count'] for cell in report.values()) == 10
+    assert sum(cell['three_class']['brier_sum'] for cell in report.values()) == pytest.approx(6.25)
+    assert report['D1']['activity']['unique_target_starts'] == 1
+    result['loss'].backward()
+    assert torch.count_nonzero(output['side_logits'].grad[:2]) == 0
+    assert torch.count_nonzero(output['side_logits'].grad[2]) == 5
+
+
+def test_native_future_state_unknown_side_has_zero_free_linear_parameter_gradient():
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+    kwargs = _future_state_inputs()
+    truth = kwargs['truth']
+    truth['activity'][:] = True
+    truth['side_known'][:] = False
+    truth['side_up'][:] = False
+    hidden = torch.arange(1, 13, dtype=torch.float32).reshape(3, 4)
+    activity_head = torch.nn.Linear(4, 5)
+    side_head = torch.nn.Linear(4, 5)
+    with torch.no_grad():
+        for head in (activity_head, side_head):
+            head.weight.zero_()
+            head.bias.zero_()
+    kwargs['model_output'] = {'activity_logits': activity_head(hidden), 'side_logits': side_head(hidden)}
+    result = native_future_state_loss(**kwargs)
+    result['loss'].backward()
+    assert torch.count_nonzero(activity_head.weight.grad) == activity_head.weight.numel()
+    assert torch.count_nonzero(activity_head.bias.grad) == activity_head.bias.numel()
+    assert torch.equal(side_head.weight.grad, torch.zeros_like(side_head.weight))
+    assert torch.equal(side_head.bias.grad, torch.zeros_like(side_head.bias))
+
+
+def test_native_future_state_all_unknown_skips_and_keeps_both_gradients_zero():
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as owner
+    kwargs = _future_state_inputs()
+    for key in ('activity_known', 'activity', 'side_known', 'side_up'):
+        kwargs['truth'][key][:] = False
+    result = owner.native_future_state_loss(**kwargs)
+    assert result['count'] == 0 and result['skip_update'] is True
+    assert float(result['loss']) == 0
+    result['loss'].backward()
+    assert all(torch.equal(value.grad, torch.zeros_like(value))
+               for value in kwargs['model_output'].values())
+    report = owner.native_future_state_score_sums(**kwargs)['per_tf']
+    assert all(cell['activity']['count'] == cell['side']['count'] ==
+               cell['three_class']['count'] == 0 for cell in report.values())
+
+
+@pytest.mark.parametrize('field,value', [
+    ('activity_logits', torch.zeros(3, 5, dtype=torch.float64)),
+    ('side_logits', torch.zeros(3, 4)),
+    ('side_logits', torch.full((3, 5), float('nan'))),
+])
+def test_native_future_state_rejects_invalid_primitive_logits(field, value):
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+    kwargs = _future_state_inputs()
+    kwargs['model_output'][field] = value
+    with pytest.raises(ValueError, match='LOGITS'):
+        native_future_state_loss(**kwargs)
+
+
+@pytest.mark.parametrize('case', ['false_maturity', 'past_start', 'wrong_duration',
+    'unknown_activity_value', 'uncertified_side_value', 'side_on_flat', 'incomplete_activity',
+    'wrong_dtype', 'missing_axis', 'target_contract'])
+def test_native_future_state_rejects_false_axes_masks_and_contract(case):
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+    kwargs = _future_state_inputs()
+    truth = kwargs['truth']
+    if case == 'false_maturity': truth['mature'][0, 0] = False
+    elif case == 'past_start': truth['target_start_ns'][0, 0] = 0
+    elif case == 'wrong_duration': truth['validity_ns'][0, 0] += 300_000_000_000
+    elif case == 'unknown_activity_value': truth['activity_known'][0, 0] = False
+    elif case == 'uncertified_side_value': truth['side_up'][0, 0] = True
+    elif case == 'side_on_flat': truth['side_known'][1, 0] = True
+    elif case == 'incomplete_activity': truth['nominal_complete'][0, 0] = False
+    elif case == 'wrong_dtype': truth['activity'] = truth['activity'].astype(np.int8)
+    elif case == 'missing_axis': del truth['target_start_ns']
+    elif case == 'target_contract': kwargs['target_contract']['contract_sha256'] = '0' * 64
+    with pytest.raises(ValueError):
+        native_future_state_loss(**kwargs)
+
+
+def test_native_future_state_prior_uses_separate_train_support_and_frozen_output():
+    from copy import deepcopy
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as owner
+    kwargs = _future_state_inputs()
+    truth = kwargs['truth']
+    truth['activity_known'][:, 3] = False
+    truth['activity'][:, 3] = False
+    truth['side_known'][:, 3] = False
+    truth['side_up'][:, 3] = False
+    before = deepcopy(truth)
+    fit_kwargs = {key: kwargs[key] for key in ('truth', 'fold_upper_ns', 'target_contract')}
+    prior = owner.fit_native_future_state_train_prior(**fit_kwargs)
+    assert owner.require_native_future_state_train_prior(prior,
+        target_contract=kwargs['target_contract']) == prior
+    assert prior['per_task']['activity']['M5']['class_counts'] == [1, 2]
+    assert prior['per_task']['activity']['M5']['probabilities'] == [.4, .6]
+    assert prior['per_task']['side']['M5']['class_counts'] == [0, 1]
+    assert prior['per_task']['side']['M5']['probabilities'] == [1/3, 2/3]
+    for task in ('activity', 'side'):
+        assert prior['per_task'][task]['H4']['fit_status'] == 'UNFITTED'
+        assert prior['per_task'][task]['H4']['probabilities'] == [.5, .5]
+    for key in before: np.testing.assert_array_equal(truth[key], before[key])
+    output = owner.native_future_state_train_prior_logits(prior, rows=3,
+        target_contract=kwargs['target_contract'])
+    assert all(value.dtype == torch.float32 and value.shape == (3, 5)
+               and bool(torch.isfinite(value).all()) for value in output.values())
+    score = owner.native_future_state_score_sums(**{**kwargs, 'model_output': output})
+    assert score['per_tf']['M5']['partial_log_loss_sum'] == pytest.approx(
+        -2*np.log(.6)-np.log(.4)-np.log(2/3), abs=1e-6)
+    frozen = deepcopy(prior)
+    truth['side_up'][2, 0] = False
+    owner.native_future_state_score_sums(**{**kwargs, 'model_output': output})
+    assert prior == frozen
+    broken = deepcopy(prior)
+    broken['per_task']['side']['M5']['probabilities'] = [.5, .5]
+    with pytest.raises(ValueError, match='PRIOR_LAPLACE_ONE'):
+        owner.require_native_future_state_train_prior(broken, target_contract=kwargs['target_contract'])
+    broken = deepcopy(prior)
+    broken['fit_population']['scope'] = 'CONTROL'
+    with pytest.raises(ValueError, match='PRIOR_POPULATION'):
+        owner.require_native_future_state_train_prior(broken, target_contract=kwargs['target_contract'])
+
+
+def test_native_future_state_prior_rejects_later_fit_and_duplicate_issues():
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as owner
+    from gx1.contracts.entry_model_native_input_normalization_v1 import NATIVE_M5_TRAIN_FIT_CUTOFF_NS
+    kwargs = _future_state_inputs()
+    fit_kwargs = {key: kwargs[key] for key in ('truth', 'fold_upper_ns', 'target_contract')}
+    with pytest.raises(ValueError, match='PRIOR_TRAIN_CUTOFF'):
+        owner.fit_native_future_state_train_prior(**{**fit_kwargs,
+            'fold_upper_ns': NATIVE_M5_TRAIN_FIT_CUTOFF_NS + 300_000_000_000})
+    kwargs['truth']['issue_ns'][1] = kwargs['truth']['issue_ns'][0]
+    with pytest.raises(ValueError, match='PRIOR_ISSUE_ORDER'):
+        owner.fit_native_future_state_train_prior(**fit_kwargs)
+
+
+def test_native_future_state_rejects_off_phase_h4_and_d1_bars():
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+    for j in (3, 4):
+        kwargs = _future_state_inputs()
+        kwargs['truth']['target_start_ns'][0, j] += 300_000_000_000
+        kwargs['truth']['validity_ns'][0, j] += 300_000_000_000
+        with pytest.raises(ValueError, match='OBSERVABILITY'):
+            native_future_state_loss(**kwargs)

@@ -62,7 +62,7 @@ ved barlabel pluss TF-varighet. Åpning er første observerte M5-åpning
 i TF-bøtten, slutt er siste observerte M5-slutt. Tomme bøtter skaper ingen
 bar. Ingen manglende pris eller uobservert intrabarrekkefølge konstrueres.
 
-Et M5-prognosetidspunkt får framtidsfasit fra den neste faktiske
+Den tidligere råbar-ruten gir et M5-prognosetidspunkt framtidsfasit fra den neste faktiske
 TF-baren som lukker etter utstedelsen. Målene leses først når sluttiden
 er strengt før skåringsgrensen. Framtidig dato, indeks, dekning og masker
 er kun målmetadata. De inngår aldri i modellens forward.
@@ -71,6 +71,32 @@ På høyere TF kan åpningen allerede være observerbar gjennom lukkede
 M5-barer ved prognosetidspunktet. Dette merkes med faktisk første
 M5-medlems tilgjengelighet. Prognosekvalitet for den senere sluttretningen
 måles separat fra en åpning som allerede var kjent.
+
+Opt-in-ruten `gather_fully_future_bar` velger første observerte TF-bar med
+nominell start ved/etter issue, aldri pågående bar. Den binder varighet og
+kanonisk handelsdøgnsfase; tomme bøtter skaper ingen fasit. Modning før
+foldgrensen kreves før pris-/fortegn-/dekningsprojeksjon. Rå sammenligninger
+beholdes separat fra en streng medlemsklokke for komplett nominell bar.
+Kildeflagget source_gap er ingen kompletthetsmaske: et gap før barstart kan
+sameksistere med full intern dekning. ATR beregnes fra kohortens maksimalt
+nødvendige lukkede TF-prefiks og slås opp issue-kausalt per celle.
+
+Streng nominell dekning er en kontrollreferanse, ingen automatisk ferdig
+markedsvindu-definisjon. En faktisk statefasit trenger kvalifisert native
+observerbarhets-/pauseeier, entydig lokalt vindu og separat konservativt
+sidebevis. Manglende kalender/kilde blir ukjent; ingen pris fylles. Numerisk
+ATR er ikke alene bevis for komplett historisk path. Råfakta går ikke tapt.
+
+`fully_future_state_contract` binder foreløpig bare ren observasjonsalgebra,
+ikke en labelgenerator eller treningsadmisjon. ACTIVE og UP|ACTIVE gir
+DOWN=a(1-s), FLAT=1-a, UP=as. Tapet er kjent aktivitets-BCE pluss sertifisert
+side-BCE, delt på antall kjente aktivitetsceller. ACTIVE med ukjent side
+lærer aktivitet med null direkte sidegradient; helt ukjent celle er ingen
+klasse. Samme faktoriserte sannsynlighet brukes i output/tap/skår; full
+3-klasse-skår krever kjent FLAT eller sertifisert side. Separate TRAIN-only
+Laplace1-binærpriorer følger samme masker; null støtte er UNFITTED. Endelig
+stateoppskrift skal få egen eksplisitt identitet før denne algebraen kobles
+til den ekte modellen. Endret funksjon krever fersk baseline/kvalifisering.
 
 Alle genuine indikatorer, åtte spesialistfamilier og D1/makro beholdes.
 ATR er en inputindikator. Den er ingen terskel for om open/close-fasiten
