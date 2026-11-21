@@ -4,136 +4,68 @@ Arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 Les `GX1_RULES.md` helt. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus.
 Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git.
 
-## Konklusjon 20.11.2026
+## Gjeldende status 21.11.2026
 
-Den bestilte fullprosjektrevisjonen er ferdig innen autorisert omfang, med
-uttrykkelige ubeviste grenser nedenfor. Den tidligere tekniske beredskapen gjaldt én
-pass med lagrede checkpoints og mekanikkens coldproof. Siste operatørbestilling
-avdekket at praktisk maincontinuation etter krasj/tidsgrense mangler. Hovedtrening
-er stengt mens dette rettes; ingen nye modell-/lossjusteringer er bestilt.
+Den bestilte fullprosjektrevisjonen og ekstra checkpoint/resume-sikringen er ferdige
+innen dokumentert omfang. Main003 er PREPARED_NOT_ADMITTED, ikke startet:
+CLAIM=0, remaining=0, outputrot finnes ikke og globale treningsporter er stengt.
+Aktivt nattmål skal nå innrømme og kjøre nøyaktig én full kronologisk TRAIN-epoke,
+deretter vurdere resultatet mot frosset TRAIN-prior og separat utviklings-VAL.
+Bruker valgte én epoke først; ingen automatisk ekstraepoke eller femepoke-earlystop.
+Stabil langkjøring kontrolleres hvert30.minutt; maskinvarevaktene går kontinuerlig.
 
-Hovedtrening er IKKE innrømmet eller startet. Alle treningsporter er stengt,
-CLAIM=0, remaining=0 og outputroten finnes ikke. Neste steg krever egen engangs-
-admisjon med fersk kilde-/maskinvarekontroll; ingen gammel plan relanseres.
-Gjeldende observasjonsfokus er den fortsatt forberedte, uclaimede main-planen.
+## Praktisk gjenopptakelse og lagring
 
-Samlet kvittering under `/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001`:
-`FULL_PROJECT_FINAL_REPORT001.json`, SHA
-`6c04063733befd2df4d4f12d82efa1d3a64e52f769b1f7ffb68ed63f151eaa69`.
-`TRAINING_READY_FULL_PROJECT_AUDIT001.json`, SHA
-`778872b2f141bf12d9f9e287ea387f061e08b62e5bd94719a239597519c24edc`.
-Eksakte øvrige referanser/SHA står i policy og disse kvitteringene.
+Fryst runtimekilde060fe55f.389målrettede testtilfeller består. Modellens numeriske
+kjerne/fit/score/restore/schedule er uendret; throughput004 og mekanikk003 er
+COMPLETE_CONSUMED/exit0. Mekanikken matcher original modell/AdamW/RNG eksakt.
+Et ferskt uavbrutt WINDOW002 utførte2updates; separat WINDOW001 utførte1update.
+Deretter ble maskinen kontrollert ledig, fil-/katalog-fsync og filesystemsync utført,
+og Windows ble restartet668→669 med ny WSLboot. Alle102kritiske filer og10arkiverte
+hjelpere matchet etter boot. Ny engangsCONTINUE001 fra prefix1 utførte1ny update.
+Modell, AdamW, RNG, schedule/bindinger og stegrapporter skal være bitidentiske med
+uavbrutt2; eksakt uavhengig bevis er bundet i policy/readiness. Ingen levendeparent.
+Main bruker fersk initialmodell, aldri vekter fra kvalifiseringene.
 
-## Aktiv ekstra sikring før trening
+Checkpoints publiseres bare etter fullført optimizersteg, hver256updates (~22PT,
+~2,1GB per fullpass), med immutable SHA/state/cursor/komplett stegprefiks-kvitteringer.
+Nye CONTINUE-planer bruker siste komplette receipt og egen engangsadmisjon;
+konsumert plan relanseres aldri. Tilstand etter siste komplette receipt ved hardkill
+forblir UNKNOWN. Trygg tidsgrensepause bevarer prefix; avbrutt sluttscoring må gjøres
+på nytt uten flereupdates. Originale checkpoints og terminaler beholdes.
 
-Praktisk mainresume mangler: cold_resume er kun mekanikk med levendeparent, samme
-boot/policy og cursor1→2. Main002 kan ikke selv gjenoppta etter krasj/3hcap.
-Originale PT-checkpoints er atomiske med fil- og katalog-fsync, men mangler varig
-per-checkpoint receipt/step-prefix og en ny engangscontinuationrute. Dette rettes
-nå i eksisterende eier. Cadence256 er valgt for ekstra sikring (~22PT/2,1GB på
-én epoke); bare fullførte optimizergrenser kan publiseres. Ingen nød-save midt
-under optimizer. Kilde er implementert og389fokustilfeller består:387uendredePASS gjenbrukt og
-to foreldede scope-ID-forventninger rettet til nye engangsidentiteter. Kjerne-
-funksjoner for modell, fit/score, RNG, optimizerrestore og batchschedule har
-uendret AST. To uavhengige kildepeer-reviews består; faktisk separat-prosess-/
-checkpointqual gjenstår. Ingen hovedtrening er startet.
-Fryst kodebase060fe55f. Ny throughput004 er COMPLETE_CONSUMED/exit0,
-SHA4c14a547dd05873d8b3db292f71053351f93fd062aaeb6b07c93ec15795a3f7d,
-15forwards/6backwards/0updates. Sourcecompat002/UNIT_PROOF005/SOURCE_DIFF_REVIEW004
-binder53eiere, uendret numerisk kjerne og389beståtte målrettede tilfeller.
-Kilde-/RNG-/B64- og B256/equalTF-paritet består på ekte data. Ny mekanikk003 er
-COMPLETE/exit0 (7forwards/3updates/6autograd), kald resume og original modell/
-optimizer/RNG/stepbane er bitidentiske. Ny main003-blueprint er forberedt, SHA
-20c964020752318c507957ec0b71645e419e023defd7275637cc85fd48b2b5fd,
-med cadence256 og uendrede5540TRAINupdates/7062totalforwards. Praktisk uavhengig-
-prosessresume og hovedpass gjenstår; kvalifiseringsvekter skal ikke brukes til main.
+Etter boot manglet aktiv telemetritransport igjen. Samme etablerte private
+portproxy38128→127.0.0.1:38127 ble reetablert, signert query bestod og ingen
+cert/brannmur/vaktgrense ble endret. Første wrapperforsøk ble avvist før CLAIM;
+faktisk CONTINUE utførte deretter eksakt én admisjon. Windowskommandoer kjøres
+med stdin=DEVNULL for å unngå at de konsumerer resten av SSH-scriptet.
 
+Bevisrot: `/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001`.
+Readiness: `MAIN003_READINESS001.json`; aktuelle eksakte SHA/referanser i policy.
 
-i9-10900K:10fysiske kjerner/20logiske tråder,19WSLvCPUer. Treneraffinity0–18 gir
-alleredetilgangtilalle19;8er numeriskpool. GPU250Wcap og målte korte topper179/190W
-gir ikke bevis for gevinst ved høyere watt/trådtall. CPUboost0 er tilsiktet stabilitetsprofil etter tidligere HyperV-krasj. Ingen
-etablert CPU-packagewatt/temperaturmåling finnes; sensorruten krever egen
-PawnIOdriver. CPUvakter er affinity/tråder/tasks/minne, ikke termisk/wattstop.
-Ingen driver-/boost-/wattendring er gjort. Brukeren har eksplisitt valgt én epoke først, deretter vurdering av inntilfem.
-Ingen femepoke-/earlystop-admisjon er gitt. Aktivt nattmål skal ferdigstille praktisk
-resume, innrømme og kjøre én kvalifisert fullpass og evaluere TRAIN/utviklingsVAL.
-Siste eksplisitte operatørvalg: stabil langkjøring følges opp hvert30.minutt.
-Eksisterende maskinvarevakter overvåker kontinuerlig. Ingen minuttvise modellrunder.
+## Gjeldende datasett, plan og effektivitet
 
-Kvitteringer: `GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001`.
+`NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003.json`, SHA
+20c964020752318c507957ec0b71645e419e023defd7275637cc85fd48b2b5fd.
+TRAIN2021–2025:354550issues, B64/5540updates, én kronologisk pass.
+Utviklings-VAL2026H1:34934issues. B256/equalTF-sluttscoring:1522forwards;
+samlet7062forwards.10800s ytre hardgrense, trygg pause før intern10770sgrense.
+Eventuell fortsettelse er samme epoke og krever ny engangsplan; ingen ny initialfit.
+Native TEST fra01.07.2026 er forseglet og ikke lest. M1 er utelukket også indirekte.
+Alle genuine M5/lukketM15/H1/H4/D1-features, åttefamilier og D1/makro beholdes.
+GC/MBP er bevart separat. Ingen live/paper/broker/ordre/spending/promotion.
 
-## Aktiv effektiviseringsbølge 20.11.2026
+Målt tidligere par: B64forward/backward uten AdamW1,12137→1,05918s; eval256rader
+2,11099→0,53442s. B64bitidentisk og B256 innen forhåndsbundet FP32-toleranse,
+eksakte tellinger/confusion/ties. Ingen robust full-AdamW-ETA eller globalt optimum
+hevdes. Fullinitial6086forwards gjenbrukes med autentisert kildebro, ingen nyfit.
 
-Brukeren har bestilt faktisk maksimal effektivisering. Modellkontraktens ferske
-bindingskontroll gjenbrukes lokalt; ingen varig cache. Aktiv fit/score bruker
-samlede finite-kontroller. Uavhengig AST-restitusjon består for kontraktmodul,
-fit/score og uendrede wrappervakter.303fokustester består (295+8; uendrede tester
-og52øvrige kildeeiere er eksplisitt gjenbrukt). Fryst kildebase1a03fa47.
-
-Genuine throughput003 er COMPLETE/exit0:1modell/15forwards/6backwards/0updates.
-B64 train/eval-output/loss/gradient/RNG er bitidentiske mot autentisert gammel
-kontrollflyt. Treningspanel uten optimizer1,12137→1,05918s i snitt; to par,
-ikke robust fullfit-/AdamW-ETA. Eval256rader2,11099→0,53442s med B256/equalTF.
-FP32-logits maksavvik1,1921e-7, hidden2,6226e-6 innen forhåndsbundet eksisterende
-toleranse; tellinger/confusion/ties eksakte, state/RNG uendret og korttail består.
-Peak CUDA-reserved7331643392bytes under12GiB. Signert vakt observerte maks50C
-core/48Cmem/179,28W,47samples; source/io-firewall består. Kvitteringer i policy.
-
-Ny mekanikk002 er COMPLETE_CONSUMED, SHA
-7dfda4b0f7a360687e8c113b4c2ceb5f64bd8b4c2474c8dfc0ca5fc2aefbfd12.
-B64/7forwards/3updates/6autograd er fullført, exit0 og kilde uendret på boot668.
-Kald resume i ny prosess er bitidentisk; modell/optimizer/RNG/cursor/schedule og
-alle stegrapporter matcher original001eksakt. Alle treningsporter er stengt igjen.
-Main001 er supersedert uclaimet. Ny main002 er PREPARED_NOT_ADMITTED med B256/
-equalTF-sluttscoring,7062forwards hvorav1522score og5540uendrede TRAINupdates.
-Ny hovedplan er SHA9dfea62bd10a44fe0d2c579529360065779d7cf432d3afecd2217eb9ae4ab6e2;
-mainoutput finnes ikke. Siste eksakte metadata-preflight bestod exit0 på boot668 med0CLAIM/0modell/
-0updates; readiness er publisert og bundet i policy. Teknisk klar til ny
-engangsadmisjon; hovedtrening er ikke startet.
-
-Kvitteringsrot: `GX1_FULL_PROJECT_AUDIT_20261120_001/EFFICIENCY_QUALIFICATION_001`.
-Original fullinitial gjenbrukes med eksplisitt kildebro; ingen originale kilde-
-vektorer eller konsumerte planer omskrives. Alle genuine features/TF, mål og
-FP32/B64TRAIN/5540updates beholdes. GPU-/kapasitetsvakter svekkes ikke.
-
-## Verifisert restart og telemetri
-
-Windowsboot667→668 og ny WSLboot7b038f7e-eb6c-4140-a374-47bdd0add16a er målt;
-SSH/WSL kom tilbake. Whole-host idle/writer/lås/GPU, fil- og katalog-fsync,
-filesystem sync og SHA-readback var fullført før restart. Alle77kritiske filer
-og datidens53kildeeiere matchet etter boot, før den eksplisitte effektiviseringsbølgen.
-Originale kvitteringer: `GX1_FULL_PROJECT_AUDIT_20261120_001/RESTART_TRAINING_PREP_001`.
-
-Første wrapperoppstart003 ble korrekt avvist før produsent/CLAIM/OUTPUT fordi
-Windows-portproxy38128 manglet aktiv lytter selv med korrekt regel. Planen var
-ikke invokert/forbrukt. Eksakt etablert delete/add av samme private regel rettet
-transporten; signert query og begge genuine kjøringers kontinuerlige vakter
-består. Ingen endret cert/brannmur/tjeneste eller svekket vakt. Hvorfor listeneren
-manglet etter boot er ubevist; kontroller signert query ved en senere reboot.
-Reparasjons- og avslagsevidens er i effektiviseringsroten.
-
-## Gjeldende datasett og plan
-
-| Flate | UTC-periode | Inputissues |
-|---|---|---:|
-| TRAIN | 2021–2025 | 354550 |
-| Utviklings-VAL / internt CONTROL | Første halvår 2026 | 34934 |
-| Native TEST | Fra 01.07.2026, forseglet | Ikke lest |
-
-Retning bruker bare native M5 med lukket M15/H1/H4/D1. M1 er utelukket også
-indirekte via input, mål, masker, rader, normalisering, prior eller warmstart.
-Åtte spesialistfamilier og D1/makrokonteksten beholdes; GC/MBP er bevart separat.
-Ingen live/paper, broker, ordre, spending eller promotion. Journalunntaket gjelder
-den navngitte D1/swing-ruten, ikke denne M5-modellen.
-
-`NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_002.json` er PREPARED_NOT_ADMITTED,
-SHA `9dfea62bd10a44fe0d2c579529360065779d7cf432d3afecd2217eb9ae4ab6e2`.
-Én kronologisk B64TRAIN-pass med5540updates, B256/equalTF-eval med1522forwards,
-samlet7062forwards og10800s hardgrense. Ingen robust fullfit-/AdamW-ETA er bevist.
-Sourcebase1a03fa47;53kildeeiere er bundet. Seks eksplisitte ownerendringer er
-kilde-/test-/genuine-kvalifisert,47uendrede. Inputs, mål, norm/prior, FP32,
-initialstate og TRAIN-matematikk er uendret. Planen laster ingen kvalifiseringsvekter.
-Originale001planer/kvitteringer og fullinitial beholdes, ikke relanseres/omskrives.
+CPU i9-10900K har10fysiske kjerner/20logiske tråder; WSL eksponerer19vCPUer.
+Treneraffinity0–18, numeriskpool8,20GiBram/512MiBswap/128tasks. CPUboost0 beholdes
+som vedtatt stabilitetsprofil etter tidligere HyperV-krasj. CPU-packagewatt/temperatur
+kan ikke måles via etablert sensorrute; ingen CPU-termisk/wattstop hevdes.
+GPU RTX3090 har250Wfysiskcap. Uendrede GPUvakter:85Ccore/80Cmem,300Wcapgrense,
+310Wdrawgrense,12288MiBVRAMbruk/12GiBallocator. Ingen driver/boost/powerendring.
 
 ## Målt kode-, input- og testdekning
 
@@ -215,23 +147,3 @@ historiske flater er ikke bevist.0,3ATR er nettoendringsproxy, ikke bevist rolig
 prisbane/økonomisk FLAT. Juni2026 er gjenbrukt utvikling. TRAIN-fit, senere
 generalisering, referanseverdi og realisert økonomi holdes adskilt. Edge/profitt er
 fortsatt ubevist. Teknisk beredskap betyr ikke bedre handelsbeslutninger.
-
-Aktuell admisjon: `NATIVE_M5_TA_ATR03_THROUGHPUT_20261120_004`, eksakt planSHA4c14a547dd05873d8b3db292f71053351f93fd062aaeb6b07c93ec15795a3f7d.
-Kilde/policy fryses ved launch; denne admisjonen bruker bare planens egne
-modell-/forward-/optimizergrenser. Main er fortsatt ustartet under kvalifisering.
-
-Aktuell admisjon: `NATIVE_M5_TA_ATR03_FIVE_YEAR_MECHANICS_20261120_003`, eksakt planSHAa27fb443e18f2f6d38e329c7ef7d63713fb32f494d308fe55973913ad938178c.
-Kilde/policy fryses ved launch; denne admisjonen bruker bare planens egne
-modell-/forward-/optimizergrenser. Main er fortsatt ustartet under kvalifisering.
-
-Aktuell admisjon: `NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_002`, eksakt planSHAdb8035b3e2b4ff99a98af120d26dab5561aff893d7f03170109a9e10a0fa002c.
-Kilde/policy fryses ved launch; denne admisjonen bruker bare planens egne
-modell-/forward-/optimizergrenser. Main er fortsatt ustartet under kvalifisering.
-
-Aktuell admisjon: `NATIVE_M5_TA_ATR03_FIVE_YEAR_WINDOW_20261121_001`, eksakt planSHAe955d1c931dc3b9b144d049d631719eff197047786150ae6ee8e000c900f97d0.
-Kilde/policy fryses ved launch; denne admisjonen bruker bare planens egne
-modell-/forward-/optimizergrenser. Main er fortsatt ustartet under kvalifisering.
-
-Aktuell admisjon: `NATIVE_M5_TA_ATR03_FIVE_YEAR_CONTINUE_20261121_001`, eksakt planSHAa757d7fbf76e07c3bfbfd7932f8f6775f33dd13700cd78fecf666fe052312c63.
-Kilde/policy fryses ved launch; denne admisjonen bruker bare planens egne
-modell-/forward-/optimizergrenser. Main er fortsatt ustartet under kvalifisering.
