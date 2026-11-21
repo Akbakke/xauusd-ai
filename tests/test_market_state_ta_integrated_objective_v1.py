@@ -322,6 +322,7 @@ def _future_state_inputs():
     side_up[2] = [True, False, True, False, True]
     truth = {'issue_ns': issues, 'target_start_ns': starts, 'validity_ns': starts + duration,
         'target_present': known.copy(), 'mature': known.copy(), 'nominal_complete': known.copy(),
+        'state_window_complete': known.copy(), 'partial_range_active': np.zeros((3, 5), np.bool_),
         'activity_known': known.copy(), 'activity': active, 'side_known': side_known,
         'side_up': side_up}
     output = {key: torch.zeros(3, 5, dtype=torch.float32, requires_grad=True)
@@ -421,7 +422,9 @@ def test_native_future_state_rejects_false_axes_masks_and_contract(case):
     elif case == 'unknown_activity_value': truth['activity_known'][0, 0] = False
     elif case == 'uncertified_side_value': truth['side_up'][0, 0] = True
     elif case == 'side_on_flat': truth['side_known'][1, 0] = True
-    elif case == 'incomplete_activity': truth['nominal_complete'][0, 0] = False
+    elif case == 'incomplete_activity':
+        truth['nominal_complete'][0, 0] = False
+        truth['state_window_complete'][0, 0] = False
     elif case == 'wrong_dtype': truth['activity'] = truth['activity'].astype(np.int8)
     elif case == 'missing_axis': del truth['target_start_ns']
     elif case == 'target_contract': kwargs['target_contract']['contract_sha256'] = '0' * 64
@@ -493,3 +496,19 @@ def test_native_future_state_rejects_off_phase_h4_and_d1_bars():
         kwargs['truth']['validity_ns'][0, j] += 300_000_000_000
         with pytest.raises(ValueError, match='OBSERVABILITY'):
             native_future_state_loss(**kwargs)
+
+
+def test_native_future_state_partial_positive_is_activity_only_and_needs_certificate():
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+    kwargs = _future_state_inputs()
+    truth = kwargs['truth']
+    truth['nominal_complete'][0] = False
+    truth['state_window_complete'][0] = False
+    truth['partial_range_active'][0] = True
+    out = native_future_state_loss(**kwargs)
+    out['loss'].backward()
+    assert out['count'] == 15
+    assert torch.count_nonzero(kwargs['model_output']['side_logits'].grad[0]) == 0
+    truth['activity'][0, 0] = False
+    with pytest.raises(ValueError, match='STATE_MASKS'):
+        native_future_state_loss(**kwargs)

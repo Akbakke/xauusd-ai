@@ -866,3 +866,348 @@ def test_native_bar_public_contract_always_validates_input(monkeypatch):
     monkeypatch.setattr(owner, 'require_native_bar_input_binding', reject)
     with pytest.raises(ValueError, match='synthetic_invalid_binding'):
         owner.native_bar_model_contract(model.input_binding)
+
+
+def _future_readout_inputs():
+    from tests.test_market_state_ta_integrated_objective_v1 import _future_state_inputs
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import fit_native_future_state_train_prior
+    kwargs = _future_state_inputs()
+    kwargs.pop('model_output')
+    prior = fit_native_future_state_train_prior(**kwargs)
+    hidden = torch.arange(1, 61, dtype=torch.float32).reshape(3, 5, 4)
+    return kwargs, prior, hidden
+
+
+def _future_readout(kwargs, prior, d_model=4):
+    from gx1.contracts.market_state_ta_integrated_model_v1 import NativeFutureStateReadout
+    return NativeFutureStateReadout(d_model=d_model,
+        target_contract=kwargs['target_contract'], train_prior=prior)
+
+
+def test_native_future_state_readout_exact_prior_initialization_and_probability_loss_parity():
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    kwargs, prior, hidden = _future_readout_inputs()
+    rng = torch.random.get_rng_state().clone()
+    model = _future_readout(kwargs, prior)
+    assert torch.equal(torch.random.get_rng_state(), rng)
+    assert set(dict(model.named_children())) == {'activity_heads', 'side_heads'}
+    assert len(list(model.parameters())) == 20
+    reference = objective.native_future_state_train_prior_logits(prior, rows=3,
+        target_contract=kwargs['target_contract'])
+    output = model(hidden)
+    assert set(output) == {'activity_logits', 'side_logits'}
+    for key, logits in output.items():
+        assert logits.dtype == torch.float32 and logits.shape == (3, 5)
+        assert torch.equal(logits, reference[key])
+    for heads in (model.activity_heads, model.side_heads):
+        assert set(heads) == set(prior['timeframes'])
+        assert all(torch.count_nonzero(head.weight) == 0 for head in heads.values())
+    logp = objective.native_future_state_log_probabilities(model_output=output,
+        target_contract=kwargs['target_contract'])
+    assert torch.allclose(logp.exp().sum(-1), torch.ones(3, 5), rtol=0, atol=1e-7)
+    loss = objective.native_future_state_loss(model_output=output, **kwargs)
+    baseline = objective.native_future_state_loss(model_output=reference, **kwargs)
+    assert torch.equal(loss['loss'], baseline['loss'])
+    scores = objective.native_future_state_score_sums(model_output=output, **kwargs)
+    assert scores == objective.native_future_state_score_sums(model_output=reference, **kwargs)
+    assert sum(cell['partial_log_loss_sum'] for cell in scores['per_tf'].values()) == pytest.approx(
+        float(loss['loss']) * loss['count'], abs=1e-6)
+    spec = model.readout_contract
+    assert spec['production_training_admitted'] is False
+    assert spec['feature_backbone_forward_qualified'] is False
+    spec['d_model'] = 99
+    assert model.readout_contract['d_model'] == 4
+
+
+def test_native_future_state_readout_unknown_side_free_parameters_are_exactly_zero_gradient():
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+    kwargs, prior, hidden = _future_readout_inputs()
+    model = _future_readout(kwargs, prior)
+    kwargs['truth']['activity'][:] = True
+    kwargs['truth']['side_known'][:] = False
+    kwargs['truth']['side_up'][:] = False
+    result = native_future_state_loss(model_output=model(hidden), **kwargs)
+    result['loss'].backward()
+    for head in model.side_heads.values():
+        assert torch.equal(head.weight.grad, torch.zeros_like(head.weight))
+        assert torch.equal(head.bias.grad, torch.zeros_like(head.bias))
+    for head in model.activity_heads.values():
+        assert torch.count_nonzero(head.weight.grad) == head.weight.numel()
+        assert torch.count_nonzero(head.bias.grad) == head.bias.numel()
+
+
+def test_native_future_state_readout_all_unknown_skips_and_all_parameter_gradients_are_zero():
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+    kwargs, prior, hidden = _future_readout_inputs()
+    model = _future_readout(kwargs, prior)
+    for key in ('activity_known', 'activity', 'side_known', 'side_up'):
+        kwargs['truth'][key][:] = False
+    result = native_future_state_loss(model_output=model(hidden), **kwargs)
+    assert result['skip_update'] is True and float(result['loss']) == 0
+    result['loss'].backward()
+    assert all(torch.equal(p.grad, torch.zeros_like(p)) for p in model.parameters())
+
+
+@pytest.mark.parametrize('case', ['dtype', 'shape', 'empty', 'nonfinite', 'device', 'parameter_dtype',
+                                  'parameter_nonfinite', 'live_identity'])
+def test_native_future_state_readout_rejects_invalid_hidden_parameters_and_binding(case):
+    kwargs, prior, hidden = _future_readout_inputs()
+    model = _future_readout(kwargs, prior)
+    if case == 'dtype': hidden = hidden.double()
+    elif case == 'shape': hidden = hidden[:, :, :3]
+    elif case == 'empty': hidden = hidden[:0]
+    elif case == 'nonfinite': hidden[0, 0, 0] = float('nan')
+    elif case == 'device': hidden = hidden.to('meta')
+    elif case == 'parameter_dtype': model.double()
+    elif case == 'parameter_nonfinite':
+        with torch.no_grad(): model.side_heads['D1'].bias.fill_(float('inf'))
+    elif case == 'live_identity': model.future_state_target_sha256[0] ^= 1
+    with pytest.raises(ValueError, match='FUTURE_READOUT'):
+        model(hidden)
+
+
+@pytest.mark.parametrize('case', ['target_identity', 'prior_identity', 'head_identity',
+                                  'shape', 'dtype', 'nonfinite', 'missing', 'nonstrict'])
+def test_native_future_state_readout_checks_entire_state_before_any_parameter_copy(case):
+    kwargs, prior, hidden = _future_readout_inputs()
+    model = _future_readout(kwargs, prior)
+    before = {key: value.clone() for key, value in model.state_dict().items()}
+    state = {key: value.clone() for key, value in before.items()}
+    state['activity_heads.M5.weight'].fill_(42)
+    if case == 'target_identity': state['future_state_target_sha256'][0] ^= 1
+    elif case == 'prior_identity': state['future_state_prior_sha256'][0] ^= 1
+    elif case == 'head_identity': state['future_state_readout_sha256'][0] ^= 1
+    elif case == 'shape': state['side_heads.D1.weight'] = torch.zeros(1, 3)
+    elif case == 'dtype': state['side_heads.D1.weight'] = state['side_heads.D1.weight'].double()
+    elif case == 'nonfinite': state['side_heads.D1.bias'].fill_(float('nan'))
+    elif case == 'missing': del state['side_heads.D1.bias']
+    with pytest.raises(ValueError, match='FUTURE_READOUT'):
+        model.load_state_dict(state, strict=(case != 'nonstrict'))
+    assert all(torch.equal(value, before[key]) for key, value in model.state_dict().items())
+
+
+def test_native_future_state_readout_roundtrips_and_rejects_another_valid_frozen_prior():
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import fit_native_future_state_train_prior
+    kwargs, prior, hidden = _future_readout_inputs()
+    model = _future_readout(kwargs, prior)
+    with torch.no_grad(): model.side_heads['M15'].weight.fill_(.25)
+    restored = _future_readout(kwargs, prior)
+    restored.load_state_dict(model.state_dict())
+    for key, value in model(hidden).items():
+        assert torch.equal(restored(hidden)[key], value)
+    kwargs['truth']['side_up'][2, 0] = False
+    changed_prior = fit_native_future_state_train_prior(**kwargs)
+    another = _future_readout(kwargs, changed_prior)
+    before = {key: value.clone() for key, value in another.state_dict().items()}
+    with pytest.raises(ValueError, match='STATE_IDENTITY'):
+        another.load_state_dict(model.state_dict())
+    assert all(torch.equal(value, before[key]) for key, value in another.state_dict().items())
+
+
+@pytest.mark.parametrize('width', [0, -1, True, 4.0])
+def test_native_future_state_readout_requires_explicit_positive_integer_width(width):
+    kwargs, prior, hidden = _future_readout_inputs()
+    with pytest.raises(ValueError, match='FUTURE_READOUT_WIDTH'):
+        _future_readout(kwargs, prior, d_model=width)
+
+
+def test_native_future_state_readout_requires_validated_frozen_train_prior():
+    kwargs, prior, hidden = _future_readout_inputs()
+    prior['fit_population']['scope'] = 'CONTROL'
+    with pytest.raises(ValueError, match='PRIOR_POPULATION'):
+        _future_readout(kwargs, prior)
+
+
+def test_native_future_state_readout_nested_restore_checks_identity_before_child_parameter_copy():
+    kwargs, prior, hidden = _future_readout_inputs()
+    model = _future_readout(kwargs, prior)
+    parent = torch.nn.Module()
+    parent.add_module('head', model)
+    before = {key: value.clone() for key, value in model.state_dict().items()}
+    state = {key: value.clone() for key, value in parent.state_dict().items()}
+    state['head.activity_heads.M5.weight'].fill_(42)
+    state['head.future_state_target_sha256'][0] ^= 1
+    with pytest.raises(ValueError, match='STATE_IDENTITY'):
+        parent.load_state_dict(state)
+    assert all(torch.equal(value, before[key]) for key, value in model.state_dict().items())
+
+
+def _future_native_full_packet():
+    import copy
+    import hashlib
+    import numpy as np
+    from gx1.contracts import entry_model_native_input_normalization_v1 as normalizer
+    from gx1.contracts import market_state_ta_integrated_model_v1 as owner
+    from gx1.contracts.market_state_native_m5_targets_v1 import fully_future_state_contract
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import fit_native_future_state_train_prior
+    from tests.test_entry_model_native_input_normalization import native_m5_normalization_fixture
+    norm, raw, cats = native_m5_normalization_fixture()
+    spec = fully_future_state_contract()
+    first = norm['fit_population']['first_issue_ns']
+    rows = norm['fit_population']['issue_rows']
+    issues = first + np.arange(rows, dtype=np.int64) * 300_000_000_000
+    duration = np.asarray([spec['tf_duration_ns'][tf] for tf in spec['timeframes']], np.int64)
+    origin = np.asarray([spec['tf_origin_ns'][tf] for tf in spec['timeframes']], np.int64)
+    starts = ((issues[:, None] - origin + duration - 1) // duration) * duration + origin
+    shape = (rows, 5)
+    complete = np.ones(shape, np.bool_)
+    active = np.broadcast_to((np.arange(rows) % 3 != 0)[:, None], shape).copy()
+    up = active & np.broadcast_to((np.arange(rows) % 2 == 0)[:, None], shape)
+    truth = {'issue_ns': issues, 'target_start_ns': starts, 'validity_ns': starts + duration,
+        'target_present': complete.copy(), 'mature': complete.copy(), 'nominal_complete': complete.copy(),
+        'state_window_complete': complete.copy(), 'partial_range_active': np.zeros(shape, np.bool_),
+        'activity_known': complete.copy(), 'activity': active, 'side_known': active.copy(), 'side_up': up}
+    population = copy.deepcopy(norm['fit_population'])
+    population['selected_issue_ns_sha256'] = hashlib.sha256(issues.tobytes()).hexdigest()
+    norm = normalizer.build_native_m5_input_normalization_contract(
+        **{key: norm[key] for key in ('native_m5_manifest', 'feature_provider_contract_sha256',
+            'source_axes_sha256', 'surfaces', 'ctx_cat', 'temporal_aliases')}, fit_population=population)
+    prior = fit_native_future_state_train_prior(truth=truth,
+        fold_upper_ns=population['cutoff_ns'], target_contract=spec)
+    architecture = {'dropout': .05, 'multi_tf_num_layers': 2, 'multi_tf_scale': .5,
+        'specialist_num_layers': 1, 'specialist_fusion_scale': .25, 'cross_family_fusion_scale': .25}
+    args = dict(input_normalization=norm, input_binding=_native_model_binding(norm),
+        architecture=architecture, device=torch.device('cpu'), train_prior=prior, target_contract=spec)
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(47)  # Existing native factory fixture seed.
+        model = owner.build_native_future_state_model(**args).eval()
+    geometry = owner.native_bar_backbone_geometry()
+    sequence = raw['signal'][np.arange(geometry['local']) % len(raw['signal'])]
+    features = {'seq_x': torch.from_numpy(sequence[None]), 'snap_x': torch.from_numpy(sequence[-1:]),
+        'ctx_cont': torch.from_numpy(raw['ctx_cont'][-1:]), 'ctx_cat': torch.from_numpy(cats[-1:])}
+    features.update({'seq_' + tf.lower(): torch.from_numpy(raw['mtf_' + tf.lower()][
+        np.arange(geometry[tf]) % len(raw['mtf_' + tf.lower()])][None]) for tf in spec['timeframes']})
+    return model, args, features, truth
+
+
+@pytest.fixture(scope='module')
+def future_native_full_packet():
+    return _future_native_full_packet()
+
+
+def test_native_future_state_model_real_factory_one_encode_exact_prior_no_raw_heads(
+        future_native_full_packet, native_gc_single_thread):
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    model, args, features, truth = future_native_full_packet
+    assert set(dict(model.named_children())) == {'backbone', 'readout'}
+    assert model.backbone._native_bar_direction_only is True
+    assert not hasattr(model, 'open_heads') and not hasattr(model, 'close_heads')
+    assert not any('open_heads.' in name or 'close_heads.' in name for name in model.state_dict())
+    calls = []
+    def capture(module, inputs, output):
+        hidden = output['entry_q_timeframe_hidden']
+        calls.append(hidden.detach().clone())
+    hook = model.backbone.register_forward_hook(capture)
+    try:
+        with torch.inference_mode(): output = model(**features)
+    finally:
+        hook.remove()
+    assert len(calls) == 1
+    assert calls[0].dtype == torch.float32 and calls[0].shape == (1, 5, model.readout.d_model)
+    assert bool(torch.isfinite(calls[0]).all())
+    reference = objective.native_future_state_train_prior_logits(args['train_prior'], rows=1,
+        target_contract=args['target_contract'])
+    assert all(torch.equal(output[key], value) for key, value in reference.items())
+    one = {key: value[:1] for key, value in truth.items()}
+    kwargs = dict(truth=one, fold_upper_ns=args['train_prior']['fit_population']['cutoff_ns'],
+                  target_contract=args['target_contract'])
+    assert objective.native_future_state_score_sums(model_output=output, **kwargs) == \
+           objective.native_future_state_score_sums(model_output=reference, **kwargs)
+    assert torch.equal(objective.native_future_state_loss(model_output=output, **kwargs)['loss'],
+                       objective.native_future_state_loss(model_output=reference, **kwargs)['loss'])
+    assert model.research_objective['production_training_admitted'] is False
+
+
+def test_native_future_state_model_rejects_target_metadata_and_nontensors_before_encode(
+        future_native_full_packet, monkeypatch):
+    from gx1.contracts.market_state_ta_integrated_model_v1 import EntryV10CtxHybridTransformer
+    model, args, features, truth = future_native_full_packet
+    def forbidden(*args, **kwargs): raise AssertionError('encoder reached')
+    monkeypatch.setattr(EntryV10CtxHybridTransformer, 'forward', forbidden)
+    with pytest.raises(ValueError, match='FEATURE_KEYS'):
+        model(**{**features, 'validity_ns': torch.ones(1, 5)})
+    with pytest.raises(ValueError, match='FEATURE_TENSORS'):
+        model(**{**features, 'seq_x': None})
+
+
+@pytest.mark.parametrize('name', ['future_state_model_sha256', 'backbone.input_norm_contract_sha256',
+    'backbone.input_norm_signal_center', 'readout.future_state_target_sha256',
+    'readout.future_state_objective_sha256', 'readout.future_state_prior_sha256',
+    'readout.future_state_readout_sha256'])
+def test_native_future_state_model_rejects_identity_before_backbone_parameter_copy(
+        future_native_full_packet, name):
+    model, args, features, truth = future_native_full_packet
+    before = model.backbone.entry_q_joint_in.weight.detach().clone()
+    state = {key: value.clone() for key, value in model.state_dict().items()}
+    state['backbone.entry_q_joint_in.weight'].fill_(42)
+    value = state[name]
+    value.reshape(-1)[0] += 1
+    with pytest.raises(ValueError, match='STATE_IDENTITY'):
+        model.load_state_dict(state)
+    assert torch.equal(model.backbone.entry_q_joint_in.weight, before)
+
+
+def test_native_future_state_model_roundtrip_and_strict_header_guards(future_native_full_packet):
+    model, args, features, truth = future_native_full_packet
+    state = {key: value.clone() for key, value in model.state_dict().items()}
+    assert 'backbone.entry_signal_projection_idx' in dict(model.named_buffers())
+    assert 'backbone.entry_signal_projection_idx' not in state
+    assert not model.load_state_dict(state).missing_keys
+    with pytest.raises(ValueError, match='STRICT_STATE'):
+        model.load_state_dict(state, strict=False)
+    state['backbone.entry_q_joint_in.weight'] = state['backbone.entry_q_joint_in.weight'].double()
+    with pytest.raises(ValueError, match='STATE_TENSOR'):
+        model.load_state_dict(state)
+
+
+def test_native_future_state_model_rejects_changed_prior_normalization_population(future_native_full_packet):
+    import copy
+    from gx1.contracts import market_state_ta_integrated_model_v1 as owner
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    model, args, features, truth = future_native_full_packet
+    other = copy.deepcopy(args['train_prior'])
+    other['fit_population']['issue_ns_sha256'] = '9' * 64
+    other = objective._native_prior_seal({key: value for key, value in other.items() if key != 'contract_sha256'})
+    with pytest.raises(ValueError, match='PRIOR_NORMALIZATION_POPULATION'):
+        owner.NativeFutureStateModel(model.backbone, input_binding=args['input_binding'],
+            architecture=args['architecture'], train_prior=other, target_contract=args['target_contract'])
+
+
+def test_native_future_state_factory_backbone_only_rejects_raw_arguments(future_native_full_packet):
+    from gx1.contracts import market_state_ta_integrated_model_v1 as owner
+    model, args, features, truth = future_native_full_packet
+    base = {key: args[key] for key in ('input_normalization', 'input_binding', 'architecture', 'device')}
+    for extra in ({'train_prior': args['train_prior']}, {'target_contract': args['target_contract']},
+                  {'backbone_gradient_policy': 'anything'}):
+        with pytest.raises(ValueError, match='BACKBONE_ONLY_RAW_ARGUMENTS'):
+            owner.build_native_bar_direction_model(**base, return_backbone_only=True, **extra)
+    with pytest.raises(ValueError, match='BACKBONE_ONLY_FLAG'):
+        owner.build_native_bar_direction_model(**base, return_backbone_only=1)
+
+
+def test_native_future_state_factory_legacy_default_seeded_state_and_rng_parity(
+        future_native_full_packet, native_gc_single_thread):
+    import ast
+    import inspect
+    from gx1.contracts import market_state_ta_integrated_model_v1 as owner
+    model, args, features, truth = future_native_full_packet
+    node = ast.parse(inspect.getsource(owner.build_native_bar_direction_model)).body[0]
+    assert node.args.kwonlyargs[-1].arg == 'return_backbone_only'
+    node.args.kwonlyargs.pop(); node.args.kw_defaults.pop()
+    node.body = [n for n in node.body if not (
+        isinstance(n, ast.If) and isinstance(n.test, ast.Name) and n.test.id == 'return_backbone_only')
+        and not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Call)
+                 and any(isinstance(a, ast.Constant) and isinstance(a.value, str)
+                         and a.value.startswith('NATIVE_BACKBONE_ONLY_') for a in n.value.args))]
+    namespace = dict(vars(owner))
+    exec(compile(ast.fix_missing_locations(ast.Module(body=[node], type_ignores=[])),
+                 '<legacy-native-factory-body>', 'exec'), namespace)
+    base = {key: args[key] for key in ('input_normalization', 'input_binding', 'architecture', 'device')}
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(47)
+        legacy = namespace['build_native_bar_direction_model'](**base)
+        legacy_rng = torch.random.get_rng_state().clone()
+        torch.manual_seed(47)
+        current = owner.build_native_bar_direction_model(**base)
+        assert torch.equal(legacy_rng, torch.random.get_rng_state())
+    assert all(torch.equal(value, legacy.state_dict()[key]) for key, value in current.state_dict().items())

@@ -517,7 +517,7 @@ def _native_future_state_truth(truth, *, rows, fold_upper_ns, target_contract):
         need(isinstance(value, np.ndarray) and value.dtype == np.int64
              and value.shape == shape, 'AXIS_' + name)
     for name in ('target_present', 'mature', 'nominal_complete', 'activity_known',
-                 'activity', 'side_known', 'side_up'):
+                 'activity', 'side_known', 'side_up', 'state_window_complete', 'partial_range_active'):
         value = truth.get(name)
         need(isinstance(value, np.ndarray) and value.dtype == np.bool_
              and value.shape == shape, 'MASK_' + name)
@@ -538,9 +538,13 @@ def _native_future_state_truth(truth, *, rows, fold_upper_ns, target_contract):
          and not np.any(truth['nominal_complete'] & ~present), 'OBSERVABILITY')
     known, active = truth['activity_known'], truth['activity']
     side_known, side_up = truth['side_known'], truth['side_up']
-    need(not np.any(known & ~(mature & truth['nominal_complete']))
+    complete, partial = truth['state_window_complete'], truth['partial_range_active']
+    need(not np.any(complete & ~mature)
+         and not np.any((truth['nominal_complete'] & mature) & ~complete)
+         and not np.any(known & ~(mature & (complete | partial)))
+         and not np.any(partial & ~(mature & known & active & ~complete & ~side_known))
          and not np.any(active & ~known)
-         and not np.any(side_known & ~(known & active))
+         and not np.any(side_known & ~(known & active & complete))
          and not np.any(side_up & ~side_known), 'STATE_MASKS')
     return {'activity': known, 'side': side_known,
             'singleton': (known & ~active) | side_known}
@@ -706,7 +710,8 @@ def fit_native_future_state_train_prior(*, truth, fold_upper_ns, target_contract
         per_task[task] = cells
     spec = native_future_state_train_prior_contract(target_contract=target_contract)
     keys = ('issue_ns', 'target_start_ns', 'validity_ns', 'target_present', 'mature',
-            'nominal_complete', 'activity_known', 'activity', 'side_known', 'side_up')
+            'nominal_complete', 'state_window_complete', 'partial_range_active',
+            'activity_known', 'activity', 'side_known', 'side_up')
     prior = _native_prior_seal({
         'schema_version': 'gx1_native_m5_fully_future_state_train_prior_v1',
         'prior_contract_sha256': spec['contract_sha256'],

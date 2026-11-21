@@ -416,7 +416,7 @@ def test_fully_future_state_identity_is_algebra_only_and_not_old_noise():
     spec = target.fully_future_state_contract()
     assert target.require_fully_future_state_contract(spec) == spec
     assert spec['production_training_admitted'] is False
-    assert spec['local_window'].startswith('unbound_')
+    assert spec['local_window'].startswith('high_low_of_next_entirely_future_TF_bar')
     changed = copy.deepcopy(spec)
     changed['side_certificate'] = 'close_sign'
     with pytest.raises(ValueError, match='FULLY_FUTURE_STATE_CONTRACT'):
@@ -430,3 +430,114 @@ def test_fully_future_bar_rejects_outside_native_issue_axis(tape):
         tape.gather_fully_future_bar(np.array([1], np.int64), fold_upper_ns=tape.cutoff_ns)
     with pytest.raises(ValueError, match='QUERY'):
         tape.gather_fully_future_bar(tape.issue_ns[:1], fold_upper_ns=tape.cutoff_ns + target.TICK_NS)
+
+
+def state_tape(monkeypatch, *, close=102., high=102., low=98., atr=2., omit=()):
+    import pandas as pd
+    from gx1.contracts.xau_tape_provenance_v1 import scheduled_weekly_closure_mask
+    first = int(np.datetime64('2025-01-06', 'ns').astype(np.int64))
+    starts = first + np.arange(6000, dtype=np.int64) * target.TICK_NS
+    keep = ~scheduled_weekly_closure_mask(pd.to_datetime(starts, utc=True))
+    for timestamp in omit:
+        keep &= starts != timestamp
+    starts = starts[keep]
+    opening = min(high, max(low, 100.))
+    prices = np.tile([opening, high, low, close], (len(starts), 1)).astype(np.float64)
+    monkeypatch.setattr(target, 'wilder_atr', lambda high, low, close, period:
+                        pd.Series(np.full(len(high), atr, np.float64), index=high.index))
+    return build(starts, prices)
+
+
+def state_gather(tape, issue):
+    return tape.gather_fully_future_state(np.array([issue], np.int64),
+        fold_upper_ns=tape.cutoff_ns,
+        source_closure_contract=target.fully_future_state_contract()['source_closure_contract'])
+
+
+def test_future_state_all_tf_complete_range_and_exclusive_up_side(monkeypatch):
+    tape = state_tape(monkeypatch)
+    issue = int(np.datetime64('2025-01-07T22:00', 'ns').astype(np.int64))
+    out = state_gather(tape, issue)
+    assert out['state_window_complete'].all()
+    assert out['activity_known'].all() and out['activity'].all()
+    assert out['side_known'].all() and out['side_up'].all()
+    assert not out['partial_range_active'].any()
+    assert (out['state_endpoint_available_ns'] <= out['validity_ns']).all()
+    # Every existing rawbar projection field is exactly preserved.
+    raw = tape.gather_fully_future_bar(np.array([issue], np.int64), fold_upper_ns=tape.cutoff_ns)
+    for key in raw:
+        if isinstance(raw[key], np.ndarray): np.testing.assert_equal(raw[key], out[key])
+        else: assert raw[key] == out[key]
+
+
+@pytest.mark.parametrize('close,high,low,atr,known,active,side,up', [
+    (100., 100., 100., 0., True, False, False, False),
+    (100., 100., 100., float('nan'), True, False, False, False),
+    (100., 100.5, 100., 2., True, False, False, False),
+    (101., 101., 100., 2., True, True, True, True),
+    (100., 101., 100., 2., True, True, True, False),
+    (100., 102., 98., 2., True, True, False, False),
+    (100.75, 101.5, 100., 2., True, True, False, False),
+    (101., 101., 100., 0., True, True, True, True),
+    (100., 101., 100., 0., True, True, True, False),
+    (100.5, 101., 100., 0., True, True, False, False),
+    (101., 101., 100., float('nan'), False, False, False, False),
+])
+def test_future_state_boundaries_zero_missing_scale_and_ambiguous_side(
+        monkeypatch, close, high, low, atr, known, active, side, up):
+    tape = state_tape(monkeypatch, close=close, high=high, low=low, atr=atr)
+    issue = int(np.datetime64('2025-01-07T22:00', 'ns').astype(np.int64))
+    out = state_gather(tape, issue)
+    for key, value in [('activity_known', known), ('activity', active),
+                       ('side_known', side), ('side_up', up)]:
+        assert (out[key] == value).all(), key
+
+
+def test_future_state_weekly_closure_can_complete_d1_without_filling_prices(monkeypatch):
+    tape = state_tape(monkeypatch)
+    # Summer Friday closure begins21UTC, inside fixed22UTC-ending D1.
+    # This winter sample has a Monday22UTC issue and Sunday expected closure.
+    issue = int(np.datetime64('2025-01-12T22:00', 'ns').astype(np.int64))
+    # 22UTC itself is closed; last preceding source issue is Friday22UTC.
+    issue = int(tape.issue_ns[np.searchsorted(tape.issue_ns, issue) - 1])
+    out = state_gather(tape, issue)
+    assert not out['nominal_complete'][0, -1]
+    assert out['state_window_complete'][0, -1]
+    assert out['state_expected_m5_count'][0, -1] < 288
+    assert out['state_missing_open_m5_count'][0, -1] == 0
+    assert out['activity_known'][0, -1] and out['side_known'][0, -1]
+
+
+def test_future_state_internal_or_tail_hole_never_certifies_flat_or_side(monkeypatch):
+    issue = int(np.datetime64('2025-01-07T22:00', 'ns').astype(np.int64))
+    missing = issue + 10 * target.TICK_NS
+    tape = state_tape(monkeypatch, omit=(missing,))
+    out = state_gather(tape, issue)
+    j = target.TIMEFRAMES.index('H1')
+    assert not out['state_window_complete'][0, j]
+    assert out['partial_range_active'][0, j] and out['activity'][0, j]
+    assert not out['side_known'][0, j]
+    # A small observed range across the same hole remains entirely unknown.
+    tape = state_tape(monkeypatch, close=100., high=100.5, low=100., omit=(missing,))
+    out = state_gather(tape, issue)
+    assert not out['activity_known'][0, j] and not out['side_known'][0, j]
+    tail = issue + 11 * target.TICK_NS
+    tape = state_tape(monkeypatch, omit=(tail,))
+    out = state_gather(tape, issue)
+    assert out['state_endpoint_available_ns'][0, j] < out['validity_ns'][0, j]
+    assert out['activity'][0, j] and not out['side_known'][0, j]
+
+
+def test_future_state_immature_unknown_and_wrong_calendar_rejected(monkeypatch):
+    tape = state_tape(monkeypatch)
+    issue = int(np.datetime64('2025-01-07T22:00', 'ns').astype(np.int64))
+    out = tape.gather_fully_future_state(np.array([issue], np.int64),
+        fold_upper_ns=issue+target.TICK_NS,
+        source_closure_contract=target.fully_future_state_contract()['source_closure_contract'])
+    assert not out['mature'].any()
+    for key in ('activity_known', 'activity', 'side_known', 'side_up',
+                'partial_range_active', 'state_window_complete'):
+        assert not out[key].any()
+    with pytest.raises(ValueError, match='STATE_SOURCE_CLOSURE'):
+        tape.gather_fully_future_state(np.array([issue], np.int64),
+            fold_upper_ns=tape.cutoff_ns, source_closure_contract='assumed_daily_break')

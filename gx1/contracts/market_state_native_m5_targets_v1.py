@@ -163,22 +163,34 @@ def fully_future_bar_contract():
 
 
 def fully_future_state_contract():
-    """Pure partial-observation interface; deliberately grants no label recipe."""
+    """Native candidate for the chosen future-bar range and partial side facts."""
     value = {
         'schema_version': 'gx1_native_m5_fully_future_state_dataset_v1',
-        'qualification': 'observation_algebra_only_no_qualified_state_label_generator',
+        'qualification': 'defined_candidate_requires_genuine_coverage_qualification_no_fit_admission',
         'future_bar_contract_sha256': fully_future_bar_contract()['contract_sha256'],
         'timeframes': list(TIMEFRAMES),
         'tf_duration_ns': {tf: int(MULTI_TF_SHIFT[tf].value) for tf in TIMEFRAMES},
         'tf_origin_ns': {tf: int(MULTI_TF_RESAMPLE_ORIGIN_OFFSET[tf].value) for tf in TIMEFRAMES},
         'class_order': ['DOWN', 'FLAT', 'UP'],
         'observation_fields': ['activity_known', 'activity', 'side_known', 'side_up'],
-        'activity_known': 'requires_present_mature_nominally_complete_fully_future_bar',
-        'side_known': 'requires_known_active_and_separately_certified_direction',
+        'local_window': 'high_low_of_next_entirely_future_TF_bar_operator_choice_20261121',
+        'activity_scale': '0.5_times_TF_Wilder_ATR14_last_closed_at_issue_no_future_scale',
+        'activity_rule': 'positive_observed_range_ge_scale_proves_ACTIVE_complete_range_below_scale_or_exact_zero_proves_FLAT',
+        'zero_range': 'complete_exact_zero_is_FLAT_even_zero_or_missing_ATR_no_epsilon',
+        'missing_ATR': 'nonzero_range_unknown_no_guessed_scale',
+        'coverage_owner': 'gx1.contracts.xau_tape_provenance_v1.scheduled_weekly_closure_mask',
+        'source_closure_contract': 'oanda_complete_true_scheduled_weekly_closure_excluded_v2',
+        'state_window_complete': 'every_expected_M5_start_outside_declared_weekly_closure_present_no_other_missing_bar_excused',
+        'nominal_complete': 'retained_strict_calendar_clock_fact_never_overwritten',
+        'partial_range_active': 'positive_observed_range_is_lower_bound_only_ACTIVE_can_be_certified_without_complete_window',
+        'state_endpoint': 'complete_window_last_expected_open_M5_close_incomplete_window_last_observed_close_only_no_invented_nominal_end_price',
+        'side_certificate': 'complete_window_unique_material_endpoint_excursion_C_minus_L_vs_H_minus_C_same_scale',
+        'side_boundary': 'positive_scale_ge_is_material_zero_scale_requires_strict_positive_excursion',
+        'ambiguous_side': 'both_or_neither_material_endpoint_excursions_remain_unknown_no_extrema_order_assumed',
+        'activity_known': 'mature_and_complete_or_explicit_partial_positive_range_certificate',
+        'side_known': 'requires_known_ACTIVE_complete_window_and_exclusive_endpoint_excursion_certificate',
         'unknown_storage': 'false_boolean_payload_is_not_an_observed_class',
-        'local_window': 'unbound_requires_separate_explicit_label_contract',
-        'activity_rule': 'unbound_requires_separate_explicit_label_contract',
-        'side_certificate': 'unbound_requires_separate_explicit_label_contract',
+        'probability_limits': 'proper_scores_on_observed_support_do_not_establish_unconditional_calibration_or_utility',
         'production_training_admitted': False,
         'target_arrays_and_metadata_as_model_input': False,
     }
@@ -347,6 +359,71 @@ class NativeM5Targets:
                 out['atr_asof_row'][observed, j] = closed[observed]
                 out['atr_asof_available_ns'][observed, j] = bars.available_ns[closed[observed]]
                 out['atr14_asof'][observed, j] = full_atr[closed[observed]]
+        return out
+
+
+    def gather_fully_future_state(self, issue_ns, *, fold_upper_ns, source_closure_contract):
+        """One producer pass; no data filling or guessed daily/holiday closure.
+
+        The caller authenticates the native manifest's declared closure contract.
+        Full bar facts remain unchanged, including gaps and nominal completeness.
+        Positive partial range proves activity only; side needs full expected path.
+        """
+        spec = fully_future_state_contract()
+        _need(source_closure_contract == spec['source_closure_contract'], 'STATE_SOURCE_CLOSURE')
+        from gx1.contracts.xau_tape_provenance_v1 import scheduled_weekly_closure_mask
+        out = self.gather_fully_future_bar(issue_ns, fold_upper_ns=fold_upper_ns)
+        shape = out['target_row'].shape
+        whole = np.zeros(shape, np.bool_)
+        expected_count = np.zeros(shape, np.int64)
+        missing_count = np.zeros(shape, np.int64)
+        endpoint_available = np.full(shape, -1, np.int64)
+        starts = self.issue_ns - TICK_NS
+        for j, tf in enumerate(TIMEFRAMES):
+            ready = out['mature'][:, j]
+            if not ready.any():
+                continue
+            bars = self.bars_by_timeframe[tf]
+            rows, inverse = np.unique(out['target_row'][ready, j], return_inverse=True)
+            offsets = np.arange(int(MULTI_TF_SHIFT[tf].value) // TICK_NS, dtype=np.int64) * TICK_NS
+            grid = bars.bar_start_ns[rows, None] + offsets
+            closed = scheduled_weekly_closure_mask(pd.to_datetime(grid.ravel(), utc=True)).reshape(grid.shape)
+            at = np.searchsorted(starts, grid)
+            present = (at < len(starts)) & (starts[np.minimum(at, len(starts) - 1)] == grid)
+            _need(not np.any(present & closed), 'STATE_SOURCE_INSIDE_DECLARED_CLOSURE')
+            n_expected = (~closed).sum(axis=1)
+            n_missing = ((~closed) & ~present).sum(axis=1)
+            complete = (n_expected > 0) & (n_missing == 0)
+            whole[ready, j] = complete[inverse]
+            expected_count[ready, j] = n_expected[inverse]
+            missing_count[ready, j] = n_missing[inverse]
+            last = np.searchsorted(starts, bars.available_ns[rows], side='left') - 1
+            _need(np.all(last >= 0) and np.all(starts[last] >= bars.bar_start_ns[rows]), 'STATE_ENDPOINT')
+            endpoint_available[ready, j] = self.issue_ns[last[inverse]]
+        observed_range = out['target_range']
+        atr = out['atr14_asof']
+        scale = np.where(np.isfinite(atr) & (atr >= 0), 0.5 * atr, np.nan)
+        scale_known = np.isfinite(scale)
+        active = out['mature'] & scale_known & (observed_range > 0) & (observed_range >= scale)
+        flat = whole & ((observed_range == 0) | (scale_known & (observed_range < scale)))
+        known = active | flat
+        close = out['target_ohlc'][:, :, 3]
+        upward = close - out['target_ohlc'][:, :, 2]
+        downward = out['target_ohlc'][:, :, 1] - close
+        up_material = np.where(scale > 0, upward >= scale, upward > 0)
+        down_material = np.where(scale > 0, downward >= scale, downward > 0)
+        side_known = whole & active & (up_material ^ down_material)
+        out.update({
+            'future_state_contract': spec,
+            'state_window_complete': whole,
+            'state_expected_m5_count': expected_count,
+            'state_missing_open_m5_count': missing_count,
+            'state_endpoint_available_ns': endpoint_available,
+            'state_activity_scale': scale,
+            'partial_range_active': active & ~whole,
+            'activity_known': known, 'activity': active,
+            'side_known': side_known, 'side_up': side_known & up_material,
+        })
         return out
 
 

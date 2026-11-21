@@ -96,16 +96,40 @@ observerbarhets-/pauseeier, entydig lokalt vindu og separat konservativt
 sidebevis. Manglende kalender/kilde blir ukjent; ingen pris fylles. Numerisk
 ATR er ikke alene bevis for komplett historisk path. Råfakta går ikke tapt.
 
-`fully_future_state_contract` binder foreløpig bare ren observasjonsalgebra,
-ikke en labelgenerator eller treningsadmisjon. ACTIVE og UP|ACTIVE gir
-DOWN=a(1-s), FLAT=1-a, UP=as. Tapet er kjent aktivitets-BCE pluss sertifisert
-side-BCE, delt på antall kjente aktivitetsceller. ACTIVE med ukjent side
-lærer aktivitet med null direkte sidegradient; helt ukjent celle er ingen
-klasse. Samme faktoriserte sannsynlighet brukes i output/tap/skår; full
-3-klasse-skår krever kjent FLAT eller sertifisert side. Separate TRAIN-only
-Laplace1-binærpriorer følger samme masker; null støtte er UNFITTED. Endelig
-stateoppskrift skal få egen eksplisitt identitet før denne algebraen kobles
-til den ekte modellen. Endret funksjon krever fersk baseline/kvalifisering.
+`fully_future_state_contract` binder den valgte neste fullt framtidige barens
+high–low, issue-kausal0,5ATR14, native ukestenging, delvis positiv aktivitet
+og konservativt sidebevis. Komplett eksakt nullrange er FLAT uten epsilon,
+også ved null/manglende ATR. Ikke-null range uten kjent ATR er ukjent.
+Komplett forventet vindu krever alle M5-medlemmer utenfor manifestbundet
+ukestenging; andre hull unntas ikke. Endpoint er siste forventede åpne M5-close
+ved komplett vindu, ellers bare siste observerte close uten sidebevis.
+
+Ved komplett aktivt vindu er C−L og H−C de to endpointbevegelsene. Nøyaktig
+én ved/over samme positive skala sertifiserer sin side; begge/ingen er ukjent.
+Ved nullskala kreves strengt positiv bevegelse. Dette påstår ingen observert
+high/low-rekkefølge eller universell latent regimefasit. Råfakta beholdes.
+
+ACTIVE og UP|ACTIVE gir DOWN=a(1−s), FLAT=1−a, UP=as. Kjent aktivitets-BCE og
+sertifisert side-BCE deles på kjente aktivitetsceller. Ukjent side gir null
+direkte sidehodegradient med bevart aktivitetsgradient; helt ukjent celle er
+ingen klasse og gir skip. Samme sannsynlighet/masker brukes i output/tap/skår.
+Full treklasseskår krever kjent FLAT eller sertifisert side. TRAIN-only
+Laplace1-binærpriorer følger samme masker; null støtte er UNFITTED. Skårer på
+observert støtte beviser ikke ubetinget kalibrering ved selektiv observerbarhet.
+
+`NativeFutureStateReadout` og `NativeFutureStateModel` bruker de samme
+native TF-representasjonene og normaliserings-/inputbindingene, uten gamle
+råbarhoder i opt-in-ruten. Hodevekter starter0 og bias i frossen TRAIN-prior.
+Dette gir prioroutput uavhengig av hidden: initial paritet alene beviser ikke
+featureverdi eller læring. Hele input-/norm-/target-/prior-/modellidentiteten
+kontrolleres før checkpointparameterkopiering; ikke-persistente hjelpebuffere
+regnes ikke som serialized state. Default råbarmodell bevares numerisk.
+
+Gjenbruk kvalifisert featurecache/normalisering bare ved eksakt samme input-
+TRAIN og vindusunion, aldri ved å filtrere statistikk etter nye framtidsmasker.
+Endret funksjon krever fersk helkohort-baseline og kaldt optimizerreplay før
+hovedfit; en begrenset forwardkontroll er ikke denne treningskvalifiseringen.
+Ingen ny gradientruting/vekt eller fit innrømmes av mål-/outputkontrakten.
 
 Alle genuine indikatorer, åtte spesialistfamilier og D1/makro beholdes.
 ATR er en inputindikator. Den er ingen terskel for om open/close-fasiten

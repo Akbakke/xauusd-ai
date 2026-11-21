@@ -65,6 +65,20 @@ hovedklokke, ikke eneste meningsfulle læringsoppgave. Neste fullt framtidige
 TF-bar har nominell start ved eller etter utstedelsen; pågående bars observerte
 utvikling beholdes som kausal kontekst. Eksakte mål-/tilstands-/dekningsmasker
 må bindes før ny fit, uten å ommerke gamle barfakta eller NEUTRAL_NET til FLAT.
+Operatørvalget21.11 «H4/d1? M5 til D1 skal vi jo ha! Ta high/low (anbefalt)»
+binder lokalvinduet til high–low i selve neste helt framtidige TF-bar. Alle
+nåværende M5/M15/H1/H4/D1 beholdes; H4/D1 skal ikke fjernes på grunn av
+manglende dekningsbevis. Eksisterende0,5ATR14-aktivitet kvalifiseres på dette
+vinduet; skalaen er issue-kausal, aldri målbarens framtidige ATR. Eksakt komplett
+nullrange er FLAT uten gjettet epsilon. Positiv delrange kan bevise AKTIV som
+nedre grense; ufullstendig liten range beviser ikke FLAT. Ukjent side beholdes.
+Kandidatens konservative sidebevis er unik vesentlig endpointbevegelse
+C−L versus H−C ved samme skala, med komplett forventet kildevindu; begge/ingen
+forblir ukjent. Dette hevder ikke kjent ekstremarekkefølge eller universell
+latent sluttregime. Bare allerede manifestbundet ukestenging kan unntas fra
+forventet M5-klokke; daglige/helligdagsgap gjettes ikke. Dette åpner nødvendig
+native kandidat-/output-/prior-/scorekvalifisering, ikke ny treningsadmisjon.
+
 M30 er en ønsket ekstra strøm som skal vurderes ved siden av M15. Den aktive
 kjørte modellen har M5/M15/H1/H4/D1; M30 er ikke allerede implementert.
 Utvidelsen krever egen sammenhengende data-/modell-/mål-/normaliseringsidentitet
