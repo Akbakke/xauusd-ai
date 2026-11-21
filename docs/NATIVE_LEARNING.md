@@ -81,6 +81,15 @@ Kildeflagget source_gap er ingen kompletthetsmaske: et gap før barstart kan
 sameksistere med full intern dekning. ATR beregnes fra kohortens maksimalt
 nødvendige lukkede TF-prefiks og slås opp issue-kausalt per celle.
 
+Et kildeflagg for complete=true er ikke en kalender eller et bevis på alle
+forventede medlemmer. For et eksplisitt valgt vindu er observert delrange
+bare en nedre grense: stor delrange kan bevise AKTIV, mens liten delrange
+ikke beviser FLAT uten komplett/avgrenset prisbane. Et manglende sluttmedlem
+kan dessuten gjøre siste observerte close eldre enn nominell TF-slutt.
+Slik delvis positiv fasit krever egen valgt kontrakt; den innføres ikke ved
+å endre eksisterende masker i det stille. High/low uten rekkefølge kan ikke
+alene bestemme dynamisk sluttside, selv om nettofortegnet er kjent.
+
 Streng nominell dekning er en kontrollreferanse, ingen automatisk ferdig
 markedsvindu-definisjon. En faktisk statefasit trenger kvalifisert native
 observerbarhets-/pauseeier, entydig lokalt vindu og separat konservativt

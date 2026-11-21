@@ -59,6 +59,17 @@ Audit001 ble konsumert med feil: min feilaktige500000-kilderadersgrense
 stoppet før projeksjon.002 er en ny eksakt plan bundet til produsentens1215513,
 ikke relansering. Alle originaler og hjelpere beholdes, ingen ny sletting.
 
+Videre native dekningsreview er lagret i `NATIVE_COVERAGE_AUTHORITY_REVIEW001.json`.
+Den aktive råprodusenten har `closure_authority=None`; ingen kvalifisert native
+M5 daglig/helligdagskalender ble funnet i avgrenset eiersøk. OANDAs offisielle
+API definerer complete som sluttid passert, ikke kildekompletthet. Dagens
+åpningstidsside og et separat eldre timetabell-PDF dokumenterer ikke en eksakt
+kalender for hele2021–2025; de bakoverføres derfor ikke til kildehull.
+Matematisk kan stor observert delrange bevise AKTIV, men liten delrange kan
+ikke bevise FLAT. Manglende sluttmedlem gir heller ikke sikker nominell
+sluttpris. Full OHLC gir ikke ekstremarekkefølge eller entydig dynamisk side.
+Disse grensene er nå eksplisitte; ingen maskeregel eller runtime er endret.
+
 **Neste:** avklar framtidsbarens high–low versus rullerende lokalt vindu
 (spørsmål sendt), bind konservativt sidebevis og native markeds-/kilde-dekning,
 og kvalifiser en ekte stategenerator før modellkobling. Deretter kreves fersk

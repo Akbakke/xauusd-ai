@@ -25915,6 +25915,10 @@
     "future_state_B1_review": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/B1_DECISION001.json",
       "sha256": "eddc2cbc0335e0447ed1f1da0bd47f7d83340378a612489c78be956615291a3c"
+    },
+    "latest_native_coverage_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/NATIVE_COVERAGE_AUTHORITY_REVIEW001.json",
+      "sha256": "766e8b5a9619d847a41306238b6b4f9d338868ff20d26ca3b10adee69076b5f4"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -96566,6 +96570,17 @@
       "Qualified native coverage/calendar handling; zeroD1complete is not admitted",
       "Real model output/loss wiring, freshinitialbaseline and separategradient/resume qualification before anyfit"
     ],
-    "final_bookend_path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/FINAL_SOURCE_AND_HANDOVER_BOOKEND001.json"
+    "final_bookend_path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/FINAL_SOURCE_AND_HANDOVER_BOOKEND001.json",
+    "native_coverage_authority_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/NATIVE_COVERAGE_AUTHORITY_REVIEW001.json",
+      "sha256": "766e8b5a9619d847a41306238b6b4f9d338868ff20d26ca3b10adee69076b5f4"
+    },
+    "remaining_requirements_detail": {
+      "coverage": "NativeproducerclosureauthorityNone; complete flag only maturity; no qualified full historical daily/holiday expectedclock authority in bounded currentowner search. Current publichours cannotbackfill2021–2025.",
+      "partial_range": "Positiveobservedrange can proveactivity but doesnotcertifyFLAT,endstate orside; noadoptedmaskchange.",
+      "window_question": "Stillpending; noassumption, no duplicatequestion sent."
+    },
+    "latest_progress": "Bound primary-source distinction between bar maturity and sourcecompleteness; identified absence of native daily/holiday authority and mathematical limits of partialrange/terminalside. No runtime ortraining opened.",
+    "coverage_review_final_bookend_path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/COVERAGE_REVIEW_FINAL_BOOKEND001.json"
   }
 }
