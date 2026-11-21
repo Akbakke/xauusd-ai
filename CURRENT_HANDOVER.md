@@ -312,3 +312,14 @@ Numeriske arbeidstråder er fortsatt8 innen denne CPU-affiniteten. Eksisterende
 signert LibreHardwareMonitor-bro eksponerer GPU, ingen CPU package-watt eller
 CPU-temperatur. Tomgang33C/40Cminne/23,89W er ingen treningsmåling. Ingen
 absolutt optimalisering er påstått. Teknisk PASS er ikke profitt.
+
+Fysiskmetadata001 prepare/readback er COMPLETE for122filer/9binære refs,
+men ingen seal/reboot er utført. Ekte UID0-/proc-snapshot viste bare sin egen
+FD3-close-race,0observasjonshull;001-vakten kunne ikke godta dette. Ny002
+bevarer råcomplete=false/raceobjektet og tillater bare eksaktett UID0-eget
+FD3-tilfelle; alle øvrige kombinasjoner stenger.49fokuserte tester og faktisk
+råkvittering/metadatachain består. Gamle001kode/manifest/råfiler bevares.
+Root-proc-observasjonen bruker eksisterendeWindowsWSLeier og60s timeout.
+Den nye init/Relay-prosessen arver ikke bevist forelderens4GiBcgroup;
+forelderen holder CURRENTlåsen og bare liten /proc-metadata leses,0modeller/
+DATApayload. Faktiskdurabilityprepare/seal/verify er fortsatt audit4GiB.
