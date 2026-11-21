@@ -508,3 +508,58 @@ def test_release_phase_allocator_cache_rejects_live_or_function_state_changes(mo
     monkeypatch.setattr(torch.cuda,'empty_cache',changed)
     with pytest.raises(ValueError,match='ALLOCATOR_PHASE_(LIVE_ALLOCATION_UNCHANGED|RESERVED_NONINCREASE|FUNCTION_STATE_UNCHANGED)'):
         owner.release_phase_allocator_cache(model,opt,label='DIAGNOSTIC_PHASE')
+
+
+
+def replay_preflight_metadata(monkeypatch,tmp_path,lane,*,admitted,bad=None):
+    pr={'path':str(owner.PAIR_PLAN),'sha256':'a'*64};pref=reference('policy.json');arm=lane.removesuffix('_replay')
+    plan={'source_owners':{},'mode':'paired_learning','inputs':{},'backbone_gradient_policy':None,
+        'recipe':{'train_batch_rows':64,'eval_batch_rows':256},'source_base_commit':'a'*40,'metadata':{'runtime':runtime()}}
+    policy={k:False for k in ('training_enabled','native_training_enabled','native_launch_authorized','full_epoch_training_allowed','full_val_allowed')}
+    if admitted:policy.update(training_enabled=True,native_training_enabled=True)
+    policy[owner.PARENT]={'paired_learning_001':owner.gate_expected(pr,admitted=admitted)}
+    tr,cr,rr=reference('terminal.json'),reference('claim.json'),reference('result.json')
+    terminal={'status':'COMPLETE','exit_code':0,'plan':pr,'claim':cr,'result':rr}
+    claim={'policy_at_claim':pref,'lane':arm};result={'process_identity':{'synthetic':True}}
+    if bad=='notcomplete':terminal['status']='FAILED_CONSUMED'
+    if bad=='wrongpolicy':claim['policy_at_claim']={**pref,'sha256':'b'*64}
+    reads=[];terminal_refs=[]
+    def read(binding):
+        reads.append(binding['path'])
+        return {pr['path']:plan,pref['path']:policy,tr['path']:terminal,cr['path']:claim,rr['path']:result}[binding['path']]
+    def ref(path):
+        if path==owner.POLICY:return pref
+        assert path==tmp_path/arm/'TERMINAL.json'
+        terminal_refs.append(path)
+        if bad=='missing':raise FileNotFoundError('MISSING_CONTINUOUS_TERMINAL')
+        return tr
+    def stopped(identity):
+        assert identity==result['process_identity']
+        if bad=='stillrunning':raise ValueError('PARENT_STILL_RUNNING')
+    monkeypatch.setattr(owner.Path,'cwd',classmethod(lambda cls:owner.REPO))
+    monkeypatch.setattr(owner,'read',read);monkeypatch.setattr(owner,'ref',ref)
+    monkeypatch.setattr(owner,'lane_root',lambda name:tmp_path/name)
+    monkeypatch.setattr(owner,'require_source_inventory',lambda *a:None)
+    monkeypatch.setattr(owner,'_build_plan',lambda **k:plan)
+    monkeypatch.setattr(owner.subprocess,'check_output',lambda *a,**k:'work/gx1-current\n')
+    monkeypatch.setattr(owner.core,'collect_future_cuda_runtime_metadata',lambda:plan['metadata']['runtime'])
+    monkeypatch.setattr(owner.core,'future_cuda_runtime_matches',lambda *a:True)
+    monkeypatch.setattr(owner.core,'future_cpu_parent_stopped',stopped)
+    return pr,plan,reads,terminal_refs
+
+
+@pytest.mark.parametrize('lane',['joint_replay','m5_primary_replay'])
+def test_prepared_replay_preflight_needs_no_continuous_terminal(monkeypatch,tmp_path,lane):
+    pr,plan,reads,terminal_refs=replay_preflight_metadata(monkeypatch,tmp_path,lane,admitted=False,bad='missing')
+    result=owner.inspect(pr['sha256'],lane,admitted=False)
+    assert result[0]==plan and result[1]==pr
+    assert reads==[str(owner.PAIR_PLAN),reference('policy.json')['path']]and not terminal_refs
+
+
+@pytest.mark.parametrize('lane',['joint_replay','m5_primary_replay'])
+@pytest.mark.parametrize('bad',['missing','notcomplete','wrongpolicy','stillrunning'])
+def test_admitted_replay_still_requires_original_terminal_policy_and_stopped_process(monkeypatch,tmp_path,lane,bad):
+    pr,plan,reads,terminal_refs=replay_preflight_metadata(monkeypatch,tmp_path,lane,admitted=True,bad=bad)
+    with pytest.raises((ValueError,FileNotFoundError),match='MISSING_CONTINUOUS_TERMINAL|REPLAY_AUTHENTIC_ORIGINAL_CLAIM_POLICY|PARENT_STILL_RUNNING'):
+        owner.inspect(pr['sha256'],lane,admitted=True)
+    assert len(terminal_refs)==1

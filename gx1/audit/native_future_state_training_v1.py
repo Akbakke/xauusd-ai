@@ -695,7 +695,7 @@ def inspect(plan_sha,lane,*,admitted):
     validate_training_flags(policy,main=main,admitted=admitted)
     need(not lane_root(lane).exists()and not lane_root(lane).is_symlink(),'FRESH_LANE')
     live=core.collect_future_cuda_runtime_metadata();core.future_cuda_runtime_matches(plan['metadata']['runtime'],live)
-    if lane.endswith('_replay'):
+    if admitted and lane.endswith('_replay'):
         arm=lane[:-7];terminal=read(ref(lane_root(arm)/'TERMINAL.json'));claim=read(terminal['claim'])
         need(terminal['status']=='COMPLETE'and terminal['exit_code']==0 and terminal['plan']==pr
             and claim['policy_at_claim']==pref and claim['lane']==arm,'REPLAY_AUTHENTIC_ORIGINAL_CLAIM_POLICY')

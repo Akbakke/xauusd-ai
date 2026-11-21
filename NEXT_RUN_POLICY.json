@@ -97791,6 +97791,10 @@
     "allocator_memory_source_qualification": {
       "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/ALLOCATOR_MEMORY_SOURCE_QUALIFICATION002.json",
       "sha256": "eeac04963c42d77992d2ab59415caf4d4a2882a4d4e1aaf1afb526d8c7428261"
+    },
+    "replay_preflight_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/REPLAY_PREFLIGHT_SOURCE_QUALIFICATION004.json",
+      "sha256": "47cffa672d8a9c2aef818352b993f31632a6034a88e2d9768c87056ebefedd8f"
     }
   }
 }

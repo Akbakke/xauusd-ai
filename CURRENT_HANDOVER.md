@@ -28,6 +28,10 @@ Ingen per-steg-tømming, peakreset, inputtap eller grenseøkning.66fokuserte tes
 består med CUDA-initialisering forbudt; tre endrede gamle treningsdefinisjoner
 berører metadata/løp, mens alle kohort-/prior-/support-/schedulefunksjoner er
 AST-uendret. Separat eksakt throughput002 gjenstår;001 relanseres aldri.
+Naboreview fant også at forberedende replay-preflight feilaktig krevde ferdig
+originalrun. Bare faktisk admitted replay krever dette nå;10metadatacaser
+består, inklusive fortsatt avvisning av manglende/ufullført original, feilpolicy
+og kjørende forelder. Numerisk modell-/treningsfunksjon er uendret av dette.
 
 ### Rettet faktisk COT-tidslekkasje
 
