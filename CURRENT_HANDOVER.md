@@ -12,7 +12,7 @@ et dokumentert startpunkt for stortrening. Aktiv eier er
 `/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001`.
 Hver kodeendring følges også gjennom direkte oppstrøms-/nedstrømseiere og
 beslektede feiltilfeller. Uendrede beståtte bevis gjenbrukes.
-**Stortrening er fortsatt stengt. Alle globale treningsporter er false.**
+**Stortrening er fortsatt stengt. Alle fem globale treningsporter er false.**
 Ny normalisering, CUDA-mekanikk/kald replay og helTRAIN-INITIAL er COMPLETE.
 Null-update throughput001 er stoppet/konsumert av GPU-minnevakten:
 12594MiB observert mot12288MiBgrense. Ingen optimizerupdates var autorisert;
@@ -21,7 +21,7 @@ var uendret og GPU-prosessen er stoppet; ekstern originalkvittering er bevart.
 CPU-kohort001 er nå COMPLETE/exit0,16,676s:20727kildefaste issues,
 én cache/12truthfelt/én separat scoringprior,0modeller/CUDA/normaliseringsfits.
 Utvalget bevarer naturlig alle162D1-sidekjente unike barer og5unike FLAT-barrer.
-Alle globale treningsporter er false. Kohort og scoringprior gjenbrukes.
+Kohort og scoringprior gjenbrukes; paretstudie er ferdig og konsumert.
 Minste minnelivssyklusrettelse frigjør bare ubrukt CUDA-cache etter returnerte
 målefaser; liveallokering, modell, AdamW og full RNG kontrolleres før/etter.
 Ingen per-steg-tømming, peakreset, inputtap eller grenseøkning.66fokuserte tester
@@ -149,8 +149,37 @@ checkpoint-/proofmetadata før CLAIM og kravet om reelt ny Windows-/WSL-boot.
 27nye/nærliggende metadatakontroller består;24av dem er nye. Samlet237unike
 fokuserte tilfeller er dekket over bølgene, med overlapp i retestene. Codebridge
 bevarer56gamle kjerneeiere og hele opprinnelige vaktmodulen/shellruten.
-Kohort001 er ferdig. Ny gjennomstrømningsmåling003, paret læring/kald replay og
-PC-recovery gjenstår før produksjonsoppskrift fryses. Ingen hovedfit er innrømmet.
+Kohort001 er ferdig. Gjennomstrømningsmåling003 er COMPLETE/exit0,92,213s:50FW/32BW/0updates.
+Valgt TRAINB96=77,37rader/s motB64=54,12; EVALB256=276,91 motB64=122,24.
+Dette er384kildefaste rader og inkluderer ikke optimizerstep/helfit; ingen
+langsiktig læringshastighet eller B128-kvalifisering utledes. Alle14cachegrenser
+og11målefiler er komplette, modell/AdamW/fullRNG er uendret.
+Paret læring/kald replay er PREPARED_NOT_ADMITTED: samme20727issues,
+TRAINB96/EVALB256,432updates/arm,2faste pass,3scores og3sluttgradientpaneler.
+Alle fire laner er ekte capped-preflight PASS,0modeller/CUDA/CLAIM. Alle fire er
+nå COMPLETE:432updates/continuous,1update/replay,678FW/continuous og
+1FW/replay,0nye stat-/priorfits/CONTROL/VAL/TEST. Begge kalde replay er
+bitidentiske i modell/AdamW/fullRNG/schedule/cursor2-proof. Kilde/policy var
+uendret gjennom alle fire; alle prosesser er stoppet.
+Parreview: M5_primary velges eksplisitt for én senere forskningsepoke, aldri
+warmstart fra studievekter. M5-sideBrier0,249519/AUC0,531511 motjoint
+0,249667/0,527820; begge M5properheadmål slårfactory+SCreferanser. UPargmax
+på entydig kjente labels48,28% motjoint78,51%, sannUP41,90%. Sidegevinsten er
+liten, H1/H4side er fortsattverre enn referansepriorene, høyereTFavveininger
+blandede. Dette er TRAIN-fit, ikke generalisering/edge/handelsregel.
+`GRADIENT_POLICY_DECISION001.json` binderparetplan/egne resultater/replay/peer.
+Ny separat Mac-backup er COMPLETE:60artefakter,586496431bytes, inkludert
+begge armers6PT-filer/cohortNPZ/receipts/proofs/planer/beslutning. Manifest
+`CURRENT_FUTURE_STATE_PAIRED_QUALIFIED_20261121_001`, SHA2b07e9eb...ee7136.
+Alle bytes er SHA-/størrelses-/source-stat-kontrollert, fsync/F_FULLFSYNC og
+actual disk-readback. Den avhenger også av tidligere49input-/target-/norm-
+artefakter; dette er ikke full DATA/RUNS-restore. FysiskPC-recovery gjenstår;
+hovedfit er ikke innrømmet.
+Ny fysiskdurability-hjelper har31syntetiske PASS og faktiskmetadatapreflight
+for122bundne filer/9binære refs uten payloadlesing. Prepare/seal/verify er
+avgrenset tilaudit4GiB/512MiB/900s; dette gir ingen restart- eller fit-adgang.
+Restart krever fersk maskinvidledighet og separatbundet intent; recoveryupdate
+får egen eksakt plan etterpå. Ingen hovedfit er innrømmet.
 
 Begge armer trenger egne optimizer-/replaybevis før produksjonsvalg. Hovedplanen
 skal senere fryse én epoke; ingen automatisk femepokerserie.
