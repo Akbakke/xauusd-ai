@@ -13,8 +13,9 @@ et dokumentert startpunkt for stortrening. Aktiv eier er
 Hver kodeendring følges også gjennom direkte oppstrøms-/nedstrømseiere og
 beslektede feiltilfeller. Uendrede beståtte bevis gjenbrukes.
 **Stortrening er fortsatt stengt. Alle globale treningsporter er false.**
-Ingen tung jobb er aktiv. Ny normalisering er COMPLETE; ingen CUDA-/læringsplan
-er innrømmet ennå.
+Ny normalisering, CUDA-mekanikk/kald replay og helTRAIN-INITIAL er COMPLETE.
+Ingen tung modelljobb er aktiv. Alle globale treningsporter er false; ingen
+lærings-/hovedfit er innrømmet.
 
 ### Rettet faktisk COT-tidslekkasje
 
@@ -22,7 +23,7 @@ Den tidligere publiseringskalenderen dekket2025, men manglet forsinkede2023-
 rapporter. As-of31.01.2023 ble først publisert24.02; as_of+7d kunne gi for tidlig
 input. Eksisterende kalender har nå21daterte unntak:8nye og13bevarte2025rader.
 Source-spec og makroeierens pinnede SHA er oppdatert sammen.15fokuserte tester
-består, inklusive UTC/NY, DST og streng grense etter publikasjonens NY-dato.
+består, inklusive UTC/NY, DST og streng NY-datogrense for de21bundne unntakene.
 
 Én ekte, avgrenset COT-korrigering er COMPLETE/exit0 og konsumert:
 `/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001`.
@@ -54,7 +55,11 @@ ingen daglig/helligdagskalender er gjettet inn eller observert bar fjernet.
 Input- og targetfasene samt issue-kausal ATR stemmer; liten D1-støtte skyldes
 ikke ATR-warmup. Treasury/VIX/GLD har dokumentert normal publiseringsklokke,
 men full historisk verdi-/revisjonsledger er fortsatt ubevist. Ingen konkret
-ny tallfeil ble funnet i disse kildene. Teknisk PASS er ikke kausal vintage-PASS.
+ny tallfeil ble funnet i disse kildene. Teknisk PASS er ikke kausal vintage-PASS. Ny feilklassereview bekrefter de21
+datoene, men ikke en komplett historisk releaseledger. Kjente mandagsnotiser
+21.06.2021/13.01.2025 er ikke bundne unntak; ingen ny faktisk+7d-overskridelse er
+påvist. Generell15:30-tid er ikke eksakt historisk intradagbevis. Kalenderens
+NY-sluttregel gjelder oppførte unntak; ukjente vintager er fortsatt ukjente.
 
 ### Gradientreferanse og neste nødvendige kvalifisering
 
@@ -76,7 +81,12 @@ modell i dette steget. Runrot:
 19normaliseringstester og51nye strikte CUDA-guardtilfeller består samlet.
 42syntetiske CUDA-qualifiertilfeller består separat. To nabofeil ble rettet før
 kjøring: INITIALs outputrot og avvisning av hengende outputsymlink.186gamle
-qualifierdefinisjoner er AST-bevart. Dette er ingen genuin CUDA-kvalifisering.
+qualifierdefinisjoner er AST-bevart. Dette syntetiske beviset er senere fulgt av ekte CUDA:
+continuous49,243s med17FW/6BW/3autograd/4updates, separat kald replay37,043s
+med9FW/1update. Alle sluttmodell-/optimizer-/RNG-/step-/skårbevis er bitidentiske.
+580parametergradienter og faktisk equal-TF-no_grad-output er også bitidentiske
+i paritetsprøven. Topp reservert CUDA-minne6,531GB; kontinuerlig drift og større
+kohort kvalifiseres separat. Originale kvitteringer og admitted-policybytes er bevart.
 
 Neste steg er eksakt engangs-CUDA-mekanikk med4updates og separat kald
 replay av siste update, disk-readback og alle RNG-stater; fullTRAIN-INITIAL
@@ -84,7 +94,22 @@ har5540forwards og0updates. Equal-TF-eval måles separat under no_grad, mens
 finite-check-paritet også omfatter gradienter. Fullt koblet defaultNone er
 mekanikkreferanse; ingen produksjonsgradientvinner er valgt. Nye private
 mekanikkporter åpner bare dette avgrensede forsøket, aldri hovedfitten.
-Deretter gjenstår faktisk ressursprofil og eksplisitt begrenset læringsoppskrift.
+HelTRAIN-INITIAL er nå COMPLETE/exit0:354550issues/5540forwards,0optimizer,
+backward,updates eller statistikkfits. Alle hidden er endeligeF32; samtlige
+logits og wholeTRain-skår er eksakt frossen prior.1732317kjente aktivitetsceller,
+partialNLL0,653420166847. Kjøring2324,667s,58uendrede kildeeiere og disk-readback
+av INITIAL_STATE.pt. Signert guard: topp59Ckjerne/66Cminne/167,62W/844MiB,
+faktisk250Weffektgrense; ingen CPU package-watt/temperaturmåling.
+Runrot: `/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CUDA_INITIAL_20261121_001`.
+
+B64 er kvalifisert referanse, ikke dokumentert optimum: gamle forsøk mangler
+TRAINB96/B128 og nyfunksjonens større evalbatch. Neste steg er separat diskkopi,
+én forhåndsvalgt mekanisk throughput-prøve og samme kildevalgte TRAIN-kohort
+for fullt koblet vsM5_primary, to faste pass.16jevnt spredte issues per22UTC-
+døgn er låst før nytt målinnsyn; ingen targetfilter, top-up eller CONTROL-valg.
+Studiens matchede prior scores separat, aldri som erstatning for factoryprior.
+Begge armer trenger egne optimizer-/replaybevis før produksjonsvalg. Hovedplanen
+skal senere fryse én epoke; ingen automatisk femepokerserie.
 Ingen gammel engangsplan relanseres. TEST/M1/GC/handel/Exit er fortsatt stengt
 for den aktive retningsruten. Ingen ny sletting eller full TA-rebuild er gjort.
 
