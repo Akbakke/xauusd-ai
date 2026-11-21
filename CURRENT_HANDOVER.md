@@ -90,8 +90,9 @@ verre enn frosset prior. Alle faktiske ledetider er bokført, ikke valgt bort;
 nominell TF-varighet hentes fra native målkontrakt. Native gap/delvise kilder
 beholdes. D1fullTF har bare24retningsutfall på VAL (AUC0,5), for lite til sterk dom.
 
-Det finnes et svakt M5-rangeringssignal og lært gjenkjenning av delvis observert
-høyereTF-tilstand. Robust retningsverdi er ikke bevist. Hovedspørsmålet før flere
+Det finnes et svakt M5-rangeringssignal og klart bedre høyereTF-score nær
+målbarens slutt. Dette isolerer ikke hva modellen har lært eller om delvis
+observert tilstand er årsaken. Robust retningsverdi er ikke bevist. Hovedspørsmålet før flere
 epoker/tapsendringer er en kausal kjent-pris-/persistensreferanse og eksplisitt
 kontroll av ukjent bevegelse fra utstedelsen. Disse er ikke målt av denne analysen.
 Ingen automatisk nyfit, målomskriving, kontrollutvalg eller TEST-adgang åpnes.
@@ -100,6 +101,33 @@ Bevis: `DIRECTION_BIAS_REVIEW001.json`, `DIRECTION_LEAD_REVIEW001.json` og
 `DIRECTION_FINDINGS001.json` i samme kvitteringsrot, eksakte bindinger i policy.
 CPUdiagnostikkene tok10,41s/3,50s, maksRSS1113056/633376KiB. Ingen original
 modell-/mål-/treningskilde eller gamle kvitteringer er endret.
+
+### Samarbeid mellom tidsrammer og M5
+
+Kildesporingen bekrefter H1/H4/M15/D1-inputs og nivåinformasjon helt fram til
+M5-utgangen via familie-/TF-attention og felles representasjon. Nivåregistre
+omfatter avstand, berøringer, alder, reaksjoner, brudd og retester. Bare lukkede
+TF-vinduer med tilgjengelighet senest ved utstedelsen konsumeres. H1/H4-output-
+sannsynligheter mates ikke tilbake som stemmer; det er feature-/representasjons-
+samarbeid. Om støtte+H1/H4-vending faktisk forbedrer M5 er ennå ikke isolert målt.
+
+Den bundne main003 bruker `m5_close_only_backbone_v1`: bare close.M5 gir direkte
+tapsgradient til fellesnettverket. Alle øvrige9utgangshoder lærer egne parametre
+på detached fellesvektorer. Dette er ikke full gjensidig multitasktrening, selv
+om alle TF-inputs er tilgjengelige og kan læres brukt gjennom M5-tapet.
+H1/H4s egne prognoseskårer må derfor ikke tolkes som målt verdi av H1/H4-kontekst
+for M5. En test av hele H1-baren framover svarer heller ikke på det spørsmålet.
+
+«Tydelig læring av delvis observerte tilstander» var sterkere enn målingen:
+vi har målt bedre skår nær barens slutt, ingen isolert årsaks-/persistensanalyse.
+Eksempel: ved10:55 kan M5-historikken vise55min av10–11-barens bevegelse,
+selv om H1-input fortsatt er siste lukkede H1-bar. Sluttkl11 sammenlignes med
+sluttkl10; mye av målbevegelsen kan derfor allerede være kjent. Dette er
+kausal kontekst innen valgt kontrakt, og er forskjellig fra å bevise helt ny
+framtidig bevegelse. Bevar høyereTF-konteksten og mål dens bidrag til M5.
+
+Bevis: `MTF_M5_WIRING_REVIEW001.json`, kilde-/planbundet; ingen modell/data/TEST
+lest eller endret i denne kildesporingen. Ingen ny treningsadmisjon.
 
 ## Praktisk gjenopptakelse og lagring
 
