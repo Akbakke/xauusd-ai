@@ -15,20 +15,28 @@ Mål: lage en fullautomatisk tradingbot mot xauusd. Vi skal handle på M5 timefr
 
 ## Senere presiseringer som må leses sammen med originalen
 
-- Først offline M5 Entry-edge: LONG, SHORT og FLAT, kvalitet før antall og liten
-  MAE før første MFE. Lukket M15/H1/H4/D1 gir kontekst; M30 krever målt merverdi.
-- M1 er etterfølgende prisfasit fra ett minutt til mange timer. Entry-kadensen
-  er M5. Ingen Exit-vurdering eller Exit-trening nå; dager er støtte.
-- Første runder bruker den navngitte kompaktprofilen MBP-1/SMC/EMA/ATR og
-  nødvendig klokke/makro. Åtte familier og niende D1/makro beholdes, og resten
-  av genuine indikatorbiblioteket bevares for senere kvalifisering/tillegg.
-- Fellesmodellen er hovedsporet. Separate modeller/stacking krever identisk
-  kronologisk OOF-merverdi. Mål skal følge kausale inputs og egne framtidsmasker.
+- Aktiv fase er native M5/MTF-markedsprognose før Entry. M5 er hovedklokke;
+  kausalt lukket M15/H1/H4/D1 og alle åtte familier samt D1/makro skal støtte
+  nyttig framtidig prognose. Scalp/intradag/swing er senere anvendelser av
+  lærte muligheter; beslutningstakt er ingen fast holdetidsgrense.
+- M1 brukes bare i senere hands-on-analyse/oppfølging av en allerede åpen handel.
+  Retningsinputs, fasit, akser, masker, prior, normalisering og utvalg bruker
+  native M5 eller høyere, aldri M1 eller gamle M1-avledede artefakter.
+- Den aktive profilen er full ikke-GC TA med genuine OHLC-/candle-/chart-/
+  struktur-/nivå-/EMA-/ATR-felt på alle fem TF og D1/makro. GC/MBP er beholdt
+  for en senere separat kvalifisert sammenligning; kompakt MBP-førsteprofil
+  er et tidligere vedtak, ikke den nåværende kjøringsidentiteten.
+- Fellesmodellen er hovedsporet. Samarbeid skal vurderes på prediktiv nytte,
+  ikke bare tilkobling, attentionvekter eller like retningsstemmer. Framtidige
+  mål, output, tap, prior og score skal ha samme sanne kausale semantikk.
+- Bevar OHLC-form, spikes, wicks, range, støtte/motstand og mulige forløp.
+  Netto-nøytralitet er ikke alene bevis for et sideveis/rolig marked.
 - Ingen generell negativ prosjektdom fra korte tester. Faktiske målinger,
   originalkvitteringer og checkpoints bevares; dårlige resultater omskrives ikke.
-- Bruk verifiserte data på nytt, én capped tung jobb, fryst kilde under kjøring,
-  trygge omstarter og kort oppfølging hver time ved stabil drift. Ingen TEST-fit,
-  broker/live/paper/ordre/spending/promotion i denne offlinefasen.
+- Gjenbruk verifiserte data og beståtte kontroller, én capped tung CURRENT-jobb,
+  fryst kilde under kjøring og trygge omstarter. Stabil langkjøring følges opp
+  hvert30.minutt etter siste operatørvalg. Ingen nativeTEST, broker/live/paper/
+  ordre/spending/promotion er åpnet av denne offlinefasen.
 
 Fullstendige og gjeldende detaljer eies av GX1_RULES. Målt læring, generalisering
 og økonomisk edge rapporteres hver for seg; teknisk PASS erstatter dem ikke.

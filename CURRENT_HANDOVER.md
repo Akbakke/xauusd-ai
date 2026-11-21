@@ -6,6 +6,19 @@ Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 ## Gjeldende status 21.11.2026
 
+Nytt aktivt mål: samlet prosjektgjennomgang av nyttig familie-/TF-samarbeid,
+gradientruting og gapet mellom dagens prognoseoppgave og M5-hovedklokke med
+scalp/intradag/swing-ambisjon. Ny eier er
+`native_m5_cooperation_project_review_20261121_001`; nattmålet nedenfor er ferdig.
+Tidligere fullaudit og beståtte kontroller gjenbrukes. Ingen ny fit er innrømmet.
+Bare én konkret oppdateringsfri currentTRAIN-gradientdiagnose kan kvalifiseres
+separat ved behov. TEST er forseglet; øvrige vakter og porter består.
+
+Mål-oppsummeringens foreldede M1-fasit/Entry-først/kompakt-MBP-tekst er rettet;
+ordrett originalbestilling er bevart byteidentisk. Aktive policyaliaser som feilaktig
+sa «main ikke startet» er oppdatert; historiske kvitteringer omskrives ikke.
+Bevisrot: `/home/andre2/GX1_RUNS/GX1_COOPERATION_PROJECT_REVIEW_20261121_001`.
+
 Main003 er COMPLETE_CONSUMED/exit0: nøyaktig én full kronologisk TRAIN-epoke og
 full utviklings-VAL er ferdig.5540updates/7062forwards,1modell,0autograd og0nye
 norm-/priorfits. Alle treningsporter er stengt; ingen ekstraepoke er innrømmet.
