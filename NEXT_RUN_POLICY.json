@@ -96310,10 +96310,25 @@
     "training_authorized": false,
     "test_authorized": false,
     "monitor_interval_minutes": 30,
-    "outstanding_target_priority_question": "Asyncuserquestion: nextfullyfutureTFstate vsremainingunknowncurrentTFbar; no targetchange untilresolved.",
+    "outstanding_target_priority_question": "RESOLVED: genuine nextfullyfuturebar/state onALLtimeframes, sameindicator/OHLC/chart/SRfamilies; M5mainclocknotsolemeaningfultask. M30requestedascandidateextension, notcurrentlyactive; retainM15.",
     "start_receipt": {
       "path": "/home/andre2/GX1_RUNS/GX1_COOPERATION_PROJECT_REVIEW_20261121_001/START_SCOPE_AND_AUTHORITY_REPAIRS001.json",
       "sha256": "c068f62660ae2f2fece08a5e77e3474a03623269530e9dd04c2af853b0a39e4e"
+    },
+    "operator_target_clarification": {
+      "future_priority": "next_fully_future_bar_or_state_on_each_TF",
+      "applies_to_all_timeframes": true,
+      "same_genuine_families_per_TF": true,
+      "M5_role": "primarydecisionclock_notsoleforecasttask",
+      "current_active_timeframes": [
+        "M5",
+        "M15",
+        "H1",
+        "H4",
+        "D1"
+      ],
+      "M30": "assessadditionalstream;notimplemented,existingM15retained",
+      "numeric_task_weights_chosen": false
     }
   }
 }

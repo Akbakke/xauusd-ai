@@ -19,6 +19,12 @@ ordrett originalbestilling er bevart byteidentisk. Aktive policyaliaser som feil
 sa «main ikke startet» er oppdatert; historiske kvitteringer omskrives ikke.
 Bevisrot: `/home/andre2/GX1_RUNS/GX1_COOPERATION_PROJECT_REVIEW_20261121_001`.
 
+Operatøren har avklart framtidsprioriteten: neste helt framtidige bar/tilstand
+på samtlige TF, med samme genuine indikator-/OHLC-/chart-/nivåfamilier. M5 er
+hovedklokke, ikke eneste betydningsfulle prognoseoppgave. M30 er nå tatt med som
+ønsket utvidelse som må vurderes; den kjørte modellen har M5/M15/H1/H4/D1 og
+ingen egenM30-strøm. M15 beholdes. Ingen numeriske oppgavevekter er valgt.
+
 Main003 er COMPLETE_CONSUMED/exit0: nøyaktig én full kronologisk TRAIN-epoke og
 full utviklings-VAL er ferdig.5540updates/7062forwards,1modell,0autograd og0nye
 norm-/priorfits. Alle treningsporter er stengt; ingen ekstraepoke er innrømmet.
