@@ -286,6 +286,8 @@ def test_two_pass_leaf_counts_and_own_cursor1_to2_replay_are_exact(monkeypatch,t
         for hook in hooks:hook.remove()
     assert counts==limit and set(report['scores'])=={'INITIAL','PASS1','PASS2'}
     assert report['logical_batches']==4 and report['actual_optimizer_updates']==4
+    assert len(report['allocator_phase_boundaries'])==5
+    assert all(not value['applied']for value in report['allocator_phase_boundaries'])
     assert report['post_final_gradient_balance'][0]['report']['role'].startswith('post_final_two_pass')
     result=owner.publish(root/'RESULT.json',{'plan':pr,'report':report})
     owner.publish(root/'TERMINAL.json',{'result':result})
@@ -444,3 +446,65 @@ def test_recovery_runtime_symlink_rejects_before_any_hash_or_open(monkeypatch):
     monkeypatch.setattr(owner,'read',lambda *a:pytest.fail('symlink runtime was read/hashed'))
     with pytest.raises(ValueError,match='RECOVERY_RUNTIME_SYMLINK'):
         owner.build_recovery_probe_plan(inputs=inputs,source_base_commit=live['source_commit'])
+
+
+
+def allocator_cuda_mock(monkeypatch):
+    state={'weight':1.};slots={'step':1.};rng={'torch_cpu':torch.tensor([1],dtype=torch.uint8),
+        'torch_cuda':[torch.tensor([2],dtype=torch.uint8)],'python':('unchanged',),'numpy':('unchanged',)}
+    parameter=SimpleNamespace(device=torch.device('cuda:0'),grad=None)
+    model=SimpleNamespace(parameters=lambda:iter([parameter]),state_dict=lambda:state,training=True)
+    optimizer=SimpleNamespace(state_dict=lambda:slots)
+    memory={'allocated_bytes':17,'reserved_bytes':42,'process_max_allocated_bytes':29,'process_max_reserved_bytes':61}
+    calls=[]
+    monkeypatch.setattr(owner.core,'training_rng',lambda:rng)
+    monkeypatch.setattr(torch.cuda,'synchronize',lambda device:calls.append(('sync',str(device))))
+    for fn,key in [('memory_allocated','allocated_bytes'),('memory_reserved','reserved_bytes'),
+                   ('max_memory_allocated','process_max_allocated_bytes'),('max_memory_reserved','process_max_reserved_bytes')]:
+        monkeypatch.setattr(torch.cuda,fn,lambda device,key=key:memory[key])
+    def empty():calls.append(('empty_cache',));memory['reserved_bytes']=memory['allocated_bytes']
+    monkeypatch.setattr(torch.cuda,'empty_cache',empty)
+    monkeypatch.setattr(torch.cuda,'init',lambda:pytest.fail('mocked allocator initialized CUDA'))
+    monkeypatch.setattr(torch.cuda,'reset_peak_memory_stats',lambda *a:pytest.fail('allocator reset historical peak'))
+    return model,optimizer,parameter,state,slots,rng,memory,calls
+
+
+def test_release_phase_allocator_cache_cpu_skips_without_cuda_or_rng(monkeypatch):
+    parameter=torch.nn.Parameter(torch.ones(1))
+    model=SimpleNamespace(parameters=lambda:iter([parameter]))
+    optimizer=SimpleNamespace(state_dict=lambda:pytest.fail('CPU skip read optimizer state'))
+    def forbidden(*a,**k):pytest.fail('CPU skip touched CUDA/RNG')
+    for name in ('init','synchronize','empty_cache','memory_allocated','memory_reserved','max_memory_allocated','max_memory_reserved'):
+        monkeypatch.setattr(torch.cuda,name,forbidden)
+    monkeypatch.setattr(owner.core,'training_rng',forbidden)
+    assert owner.release_phase_allocator_cache(model,optimizer,label='CPU_PHASE')=={
+        'label':'CPU_PHASE','applied':False,'reason':'MODEL_NOT_CUDA'}
+
+
+def test_release_phase_allocator_cache_preserves_live_state_rng_and_peaks(monkeypatch):
+    model,opt,param,state,slots,rng,memory,calls=allocator_cuda_mock(monkeypatch)
+    record=owner.release_phase_allocator_cache(model,opt,label='SCORE_TO_TRAIN')
+    assert record['applied']is True and record['device']=='cuda:0'
+    assert record['before']['allocated_bytes']==record['after']['allocated_bytes']==17
+    assert record['before']['reserved_bytes']==42 and record['after']['reserved_bytes']==17
+    assert record['before']['process_max_allocated_bytes']==record['after']['process_max_allocated_bytes']==29
+    assert record['before']['process_max_reserved_bytes']==record['after']['process_max_reserved_bytes']==61
+    assert record['state_before']==record['state_after']and set(record['state_before'])=={'model','AdamW','full_rng'}
+    assert calls==[('sync','cuda:0'),('empty_cache',),('sync','cuda:0')]
+    assert record['peak_counters_reset']is False and param.grad is None
+
+
+@pytest.mark.parametrize('bad',['allocated','reserved','model','optimizer','rng','gradient'])
+def test_release_phase_allocator_cache_rejects_live_or_function_state_changes(monkeypatch,bad):
+    model,opt,param,state,slots,rng,memory,calls=allocator_cuda_mock(monkeypatch)
+    def changed():
+        memory['reserved_bytes']=17
+        if bad=='allocated':memory['allocated_bytes']+=1
+        elif bad=='reserved':memory['reserved_bytes']=43
+        elif bad=='model':state['weight']+=1.
+        elif bad=='optimizer':slots['step']+=1.
+        elif bad=='rng':rng['torch_cuda'][0][0]+=1
+        else:param.grad='unexpected'
+    monkeypatch.setattr(torch.cuda,'empty_cache',changed)
+    with pytest.raises(ValueError,match='ALLOCATOR_PHASE_(LIVE_ALLOCATION_UNCHANGED|RESERVED_NONINCREASE|FUNCTION_STATE_UNCHANGED)'):
+        owner.release_phase_allocator_cache(model,opt,label='DIAGNOSTIC_PHASE')

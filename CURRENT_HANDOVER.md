@@ -14,8 +14,20 @@ Hver kodeendring følges også gjennom direkte oppstrøms-/nedstrømseiere og
 beslektede feiltilfeller. Uendrede beståtte bevis gjenbrukes.
 **Stortrening er fortsatt stengt. Alle globale treningsporter er false.**
 Ny normalisering, CUDA-mekanikk/kald replay og helTRAIN-INITIAL er COMPLETE.
-Ingen tung modelljobb er aktiv. Alle globale treningsporter er false; ingen
-lærings-/hovedfit er innrømmet.
+Null-update throughput001 er stoppet/konsumert av GPU-minnevakten:
+12594MiB observert mot12288MiBgrense. Ingen optimizerupdates var autorisert;
+partialfiler brukes ikke som komplett gjennomstrømningsadmisjon. Kilde/policy
+var uendret og GPU-prosessen er stoppet; ekstern originalkvittering er bevart.
+CPU-kohort001 er nå COMPLETE/exit0,16,676s:20727kildefaste issues,
+én cache/12truthfelt/én separat scoringprior,0modeller/CUDA/normaliseringsfits.
+Utvalget bevarer naturlig alle162D1-sidekjente unike barer og5unike FLAT-barrer.
+Alle globale treningsporter er false. Kohort og scoringprior gjenbrukes.
+Minste minnelivssyklusrettelse frigjør bare ubrukt CUDA-cache etter returnerte
+målefaser; liveallokering, modell, AdamW og full RNG kontrolleres før/etter.
+Ingen per-steg-tømming, peakreset, inputtap eller grenseøkning.66fokuserte tester
+består med CUDA-initialisering forbudt; tre endrede gamle treningsdefinisjoner
+berører metadata/løp, mens alle kohort-/prior-/support-/schedulefunksjoner er
+AST-uendret. Separat eksakt throughput002 gjenstår;001 relanseres aldri.
 
 ### Rettet faktisk COT-tidslekkasje
 
@@ -128,8 +140,8 @@ checkpoint-/proofmetadata før CLAIM og kravet om reelt ny Windows-/WSL-boot.
 27nye/nærliggende metadatakontroller består;24av dem er nye. Samlet237unike
 fokuserte tilfeller er dekket over bølgene, med overlapp i retestene. Codebridge
 bevarer56gamle kjerneeiere og hele opprinnelige vaktmodulen/shellruten.
-Ekte throughput/cohort/studie/PC-recovery gjenstår før produksjonsoppskrift
-fryses. Ingen ny CLAIM eller hovedfit er innrømmet.
+Kohort001 er ferdig. Ny gjennomstrømningsmåling002, paret læring/kald replay og
+PC-recovery gjenstår før produksjonsoppskrift fryses. Ingen hovedfit er innrømmet.
 
 Begge armer trenger egne optimizer-/replaybevis før produksjonsvalg. Hovedplanen
 skal senere fryse én epoke; ingen automatisk femepokerserie.

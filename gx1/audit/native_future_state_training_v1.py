@@ -265,13 +265,40 @@ def verify_initial_source_bridge(inputs):
         'initial_score':{k:v for k,v in result['report']['initial'].items()if k!='batches'}}
 
 
+def release_phase_allocator_cache(model,optimizer,*,label):
+    """Release unused CUDA cache between returned phases, preserving live state."""
+    import torch
+    need(type(label)is str and bool(label),'ALLOCATOR_PHASE_LABEL')
+    parameter=next(model.parameters(),None)
+    if parameter is None or parameter.device.type!='cuda':
+        return {'label':label,'applied':False,'reason':'MODEL_NOT_CUDA'}
+    device=parameter.device
+    need(all(p.grad is None for p in model.parameters()),'ALLOCATOR_PHASE_GRAD_NONE')
+    def memory():
+        return {'allocated_bytes':int(torch.cuda.memory_allocated(device)),
+            'reserved_bytes':int(torch.cuda.memory_reserved(device)),
+            'process_max_allocated_bytes':int(torch.cuda.max_memory_allocated(device)),
+            'process_max_reserved_bytes':int(torch.cuda.max_memory_reserved(device))}
+    def proof():
+        return {'model':core.state_sha({'state_dict':model.state_dict(),'training':model.training}),
+            'AdamW':core.state_sha(optimizer.state_dict()),'full_rng':core.state_sha(core.training_rng())}
+    torch.cuda.synchronize(device);before=memory();state_before=proof()
+    torch.cuda.empty_cache();torch.cuda.synchronize(device)
+    after=memory();state_after=proof()
+    need(after['allocated_bytes']==before['allocated_bytes'],'ALLOCATOR_PHASE_LIVE_ALLOCATION_UNCHANGED')
+    need(after['reserved_bytes']<=before['reserved_bytes'],'ALLOCATOR_PHASE_RESERVED_NONINCREASE')
+    need(state_after==state_before and all(p.grad is None for p in model.parameters()),'ALLOCATOR_PHASE_FUNCTION_STATE_UNCHANGED')
+    return {'label':label,'applied':True,'device':str(device),'before':before,'after':after,
+        'state_before':state_before,'state_after':state_after,'peak_counters_reset':False}
+
+
 def own_numeric_ast():
     import ast
     tree=ast.parse((REPO/SELF).read_text());nodes={n.name:n for n in tree.body if isinstance(n,(ast.FunctionDef,ast.ClassDef))}
     names=('select_study_clock_rows','prepare_study_cohort_from_context','make_schedule','diagnostic_panels',
         'constant_prior_scores','constant_rank_metrics','binary_rank_metrics','rank_metrics','paired_final_deltas','score_with_capture','score_point','packet',
         'load_context','training_step','position','make_checkpoint','checkpoint_proof','strict_restore',
-        'runtime_compatible','initial_identity','run_training_loop','physical','recovery_physical')
+        'runtime_compatible','initial_identity','release_phase_allocator_cache','run_training_loop','physical','recovery_physical')
     result={n:hashlib.sha256(ast.dump(nodes[n],include_attributes=False).encode()).hexdigest()for n in names}
     result['numeric_constants']=seal({'TRAIN_ROWS':TRAIN_ROWS,'TRAIN_SHA':TRAIN_SHA,'UPPER':UPPER,'START':START,
         'DAY':DAY,'ORIGIN':ORIGIN,'TF':list(TF),'TRUTH':list(TRUTH),'TRAIN_BATCHES':list(TRAIN_BATCHES),'EVAL_BATCHES':list(EVAL_BATCHES)})['contract_sha256']
@@ -550,7 +577,9 @@ def metadata(inputs,*,mode,train_batch_rows,eval_batch_rows,backbone_gradient_po
     need(schedule==seal({k:v for k,v in schedule.items()if k!='contract_sha256'}),'SCHEDULE_HASH')
     if mode=='paired_learning':need(geometry['first_two_supported']is True and schedule['batches_per_pass']>=2,'FIRST_TWO_SUPPORTED_LOGICAL_BATCHES')
     recipe={k:oldrecipe[k]for k in ('optimizer','gradient_clip_norm','scheduler','seed')}
-    recipe.update(train_batch_rows=train_batch_rows,eval_batch_rows=eval_batch_rows,passes=schedule['passes'],checkpoint_every_optimizer_updates=256)
+    recipe.update(train_batch_rows=train_batch_rows,eval_batch_rows=eval_batch_rows,passes=schedule['passes'],checkpoint_every_optimizer_updates=256,
+        allocator_phase_policy={'function':'release_phase_allocator_cache','unused_cache_only':True,'per_step':False,
+            'peak_reset':False,'boundaries':'score_to_train_train_to_score_score_to_final_diagnostics_and_changed_diagnostic_shape'})
     factory=read(meta['prior']);meta['arm_model_contracts']={}
     for arm,policy in (('joint',None),('m5_primary','M5_primary')):
         meta['arm_model_contracts'][arm]=native_future_state_model_contract(meta['input_binding'],architecture=meta['architecture'],
@@ -753,7 +782,7 @@ def run_training_loop(model,optimizer,context,plan,plan_ref,root,lane,live,count
     """One fixed schedule for paired two-pass and preparation-only main recipes."""
     main=plan['mode']=='whole_train_one_epoch';arm=('joint'if plan['backbone_gradient_policy']is None else'm5_primary')if main else lane.removesuffix('_replay')
     trajectory=trajectory_bindings(plan,arm);fresh=initial_identity(model,plan);replay=lane.endswith('_replay')
-    steps=[];scores={};cp1=None;cursor2=None;start_cursor=0
+    steps=[];scores={};cp1=None;cursor2=None;start_cursor=0;allocator_boundaries=[]
     if resume is not None:
         need(main and not replay and resume['original_plan']==plan_ref,'EXPLICIT_MAIN_RECOVERY_ORIGINAL_TRAJECTORY')
         start_cursor=resume['expected_cursor']
@@ -784,7 +813,9 @@ def run_training_loop(model,optimizer,context,plan,plan_ref,root,lane,live,count
     if main and resume is None:
         # Qualified unchanged full inference baseline is reused, never refitted.
         scores['INITIAL']={'reused_qualified_result':INITIAL_RESULT,'score':plan['baseline_bridge']['initial_score']}
-    elif not main:scores['INITIAL']=score_point(model,context,plan,initial=True)
+    elif not main:
+        scores['INITIAL']=score_point(model,context,plan,initial=True)
+        allocator_boundaries.append(release_phase_allocator_cache(model,optimizer,label='INITIAL_SCORE_TO_TRAIN'))
     if main and resume is None:
         cp=make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=plan_ref,lane=lane,cursor=0,
             steps=steps,scores=scores,producer_runtime=live)
@@ -801,7 +832,12 @@ def run_training_loop(model,optimizer,context,plan,plan_ref,root,lane,live,count
             if cursor==1:
                 cp1=publish_checkpoint_receipt(root/'CURSOR001.pt',cp,counts,execution_ref=execution_ref or plan_ref)
             else:cursor2=publish(root/'CURSOR002_PROOF.json',{'proof':checkpoint_proof(cp)})
-        if cursor%len(context['batches'])==0:scores['PASS'+str(cursor//len(context['batches']))]=score_point(model,context,plan,initial=False)
+        if cursor%len(context['batches'])==0:
+            label='PASS'+str(cursor//len(context['batches']))
+            allocator_boundaries.append(release_phase_allocator_cache(model,optimizer,label='TRAIN_TO_'+label+'_SCORE'))
+            scores[label]=score_point(model,context,plan,initial=False)
+            allocator_boundaries.append(release_phase_allocator_cache(model,optimizer,
+                label=label+('_SCORE_TO_TRAIN'if cursor<n else'_SCORE_TO_FINAL_DIAGNOSTICS_OR_CHECKPOINT')))
         updates=counts['optimizer_steps']+offset['optimizer_updates']
         if main and updates and updates%256==0 and updates!=last_updates and updates<plan['schedule']['optimizer_updates']:
             cp=make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=plan_ref,lane=lane,cursor=cursor,
@@ -809,11 +845,15 @@ def run_training_loop(model,optimizer,context,plan,plan_ref,root,lane,live,count
             publish_checkpoint_receipt(root/('UPDATE'+str(updates).zfill(6)+'.pt'),cp,counts,execution_ref=execution_ref or plan_ref)
         last_updates=updates
     diagnostics=[]
-    before_optimizer=core.state_sha(optimizer.state_dict())
+    before_optimizer=core.state_sha(optimizer.state_dict());previous_panel_shape=None
     for index in plan['diagnostic_panels']['candidate_batch_indices']:
         if index in plan['diagnostic_panels']['skipped_empty_batch_indices']:
             counts['diagnostic_skips']+=1;diagnostics.append({'batch_index':index,'skipped_empty_support':True});continue
-        balance=core.future_cuda_gradient_probe(model,packet(context,context['batches'][index]),plan,counts)
+        panel_packet=packet(context,context['batches'][index])
+        panel_shape=tuple((k,tuple(v.shape))for k,v in sorted(panel_packet['features'].items()))
+        if previous_panel_shape is not None and panel_shape!=previous_panel_shape:
+            allocator_boundaries.append(release_phase_allocator_cache(model,optimizer,label='FINAL_DIAGNOSTIC_SHAPE_CHANGE_'+str(index)))
+        balance=core.future_cuda_gradient_probe(model,panel_packet,plan,counts);previous_panel_shape=panel_shape
         balance['role']='post_final_two_pass_data_gradients_no_optimal_weight_or_universal_side_coverage_claim'
         diagnostics.append({'batch_index':index,'source_rows_sha256':plan['schedule']['batch_source_rows_sha256'][index],'report':balance})
     need(core.state_sha(optimizer.state_dict())==before_optimizer,'DIAGNOSTICS_OPTIMIZER_UNCHANGED')
@@ -827,7 +867,7 @@ def run_training_loop(model,optimizer,context,plan,plan_ref,root,lane,live,count
         'actual_optimizer_updates':counts['optimizer_steps'],'skipped_batches':counts['skipped_batches'],
         'global_position':position(plan['schedule'],n),
         'passes':plan['recipe']['passes'],'candidate_replay_qualified':False,
-        'post_final_gradient_balance':diagnostics,
+        'post_final_gradient_balance':diagnostics,'allocator_phase_boundaries':allocator_boundaries,
         'scope':'whole_TRAIN_one_epoch'if main else'fixed_source_selected_TRAIN_two_passes_no_generalization_or_policy_winner_claim'}
 
 

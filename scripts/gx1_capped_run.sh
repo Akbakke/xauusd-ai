@@ -755,7 +755,7 @@ matches_bound_native_future_state_cuda_qualification() {
 
 # BEGIN GX1 FUTURE LEAF ROUTES 20261121 MATCHERS
 matches_bound_native_future_state_throughput() {
-  local expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_001.json"
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002.json"
   if [[ $# -eq 6 ]]; then
     [[ "$6" == --preflight ]] || return 1
     set -- "${@:1:5}"
@@ -802,7 +802,7 @@ configure_native_future_state_leaf() {
   local future_leaf_output future_leaf_seconds future_leaf_kind
   if [[ "${3:-}" == "$NATIVE_FUTURE_STATE_THROUGHPUT_MODULE" ]] \
     && matches_bound_native_future_state_throughput "$@"; then
-    future_leaf_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_001
+    future_leaf_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002
     future_leaf_seconds=1800
     future_leaf_kind=throughput
   elif [[ "${3:-}" == "$NATIVE_FUTURE_STATE_TRAINING_MODULE" ]] \

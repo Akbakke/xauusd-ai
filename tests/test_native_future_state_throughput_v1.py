@@ -21,7 +21,7 @@ def test_frozen_schedule_counts_are_actual_forward_and_backward_geometry():
     assert (parity,train,evaluate)==(13,29,18)
     assert o.LIMITS['model_forwards']==o.LIMITS['backbone_forwards']==60==parity+train+evaluate
     assert o.LIMITS['backward_calls']==42==parity+train and o.LIMITS['gradient_clip_calls']==29
-    assert o.LIMITS['measurement_writes']==14
+    assert o.LIMITS['measurement_writes']==14 and o.LIMITS['allocator_boundary_calls']==18
     assert all(o.LIMITS[k]==0 for k in ('optimizer_steps','normalization_fits','prior_fits','autograd_calls','CONTROL_rows_scored','TEST_rows'))
     assert o.LIMITS['checkpoint_loads']==o.LIMITS['model_state_restores']==1
 
@@ -236,7 +236,9 @@ def test_cli_metadata_preflight_is_fixed_and_never_decodes(monkeypatch,capsys):
 
 def _consumer_fixture(monkeypatch):
     report={'counts':dict(o.LIMITS),'optimizer_steps':0,'whole_TRAIN_INITIAL_replaced':False,
-        'production_recipe_selected':False,'selection_criterion':'max_observed_rows_per_second_qualified_under_limits_only'}
+        'production_recipe_selected':False,'selection_criterion':'max_observed_rows_per_second_qualified_under_limits_only',
+        'allocator_policy':'allocator_cold_at_measurement_phase_boundary','allocator_boundaries':[{}for _ in range(18)],
+        'timing_excludes_allocator_cleanup':True}
     table={};plan={'stage':o.STAGE,'limits':dict(o.LIMITS),'metadata':{'function':{'same':'current'},'source_bridge':{},'runtime':{}}}
     for mode,batches in (('train',(64,96,128)),('eval',(64,256))):
         report[mode]={}
@@ -266,3 +268,21 @@ def test_JSON_only_consumer_validates_zero_updates_all_configs_roles_and_parity(
     with pytest.raises(ValueError,match='ZERO_UPDATE'):o.require_throughput_result(binding(),binding())
     report['optimizer_steps']=0;table['/synthetic/train128_proof.json']['gradients']['all_qualified']=False
     with pytest.raises(ValueError,match='TRAIN_PARITY'):o.require_throughput_result(binding(),binding())
+
+
+def test_fixed002_allocator_policy_is_postclaim_and_outside_measurement_timer():
+    import ast
+    source=Path(o.__file__).read_text();tree=ast.parse(source)
+    assert o.STAGE.endswith('_002')and o.GATE=='throughput_002'
+    assert o.PLAN.name=='NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002.json'
+    assert o.ROOT.name=='NATIVE_FUTURE_STATE_THROUGHPUT_20261121_002'
+    assert len(o.SOURCE_PATHS)==64
+    assert 'gx1/audit/native_future_state_training_v1.py'in o.SOURCE_PATHS
+    physical=next(n for n in tree.body if isinstance(n,ast.FunctionDef)and n.name=='physical')
+    measure=next(n for n in ast.walk(physical)if isinstance(n,ast.FunctionDef)and n.name=='measure')
+    calls=[n for n in ast.walk(measure)if isinstance(n,ast.Call)]
+    release=next(n for n in calls if isinstance(n.func,ast.Name)and n.func.id=='release_phase_allocator_cache')
+    cohort=next(n for n in calls if isinstance(n.func,ast.Name)and n.func.id=='_cohort')
+    assert release.lineno<cohort.lineno
+    assert not any(isinstance(n,ast.ImportFrom)and n.module=='gx1.audit.native_future_state_training_v1'for n in tree.body)
+    assert not any(isinstance(n,ast.Call)and isinstance(n.func,ast.Attribute)and n.func.attr in('empty_cache','reset_peak_memory_stats')for n in ast.walk(tree))

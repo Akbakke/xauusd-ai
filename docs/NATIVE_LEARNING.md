@@ -177,6 +177,11 @@ måler data-gradienter, ikke optimale taskvekter eller AdamW-nytte. Kald replay
 har egen eksakt engangsadmisjon og dupliserer bare det deklarerte steget.
 Batch-effektivitet velges kun fra fullførte rader/sekund innen vaktene;
 prosessens reserverte minnehøyvann er ikke en kandidatspesifikk måling.
+Et faktisk GPU-totalminnebrudd kan kreve frigjøring av ubrukt allocatorcache
+ved returnerte fasegrenser. Dette skjer utenfor målt tid, aldri per treningssteg;
+verifiser uendret liveallokering/modell/AdamW/full RNG og ikke-økende reservasjon.
+Bevar globale peakmål og alle ressursgrenser. En stoppet plan er konsumert;
+ny kilde og nye allocatorforhold krever separat eksakt måleplan.
 
 Checkpointets uforanderlige trajektorie binder også faktisk inputbygger,
 normalisering, prior, mål, numerisk kilde, rekkefølge og epokebudsjett.
