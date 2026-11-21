@@ -95,3 +95,85 @@ def test_checkpoint_window_rejects_unsupported_guard_deadline(tmp_path,schema,se
     result=subprocess.run(['bash','-c',shell+'validate_native_route '+shlex.join(args)],capture_output=True,text=True)
     assert result.returncode==75
     assert 'exact supported execution deadline'in result.stderr
+
+
+def _future_cpu_fixture(tmp_path):
+    folder=tmp_path/'configs/research';folder.mkdir(parents=True)
+    plan=folder/'NATIVE_M5_FUTURE_STATE_CPU_MECHANICS_20261121_001.json'
+    plan.write_text('{"synthetic_guard_fixture":true}\n')
+    python=str(tmp_path/'.venv/bin/python')
+    args=[python,'-m','gx1.audit.qualify_native_m5_full_gc_direction_v1',
+        '--native-future-state-cpu-mechanics','--plan-sha256',
+        hashlib.sha256(plan.read_bytes()).hexdigest(),'--lane','continuous']
+    source=RUNNER.read_text()
+    signature='matches_bound_native_future_state_cpu_mechanics() {'
+    function=signature+source.split(signature,1)[1].split('\n}\n',1)[0]+'\n}\n'
+    prefix='\n'.join(['set -eu','REPO_ROOT='+shlex.quote(str(tmp_path)),
+        'CANONICAL_TRAINER_PYTHON='+shlex.quote(python),
+        'NATIVE_M5_FULL_GC_FIT_TRAINER_MODULE='+shlex.quote(args[2]),function])
+    return plan,args,prefix,source
+
+
+@pytest.mark.parametrize('variant',('continuous','replay','preflight','wrong_sha','bad_sha',
+    'wrong_lane','extra_flag','extra_plan','wrong_module','wrong_python','wrong_flag',
+    'reordered','symlink_plan','missing_plan'))
+def test_native_future_state_cpu_mechanics_exact_command(tmp_path,variant):
+    plan,args,prefix,_=_future_cpu_fixture(tmp_path)
+    if variant=='replay':args[-1]='replay'
+    elif variant=='preflight':args.append('--preflight')
+    elif variant=='wrong_sha':args[5]='0'*64
+    elif variant=='bad_sha':args[5]='true'
+    elif variant=='wrong_lane':args[7]='fit'
+    elif variant=='extra_flag':args.append('--train')
+    elif variant=='extra_plan':args.extend(['--plan','/tmp/other.json'])
+    elif variant=='wrong_module':args[2]='gx1.scripts.research_ta_campaign_v1'
+    elif variant=='wrong_python':args[0]='/usr/bin/python3'
+    elif variant=='wrong_flag':args[3]='--native-future-state-cpu-mechanics-extra'
+    elif variant=='reordered':args[4:8]=args[6:8]+args[4:6]
+    elif variant=='symlink_plan':
+        real=plan.with_suffix('.original');plan.rename(real);plan.symlink_to(real)
+    elif variant=='missing_plan':plan.unlink()
+    result=subprocess.run(['bash','-c',prefix+'\nmatches_bound_native_future_state_cpu_mechanics '+shlex.join(args)],capture_output=True,text=True)
+    assert (result.returncode==0)==(variant in ('continuous','replay','preflight')),result.stderr
+
+
+@pytest.mark.parametrize('variant',('valid','preflight','audit','trainer','wrong_memory',
+    'wrong_swap','cuda','attended','wrong_lane','extra','wrapped_python'))
+def test_native_future_state_cpu_mechanics_dispatch_is_private_exact_scope(tmp_path,variant):
+    _,args,prefix,source=_future_cpu_fixture(tmp_path)
+    begin='  if [[ "$native_cpu_mechanics_reference" == true ]]; then'
+    branch=begin+source.split(begin,1)[1].split('\n  if [[ "$JOB_CLASS" == "audit"',1)[0]
+    job='producer';memory='12G';swap='512M';cuda='false';attended='false'
+    if variant=='preflight':args.append('--preflight')
+    elif variant in ('audit','trainer'):job=variant
+    elif variant=='wrong_memory':memory='20G'
+    elif variant=='wrong_swap':swap='0'
+    elif variant=='cuda':cuda='true'
+    elif variant=='attended':attended='true'
+    elif variant=='wrong_lane':args[-1]='main'
+    elif variant=='extra':args.append('--optimizer-steps=40')
+    elif variant=='wrapped_python':args=['env',*args]
+    shell=prefix+'\n'+ '\n'.join(['native_cpu_mechanics_reference=true',
+        'JOB_CLASS='+job,'MEM='+memory,'SWAP='+swap,'CUDA_PRODUCER_GUARD='+cuda,
+        'ATTENDED_SMOKE='+attended,'validate_future_cpu() {',branch,'}',
+        'validate_future_cpu '+shlex.join(args),
+        'printf "%s\\n" "$NATIVE_FUTURE_STATE_CPU_MECHANICS" "$NATIVE_FUTURE_STATE_CPU_MECHANICS_SHA256" "$NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE"'])
+    result=subprocess.run(['bash','-c',shell],capture_output=True,text=True)
+    if variant in ('valid','preflight'):
+        assert result.returncode==0,result.stderr
+        assert result.stdout.splitlines()==['true',args[5],'continuous']
+    else:
+        assert result.returncode==75
+        assert 'CPU mechanics is not exactly bound' in result.stderr
+
+
+def test_native_future_state_cpu_mechanics_timeout_and_mode_proof_are_runner_owned():
+    source=RUNNER.read_text()
+    assert 'if [[ "$target_arg" == *--native-future-state-cpu-mechanics* ]]; then' in source
+    assert source.index('validate_target_command "$@"') < source.index('systemd-run --user --scope')
+    scoped=source.split('if [[ "$GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS" == true ]]; then',1)[1].split('\nfi',1)[0]
+    assert '/usr/bin/timeout --signal=TERM --kill-after=10s 900s "$@"' in scoped
+    for key in ('GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS',
+                'GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256',
+                'GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE'):
+        assert '--setenv='+key+'=' in source

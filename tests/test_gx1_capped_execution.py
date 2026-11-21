@@ -738,3 +738,70 @@ def test_project_lock_is_independent_of_legacy_machine_lock(lock_kernel):
     del metadata["/run/user/1000/gx1-current-heavy-job.lock"]
     with pytest.raises(RuntimeError, match="GX1_CAPPED_LOCK_PROOF_INVALID"):
         require_capped_lock_ancestry()
+
+
+def _native_future_cpu_mechanics_fixture():
+    env,files=_cpu_audit_fixture()
+    memory=12*1024**3
+    env.update(GX1_CAPPED_CLASS='producer',GX1_CAPPED_MEMORY_BYTES=str(memory),
+        GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS='true',
+        GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256='a'*64,
+        GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE='continuous')
+    files['/sys/fs/cgroup/user.slice/gx1-audit-test.scope/memory.max']=str(memory)
+    files['/sys/fs/cgroup/user.slice/gx1-audit-test.scope/memory.high']=str(memory)
+    return env,files
+
+
+@pytest.mark.parametrize('lane',['continuous','replay'])
+def test_native_future_state_cpu_mechanics_requires_explicit_mode_and_exact_cpu_scope(monkeypatch,lane):
+    env,files=_native_future_cpu_mechanics_fixture()
+    env['GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE']=lane
+    lock={'scope':'/user.slice/gx1-audit-test.scope','exact_lock':'synthetic'}
+    monkeypatch.setattr(capped_execution,'require_capped_lock_ancestry',lambda:lock)
+    proof=capped_execution.require_native_future_state_cpu_mechanics_execution(
+        plan_sha256='a'*64,lane=lane,environ=env,read_text=lambda path:files[str(path)])
+    assert proof['execution_mode']=='native_future_state_cpu_mechanics'
+    assert proof['technical_only'] is True and proof['lane']==lane
+    assert proof['memory_max']==proof['memory_high']==12*1024**3
+    assert proof['swap']==512*1024**2 and proof['pids']==64
+    assert proof['cpu_affinity']==list(range(8)) and proof['numerical_threads']==1
+    assert proof['lock']==lock and proof['outer_seconds']==900 and proof['kill_after_seconds']==10
+    assert proof['plan']['path'].endswith('/configs/research/NATIVE_M5_FUTURE_STATE_CPU_MECHANICS_20261121_001.json')
+    assert proof['plan']['sha256']=='a'*64
+
+
+@pytest.mark.parametrize('field,value',[
+    ('GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS','false'),
+    ('GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256','b'*64),
+    ('GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE','replay'),
+    ('GX1_CAPPED_CLASS','trainer'),('GX1_CAPPED_MEMORY_BYTES',str(20*1024**3)),
+    ('GX1_CAPPED_SWAP_BYTES','0'),('GX1_CAPPED_TASKS_MAX','128'),
+    ('GX1_TRAINER_DEVICE','cuda'),('GX1_CUDA_PRODUCER_GUARD','true'),
+    ('OMP_NUM_THREADS','8'),('GX1_TRAINER_EXECUTION_MODE','cuda_producer')])
+def test_native_future_state_cpu_mechanics_rejects_broader_or_unproven_mode_before_cgroup(field,value):
+    env,_=_native_future_cpu_mechanics_fixture();env[field]=value
+    with pytest.raises(RuntimeError):
+        capped_execution.require_native_future_state_cpu_mechanics_execution(
+            plan_sha256='a'*64,lane='continuous',environ=env,
+            read_text=lambda path:pytest.fail('reject before reading cgroup'))
+
+
+@pytest.mark.parametrize('plan_sha,lane',[('bad','continuous'),('A'*64,'continuous'),
+    ('a'*64,'main'),('a'*64,True),(None,'continuous')])
+def test_native_future_state_cpu_mechanics_rejects_invalid_request_before_cgroup(plan_sha,lane):
+    env,_=_native_future_cpu_mechanics_fixture()
+    with pytest.raises(RuntimeError):
+        capped_execution.require_native_future_state_cpu_mechanics_execution(
+            plan_sha256=plan_sha,lane=lane,environ=env,
+            read_text=lambda path:pytest.fail('reject before reading cgroup'))
+
+
+@pytest.mark.parametrize('changed',('memory.high','memory.max','pids.max','memory.swap.max','affinity'))
+def test_native_future_state_cpu_mechanics_rejects_actual_scope_drift(monkeypatch,changed):
+    env,files=_native_future_cpu_mechanics_fixture()
+    monkeypatch.setattr(capped_execution,'require_capped_lock_ancestry',lambda:{'synthetic':'lock'})
+    path='/proc/self/status' if changed=='affinity' else '/sys/fs/cgroup/user.slice/gx1-audit-test.scope/'+changed
+    files[path]='Cpus_allowed_list:\t0-18\n' if changed=='affinity' else '1'
+    with pytest.raises(RuntimeError):
+        capped_execution.require_native_future_state_cpu_mechanics_execution(
+            plan_sha256='a'*64,lane='continuous',environ=env,read_text=lambda path:files[str(path)])

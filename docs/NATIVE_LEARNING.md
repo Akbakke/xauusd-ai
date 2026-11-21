@@ -131,6 +131,24 @@ Endret funksjon krever fersk helkohort-baseline og kaldt optimizerreplay før
 hovedfit; en begrenset forwardkontroll er ikke denne treningskvalifiseringen.
 Ingen ny gradientruting/vekt eller fit innrømmes av mål-/outputkontrakten.
 
+En teknisk optimizerprøve med whole-TRAIN-statistikk/prior er et avgrenset
+prefiks av denne trajektorien, ikke en uavhengig liten FIT-sammenligning.
+Målmasker velger ikke inputrader. Nullstilte hodevekter gir null initial
+backbone-datagradient; mål reell forbindelse etter første hodeoppdatering,
+og skill datagradient fra AdamW-decay og momentum. Familiegradientkontakt
+beviser ikke nyttige enkeltindikatorer eller optimal felles taskvekt.
+Rapporter unike målbarer og observasjonsstrata; gjentatte M5-prognoser mot
+samme D1-bar er ikke uavhengig fasit. Positiv delrange er selektiv støtte,
+ikke ubetinget aktivitetskalibrering.
+
+Kald replay skal bindes til samme fryste policy og plan før payload/model
+lastes. Checkpoint publiseres med no-replace og fil-/katalog-fsync, hashes
+fra faktisk fil og lastes tilbake fra disk. Verifiser modell, optimizer,
+RNG, scheduler, cursor, batchrekkefølge, stegrapporter og skår. Prosessreplay
+er ikke i seg selv en OS-reboot- eller diskhavarigaranti. Et komponentbevis
+for identiske bodyvekter gjør ikke en tidligere backend til en ny helkohort-
+baseline uten dokumentert kompatibelt numerisk domene.
+
 Alle genuine indikatorer, åtte spesialistfamilier og D1/makro beholdes.
 ATR er en inputindikator. Den er ingen terskel for om open/close-fasiten
 er kjent. Samme M5/høyere proveniens gjelder hele featurekjeden.
@@ -147,7 +165,9 @@ Den nye M5-featureprovideren bygger de kanoniske full-TA-feltene på nytt
 fra formel-eierne. Samme-M5-aliaser gjenbrukes bare gjennom den eksakte
 alias-eieren. Alle fem TF bruker sine egne lukkede barer, og lokal
 trendlinje beholder sin egen96-barsgeometri. Makro bygges fra den
-pinnede kildeeieren med faktiske publiseringstider. Fitting av statistikk
+pinnede kildeeieren med bundne tilgjengelighetsklokker. Deklarert as-of-
+kobling må skilles fra dokumentasjon av hvert historiske publiserings- og
+revisjonstidspunkt; sistnevnte følger ikke automatisk av kildehash og lag. Fitting av statistikk
 bruker hele unionen av faktiske TRAIN-vinduer, aldri samplet batchstatistikk.
 Manglende observasjoner og warmup beholdes; ingen gammel M1-akse eller
 normalisering brukes som snarvei.

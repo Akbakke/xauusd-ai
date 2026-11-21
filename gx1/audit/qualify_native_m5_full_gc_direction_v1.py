@@ -4381,4 +4381,538 @@ def checkpoint_window_cli(args):
     else:print(json.dumps(run_checkpoint_window(args.plan,args.plan_sha256),sort_keys=True))
 
 
-if __name__=='__main__':main()
+# Exact CPU-only technical prefix; no older fit/qualification scope is reopened.
+FUTURE_CPU_STAGE='native_m5_future_state_cpu_mechanics_20261121_001'
+FUTURE_CPU_POLICY='pretrain_12_checkpoint_review_20261121_001'
+FUTURE_CPU_PLAN=REPO/'configs/research/NATIVE_M5_FUTURE_STATE_CPU_MECHANICS_20261121_001.json'
+FUTURE_CPU_ROOT=Path('/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CPU_MECHANICS_20261121_001')
+FUTURE_CPU_B3=Path('/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/MODEL_FORWARD_PLAN001.json')
+FUTURE_CPU_RECIPE=REPO/'configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003.json'
+FUTURE_CPU_TRAIN_START=1609459200000000000
+FUTURE_CPU_TRAIN_UPPER=1767225600000000000
+FUTURE_CPU_TRAIN_SHA='c0805f39affb9bd80e679e0b41f69a558ea975d0e479ddeee815c7dd370997ea'
+FUTURE_CPU_TRUTH_KEYS=('issue_ns','target_start_ns','validity_ns','target_present','mature',
+    'nominal_complete','state_window_complete','partial_range_active','activity_known','activity','side_known','side_up')
+FUTURE_CPU_SOURCE_PATHS=tuple(dict.fromkeys((*SOURCE_PATHS,
+    'gx1/contracts/market_state_ta_integrated_model_v1.py','gx1/contracts/market_state_ta_integrated_objective_v1.py',
+    'gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh',
+    'tests/test_native_future_state_cpu_mechanics_v1.py')))
+FUTURE_CPU_LIMITS={lane:{'model_constructions':1,'optimizer_constructions':1,
+    'model_forwards':13 if lane=='continuous'else 9,'backbone_forwards':13 if lane=='continuous'else 9,
+    'autograd_calls':3 if lane=='continuous'else 0,'backward_calls':4 if lane=='continuous'else 1,
+    'optimizer_steps':4 if lane=='continuous'else 1,'checkpoint_loads':0 if lane=='continuous'else 1,
+    'checkpoint_writes':2 if lane=='continuous'else 1,'checkpoint_readbacks':2 if lane=='continuous'else 1,
+    'normalization_fits':0,'prior_fits':0}for lane in ('continuous','replay')}
+
+
+def future_cpu_read(binding):
+    need(type(binding)is dict and set(binding)=={'path','sha256'}and type(binding['path'])is str
+        and Path(binding['path']).is_absolute()and '..'not in Path(binding['path']).parts
+        and Path(binding['path']).suffix=='.json'and type(binding['sha256'])is str
+        and len(binding['sha256'])==64 and all(c in '0123456789abcdef'for c in binding['sha256']),
+        'FUTURE_CPU_JSON_REFERENCE')
+    return read(binding)
+
+
+def future_cpu_recipe(reference):
+    r=reference['recipe']
+    need(r['optimizer']==ADAMW_RECIPE and r['scheduler']is None and r['gradient_clip_norm']==1.
+        and type(r['seed'])is int,'FUTURE_CPU_QUALIFIED_RECIPE')
+    return {key:r[key]for key in ('optimizer','gradient_clip_norm','scheduler','seed')}|{
+        'batch_rows':16,'logical_updates':4,'checkpoint_cursor':3}
+
+
+def future_cpu_metadata(plan):
+    from gx1.contracts.market_state_ta_integrated_model_v1 import native_future_state_model_contract
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_future_state_train_prior
+    need(plan['inputs']['forward_plan']['path']==str(FUTURE_CPU_B3)
+        and plan['inputs']['recipe_plan']['path']==str(FUTURE_CPU_RECIPE),'FUTURE_CPU_REFERENCE_PATHS')
+    parent=future_cpu_read(plan['inputs']['forward_plan']);meta=parent['metadata']
+    need(plan['metadata']==meta and plan['recipe']==future_cpu_recipe(future_cpu_read(plan['inputs']['recipe_plan']))
+        and meta['seed']==plan['recipe']['seed'],'FUTURE_CPU_FROZEN_METADATA_RECIPE')
+    norm=future_cpu_read(meta['normalization']);prior=future_cpu_read(meta['prior'])
+    data=future_cpu_read(meta['dataset']);snapshot=future_cpu_read(meta['source_snapshot'])
+    manifest=future_cpu_read(meta['native_manifest'])
+    prior=require_native_future_state_train_prior(prior,target_contract=meta['target_contract'])
+    need(native_future_state_model_contract(meta['input_binding'],architecture=meta['architecture'],
+        train_prior=prior,target_contract=meta['target_contract'])==meta['model_contract'],'FUTURE_CPU_MODEL_IDENTITY')
+    pop=norm['fit_population'];p=prior['fit_population']
+    need(pop['issue_rows']==p['issue_rows']==354550 and pop['selected_issue_ns_sha256']==p['issue_ns_sha256']==FUTURE_CPU_TRAIN_SHA
+        and pop['cutoff_ns']==p['cutoff_ns']==FUTURE_CPU_TRAIN_UPPER
+        and all(pop[k]==p[k]for k in ('first_issue_ns','last_issue_ns')),'FUTURE_CPU_WHOLE_TRAIN_STATISTICS')
+    need(data['contract']==meta['target_contract']and data['cutoff_ns']==FUTURE_CPU_TRAIN_UPPER
+        and data['TRAIN_issue_ns_sha256']==FUTURE_CPU_TRAIN_SHA and data['model_input']is False
+        and snapshot['schema_version']=='gx1_native_m5_bounded_feature_snapshot_v1'
+        and len(snapshot['arrays'])==27 and manifest['market_closure_contract']==meta['target_contract']['source_closure_contract'],
+        'FUTURE_CPU_DATASET_SOURCE')
+    bridge=future_cpu_read(plan['inputs']['baseline_component'])
+    need(bridge['status']=='COMPLETE_FRESH_NATIVE_BODY_IDENTITY_COMPONENT'
+        and bridge['source_unchanged']is True and bridge['test_data_used']is False
+        and bridge['report']['body_identity']['all_persistent_parameters_and_buffers_exact']is True
+        and bridge['report']['candidate_state_loads']==0
+        and bridge['report']['composite_wholecohort_baseline_qualified']is False,'FUTURE_CPU_BASELINE_COMPONENT_ONLY')
+    return norm,prior,data,snapshot,bridge
+
+
+def future_cpu_replay_admission(plan_ref,policy_ref):
+    """Authenticate the completed first lane and its unchanged admission policy."""
+    parent=FUTURE_CPU_ROOT/'continuous'
+    terminal=future_cpu_read(ref(parent/'TERMINAL.json'))
+    need(terminal['status']=='COMPLETE_CONSUMED'and terminal['exit_code']==0
+        and terminal['plan']==plan_ref
+        and terminal['claim']['path']==str(parent/'CLAIM.json'),'FUTURE_CPU_REPLAY_PARENT_TERMINAL')
+    claim=future_cpu_read(terminal['claim'])
+    need(claim['plan']==plan_ref and claim['lane']=='continuous'
+        and claim['policy_at_claim']==policy_ref,'FUTURE_CPU_INTERLANE_POLICY_FREEZE')
+
+
+def inspect_future_cpu(plan_sha,lane,*,admitted):
+    need(lane in FUTURE_CPU_LIMITS and Path.cwd().resolve()==REPO,'FUTURE_CPU_CWD_LANE')
+    binding={'path':str(FUTURE_CPU_PLAN),'sha256':plan_sha};plan=future_cpu_read(binding)
+    need(plan['schema_version']=='gx1_native_future_state_cpu_mechanics_plan_v1'
+        and plan['stage']==FUTURE_CPU_STAGE and plan['output_root']==str(FUTURE_CPU_ROOT)
+        and plan['limits']==FUTURE_CPU_LIMITS
+        and plan['execution']=={'class':'producer','device':'cpu','memory':'12G','swap':'512M',
+            'numerical_threads':1,'tasks_max':64,'outer_seconds':900,'internal_seconds':870,'kill_after_seconds':10}
+        and plan['batch_rule']=='first_64_chronological_whole_TRAIN_input_rows_four_disjoint_B16_no_target_filter'
+        and plan['diagnostic_routing']=='fully_attached_only_for_this_technical_prefix_not_production_policy',
+        'FUTURE_CPU_EXACT_SCOPE')
+    need(set(plan['source_owners'])==set(FUTURE_CPU_SOURCE_PATHS)
+        and all(Path(k).suffix in ('.py','.sh')and not Path(k).is_absolute()and '..'not in Path(k).parts for k in plan['source_owners']),
+        'FUTURE_CPU_SOURCE_INVENTORY')
+    need(all(sha(REPO/k)==v for k,v in plan['source_owners'].items()),'FUTURE_CPU_SOURCE_HASH')
+    need(subprocess.check_output(['git','branch','--show-current'],cwd=REPO,text=True).strip()=='work/gx1-current',
+        'FUTURE_CPU_BRANCH')
+    subprocess.run(['git','merge-base','--is-ancestor',plan['source_base_commit'],'HEAD'],cwd=REPO,check=True)
+    future_cpu_metadata(plan)
+    policy_ref=ref(POLICY);policy=future_cpu_read(policy_ref);gate=policy[FUTURE_CPU_POLICY]['future_mechanics_001']
+    need(gate['plan']==binding and gate['limits']==FUTURE_CPU_LIMITS and gate['relaunch_allowed']is False
+        and gate['lanes'][lane]['remaining_invocations']==1,'FUTURE_CPU_GATE_BINDING')
+    if admitted:
+        need(gate['status']=='ADMITTED_EXACT_TECHNICAL_PREFIX'and gate['execution_authorized']is True
+            and gate['lanes'][lane]['execution_authorized']is True
+            and policy['training_enabled']is True and policy['native_training_enabled']is True,
+            'FUTURE_CPU_EXACT_TRAINING_ADMISSION')
+    else:
+        need(gate['execution_authorized']is False and policy['training_enabled']is False
+            and policy['native_training_enabled']is False,'FUTURE_CPU_PREFLIGHT_CLOSED')
+    need(all(policy[k]is False for k in ('native_launch_authorized','full_epoch_training_allowed','full_val_allowed')),
+        'FUTURE_CPU_NO_OTHER_AUTHORITY')
+    if admitted and lane=='replay':future_cpu_replay_admission(binding,policy_ref)
+    need(not(FUTURE_CPU_ROOT/lane).exists(),'FUTURE_CPU_ONE_USE_LANE')
+    return plan,binding,policy_ref
+
+
+def future_cpu_rng():
+    import random,torch
+    name,keys,position,gauss,cached=np.random.get_state()
+    need(name=='MT19937','FUTURE_CPU_NUMPY_RNG')
+    return {'python':random.getstate(),'numpy_name':name,'numpy_keys':torch.from_numpy(keys.copy()),
+        'numpy_position':int(position),'numpy_has_gauss':int(gauss),'numpy_cached':float(cached),
+        'torch_cpu':torch.get_rng_state().clone()}
+
+
+def future_cpu_restore_rng(value):
+    import random,torch
+    need(type(value)is dict and set(value)=={'python','numpy_name','numpy_keys','numpy_position',
+        'numpy_has_gauss','numpy_cached','torch_cpu'}and value['numpy_name']=='MT19937'
+        and isinstance(value['numpy_keys'],torch.Tensor)and value['numpy_keys'].dtype==torch.uint32
+        and value['numpy_keys'].ndim==1 and isinstance(value['torch_cpu'],torch.Tensor)
+        and value['torch_cpu'].dtype==torch.uint8 and value['torch_cpu'].ndim==1,'FUTURE_CPU_RNG_SCHEMA')
+    random.setstate(value['python'])
+    np.random.set_state((value['numpy_name'],value['numpy_keys'].cpu().numpy(),value['numpy_position'],
+        value['numpy_has_gauss'],value['numpy_cached']))
+    torch.set_rng_state(value['torch_cpu'].cpu())
+
+
+def future_cpu_process_identity():
+    import os
+    fields=Path('/proc/self/stat').read_text().rsplit(')',1)[1].split()
+    return {'pid':os.getpid(),'start_ticks':int(fields[19]),
+        'boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip()}
+
+
+def future_cpu_parent_stopped(identity):
+    need(type(identity)is dict and set(identity)=={'pid','start_ticks','boot_id'}
+        and type(identity['pid'])is int and identity['pid']>0
+        and type(identity['start_ticks'])is int and identity['start_ticks']>0,'FUTURE_CPU_PARENT_IDENTITY')
+    if identity['boot_id']!=Path('/proc/sys/kernel/random/boot_id').read_text().strip():return
+    path=Path('/proc')/str(identity['pid'])/'stat'
+    try:actual=int(path.read_text().rsplit(')',1)[1].split()[19])
+    except FileNotFoundError:return
+    need(actual!=identity['start_ticks'],'FUTURE_CPU_PARENT_STILL_RUNNING')
+
+
+def future_cpu_batches(provider):
+    rows=np.flatnonzero((provider.issue_ns>=FUTURE_CPU_TRAIN_START)&(provider.issue_ns<FUTURE_CPU_TRAIN_UPPER)).astype(np.int64)
+    need(len(rows)==354550 and provider.input_ready[rows].all()
+        and digest(provider.issue_ns[rows])==FUTURE_CPU_TRAIN_SHA,'FUTURE_CPU_FULL_INPUT_AXIS')
+    batches=[rows[i:i+16]for i in range(0,64,16)]
+    need(len(np.unique(np.concatenate(batches)))==64,'FUTURE_CPU_DISTINCT_PREFIX')
+    return rows,batches
+
+
+def future_cpu_load(plan):
+    import torch
+    from gx1.audit.build_native_m5_ta_feature_cache_v1 import load_snapshot
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    norm,prior,data,snapshot,bridge=future_cpu_metadata(plan)
+    provider=load_snapshot(plan['metadata']['source_snapshot']);rows,batches=future_cpu_batches(provider)
+    need(provider.input_binding(norm)==plan['metadata']['input_binding']
+        and digest(provider.source_row[rows])==norm['fit_population']['selected_source_rows_sha256'],'FUTURE_CPU_PHYSICAL_BINDING')
+    order=[{'source_rows_sha256':digest(provider.source_row[b]),'issue_ns_sha256':digest(provider.issue_ns[b])}for b in batches]
+    need(ref(data['arrays']['path'])==data['arrays'],'FUTURE_CPU_TARGET_ARCHIVE')
+    truth={}
+    with np.load(data['arrays']['path'],allow_pickle=False)as archive:
+        for key in FUTURE_CPU_TRUTH_KEYS:
+            a=archive[key];header=data['array_headers'][key]
+            need(a.dtype.str==header['dtype']and list(a.shape)==header['shape']and digest(a)==header['sha256'],
+                'FUTURE_CPU_TRUTH_ARRAY:'+key)
+            truth[key]=a
+    need(np.array_equal(truth['issue_ns'],provider.issue_ns[rows])
+        and objective._native_prior_array_sha(truth)==prior['fit_population']['truth_sha256'],'FUTURE_CPU_PRIOR_TRUTH')
+    objective._native_future_state_truth(truth,rows=len(rows),fold_upper_ns=FUTURE_CPU_TRAIN_UPPER,
+        target_contract=plan['metadata']['target_contract'])
+    packets=[]
+    for b in batches:
+        raw=provider.gather(provider.source_row[b],max_rows=16)
+        positions=np.searchsorted(rows,b)
+        packets.append({'features':{k:torch.from_numpy(v)for k,v in raw.items()},
+            'truth':{k:v[positions]for k,v in truth.items()}})
+    return {'provider':provider,'normalization':norm,'prior':prior,'order':order,'packets':packets,'bridge':bridge}
+
+
+def future_cpu_score(model,packets,plan,prior,*,initial):
+    import torch
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    before=state_sha(model.state_dict());rng=shared_gradient_rng();training=model.training;reports=[]
+    model.eval()
+    try:
+        with torch.no_grad():
+            for packet in packets:
+                output=model(**packet['features'])
+                kwargs={'truth':packet['truth'],'fold_upper_ns':FUTURE_CPU_TRAIN_UPPER,
+                    'target_contract':plan['metadata']['target_contract']}
+                loss=objective.native_future_state_loss(model_output=output,**kwargs)
+                scores=objective.native_future_state_score_sums(model_output=output,**kwargs)
+                if initial:
+                    reference=objective.native_future_state_train_prior_logits(prior,rows=len(packet['truth']['issue_ns']),
+                        target_contract=plan['metadata']['target_contract'])
+                    need(all(torch.equal(output[k],v)for k,v in reference.items()),'FUTURE_CPU_INITIAL_PRIOR_EXACT')
+                    need(scores==objective.native_future_state_score_sums(model_output=reference,**kwargs),
+                        'FUTURE_CPU_INITIAL_PROPER_SCORE_EXACT')
+                total=sum(cell['partial_log_loss_sum']for cell in scores['per_tf'].values())
+                reports.append({'known_activity_cells':loss['count'],'partial_NLL':float(loss['loss']),
+                    'proper_partial_log_loss_sum':total,'loss_score_abs_delta':abs(float(loss['loss'])*loss['count']-total),
+                    'scores':scores,'output_sha256':{k:digest(v.detach().cpu().numpy())for k,v in output.items()}})
+    finally:
+        model.train(training);shared_gradient_restore_rng(rng)
+    need(state_sha(model.state_dict())==before,'FUTURE_CPU_SCORE_STATE_MUTATION')
+    count=sum(r['known_activity_cells']for r in reports)
+    return {'rows':sum(len(p['truth']['issue_ns'])for p in packets),'batches':reports,
+        'known_activity_cells':count,'proper_partial_NLL':sum(r['proper_partial_log_loss_sum']for r in reports)/count if count else None,
+        'initial_prior_exact':initial,'scope':'same_64_TRAIN_trajectory_prefix_not_fullcohort_or_independent_FIT'}
+
+
+def future_cpu_family_gradients(names,g5,gaux):
+    """Diagnostic parameter-name partition; no additional derivative calculation."""
+    import torch
+    from gx1.features.entry_specialist_feature_groups_v1 import MODEL_NATIVE_TRAINING_SPECIALISTS
+    families=tuple(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    need(len(names)==len(g5)==len(gaux),'FUTURE_CPU_FAMILY_GRADIENT_AXIS')
+    groups={name:[]for name in (*families,'unassigned_shared_mix')}
+    for i,name in enumerate(names):
+        matches=[family for family in families if family in name]
+        groups[matches[0]if len(matches)==1 else'unassigned_shared_mix'].append(i)
+    total=tuple(b if a is None else a if b is None else a+b for a,b in zip(g5,gaux))
+    result={}
+    for group,indices in groups.items():
+        left=tuple(g5[i]for i in indices);right=tuple(gaux[i]for i in indices)
+        joint=tuple(total[i]for i in indices);measures=shared_gradient_measures(left,right)
+        result[group]={**measures,'parameter_tensor_count':len(indices),
+            'gtotal_l2':shared_gradient_measures(joint,(None,)*len(joint))['g5_l2'],
+            'gaux_to_gM5_l2_ratio':measures['gaux_l2']/measures['g5_l2']if measures['g5_l2']>0 else None,
+            **{label:sum(value is not None and bool(torch.count_nonzero(value))for value in values)
+               for label,values in (('gM5_nonzero_parameter_tensors',left),
+                   ('gaux_nonzero_parameter_tensors',right),('gtotal_nonzero_parameter_tensors',joint))}}
+    return {'per_group':result,'assignment':'one_canonical_family_substring_else_unassigned_shared_mix',
+        'scope':'shared_parameter_data_gradient_connectivity_not_individual_feature_or_TF_utility'}
+
+
+def future_cpu_gradient_probe(model,packet,plan,counts):
+    import torch
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+    before=state_sha(model.state_dict());rng=shared_gradient_rng();training=model.training
+    need(all(p.grad is None for p in model.parameters()),'FUTURE_CPU_PROBE_GRAD_NONE')
+    model.eval()
+    try:
+        output=model(**packet['features'])
+        loss=native_future_state_loss(model_output=output,truth=packet['truth'],fold_upper_ns=FUTURE_CPU_TRAIN_UPPER,
+            target_contract=plan['metadata']['target_contract'])
+        n=loss['count'];need(n>0,'FUTURE_CPU_PROBE_SUPPORT')
+        sums=loss['loss_sums'];named=tuple((name,p)for name,p in model.backbone.named_parameters()if p.requires_grad)
+        parameters=tuple(p for _,p in named)
+        terms=(sums['activity'][0]/n,sums['side'][0]/n,(sums['activity'][1:].sum()+sums['side'][1:].sum())/n)
+        gradients=[]
+        for i,term in enumerate(terms):
+            gradients.append(torch.autograd.grad(term,parameters,retain_graph=i<2,allow_unused=True))
+            counts['autograd_calls']+=1
+        combined=tuple(b if a is None else a if b is None else a+b for a,b in zip(gradients[0],gradients[1]))
+        result={'M5_activity_vs_side':shared_gradient_measures(gradients[0],gradients[1]),
+            'M5_vs_auxiliary':shared_gradient_measures(combined,gradients[2]),
+            'family_shared_gradients':future_cpu_family_gradients(tuple(name for name,_ in named),combined,gradients[2]),
+            'denominator_known_activity_cells':n,
+            'support':{k:v.detach().cpu().tolist()for k,v in loss['counts'].items()},
+            'role':'post_first_update_data_gradients_before_clip_not_AdamW_or_optimal_task_weights'}
+    finally:
+        model.train(training);shared_gradient_restore_rng(rng)
+    need(state_sha(model.state_dict())==before and all(p.grad is None for p in model.parameters()),
+        'FUTURE_CPU_PROBE_STATE_GRAD_MUTATION')
+    return result
+
+
+def future_cpu_step(model,optimizer,packet,plan,counts,index):
+    import torch
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+    optimizer.zero_grad(set_to_none=True);model.train()
+    output=model(**packet['features'])
+    loss=native_future_state_loss(model_output=output,truth=packet['truth'],fold_upper_ns=FUTURE_CPU_TRAIN_UPPER,
+        target_contract=plan['metadata']['target_contract'])
+    need(not loss['skip_update']and bool(torch.isfinite(loss['loss'])),'FUTURE_CPU_TRAIN_SUPPORT')
+    loss['loss'].backward();counts['backward_calls']+=1
+    gradients=[p for p in model.parameters()if p.grad is not None]
+    need(gradients and finite_all_per_device(p.grad for p in gradients),'FUTURE_CPU_FINITE_DATA_GRADIENT')
+    data={}
+    for group,parameters in (('backbone',model.backbone.parameters()),('readout',model.readout.parameters())):
+        data[group+'_data_gradient_l2']=float(torch.sqrt(sum((p.grad.detach().double().square().sum()
+            for p in parameters if p.grad is not None),torch.zeros((),dtype=torch.float64))))
+    before_body=[p.detach().clone()for p in model.backbone.parameters()]if index==0 else None
+    if index==0:need(data['backbone_data_gradient_l2']==0 and data['readout_data_gradient_l2']>0,
+        'FUTURE_CPU_ZERO_HEAD_INITIAL_DATA_GRADIENT')
+    norm=torch.nn.utils.clip_grad_norm_(gradients,plan['recipe']['gradient_clip_norm'],error_if_nonfinite=True)
+    optimizer.step();counts['optimizer_steps']+=1
+    need(finite_all_per_device(model.parameters()),'FUTURE_CPU_FINITE_UPDATED_PARAMETERS')
+    if before_body is not None:
+        data['backbone_actual_parameter_delta_l2']=float(torch.sqrt(sum(((p.detach().double()-old.double()).square().sum()
+            for p,old in zip(model.backbone.parameters(),before_body)),torch.zeros((),dtype=torch.float64))))
+        data['weight_decay']=plan['recipe']['optimizer']['weight_decay']
+        data['interpretation']='zero_initial_backbone_data_gradient_does_not_disable_AdamW_decay_FP32_delta_reported_separately'
+        need(any(bool(torch.count_nonzero(h.weight))for h in model.readout.activity_heads.values()),
+            'FUTURE_CPU_HEAD_WEIGHT_DATA_UPDATE')
+    optimizer.zero_grad(set_to_none=True)
+    return {'logical_step':index+1,'loss':float(loss['loss'].detach()),'gradient_norm_pre_clip':float(norm),
+        'support':{k:v.detach().cpu().tolist()for k,v in loss['counts'].items()},
+        'output_sha256':{k:digest(v.detach().cpu().numpy())for k,v in output.items()},**data}
+
+
+def future_cpu_bindings(plan,plan_ref):
+    return {'plan':plan_ref,'metadata':plan['metadata'],'recipe':plan['recipe'],
+        'scope':'technical_prefix_of_whole_TRAIN_trajectory_whole_TRAIN_prior_and_statistics_not_small_FIT_comparison'}
+
+
+def future_cpu_checkpoint(model,optimizer,plan,plan_ref,order,cursor,steps):
+    return {'schema_version':'gx1_native_future_state_cpu_technical_checkpoint_v1','cursor':cursor,
+        'model_state':model.state_dict(),'optimizer_state':optimizer.state_dict(),'scheduler_state':None,
+        'rng_state':future_cpu_rng(),'training':model.training,'batch_order':order,
+        'optimizer_parameter_names':[n for n,_ in model.named_parameters()],
+        'bindings':future_cpu_bindings(plan,plan_ref),'steps':steps}
+
+
+def future_cpu_proof(checkpoint):
+    return {key:state_sha(checkpoint[key])for key in ('model_state','optimizer_state','scheduler_state',
+        'rng_state','cursor','training','batch_order','optimizer_parameter_names','bindings','steps')}
+
+
+def future_cpu_publish_checkpoint(path,checkpoint,counts):
+    import torch
+    before=state_sha(future_cpu_rng());stream=io.BytesIO();torch.save(checkpoint,stream)
+    payload=stream.getvalue();stream.close();binding=publish(path,payload);counts['checkpoint_writes']+=1
+    need(ref(path)==binding,'FUTURE_CPU_CHECKPOINT_FILE_HASH')
+    loaded=torch.load(path,map_location='cpu',weights_only=True);counts['checkpoint_readbacks']+=1
+    need(state_sha(loaded)==state_sha(checkpoint),'FUTURE_CPU_CHECKPOINT_READBACK')
+    need(state_sha(future_cpu_rng())==before,'FUTURE_CPU_CHECKPOINT_RNG_MUTATION')
+    return binding
+
+
+def future_cpu_restore(model,optimizer,checkpoint,plan,plan_ref,order):
+    import torch
+    fields={'schema_version','cursor','model_state','optimizer_state','scheduler_state','rng_state','training',
+        'batch_order','optimizer_parameter_names','bindings','steps'}
+    need(type(checkpoint)is dict and set(checkpoint)==fields
+        and checkpoint['schema_version']=='gx1_native_future_state_cpu_technical_checkpoint_v1'
+        and checkpoint['cursor']==3 and checkpoint['scheduler_state']is None and checkpoint['training']is True
+        and checkpoint['batch_order']==order and len(checkpoint['steps'])==3
+        and checkpoint['optimizer_parameter_names']==[n for n,_ in model.named_parameters()]
+        and checkpoint['bindings']==future_cpu_bindings(plan,plan_ref),'FUTURE_CPU_CHECKPOINT_BINDINGS')
+    state=checkpoint['optimizer_state'];fresh=optimizer.state_dict()
+    need(type(state)is dict and set(state)=={'state','param_groups'}
+        and state['param_groups']==fresh['param_groups']and len(state['param_groups'])==1,
+        'FUTURE_CPU_OPTIMIZER_GROUPS')
+    ids=state['param_groups'][0]['params'];parameters=list(model.parameters())
+    need(len(ids)==len(parameters)and set(state['state'])<=set(ids),'FUTURE_CPU_OPTIMIZER_PARAMETER_IDS')
+    for index,item in state['state'].items():
+        p=parameters[ids.index(index)]
+        need(type(item)is dict and set(item)=={'step','exp_avg','exp_avg_sq'}
+            and all(isinstance(v,torch.Tensor)and bool(torch.isfinite(v).all())for v in item.values())
+            and item['step'].numel()==1 and 1<=float(item['step'])<=3
+            and all(item[k].shape==p.shape and item[k].dtype==p.dtype for k in ('exp_avg','exp_avg_sq')),
+            'FUTURE_CPU_OPTIMIZER_STATE')
+    previous=future_cpu_rng()
+    try:
+        future_cpu_restore_rng(checkpoint['rng_state'])
+        need(state_sha(future_cpu_rng())==state_sha(checkpoint['rng_state']),'FUTURE_CPU_RNG_ROUNDTRIP')
+    finally:future_cpu_restore_rng(previous)
+    model.load_state_dict(checkpoint['model_state'],strict=True)
+    optimizer.load_state_dict(state);model.train(True);future_cpu_restore_rng(checkpoint['rng_state'])
+    need(state_sha(model.state_dict())==state_sha(checkpoint['model_state'])
+        and state_sha(optimizer.state_dict())==state_sha(state),'FUTURE_CPU_RESTORED_STATE')
+
+
+def build_future_cpu_plan(*,inputs,source_base_commit=None):
+    parent=future_cpu_read(inputs['forward_plan'])
+    plan={'schema_version':'gx1_native_future_state_cpu_mechanics_plan_v1','stage':FUTURE_CPU_STAGE,
+        'status':'PREPARED_NOT_ADMITTED','output_root':str(FUTURE_CPU_ROOT),
+        'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
+        'source_owners':{path:sha(REPO/path)for path in FUTURE_CPU_SOURCE_PATHS},'inputs':inputs,
+        'metadata':parent['metadata'],'recipe':future_cpu_recipe(future_cpu_read(inputs['recipe_plan'])),
+        'execution':{'class':'producer','device':'cpu','memory':'12G','swap':'512M','numerical_threads':1,
+            'tasks_max':64,'outer_seconds':900,'internal_seconds':870,'kill_after_seconds':10},
+        'limits':FUTURE_CPU_LIMITS,
+        'batch_rule':'first_64_chronological_whole_TRAIN_input_rows_four_disjoint_B16_no_target_filter',
+        'diagnostic_routing':'fully_attached_only_for_this_technical_prefix_not_production_policy',
+        'whole_cohort_CPU_initialbaseline_qualified':False,'test_data_used':False}
+    future_cpu_metadata(plan)
+    return plan
+
+
+def future_cpu_physical(plan,plan_ref,root,lane):
+    import random,torch
+    from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_future_state_model
+    from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
+    context=future_cpu_load(plan);meta=plan['metadata'];counts=dict.fromkeys(FUTURE_CPU_LIMITS[lane],0)
+    torch.set_num_threads(1);random.seed(plan['recipe']['seed']);np.random.seed(plan['recipe']['seed'])
+    torch.manual_seed(plan['recipe']['seed']);torch.use_deterministic_algorithms(True)
+    model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=meta['input_binding'],
+        architecture=meta['architecture'],device=torch.device('cpu'),train_prior=context['prior'],target_contract=meta['target_contract'])
+    counts['model_constructions']+=1
+    initial_state=canonical_model_state_sha256(model.state_dict())
+    need(initial_state==context['bridge']['report']['fresh_new_full_model_state_sha256'],'FUTURE_CPU_FRESH_COMPONENT_IDENTITY')
+    options={**plan['recipe']['optimizer'],'betas':tuple(plan['recipe']['optimizer']['betas'])}
+    optimizer=torch.optim.AdamW(model.parameters(),**options);counts['optimizer_constructions']+=1
+    need(not optimizer.state,'FUTURE_CPU_FRESH_ADAMW')
+    def count(name):
+        def hook(*args):
+            counts[name]+=1;need(counts[name]<=FUTURE_CPU_LIMITS[lane][name],'FUTURE_CPU_FORWARD_BUDGET')
+        return hook
+    hooks=[model.register_forward_pre_hook(count('model_forwards')),
+           model.backbone.register_forward_pre_hook(count('backbone_forwards'))]
+    packet_before=state_sha(context['packets']);normalization_before=state_sha(context['normalization'])
+    prior_before=state_sha(context['prior']);steps=[];gradient=None;checkpoint3=None;reference=None
+    try:
+        # Every actual update is gated by this exact fresh 64-row CPU baseline.
+        initial=future_cpu_score(model,context['packets'],plan,context['prior'],initial=True)
+        need(initial['rows']==64 and len(initial['batches'])==4 and initial['initial_prior_exact']is True,
+            'FUTURE_CPU_ALL_INITIAL_BEFORE_UPDATES')
+        publish(root/'INITIAL_SCORE.json',initial)
+        if lane=='replay':
+            parent_root=FUTURE_CPU_ROOT/'continuous';terminal=future_cpu_read(ref(parent_root/'TERMINAL.json'))
+            need(terminal['status']=='COMPLETE_CONSUMED'and terminal['exit_code']==0
+                and terminal['plan']==plan_ref,'FUTURE_CPU_CONTINUOUS_COMPLETE')
+            reference=future_cpu_read(terminal['result'])
+            future_cpu_parent_stopped(reference['process_identity'])
+            need(reference['plan']==plan_ref and reference['report']['initial']==initial
+                and reference['source_unchanged']is True,'FUTURE_CPU_REPLAY_INITIAL_BINDING')
+            receipt=future_cpu_read(reference['report']['checkpoint3_receipt'])
+            need(receipt['plan']==plan_ref and receipt['cursor']==3
+                and receipt['checkpoint']['path']==str(parent_root/'CURSOR003.pt'),'FUTURE_CPU_CURSOR3_AUTHORITY')
+            need(ref(receipt['checkpoint']['path'])==receipt['checkpoint'],'FUTURE_CPU_CURSOR3_HASH')
+            checkpoint=torch.load(receipt['checkpoint']['path'],map_location='cpu',weights_only=True)
+            counts['checkpoint_loads']+=1
+            need(future_cpu_proof(checkpoint)==receipt['state_proof'],'FUTURE_CPU_CURSOR3_PROOF')
+            future_cpu_restore(model,optimizer,checkpoint,plan,plan_ref,context['order'])
+            steps=list(checkpoint['steps']);checkpoint3=reference['report']['checkpoint3_receipt']
+        for index in range(0 if lane=='continuous'else 3,4):
+            step=future_cpu_step(model,optimizer,context['packets'][index],plan,counts,index);steps.append(step)
+            if lane=='continuous'and index==0:
+                gradient=future_cpu_gradient_probe(model,context['packets'][0],plan,counts)
+            if lane=='continuous'and index==2:
+                checkpoint=future_cpu_checkpoint(model,optimizer,plan,plan_ref,context['order'],3,steps)
+                binding=future_cpu_publish_checkpoint(root/'CURSOR003.pt',checkpoint,counts)
+                checkpoint3=publish(root/'CURSOR003.json',{'plan':plan_ref,'cursor':3,'checkpoint':binding,
+                    'state_proof':future_cpu_proof(checkpoint)})
+        final=future_cpu_score(model,context['packets'],plan,context['prior'],initial=False)
+        checkpoint=future_cpu_checkpoint(model,optimizer,plan,plan_ref,context['order'],4,steps)
+        final_binding=future_cpu_publish_checkpoint(root/'FINAL_STATE.pt',checkpoint,counts)
+        proof=future_cpu_proof(checkpoint)
+        if lane=='replay':
+            need(proof==reference['report']['final_state_proof']and steps==reference['report']['steps']
+                and final==reference['report']['final'],'FUTURE_CPU_COLD_REPLAY_BIT_EXACT')
+        need(counts==FUTURE_CPU_LIMITS[lane]and state_sha(context['packets'])==packet_before
+            and state_sha(context['normalization'])==normalization_before and state_sha(context['prior'])==prior_before,
+            'FUTURE_CPU_EXACT_COUNTS_FROZEN_INPUTS')
+        return {'lane':lane,'counts':counts,'logical_updates':4,'physical_updates_this_lane':counts['optimizer_steps'],
+            'batch_order':context['order'],'initial_state_sha256':initial_state,'initial':initial,'final':final,'steps':steps,
+            'post_first_update_gradient':gradient,'checkpoint3_receipt':checkpoint3,'final_checkpoint':final_binding,
+            'final_state_proof':proof,'cold_replay_bit_exact':lane=='replay',
+            'prefix_proper_NLL_gain':initial['proper_partial_NLL']-final['proper_partial_NLL'],
+            'whole_TRAIN_prior_and_statistics':True,'small_FIT_comparison':False,
+            'whole_cohort_CPU_initialbaseline_qualified':False,'production_gradient_policy_admitted':False,
+            'CONTROL_rows':0,'TEST_rows':0,'limits':'Four distinct B16 logical TRAIN-prefix updates; replay duplicates only step4. Small matched TRAIN adaptation and raw gradients do not establish utility or optimal routing.'}
+    finally:
+        for hook in hooks:hook.remove()
+
+
+def run_future_cpu(plan_sha,lane):
+    from gx1.contracts.gx1_capped_execution_v1 import require_native_future_state_cpu_mechanics_execution,require_capped_lock_ancestry
+    began=time.monotonic();guard=require_native_future_state_cpu_mechanics_execution(plan_sha256=plan_sha,lane=lane)
+    lock=require_capped_lock_ancestry()
+    need(guard['memory_max']==guard['memory_high']==12*1024**3 and guard['swap']==512*1024**2
+        and guard['numerical_threads']==1 and lock['scope']==guard['cgroup_path'][len('/sys/fs/cgroup'):],
+        'FUTURE_CPU_GUARD')
+    plan,plan_ref,policy_ref=inspect_future_cpu(plan_sha,lane,admitted=True)
+    root=FUTURE_CPU_ROOT/lane;root.mkdir(parents=True,exist_ok=False)
+    process=future_cpu_process_identity()
+    claim=publish(root/'CLAIM.json',{'stage':FUTURE_CPU_STAGE,'plan':plan_ref,'policy_at_claim':policy_ref,
+        'lane':lane,'process_identity':process,'remaining_invocations':0,'relaunch_allowed':False})
+    previous=signal.getsignal(signal.SIGALRM);result=None
+    def expired(*args):raise TimeoutError('FUTURE_CPU_INTERNAL_870_SECONDS')
+    try:
+        remaining=870-(time.monotonic()-began);need(remaining>0,'FUTURE_CPU_TIME_BEFORE_INPUTS')
+        signal.signal(signal.SIGALRM,expired);signal.setitimer(signal.ITIMER_REAL,remaining)
+        report=future_cpu_physical(plan,plan_ref,root,lane)
+        need(all(sha(REPO/k)==v for k,v in plan['source_owners'].items())and ref(POLICY)==policy_ref
+            and ref(FUTURE_CPU_PLAN)==plan_ref,'FUTURE_CPU_SOURCE_POLICY_BOOKEND')
+        for binding in [*plan['inputs'].values(),*(plan['metadata'][k]for k in ('source_snapshot','normalization','prior','dataset','native_manifest'))]:
+            future_cpu_read(binding)
+        snapshot=future_cpu_read(plan['metadata']['source_snapshot']);data=future_cpu_read(plan['metadata']['dataset'])
+        need(ref(snapshot['archive']['path'])==snapshot['archive']and ref(data['arrays']['path'])==data['arrays'],
+            'FUTURE_CPU_PAYLOAD_BOOKEND')
+        need(common.firewall_state()['denied_attempts']==0,'FUTURE_CPU_CLEAN_FIREWALL')
+        result=publish(root/'RESULT.json',{'stage':FUTURE_CPU_STAGE,'status':'COMPLETE_TECHNICAL_PREFIX',
+            'plan':plan_ref,'claim':claim,'process_identity':process,'report':report,'guard':guard,'lock':lock,
+            'source_unchanged':True,'test_data_used':False,'elapsed_seconds':time.monotonic()-began})
+        terminal=publish(root/'TERMINAL.json',{'stage':FUTURE_CPU_STAGE,'status':'COMPLETE_CONSUMED','exit_code':0,
+            'plan':plan_ref,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False})
+        return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        publish(root/'TERMINAL.json',{'stage':FUTURE_CPU_STAGE,'status':'FAILED_CONSUMED','exit_code':1,
+            'plan':plan_ref,'claim':claim,'result':result,'error':type(error).__name__+':'+str(error)[:2000],
+            'remaining_invocations':0,'relaunch_allowed':False});raise
+    finally:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,previous)
+
+
+def future_cpu_cli():
+    parser=argparse.ArgumentParser();parser.add_argument('--native-future-state-cpu-mechanics',action='store_true',required=True)
+    parser.add_argument('--plan-sha256',required=True);parser.add_argument('--lane',choices=('continuous','replay'),required=True)
+    parser.add_argument('--preflight',action='store_true');args=parser.parse_args();common.firewall_state()
+    if args.preflight:
+        _,plan_ref,policy_ref=inspect_future_cpu(args.plan_sha256,args.lane,admitted=False)
+        print(json.dumps({'status':'PREFLIGHT_FUTURE_STATE_CPU_MECHANICS_METADATA_ONLY','plan':plan_ref,
+            'policy':policy_ref,'lane':args.lane,'model_constructions':0,'optimizer_steps':0,'claim_created':False}))
+    else:print(json.dumps(run_future_cpu(args.plan_sha256,args.lane),sort_keys=True))
+
+
+if __name__=='__main__':
+    import sys
+    if '--native-future-state-cpu-mechanics'in sys.argv:future_cpu_cli()
+    else:main()

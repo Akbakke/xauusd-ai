@@ -562,6 +562,43 @@ def require_capped_cpu_research_producer_execution(
     }
 
 
+
+def require_native_future_state_cpu_mechanics_execution(
+    *,
+    plan_sha256: str,
+    lane: str,
+    environ: Mapping[str, str] | None = None,
+    read_text: Callable[[Path], str] | None = None,
+) -> dict[str, Any]:
+    """Exact private CPU technical mode, never general native training authority.
+
+    The canonical qualifier additionally verifies its frozen recipe, source,
+    target/head/prior identities and one-use policy before any optimizer work.
+    The runner authenticates only the fixed plan path, SHA, CLI and lane, then
+    enforces the existing CPU scope plus a 900-second hard process deadline.
+    """
+    env = os.environ if environ is None else environ
+    if not isinstance(plan_sha256, str) or re.fullmatch(r"[0-9a-f]{64}", plan_sha256) is None:
+        raise RuntimeError("[GX1_NATIVE_CPU_MECHANICS_PLAN_SHA256_INVALID]")
+    if lane not in ("continuous", "replay") or type(lane) is not str:
+        raise RuntimeError("[GX1_NATIVE_CPU_MECHANICS_LANE_INVALID]")
+    expected = {
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS": "true",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256": plan_sha256,
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE": lane,
+    }
+    for name, value in expected.items():
+        if env.get(name) != value:
+            raise RuntimeError(f"[GX1_NATIVE_CPU_MECHANICS_{name}_INVALID]")
+    proof = require_capped_cpu_research_producer_execution(environ=env, read_text=read_text)
+    plan_path = Path(__file__).resolve().parents[2] / (
+        "configs/research/NATIVE_M5_FUTURE_STATE_CPU_MECHANICS_20261121_001.json"
+    )
+    return {**proof, "execution_mode": "native_future_state_cpu_mechanics",
+            "technical_only": True, "plan": {"path": str(plan_path), "sha256": plan_sha256},
+            "lane": lane, "outer_seconds": 900, "kill_after_seconds": 10}
+
+
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")
     operation = parser.add_mutually_exclusive_group(required=True)

@@ -80,6 +80,10 @@ POWER_BENCHMARK_SCOPE_SHA256=
 # 160 W physical limit, a separate actual-draw stop, and a narrow CPU set. Any
 # later change requires a reviewed commit and a fresh source-bound recipe.
 TRAINER_EXECUTION_MODE=canonical
+# Private four-step native CPU mechanics is a separate exact technical route.
+NATIVE_FUTURE_STATE_CPU_MECHANICS=false
+NATIVE_FUTURE_STATE_CPU_MECHANICS_SHA256=
+NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE=
 TRAINER_MAX_WALL_SECONDS=7200
 TRAINER_MODEL_MAX_WALL_SECONDS=7200
 TRAINER_ATTENDED_STAGE_REQUIRED=false
@@ -698,9 +702,27 @@ matches_bound_ta_m5_projected_h4_line() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
+matches_bound_native_future_state_cpu_mechanics() {
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_M5_FUTURE_STATE_CPU_MECHANICS_20261121_001.json"
+  if [[ $# -eq 9 ]]; then
+    [[ "${9}" == --preflight ]] || return 1
+    set -- "${@:1:8}"
+  fi
+  [[ $# -eq 8 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$NATIVE_M5_FULL_GC_FIT_TRAINER_MODULE" \
+    && "$4" == --native-future-state-cpu-mechanics \
+    && "$5" == --plan-sha256 && "$6" =~ ^[0-9a-f]{64}$ \
+    && "$7" == --lane && ( "$8" == continuous || "$8" == replay ) ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$6" ]]
+}
+
 validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
   local trainer_reference=false hardware_smoke_reference=false h4_line_reference=false
+  local native_cpu_mechanics_reference=false
   local trainer_flag_count=0 trainer_device_count=0 hardware_smoke_flag_count=0
   local profile_count=0 execution_tier_count=0 out_bundle_dir_count=0 out_dir_count=0
   local checkpoint_dir_count=0 launch_manifest_count=0 stage_count=0 arm_batch_size_count=0
@@ -726,10 +748,26 @@ validate_target_command() {
     if [[ "$target_arg" == *"$TA_M5_PROJECTED_H4_LINE_AUDIT_MODULE"* ]]; then
       h4_line_reference=true
     fi
+    if [[ "$target_arg" == *--native-future-state-cpu-mechanics* ]]; then
+      native_cpu_mechanics_reference=true
+    fi
     if [[ "$target_arg" == "--train" ]]; then
       trainer_flag_count=$((trainer_flag_count + 1))
     fi
   done
+
+  if [[ "$native_cpu_mechanics_reference" == true ]]; then
+    if [[ "$JOB_CLASS" != producer || "$ATTENDED_SMOKE" != false \
+      || "$CUDA_PRODUCER_GUARD" != false || "$MEM" != 12G || "$SWAP" != 512M ]] \
+      || ! matches_bound_native_future_state_cpu_mechanics "$@"; then
+      echo "FATAL: native future-state CPU mechanics is not exactly bound" >&2
+      exit 75
+    fi
+    NATIVE_FUTURE_STATE_CPU_MECHANICS=true
+    NATIVE_FUTURE_STATE_CPU_MECHANICS_SHA256="${6}"
+    NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE="${8}"
+    return
+  fi
 
   if [[ "$JOB_CLASS" == "audit" || "$JOB_CLASS" == "producer" ]]; then
     if [[ "$trainer_reference" == true ]]; then
@@ -1533,6 +1571,15 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
   if [[ "$JOB_CLASS" == trainer || "$CUDA_PRODUCER_GUARD" == true ]]; then
     exec "$GPU_GUARD_PATH" "$@"
   fi
+  if [[ "$NATIVE_FUTURE_STATE_CPU_MECHANICS" == true ]]; then
+    [[ "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-}" == true \
+      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256:-}" == "$NATIVE_FUTURE_STATE_CPU_MECHANICS_SHA256" \
+      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE:-}" == "$NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE" ]] || {
+      echo "FATAL: nested native CPU mechanics differs from protected parent mode" >&2
+      exit 75
+    }
+    exec /usr/bin/timeout --signal=TERM --kill-after=10s 900s "$@"
+  fi
   exec "$@"
 fi
 host_total_kib=$(awk '/^MemTotal:/ {print $2; exit}' /proc/meminfo)
@@ -1695,6 +1742,10 @@ if [[ "$GX1_CAPPED_CLASS" == trainer || "$GX1_CUDA_PRODUCER_GUARD" == true ]]; t
   fi
   exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 3 /usr/bin/nice -n 10 "$GX1_GPU_GUARD_PATH" "$@"
 fi
+if [[ "$GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS" == true ]]; then
+  exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 3 /usr/bin/nice -n 10 \
+    /usr/bin/timeout --signal=TERM --kill-after=10s 900s "$@"
+fi
 if [[ "$GX1_H4_LINE_AUDIT_GUARD" == true ]]; then
   exec /usr/bin/taskset -c "$verified_cpu_affinity" /usr/bin/ionice -c 3 /usr/bin/nice -n 10 \
     /usr/bin/timeout --signal=TERM --kill-after=10s 1800s "$@"
@@ -1709,6 +1760,9 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_EXPECTED_TASKS="$TASKS_MAX" \
   --setenv=GX1_CPU_AFFINITY="$CPU_AFFINITY" \
   --setenv=GX1_CAPPED_CLASS="$JOB_CLASS" \
+  --setenv=GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS="$NATIVE_FUTURE_STATE_CPU_MECHANICS" \
+  --setenv=GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256="$NATIVE_FUTURE_STATE_CPU_MECHANICS_SHA256" \
+  --setenv=GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE="$NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE" \
   --setenv=GX1_POWER_BENCHMARK_SCOPE_JSON="$POWER_BENCHMARK_SCOPE_JSON" \
   --setenv=GX1_POWER_BENCHMARK_SCOPE_SHA256="$POWER_BENCHMARK_SCOPE_SHA256" \
   --setenv=GX1_CAPPED_MEMORY_BYTES="$((requested_mem_kib * 1024))" \
