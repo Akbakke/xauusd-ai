@@ -655,7 +655,9 @@ forbudt og kan ikke gjenåpnes av historiske moduler på disk.
 25. **Gate-grønt er ikke kvalitets-grønt.** Svar i tre klasser: *målt* (tall, populasjon,
     dato), *bevist konsistent* (sier ingenting om kvalitet) og *ikke undersøkt* (oppgis
     uoppfordret). Kjør dyprevisjonen før du påstår noe, sveip en funnet defektklasse over alle
-    eiere i samme bølge, og dokumenter hva som ble og ikke ble verifisert.
+    eiere i samme bølge, og dokumenter hva som ble og ikke ble verifisert. Operatøren
+    presiserte21.11 at hver kodeendring alltid skal følges av feilsøking også i
+    direkte tilknyttede oppstrøms-/nedstrømseiere, ikke bare den endrede funksjonen.
 
 26. **Gjeldende M5/MTF-læringsport.** Fall i samlet treningstap over ulike
     kronologiske batcher er ikke bevist retningslæring. Sammenlign S/F-side på

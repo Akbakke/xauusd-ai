@@ -1579,6 +1579,55 @@ def test_cot_delayed_publication_does_not_use_future_shutdown_reports(tmp_path):
         ta.parse_cot_gold_archives({'cot': cot, 'test_seal_utc': '2026-07-01T00:00:00Z'})
 
 
+@pytest.mark.parametrize('as_of,publication_date_ny,expected_available', [
+    ('2020-12-21', '2020-12-28', '2020-12-29T05:00:00Z'),
+    ('2023-01-31', '2023-02-24', '2023-02-25T05:00:00Z'),
+    ('2023-02-07', '2023-03-03', '2023-03-04T05:00:00Z'),
+    ('2023-02-14', '2023-03-08', '2023-03-09T05:00:00Z'),
+    ('2023-02-21', '2023-03-10', '2023-03-11T05:00:00Z'),
+    ('2023-02-28', '2023-03-14', '2023-03-15T04:00:00Z'),
+    ('2023-03-07', '2023-03-16', '2023-03-17T04:00:00Z'),
+    ('2023-03-14', '2023-03-21', '2023-03-22T04:00:00Z'),
+])
+def test_cot_documented_2020_2023_delays_use_ny_date_end_strictly(
+        tmp_path, as_of, publication_date_ny, expected_available):
+    calendar = Path(__file__).resolve().parents[1] / 'configs/research/CFTC_COT_PUBLICATION_CLOCK_20261018_001.json'
+    bound = json.loads(calendar.read_text())
+    assert {'as_of': as_of, 'publication_date_ny': publication_date_ny} in bound['rows']
+    rows = [{'as_of': as_of, 'code': '088691', 'oi': 100, 'ncl': 60, 'ncs': 20,
+             'ncsp': 5, 'cl': 10, 'cs': 50}]
+    cot = _swing_cot_zip(tmp_path, rows)
+    cot['publication_clock'] = {'path': str(calendar), 'sha256': ta.sha(calendar)}
+    result = ta.parse_cot_gold_archives({'cot': cot, 'test_seal_utc': '2026-07-01T00:00:00Z'})
+    available = pd.Timestamp(expected_available)
+    old_lag = pd.Timestamp(as_of, tz='UTC') + pd.Timedelta(days=7)
+    assert available > old_lag and result.available_at.iloc[0] == available
+    # Includes the UTC/NY day mismatch in2020 and both sides of the March2023 DST transition.
+    decisions = pd.DatetimeIndex([old_lag, available - pd.Timedelta(nanoseconds=1),
+                                  available, available + pd.Timedelta(nanoseconds=1)])
+    aligned = ta.align_asof(decisions, result['available_at'],
+                           result[['cot_noncommercial_net_over_oi']], inclusive=False)
+    assert aligned.iloc[:3, 0].isna().all()
+    assert aligned.iloc[3, 0] == 0.4
+
+
+def test_cot_publication_calendar_retains_all_2025_exceptions():
+    calendar = Path(__file__).resolve().parents[1] / 'configs/research/CFTC_COT_PUBLICATION_CLOCK_20261018_001.json'
+    rows = json.loads(calendar.read_text())['rows']
+    previous_2025 = [
+        ('2025-09-30', '2025-11-19'), ('2025-10-07', '2025-11-21'),
+        ('2025-10-14', '2025-11-25'), ('2025-10-21', '2025-12-02'),
+        ('2025-10-28', '2025-12-05'), ('2025-11-04', '2025-12-09'),
+        ('2025-11-10', '2025-12-10'), ('2025-11-18', '2025-12-12'),
+        ('2025-11-25', '2025-12-15'), ('2025-12-02', '2025-12-17'),
+        ('2025-12-09', '2025-12-19'), ('2025-12-16', '2025-12-23'),
+        ('2025-12-23', '2025-12-29'),
+    ]
+    assert len(rows) == 21
+    assert [r['as_of'] for r in rows] == sorted({r['as_of'] for r in rows})
+    assert rows[8:] == [{'as_of': a, 'publication_date_ny': p} for a, p in previous_2025]
+
+
 @pytest.mark.parametrize('journal',(False,True))
 def test_oanda_panel_filters_strict_read_end_before_price_validation_and_resampling(tmp_path,monkeypatch,journal):
     seal=pd.Timestamp('2024-05-01T22:00Z')

@@ -632,8 +632,28 @@ class NativeFutureStateReadout(nn.Module):
             for task, heads in (('activity', self.activity_heads), ('side', self.side_heads))}
 
 
-def native_future_state_model_contract(input_binding, *, architecture, train_prior, target_contract):
-    """Full native forward identity; no gradient-routing or fit admission."""
+def native_future_state_backbone_gradient_policy_contract(policy):
+    """Explicit M5 state reference; no production routing selection or fit authority."""
+    _need(type(policy) is str and policy == 'M5_primary', 'FUTURE_BACKBONE_GRADIENT_POLICY')
+    return _seal_native({
+        'schema_version': 'gx1_native_future_state_backbone_gradient_policy_v1',
+        'policy': policy,
+        'attached_heads': ['activity.M5', 'side.M5'],
+        'detached_heads': [task + '.' + tf for task in ('activity', 'side')
+                           for tf in TIMEFRAMES if tf != 'M5'],
+        'operation': 'detach_auxiliary_TF_hidden_before_readout_only',
+        'forward_values_unchanged': True,
+        'all_timeframe_inputs_retained': True,
+        'all_readout_parameters_attached': True,
+        'task_weights_changed': False,
+        'role': 'M5_primary_reference_not_production_policy_selection',
+        'production_training_admitted': False,
+    })
+
+
+def native_future_state_model_contract(input_binding, *, architecture, train_prior, target_contract,
+                                       backbone_gradient_policy=None):
+    """Full native forward identity; fit admission remains separate."""
     from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import CtxModelConfig
     from gx1.contracts.market_state_native_m5_targets_v1 import require_fully_future_state_contract
     from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_future_state_train_prior
@@ -654,7 +674,7 @@ def native_future_state_model_contract(input_binding, *, architecture, train_pri
     width = CtxModelConfig.__dataclass_fields__['d_model'].default
     readout = native_future_state_readout_contract(d_model=width,
         target_contract=target, train_prior=prior)
-    return _seal_native({
+    value = {
         'schema_version': 'gx1_native_future_state_forward_model_v1',
         'role': 'native_forward_qualification_only_no_fit_or_trade_authority',
         'input_binding_sha256': binding['contract_sha256'],
@@ -673,19 +693,25 @@ def native_future_state_model_contract(input_binding, *, architecture, train_pri
         'nonparameter_checkpoint_state': 'immutable_exact_match_before_any_parameter_copy',
         'gradient_routing_and_task_weights': 'unqualified_requires_separate_admission',
         'production_training_admitted': False,
-    })
+    }
+    if backbone_gradient_policy is not None:
+        value['backbone_gradient_policy'] = native_future_state_backbone_gradient_policy_contract(
+            backbone_gradient_policy)
+    return _seal_native(value)
 
 
 class NativeFutureStateModel(nn.Module):
     """One genuine native encode followed by the independent state readout."""
 
-    def __init__(self, backbone, *, input_binding, architecture, train_prior, target_contract):
+    def __init__(self, backbone, *, input_binding, architecture, train_prior, target_contract,
+                 backbone_gradient_policy=None):
         super().__init__()
         from gx1.contracts.market_state_native_m5_targets_v1 import require_fully_future_state_contract
         from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_future_state_train_prior
         _need(type(backbone) is EntryV10CtxHybridTransformer, 'FUTURE_MODEL_BACKBONE_TYPE')
         self.input_binding = require_native_bar_input_binding(input_binding)
         self._architecture = json.loads(json.dumps(architecture))
+        self._backbone_gradient_policy = backbone_gradient_policy
         self._target_contract = require_fully_future_state_contract(target_contract)
         self._train_prior = require_native_future_state_train_prior(train_prior,
             target_contract=self._target_contract)
@@ -704,7 +730,8 @@ class NativeFutureStateModel(nn.Module):
     def research_objective(self):
         return native_future_state_model_contract(self.input_binding,
             architecture=self._architecture, train_prior=self._train_prior,
-            target_contract=self._target_contract)
+            target_contract=self._target_contract,
+            backbone_gradient_policy=self._backbone_gradient_policy)
 
     def _require_binding(self):
         binding = require_native_bar_input_binding(self.input_binding)
@@ -769,16 +796,20 @@ class NativeFutureStateModel(nn.Module):
         hidden = output['entry_q_timeframe_hidden']
         _need(isinstance(hidden, torch.Tensor) and hidden.shape[0] == features['seq_x'].shape[0],
               'FUTURE_MODEL_HIDDEN_ROWS')
+        if self._backbone_gradient_policy is not None:
+            hidden = torch.cat((hidden[:, :1], hidden[:, 1:].detach()), dim=1)
         return self.readout(hidden)
 
 
 def build_native_future_state_model(*, input_normalization, input_binding, architecture,
-                                    device, train_prior, target_contract):
+                                    device, train_prior, target_contract, backbone_gradient_policy=None):
     """Fresh body from the existing factory; never construct unused raw heads."""
     native_future_state_model_contract(input_binding, architecture=architecture,
-        train_prior=train_prior, target_contract=target_contract)
+        train_prior=train_prior, target_contract=target_contract,
+        backbone_gradient_policy=backbone_gradient_policy)
     backbone = build_native_bar_direction_model(input_normalization=input_normalization,
         input_binding=input_binding, architecture=architecture, device=device,
         return_backbone_only=True)
     return NativeFutureStateModel(backbone, input_binding=input_binding,
-        architecture=architecture, train_prior=train_prior, target_contract=target_contract).to(device)
+        architecture=architecture, train_prior=train_prior, target_contract=target_contract,
+        backbone_gradient_policy=backbone_gradient_policy).to(device)

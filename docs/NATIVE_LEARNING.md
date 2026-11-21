@@ -131,6 +131,23 @@ Endret funksjon krever fersk helkohort-baseline og kaldt optimizerreplay før
 hovedfit; en begrenset forwardkontroll er ikke denne treningskvalifiseringen.
 Ingen ny gradientruting/vekt eller fit innrømmes av mål-/outputkontrakten.
 
+Den eksplisitte opt-in-referansen `backbone_gradient_policy='M5_primary'`
+fører både M5-aktivitet og M5-side tilbake til den delte representasjonen.
+Høyere TF-hidden løsnes bare før egne readouts; alle deres inputstrømmer og
+hoder beholdes. DefaultNone er fullt koblet. Policyen bindes i fullmodellens
+identitet, og cross-policy-restore avvises før parameterkopiering. Korrekt
+ruting er ingen produksjonsvinner; sammenligningen må bruke samme input, initial,
+prior, mål, masker og budsjett uten CONTROL-basert valg.
+
+En rettet makropubliseringsklokke krever ny kilde-/makro-/provider-/aksebinding.
+Ved en dokumentert COT-klokkerettelse kan eksisterende native TA-/TF-arrays
+gjenbrukes byteeksakt. Rematerialiser hele61felts F64-makroflaten fra de samme
+bundne kildene; F32-cache kan ikke rekonstruere det gamle F64-bindingstallet.
+Krev57uendrede makrofelt og bare4endrede COT-kolonner/aliaser/masker, deretter
+full immutable publisering/reload. Normalisering refittes av eksisterende
+whole-TRAIN-eier; fire løse konstantpatcher beviser ikke support, extrema eller
+statistikkbinding. Gamle input/checkpoint-bevis beholder sitt tidligere omfang.
+
 En teknisk optimizerprøve med whole-TRAIN-statistikk/prior er et avgrenset
 prefiks av denne trajektorien, ikke en uavhengig liten FIT-sammenligning.
 Målmasker velger ikke inputrader. Nullstilte hodevekter gir null initial

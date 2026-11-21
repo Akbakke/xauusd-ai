@@ -2,6 +2,7 @@
 import copy
 import io
 import json
+from pathlib import Path
 from types import SimpleNamespace
 import numpy as np
 import pandas as pd
@@ -384,3 +385,223 @@ def test_overlap_uses_shared_global_rows_and_checks_old_clock_prefix_after_appen
     candidate.bar_start_ns=candidate.bar_start_ns.copy();candidate.bar_start_ns[0]+=features.BAR_NS
     with pytest.raises(ValueError,match='OVERLAP_EXACT:bar_start_ns'):
         cache.overlap_parity(candidate,snapshot,saved['archive'])
+
+
+# Only synthetic arrays/JSON below; the correction never invokes the old TA build.
+def _cot_fixture():
+    from gx1.features import d1_macro_context_v1 as macro
+    provider=_provider();surfaces=dict(provider.surfaces)
+    times=pd.to_datetime(provider.bar_start_ns[provider.retained_source_rows]+features.BAR_NS,utc=True)
+    frame=pd.DataFrame({name:np.ones(len(times),np.float64)for name in macro.D1_MACRO_CONTEXT_FIELDS})
+    frame.insert(0,'decision_time',times)
+    spec={'cot':{'publication_clock':dict(cache.COT_LEGACY_CLOCK)},'oanda_panel':{},'drivers':{},
+        'test_seal_utc':'2026-07-01T00:00:00Z'}
+    current=features.native_m5_feature_provider_contract();legacy=cache.cot_legacy_provider(current)
+    binding=macro.d1_macro_context_binding(spec,frame);binding['contract']=legacy['macro_contract']
+    binding['binding_sha256']=features._sha({k:v for k,v in binding.items()if k!='binding_sha256'})
+    axes={k:v for k,v in surfaces['axes'].items()if k!='contract_sha256'}
+    axes['macro_binding_sha256']=binding['binding_sha256']
+    surfaces.update(provider_contract=legacy,macro_binding=binding,axes=features._seal(axes))
+    return surfaces,frame,spec,{'legacy_provider_contract':legacy,'feature_contract':current}
+
+
+def _cot_specs():
+    old={'cot':{'publication_clock':dict(cache.COT_LEGACY_CLOCK),'result':{'same':'source'},'availability_lag_days':7},
+        'oanda_panel':{'same':1},'drivers':{'same':2}}
+    new=copy.deepcopy(old);new['cot']['publication_clock']['sha256']='1'*64
+    clock={'schema_version':'gx1_cftc_cot_delayed_publication_clock_v1',
+        'rows':[{'as_of':'2025-10-07','publication_date_ny':'2025-11-19'}]}
+    corrected=copy.deepcopy(clock);corrected['rows'].append({'as_of':'2023-01-31','publication_date_ny':'2023-02-24'})
+    return old,new,clock,corrected
+
+
+def test_cot_publication_correction_accepts_only_calendar_and_derived_contract_change():
+    old,new,clock,corrected=_cot_specs()
+    cache.cot_spec_transition(old,new,clock,corrected)
+    for branch in ('cot','oanda_panel','drivers'):
+        bad=copy.deepcopy(new);bad[branch]['unrelated']='changed'
+        with pytest.raises(ValueError,match='ONLY_CLOCK_SOURCE_CHANGE'):
+            cache.cot_spec_transition(old,bad,clock,corrected)
+    bad=copy.deepcopy(corrected);bad['rows'].append(bad['rows'][0])
+    with pytest.raises(ValueError,match='CLOCK_DUPLICATE'):cache.cot_spec_transition(old,new,clock,bad)
+    bad=copy.deepcopy(corrected);bad['rows'][0]['publication_date_ny']='2025-10-01'
+    with pytest.raises(ValueError,match='CLOCK_EXTENSION'):cache.cot_spec_transition(old,new,clock,bad)
+    current=features.native_m5_feature_provider_contract();legacy=cache.cot_legacy_provider(current)
+    assert legacy['macro_contract']['source_spec']==cache.COT_LEGACY_SPEC
+    assert {k:v for k,v in legacy.items()if k not in ('macro_contract','contract_sha256')}=={
+        k:v for k,v in current.items()if k not in ('macro_contract','contract_sha256')}
+
+
+@pytest.mark.parametrize('suffix',['.pt','.npz','.parquet'])
+def test_cot_publication_correction_json_preflight_never_hashes_payload(suffix,monkeypatch):
+    def forbidden(*args,**kwargs):pytest.fail('payload hash/read before admission')
+    monkeypatch.setattr(cache,'read',forbidden);monkeypatch.setattr(cache,'ref',forbidden)
+    binding={'path':'/unit/input'+suffix,'sha256':'1'*64}
+    with pytest.raises(ValueError,match='JSON_ONLY'):cache.cot_read(binding)
+    with pytest.raises(ValueError,match='JSON_ONLY'):cache.cot_json_ref(binding['path'])
+
+
+def test_cot_publication_correction_wrong_legacy_hash_fails_before_decode(monkeypatch):
+    monkeypatch.setattr(cache.subprocess,'check_output',lambda *a,**k:b'{}')
+    with pytest.raises(ValueError,match='LEGACY_JSON_HASH'):cache.cot_git_json(cache.COT_LEGACY_SPEC)
+
+
+def test_cot_publication_correction_invalid_inventory_never_hashes_named_payload(tmp_path,monkeypatch):
+    monkeypatch.setattr(cache,'COT_ROOT',tmp_path/'absent')
+    plan={'source_owners':{**{name:'1'*64 for name in cache.COT_SOURCE_PATHS},'/unit/weights.pt':'2'*64}}
+    monkeypatch.setattr(cache,'cot_read',lambda *a:plan)
+    monkeypatch.setattr(cache,'sha',lambda *a:pytest.fail('unvalidated inventory was hashed'))
+    with pytest.raises(ValueError,match='SOURCE_SET'):cache.cot_inspect('1'*64,admitted=False)
+
+
+def test_cot_publication_correction_alias_mask_axis_and_four_column_scope():
+    surfaces,frame,spec,metadata=_cot_fixture()
+    original_signal=surfaces['signal'].copy();original_ctx=surfaces['ctx_cont'].copy()
+    frame.loc[100,cache.COT_FIELDS[0]]=np.nan
+    frame.loc[110,cache.COT_FIELDS[1]]=np.float64(3.141592653589793)
+    provider,report=cache.cot_replace_surfaces(surfaces,frame,spec,metadata)
+    fields=provider.profile['physical_field_names']
+    for name in cache.COT_FIELDS:
+        si=fields['signal'].index('ctx_cont.'+name);ci=fields['ctx_cont'].index(name)
+        np.testing.assert_array_equal(provider.surfaces['signal'][:,si],provider.surfaces['ctx_cont'][:,ci])
+    np.testing.assert_array_equal(provider.surfaces['observed'],np.isfinite(provider.surfaces['signal']))
+    np.testing.assert_array_equal(original_signal,surfaces['signal']);np.testing.assert_array_equal(original_ctx,surfaces['ctx_cont'])
+    assert report['canonical_F64_macro_fields']==61 and report['unchanged_F32_macro_fields']==57
+    assert report['changed_fields'][cache.COT_FIELDS[0]]['changed_rows']==1
+    assert provider.source_axes_sha256!=surfaces['axes']['contract_sha256']
+    assert provider.surfaces['axes']['retained_timeframes']==surfaces['axes']['retained_timeframes']
+    assert provider.surfaces['field_lineage']==surfaces['field_lineage']
+    assert provider.surfaces['macro_binding']['decision_clock_sha256']==surfaces['macro_binding']['decision_clock_sha256']
+    assert not provider.input_ready[100] and provider.input_ready[99]
+
+
+@pytest.mark.parametrize('fault',['noncot','axis','alias','observed','provider'])
+def test_cot_publication_correction_rejects_scope_and_legacy_corruption(fault):
+    surfaces,frame,spec,metadata=_cot_fixture()
+    expected={'noncot':'NONCOT57_PARITY','axis':'MACRO_AXIS','alias':'LEGACY_ALIASES_MASK',
+        'observed':'LEGACY_ALIASES_MASK','provider':'LEGACY_PROVIDER_TRANSITION'}[fault]
+    if fault=='noncot':frame.loc[0,'real10y_level']=123.
+    if fault=='axis':frame.loc[0,'decision_time']+=pd.Timedelta(minutes=5)
+    if fault=='alias':
+        value=surfaces['ctx_cont'].copy();value[0,0]=999;surfaces['ctx_cont']=value
+    if fault=='observed':
+        value=surfaces['observed'].copy();value[0,0]=False;surfaces['observed']=value
+    if fault=='provider':
+        surfaces['provider_contract']=copy.deepcopy(surfaces['provider_contract']);surfaces['provider_contract']['window_rows']['M5']+=1
+    with pytest.raises(ValueError,match=expected):cache.cot_replace_surfaces(surfaces,frame,spec,metadata)
+
+
+def test_cot_publication_correction_private_legacy_decode_then_current_reload(tmp_path):
+    surfaces,frame,spec,metadata=_cot_fixture();old=_publisher(tmp_path/'legacy')
+    snapshot=cache.owner.publish_feature_snapshot(SimpleNamespace(surfaces=surfaces),publish_artifact=old)
+    with pytest.raises(RuntimeError,match='PROVIDER_IDENTITY'):cache.load_snapshot(snapshot)
+    decoded=cache._decode_snapshot_surfaces(snapshot)
+    frame.loc[100,cache.COT_FIELDS[0]]=2.
+    provider,_=cache.cot_replace_surfaces(decoded,frame,spec,metadata)
+    preserved=cache.cot_array_parity(provider.surfaces,cache.read(snapshot));assert len(preserved)==24
+    new=cache.owner.publish_feature_snapshot(provider,publish_artifact=_publisher(tmp_path/'current'))
+    reloaded=cache.load_snapshot(new)
+    assert cache.cot_array_parity(reloaded.surfaces,cache.read(snapshot))==preserved
+    corrupted=dict(reloaded.surfaces);corrupted['ctx_cat']=reloaded.surfaces['ctx_cat'].copy()
+    corrupted['ctx_cat'][0,0]+=1
+    with pytest.raises(ValueError,match='PRESERVED_ARRAY:ctx_cat'):cache.cot_array_parity(corrupted,cache.read(snapshot))
+
+
+def test_cot_publication_correction_preflight_closed_gate_is_json_only(tmp_path,monkeypatch):
+    monkeypatch.setattr(cache,'COT_ROOT',tmp_path/'absent')
+    plan={'source_owners':{name:'1'*64 for name in cache.COT_SOURCE_PATHS},'source_base_commit':'unit'}
+    pr={'path':str(cache.COT_PLAN),'sha256':'1'*64};policy_ref={'path':str(cache.POLICY),'sha256':'2'*64}
+    gate={'plan':pr,'output_root':str(cache.COT_ROOT),'execution':cache.COT_EXECUTION,'limits':cache.COT_COUNTS,
+        'max_invocations':1,'claimed_invocations':0,'completed_invocations':0,'remaining_invocations':0,
+        'relaunch_allowed':False,'training_authorized':False,'test_authorized':False,
+        'status':'PREPARED_NOT_ADMITTED','execution_authorized':False}
+    policy={key:False for key in cache.owner.data.CLOSED_FLAGS}
+    policy[cache.COT_PARENT]={'goal_status':'ACTIVE','large_training_qualified':False,cache.COT_GATE:gate}
+    monkeypatch.setattr(cache,'cot_read',lambda binding:plan if binding==pr else policy)
+    monkeypatch.setattr(cache,'cot_json_ref',lambda path:policy_ref)
+    monkeypatch.setattr(cache,'cot_build_plan',lambda **kwargs:plan);monkeypatch.setattr(cache,'cot_source_clean',lambda p:True)
+    calls=[];monkeypatch.setattr(cache,'cot_checked_inputs',lambda p,**kw:calls.append(kw))
+    assert cache.cot_inspect('1'*64,admitted=False)[0]is plan and calls==[{'payloads':False}]
+    policy['training_enabled']=True
+    with pytest.raises(ValueError,match='CLOSED_POLICY'):cache.cot_inspect('1'*64,admitted=False)
+    assert not cache.COT_ROOT.exists()
+
+
+def test_cot_publication_correction_consumed_failure_and_success_receipts(tmp_path,monkeypatch):
+    root=tmp_path/'failure';monkeypatch.setattr(cache,'COT_ROOT',root)
+    monkeypatch.setattr(cache.owner,'require_capped_cpu_research_producer_execution',lambda:{'unit':'exact_guard'})
+    monkeypatch.setattr(cache,'cot_timeout_ancestry',lambda sha:{'outer_seconds':900,'kill_after_seconds':10})
+    def blocked(*a,**k):raise ValueError('preclaim gate')
+    monkeypatch.setattr(cache,'cot_inspect',blocked)
+    with pytest.raises(ValueError,match='preclaim gate'):cache.cot_run('1'*64)
+    assert not root.exists()
+    pr={'path':'/unit/plan.json','sha256':'1'*64};policy={'path':'/unit/policy.json','sha256':'2'*64}
+    monkeypatch.setattr(cache,'cot_inspect',lambda *a,**k:({},pr,policy))
+    monkeypatch.setattr(cache,'cot_bookend',lambda *a:True)
+    def fail(*a,**k):raise ValueError('synthetic parity failure')
+    monkeypatch.setattr(cache,'cot_produce',fail)
+    with pytest.raises(ValueError,match='synthetic parity failure'):cache.cot_run('1'*64)
+    terminal=json.loads((root/'TERMINAL.json').read_text())
+    assert terminal['status']=='FAILED_CONSUMED'and terminal['result']is None
+    assert terminal['source_unchanged']is True and terminal['test_data_used']is False
+    assert terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False
+    assert terminal['claim']['path']==str(root/'CLAIM.json')
+    assert cache.signal.getitimer(cache.signal.ITIMER_REAL)==(0.,0.)
+    monkeypatch.setattr(cache,'COT_ROOT',tmp_path/'success')
+    monkeypatch.setattr(cache,'cot_produce',lambda p:{'actual_counts':dict(cache.COT_COUNTS)})
+    monkeypatch.setattr(cache,'cot_checked_inputs',lambda *a,**k:None)
+    refs=cache.cot_run('1'*64);result=json.loads(Path(refs['result']['path']).read_text())
+    terminal=json.loads(Path(refs['terminal']['path']).read_text())
+    assert result['actual_counts']==cache.COT_COUNTS and result['training_authorized']is False
+    assert terminal['result']==refs['result']and terminal['source_unchanged']is True
+    assert terminal['status']=='COMPLETE'and terminal['exit_code']==0
+
+
+def test_cot_publication_correction_cli_is_fixed_and_does_not_reopen_old_plan(monkeypatch):
+    calls=[];monkeypatch.setattr(cache,'cot_inspect',lambda *a,**kw:(calls.append((a,kw))or({}, {}, {})))
+    cache.cot_main(['--cot-publication-correction','--plan-sha256','1'*64,'--preflight'])
+    assert calls==[(('1'*64,),{'admitted':False})]
+    with pytest.raises(ValueError,match='COT_EXACT_CLI'):cache.cot_main(['--cot-publication-correction','--plan','/wrong','--plan-sha256','1'*64])
+    assert cache.COT_EXECUTION['internal_seconds']==870 and cache.COT_EXECUTION['outer_seconds']==900
+    assert cache.COT_COUNTS['normalization_fits']==cache.COT_COUNTS['TA_rebuilds']==cache.COT_COUNTS['target_values_decoded']==0
+
+
+@pytest.mark.parametrize('fault',[None,'kill','sha','python','missing'])
+def test_cot_publication_correction_requires_exact_outer_timeout(fault,monkeypatch):
+    argv=['timeout','--kill-after=10s','900s','.venv/bin/python','-m',cache.COT_MODULE,
+        '--cot-publication-correction','--plan-sha256','1'*64]
+    if fault=='kill':argv[1]='--kill-after=60s'
+    if fault=='sha':argv[-1]='2'*64
+    if fault=='python':argv[3]='/unbound/python'
+    if fault=='missing':argv=['bash']
+    monkeypatch.setattr(cache.os,'getppid',lambda:123)
+    monkeypatch.setattr(cache.Path,'read_bytes',lambda self:('\0'.join(argv)+'\0').encode())
+    monkeypatch.setattr(cache.Path,'read_text',lambda self,*a,**k:'PPid:\t0\n')
+    if fault:
+        with pytest.raises(ValueError,match='COT_.*TIMEOUT'):cache.cot_timeout_ancestry('1'*64)
+    else:
+        assert cache.cot_timeout_ancestry('1'*64)=={'argv':argv,'pid':123,'outer_seconds':900,'kill_after_seconds':10}
+
+
+@pytest.mark.parametrize('fault',[None,'missing','early','duplicate'])
+def test_cot_publication_correction_actual_clock_witness(fault):
+    calendar=[{'as_of':'2020-12-21','publication_date_ny':'2020-12-28'},
+        {'as_of':'2025-11-10','publication_date_ny':'2025-11-19'}]
+    cot=pd.DataFrame({'as_of':pd.to_datetime([r['as_of']for r in calendar],utc=True),
+        'available_at':pd.to_datetime(['2020-12-29T05:00:00Z','2025-11-20T05:00:00Z'],utc=True)})
+    if fault=='missing':cot=cot.iloc[:1]
+    if fault=='early':cot.loc[1,'available_at']=pd.Timestamp('2025-11-17T00:00:00Z')
+    if fault=='duplicate':cot=pd.concat([cot,cot.iloc[:1]],ignore_index=True)
+    args={'calendar_rows':calendar,'lag_days':7,'read_end':pd.Timestamp('2026-07-01T00:00:00Z')}
+    if fault:
+        with pytest.raises(ValueError,match='COT_WITNESS_'):cache.cot_clock_witness(cot,**args)
+    else:
+        result=cache.cot_clock_witness(cot,**args)
+        assert result['matched_rows']==result['calendar_rows']==2
+        assert result['excluded_at_or_after_seal']==0
+        assert result['all_declared_preseal_rows_matched_exactly_once']
+        assert result['all_available_at_exact_max_lag_official_day_end']
+        assert result['rows'][0]['actual_available_ns']==pd.Timestamp('2020-12-29T05:00:00Z').value
+        assert result['rows'][1]['actual_available_ns']==pd.Timestamp('2025-11-20T05:00:00Z').value
+        assert result['canonical_rows_sha256']==features._sha(result['rows'])
+        assert len(result['actual_as_of_available_at_sha256'])==64

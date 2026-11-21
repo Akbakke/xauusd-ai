@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-21T12:59:49.440954+00:00",
+  "observed_utc": "2026-11-21T16:10:41.855751+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "PRETRAIN_TWELVE_CHECKPOINT_REVIEW_COMPLETE_LARGE_TRAINING_CLOSED",
+  "status": "FUTURE_STATE_READINESS_ACTIVE_COT_CACHE_CORRECTED_NORMALIZATION_PENDING",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -3923,7 +3923,7 @@
   "market_state_ta_integrated_objective_later_20261116": {"status": "SOURCE_OBJECTIVE_AND_LATER_INPUTS_READY_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_OBJECTIVE_LATER_INPUTS_REVIEW_20261116.json", "sha256": "d93d30dd580bab052d21219aae31102329f5f37c33148e9135cb495512632d8c"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "later_input_archive": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/INPUTS.npz", "sha256": "9b527afd59c906f32cf91046ddee282b998cfad5b22216030fb6a873f651ae47"}, "later_input_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/RESULT.json", "sha256": "293e9d042788fa750c60fa49bf84dcdef9e016995805605218b552f8e77c5985"}, "later_score_rows": 4096, "later_issue_axis_sha256": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3", "later_M1_complete_paths": 4089, "later_structure_high_observed": 4068, "later_structure_low_observed": 4081, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_objective_preflight_20261116_004": {"status": "GENUINE_TRAIN_INTEGRATED_OBJECTIVE_GRADIENT_PASS_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_ACTUAL_OBJECTIVE_PREFLIGHT_REVIEW_20261116.json", "sha256": "ad48b1ddc40ab5a893ce0c0f936e06eb9f850d85f1ba023baf8787b999f0ff8d"}, "private_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_004/RESULT.json", "sha256": "5e5a1790b4ae8673f6f3ddd63ed078b81e469a92870cf3ac6b5f0fc2b75ac2c4"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "model_contract_sha256": "70a0497b27ba0ab45277ba622443ab2fca36a448357f1ccb3158689193f8bc82", "all_five_S_F_side_head_gradients_nonzero": true, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_later_view_rebind_20261116": {"status": "ACTUAL_LATER_FEATURE_GATHER_PASS_NO_MODEL", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_LATER_VIEW_REBIND_REVIEW_20261116.json", "sha256": "18616578ac8a0f79eb250c892757ccd099e15b27f567eeee02e36b96a546785c"}, "view_sha256": "8056fe96b4340bccc149da7f22dde85e4ac1b62c5e58c874ec7fbb771c1dff1a", "later_rows_gathered": 16, "all_nine_surfaces_finite": true, "model_forwards": 0, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
-  "next_action": "No automatic launch. Next qualification must bind the new function's full-cohort INITIAL baseline, explicit production learning/gradient recipe and guarded CUDA resource budget; D1 support and macro vintage limits remain explicit.",
+  "next_action": "Fit and independently verify whole-TRAIN normalization through the canonical owner on the corrected cache; preserve identical native issue/TF axes and prior/truth only with exact proof. Then qualify current GPU mechanics, INITIAL and production recipe.",
   "ta_fold2_F_frozen_readout_20261117_001": {"status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN", "plan": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PLAN.json", "sha256": "c87fcec1c25e351fec6e9c7a7bf2905ce97605661ba9055cc769e621b757e786"}, "admission_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_F_FROZEN_READOUT_ADMISSION_20261117.json", "sha256": "a9ababbb1b6ec9ed9a17e9ccff0426b4f994cfe4b78e9a3b72776cd48659629c"}, "capture": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/CAPTURE.npz", "sha256": "d4c8fa49b82dd6095afa17ebfdf40aff2bcf00b9245450edc49044d8325fb256"}, "reconciliation": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/RECONCILIATION.json", "sha256": "9b1bdfae0386ad155f3c315623b9c053e1eec6359996c8b8507ae07e6e505a74"}, "training_scope": "ten CPU linear side readouts on frozen Fold2 TRAIN representations only", "execution_authorized": false, "remaining_invocations": 0, "claimed_invocations": 1, "max_readout_fits": 10, "native_model_forwards": 0, "native_optimizer_updates": 0, "model_updates_authorized": false, "fresh_physical_boot_required": false, "relaunch_allowed": false, "test_data_used": false, "economic_edge_proven": false, "completed_invocations": 1, "actual_readout_fits": 10, "result": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/RESULT.json", "sha256": "919a894ed21f49faf173aa733775054f734b5a96ad904f4a1ac3f0e792e4a643"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/TERMINAL.json", "sha256": "f23e4ea3b4789ddd0ec72b72bed7de6e39e2d8eda7779b8b018d359c99a3643c"}, "params": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PARAMS.npz", "sha256": "babe4452ee5e51b13a640360caf054e862e3eaab34c2af1d608bf370845fedba"}, "predictions": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PREDICTIONS.npz", "sha256": "6e484806fdc8f26e1e51fa61f44f5e258583861b482b975a3be1947a02b33b46"}, "result_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_F_FROZEN_READOUT_RESULT_REVIEW_20261117.json", "sha256": "01e4ed18528116681b8d808f6c5ba28906c395432d5e5d29ae697c0f4d457cf2"}, "training_authorized": false, "independent_generalization_proven": false},
   "ta_m5_structure_persistence_20261116_001": {"status": "COMPLETE_CONSUMED_FIXED_REFERENCE_NO_ESTABLISHED_GAIN", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_PERSISTENCE_20261116_001.json", "sha256": "907ff7ce4fe6a9449f71501b9f4913f1637e2e6b747ce98670fd206a92f21d4a"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/CLAIM.json", "sha256": "a731f909e8cce5ef949679d65b882ed06520ee19ff53c264a2a0e86fdd1994ed"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/RESULT.json", "sha256": "ea10505d4fa8490880d14a126973a8a4fd0f2f4b59ca7e4c08c67b1f05085c86"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/TERMINAL.json", "sha256": "7290d4bae30cb4c4d212af311f714b80e27263605c49641e9874512eb14c7e3f"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_PERSISTENCE_RESULT_REVIEW_20261116.json", "sha256": "020a6b02aa158d4f6d35cb62197683c36bedf5d6be357b94953a2c69fc420fb5"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"prior_mature_issues": 23886, "later_known_classes": 23302, "prior_correct": 8936, "persistence_correct": 8253, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "ta_m5_structure_fold2_audit_20261116_001": {"status": "COMPLETE_CONSUMED_SOURCE_COVERAGE_ONLY_TARGET_UNQUALIFIED", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json", "sha256": "2d5b7359b377a8d4d7658ff7cbc6a756db94565d70673604f69a86530750c081"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/CLAIM.json", "sha256": "12f4d4c5c0c131cb61bf15d2795f557b3c3ceab37cf7b9f4fab13db569a1a0c8"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/RESULT.json", "sha256": "e6be73a2e5e04a9e0abf91e3b0b3775e93f0d75b6064ff8c842c123b1f842450"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/TERMINAL.json", "sha256": "f6a131efb8b3c0f1a85cfa5544dd16d225cf3a75f98d551c0f27041cea1badd9"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_FOLD2_AUDIT_RESULT_REVIEW_20261116.json", "sha256": "601809c2472d5d9f021499dfce2f72f53d56522404f16654df0334451f6de12d"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"m5_issues": 47784, "both_observed": 47567, "known_pair_class": 47195, "same_pivot_bar": 372, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
@@ -3950,8 +3950,8 @@
     }
   },
   "learning_gate": {
-    "current_function_selected_cohort_initial_baseline_scope": "Exactly the fixed first64 chronological whole-TRAIN input rows on CPU before updates, twice in fresh processes; not full-cohort and not an independent small-FIT comparison.",
-    "current_function_selected_cohort_initial_baseline_qualified": true,
+    "current_function_selected_cohort_initial_baseline_scope": "Corrected COT input function: no new selected-cohort model baseline yet; previous64-row CPU measurement belongs to old macro inputs.",
+    "current_function_selected_cohort_initial_baseline_qualified": false,
     "latest_native_small_matched_direction_review": {
       "result": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002/RESULT.json",
@@ -4405,7 +4405,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CPU_MECHANICS_20261121_001/continuous/INITIAL_SCORE.json",
       "sha256": "e7957fd906153304607ff4aea26944727d3840349f7d70e6a025bd637b4afc03"
     },
-    "current_function_native_baseline_qualification_scope": "New whole-cohort INITIAL baseline remains missing. Body identity is only a component; historical CUDA backend versions are not authenticated.",
+    "current_function_native_baseline_qualification_scope": "Corrected COT cache has identical native clocks/TRAIN axis, but new axes/provider/input normalization identities. Old model baseline is not current-function authority.",
     "latest_current_initial_state_audit": {
       "path": "/home/andre2/GX1_RUNS/GX1_PRETRAIN_12_CHECKPOINTS_20261121_001/BASELINE_BRIDGE_RESULT001.json",
       "sha256": "099e407ca5404fd9033d8b617f194fad1c8d50dcf664f12f48c9ce5e874fca75"
@@ -4414,8 +4414,8 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CPU_MECHANICS_20261121_001/replay/TERMINAL.json",
       "sha256": "c89846b7de4dc5e6833dc10d462e8b7d5aecee05457079e815a05449772b5b40"
     },
-    "current_function_private_technical_qualified": true,
-    "current_function_private_technical_scope": "New future-high-low function: 4 logical B16 CPU updates plus one cold step4 replay; model/AdamW/RNG/scheduler/cursor/steps/scores bit exact. D1 side has no support in this prefix.",
+    "current_function_private_technical_qualified": false,
+    "current_function_private_technical_scope": "Previous CPU cold replay proves old-input mechanics only. Corrected input/model identities need current GPU/replay qualification before main fit.",
     "latest_current_function_main": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002/RESULT.json",
       "sha256": "af32700df5d3d348d8138b8eb3230ace2290b9d7c848e135e9cf1ce0cdc3d7bf"
@@ -4751,7 +4751,7 @@
       "current_function_main_started": false,
       "current_function_main_evidence_missing": true
     },
-    "current_function_target_output_chain_qualified": true,
+    "current_function_target_output_chain_qualified": false,
     "current_function_target_output_chain_decision": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/FINAL_QUALIFICATION_DECISION001.json",
       "sha256": "dc3f030f8447f9dd957a9bc80ff9996b2e369ea42a477341ab5d4a2de0f51f5a"
@@ -4759,7 +4759,14 @@
     "latest_pretrain_twelve_checkpoint_review": {
       "path": "/home/andre2/GX1_RUNS/GX1_PRETRAIN_12_CHECKPOINTS_20261121_001/TWELVE_CHECKPOINT_REVIEW001.json",
       "sha256": "a79ead07580d3438780a26de142309421dc0ad1f00c14d6ecefd0dad1027028d"
-    }
+    },
+    "new_readiness_input_causal_qualification_suspended": true,
+    "new_readiness_input_causal_blocker": "COT release-clock defect is corrected in genuine cache; fresh whole-TRAIN normalization/current-input model baseline and CUDA qualification still pending. Other historical macro vintages remain explicitly unknown.",
+    "latest_current_function_mechanics_is_historical": true,
+    "latest_current_initial_measurement_is_historical": true,
+    "current_function_learning_measured": false,
+    "target_objective_prior_score_semantics_preserved": true,
+    "current_function_target_output_chain_scope": "Target/objective/prior/score numerical semantics and native truth axes preserved; corrected COT input/model baseline and opt-in routing await genuine current-input qualification. Previous full-chain decision retained as historical evidence."
   },
   "current_work": {
     "monitoring_needed_for_completed_run": false,
@@ -4771,7 +4778,7 @@
     "monitor_interval_minutes": 30,
     "source_bookend_witness": "Original cache003 RESULT and TERMINAL both assert source_unchanged=true.",
     "source_unchanged_at_result": true,
-    "active_stage": "pretrain_12_checkpoint_review_20261121_001",
+    "active_stage": "native_future_state_train_readiness_20261121_001",
     "latest_native_result": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003/RESULT.json",
       "sha256": "1c2d7ec36b34d00930cfdeb86f4f2a641d4cecb5094553b6519f2de0df64144f"
@@ -4804,18 +4811,18 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "pretrain_12_checkpoint_review_20261121_001",
+    "current_research_id": "native_future_state_train_readiness_20261121_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "GENUINE_NATIVE_GC_JOINT_TECHNICAL_PASS_DIRECTION_QUALITY_UNQUALIFIED",
     "existing_indicator_surface_changed": true,
     "training_started": true,
-    "latest_terminal_role": "TWELVE_CHECKPOINT_REVIEW_COMPLETE_WITH_GENUINE_FUTURE_STATE_CPU_REPLAY",
+    "latest_terminal_role": "GENUINE_MACRO_ONLY_COT_CLOCK_CACHE_CORRECTION_COMPLETE",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/GX1_PRETRAIN_12_CHECKPOINTS_20261121_001/REVIEW_TERMINAL001.json",
-      "sha256": "3ab3f8e8ea745af569cd67454348ffe2bdc91e10d08b336d51eaf95dcde50c12"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001/TERMINAL.json",
+      "sha256": "8eaef41cb506f40b20e4c1d0cfd6c76d6469347c211452ab900f42ff8765d50c"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -4835,7 +4842,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "New whole-cohort INITIAL baseline, production learning/gradient recipe and new-function CUDA resource evidence remain unqualified; D1 coverage and macro vintage limits are explicit.",
+    "current_blocker": "New corrected-cache whole-TRAIN normalization and GPU/model/learning qualifications pending; historical macro vintages and D1 unknown coverage remain explicit.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/CHECKPOINT_POSTBOOT_INTEGRITY001.json",
       "sha256": "284e922f1bbd1744cd6635f2085c59814930735813c22ccd532437d8ce327430"
@@ -12306,7 +12313,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "No automatic launch. Next qualification must bind the new function's full-cohort INITIAL baseline, explicit production learning/gradient recipe and guarded CUDA resource budget; D1 support and macro vintage limits remain explicit.",
+    "next_action": "Fit and independently verify whole-TRAIN normalization through the canonical owner on the corrected cache; preserve identical native issue/TF axes and prior/truth only with exact proof. Then qualify current GPU mechanics, INITIAL and production recipe.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -13435,10 +13442,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Qualify the new function's full-cohort fresh INITIAL baseline; historical CUDA runtime identity is insufficient for unconditional reuse.",
-      "Bind and qualify an explicit production gradient/learning recipe on fixed source-selected support, reporting per-TF knownness and unique outcomes; no ad hoc M5/HTF weights or D1-side claim from the 64-row prefix.",
-      "Measure the current function's guarded CUDA throughput, memory/power/temperature and durable checkpoint budget before any long GPU run.",
-      "Keep D1 selection/coverage and macro historical vintage limits explicit; declared as-of clocks alone do not prove every historical publication/revision time."
+      "Corrected-cache whole-TRAIN normalization and current-input model baseline are not yet qualified.",
+      "Current-function GPU mechanics, cold replay, resource/throughput and production gradient/learning recipe remain unqualified.",
+      "D1 daily historical calendar and vendor revision/vintage histories remain explicit unknowns; no inferred closure or full calibration claim."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -20774,7 +20780,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "New future-high-low function: source-fixed first64 chronological whole-TRAIN rows, initial=prior before updates, 4 logical/5 physical CPU updates across two fresh processes, bit-exact cold step4 replay. Not full-cohort baseline, new CUDA throughput, production gradient policy, generalization or edge.",
+    "latest_terminal_evidence_scope": "Genuine macro-only COT release-clock correction:21dated exceptions matched captured report clocks,61canonicalF64 macro fields,57non-COT F32 fields and24other arrays exact; four COT columns/ctx aliases corrected on8083retained rows;354550TRAIN/34934development clocks unchanged.0models/normalization/priorfits/targets/updates. Current-input normalization and GPU model qualification pending.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -25597,7 +25603,7 @@
         "new_model_calls": 0
       }
     },
-    "status": "PRETRAIN_TWELVE_CHECKPOINT_REVIEW_COMPLETE_LARGE_TRAINING_CLOSED",
+    "status": "FUTURE_STATE_READINESS_ACTIVE_COT_CACHE_CORRECTED_NORMALIZATION_PENDING",
     "observed_utc": "2026-11-20T10:53:12.769451+00:00",
     "current_observation_stage": "native_future_state_qualification_20261121_001",
     "current_observation_plan": {
@@ -80492,7 +80498,7 @@
     "unresolved_campaign_marker_preserved": true,
     "standard_campaign_receipt_available": false
   },
-  "active_stage": "pretrain_12_checkpoint_review_20261121_001",
+  "active_stage": "native_future_state_train_readiness_20261121_001",
   "market_state_ta_m5_c171_short_learning_20261111_002": {
     "decision": "CLOSED",
     "status": "COMPLETE_CONSUMED",
@@ -97139,6 +97145,189 @@
     "terminal": {
       "path": "/home/andre2/GX1_RUNS/GX1_PRETRAIN_12_CHECKPOINTS_20261121_001/REVIEW_TERMINAL001.json",
       "sha256": "3ab3f8e8ea745af569cd67454348ffe2bdc91e10d08b336d51eaf95dcde50c12"
+    }
+  },
+  "native_future_state_train_readiness_20261121_001": {
+    "status": "ACTIVE_COT_CACHE_CORRECTED_WHOLE_TRAIN_NORMALIZATION_PENDING_ALL_TRAINING_CLOSED",
+    "goal_status": "ACTIVE",
+    "goal_thread_id": "01a1f98c-5097-7d23-b0ca-ac7eb14a82f3",
+    "goal_created_at": 1795274470,
+    "output_root": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001",
+    "start": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/START001.json",
+      "sha256": "f044662aba7bda4e586889db283c84d0efc86630e00ffccbb40b0dc1daf050f4"
+    },
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "large_training_qualified": false,
+    "regression_rule": "For every change, inspect direct upstream/downstream owners, imports, consumers, masks, units, state and failure reporting; sweep a found defect class across active sibling owners. Reuse unchanged passed checks.",
+    "milestones": {
+      "causal_source_and_D1_support": "NATIVE_CLOCK_RECONSTRUCTION_PASS_DAILY_CLOSURE_AUTHORITY_UNKNOWN_KEEP_MASKS",
+      "macro_availability_and_revision_basis": "COT_CLOCK_AND_GENUINE_CACHE_CORRECTED_NORMALIZATION_PENDING_VINTAGES_EXPLICITLY_UNKNOWN",
+      "canonical_CUDA_initial_and_resource_route": "READ_ONLY_ACTIVE",
+      "production_learning_and_gradient_recipe": "M5_PRIMARY_REFERENCE_IMPLEMENTED_18_FOCUSED_CASES_PASS_GENUINE_PAIRED_COMPARISON_PENDING",
+      "incremental_project_dependency_and_consumer_review": "ACTIVE",
+      "frozen_starting_line_plan": "NOT_PREPARED_NOT_ADMITTED"
+    },
+    "next": "Fit and independently verify whole-TRAIN normalization through the canonical owner on the corrected cache; preserve identical native issue/TF axes and prior/truth only with exact proof. Then qualify current GPU mechanics, INITIAL and production recipe.",
+    "observed_blockers": [
+      {
+        "id": "COT_2023_DELAY_CALENDAR_MISSING",
+        "evidence_class": "OFFICIAL_PUBLICATION_DATE_AND_EXECUTABLE_SOURCE",
+        "status": "CLOCK_AND_GENUINE_CACHE_FIXED_NEW_NORMALIZATION_PENDING",
+        "source": "https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalSpecialAnnouncements/index.htm",
+        "owner": "gx1/scripts/research_ta_campaign_v1.py:parse_cot_gold_archives",
+        "calendar": "configs/research/CFTC_COT_PUBLICATION_CLOCK_20261018_001.json",
+        "finding": "Active five-year TRAIN includes2023 but the bound delayed-publication table onlycovers2025. The31Jan2023 report was published24Feb, later than declared as_of+7days. Historical position-value revisions are not claimed measured.",
+        "required_action": "Qualify all relevant official delayed dates; correct existing calendar and exact source bindings, rebuild only affected genuine macro/cache/stat dependencies through canonical owners before any new baseline."
+      },
+      {
+        "id": "D1_COMPLETENESS_WEEKDAY_PATTERN",
+        "evidence_class": "EXISTING_GENUINE_TRAIN_SUPPORT_JSON",
+        "status": "MEASURED_PATTERN_CAUSE_UNQUALIFIED",
+        "finding": "234 complete D1 bars occur only Sunday73 andThursday161; Monday/Tuesday/Wednesday have none. Investigate documented daily closures and physical native clock; do not guess them."
+      }
+    ],
+    "COT_clock_code_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/COT_CLOCK_CODE_QUALIFICATION001.json",
+      "sha256": "e9eb2b5d0b618395d4ecc46d258ab1cc7a94958a60474d4aeb4917ba4475df19"
+    },
+    "d1_slot_audit_001": {
+      "status": "COMPLETE_CONSUMED",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/D1_SLOT_PLAN001.json",
+        "sha256": "bd1a9f69c06390df7cc40b228f951c4aad126f9ed2b16808391064373fd25a11"
+      },
+      "execution_authorized": false,
+      "remaining_invocations": 0,
+      "relaunch_allowed": false,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/D1_SLOT_RESULT001.json",
+        "sha256": "36ee375797f6c394ed30bdf6f0bd07bae5adb5299096e6f92b4c470117c830b7"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/D1_SLOT_TERMINAL001.json",
+        "sha256": "a8d7a8d442cc22a708eee6f8a46b668571940fccab0b48130b35abe6f09835b6"
+      }
+    },
+    "d1_slot_evidence": {
+      "synthetic_tests": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/D1_SLOT_SYNTHETIC_TESTS001.log",
+        "sha256": "4088a80bfa31124c4ba2a3d13f694257b19f35991b0bc21efa9ac5fc4a48a278"
+      },
+      "peer_review": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/D1_SLOT_PEER_REVIEW001.json",
+        "sha256": "b6ef50f30e19bdab04afbd08b489458c3f86cfa113c87b377eac08fc66fd6293"
+      },
+      "preflight": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/D1_SLOT_PREFLIGHT001.log",
+        "sha256": "07d77f489ff3a8b98cd424b70567fd610306962515b775a647560d8c31d9850b"
+      }
+    },
+    "cot_cache_correction_001": {
+      "status": "COMPLETE_CONSUMED_CAUSAL_COT_CACHE_CORRECTED",
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001.json",
+        "sha256": "91fbebbdc234f9b4c1e434c37d8c1bef30556da88c7944f58a0be3bf790ba947"
+      },
+      "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001",
+      "execution": {
+        "class": "producer",
+        "device": "cpu",
+        "memory": "12G",
+        "swap": "512M",
+        "tasks_max": 64,
+        "numerical_threads": 1,
+        "cpu_affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "internal_seconds": 870,
+        "outer_seconds": 900,
+        "kill_after_seconds": 10,
+        "external_wall_timeout_enforced": true
+      },
+      "limits": {
+        "model_constructions": 0,
+        "model_forwards": 0,
+        "autograd_calls": 0,
+        "optimizer_steps": 0,
+        "normalization_fits": 0,
+        "parameter_fits": 0,
+        "target_values_decoded": 0,
+        "TA_rebuilds": 0,
+        "macro_materializations": 1,
+        "snapshot_publications": 1,
+        "snapshot_reloads": 1,
+        "legacy_arrays_decoded": 27,
+        "new_arrays_published": 27
+      },
+      "max_invocations": 1,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
+      "remaining_invocations": 0,
+      "relaunch_allowed": false,
+      "execution_authorized": false,
+      "training_authorized": false,
+      "test_authorized": false,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001/RESULT.json",
+        "sha256": "6dd7df0fd2f0f2b736ba8034697e1c6a8f5e2e9c20138d76f3154568dffec206"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001/TERMINAL.json",
+        "sha256": "8eaef41cb506f40b20e4c1d0cfd6c76d6469347c211452ab900f42ff8765d50c"
+      }
+    },
+    "COT_cache_code_evidence": {
+      "peer_review": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/COT_CACHE_PEER_REVIEW001.json",
+        "sha256": "0f1d7b5d95753a6e313267db9dcbf5144aea779d653f6e97704e70bed0845077"
+      },
+      "synthetic39_pass": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/COT_CACHE_FOCUSED_TESTS002.log",
+        "sha256": "5d37ce578e2a35abb827136caee7bbabd4d667f576905feb91219e1a452fa6df"
+      },
+      "corrected_single_case_pass": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/COT_CACHE_FOCUSED_TESTS003.log",
+        "sha256": "49d358413a4e32150a90f52b71025200f994a1bcdca564e449d7161cac74dcc6"
+      },
+      "first_harness_failure_preserved": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/COT_CACHE_FOCUSED_TESTS001.log",
+        "sha256": "65413432f9583c86d4a02a309de159aa8d5906f1a2e6c308be65f80f6469ebe8"
+      },
+      "test_command_note": "NumPy-only cache tests use --noconftest to avoid global tests/conftest autouse Torch import.39passed002; one exception-type assertion fixed/test-only and passed003. All40 cases covered, production source unchanged by that correction.",
+      "capped_exact_command_preflight": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/COT_CACHE_CAPPED_PREFLIGHT001.log",
+        "sha256": "b10b4f9dcbe4553c0d2cb14c37077ec4a0917f1c6e0772f5484bbc8425b4a606"
+      }
+    },
+    "M5_primary_reference_code_evidence": {
+      "status": "EIGHTEEN_FOCUSED_SYNTHETIC_CASES_PASS_PRODUCTION_ROUTING_NOT_SELECTED",
+      "source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_integrated_model_v1.py",
+        "sha256": "69f8b1f659db1985f3e6691f5dcf3d3b203e746c340e1e73769cb660ab13a67b"
+      },
+      "tests": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_ta_integrated_model_v1.py",
+        "sha256": "730b409b07ac967efb152c94d49861b3c20b1a6c7c6ddf6516bb920b2ec39842"
+      },
+      "test_log": {
+        "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/FUTURE_MODEL_M5_PRIMARY_FOCUSED_TESTS001.log",
+        "sha256": "9f9de716689561f549cff707d8e3b73b94879214653b0783f26bdbc2cf6744ee"
+      },
+      "scope": "Opt-in M5 activity/side shared gradient reference, all higher-TF inputs/readouts retained; None default unchanged. No current-input genuine baseline/fit."
+    },
+    "D1_slot_interpretation": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/D1_SLOT_INTERPRETATION001.json",
+      "sha256": "4e2e5d75ba7a41e645c24dc290d3854a933fb7cc602dbd8cd440597df25ccc64"
     }
   }
 }

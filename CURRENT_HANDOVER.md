@@ -6,57 +6,77 @@ Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 ## Gjeldende konklusjon 21.11.2026
 
-Alle 12 prioriteringssjekkpunkter er gjennomgått, med kildekontroll,
-gjenbrukte kvalifiserte bevis, ny stratifisert støtteaudit og en ekte,
-avgrenset optimizer-/replayprøve. **Stortrening er fortsatt ikke kvalifisert.**
-Aktiv status og eksakte SHA står i `pretrain_12_checkpoint_review_20261121_001`.
-Gjennomgangen er ferdig. Kilde-/publikasjonsbookend føres i
-`FINAL_PUBLICATION_BOOKEND001.json` i samme bevisrot.
-Alle fem globale treningsporter er stengt; private engangsporter er konsumert.
-Ingen tung jobb er aktiv. Bevisrot:
-`/home/andre2/GX1_RUNS/GX1_PRETRAIN_12_CHECKPOINTS_20261121_001`.
-`TWELVE_CHECKPOINT_REVIEW001.json` samler alle 12 funn og restgrenser.
-`REVIEW_TERMINAL001.json` er overleveringens statuskvittering og binder de
-uendrede CPU-terminalene til deres separate resultat-/kilde-/TEST-bevis.
+Nytt operatørmål er AKTIVT: kvalifiser og dobbeltsjekk prosjektet fram til
+et dokumentert startpunkt for stortrening. Aktiv eier er
+`native_future_state_train_readiness_20261121_001`; bevisrot
+`/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001`.
+Hver kodeendring følges også gjennom direkte oppstrøms-/nedstrømseiere og
+beslektede feiltilfeller. Uendrede beståtte bevis gjenbrukes.
+**Stortrening er fortsatt stengt. Alle globale treningsporter er false.**
+Ingen tung jobb er aktiv; nye normaliserings-/GPU-/læringsplaner er ikke innrømmet.
 
-| # | Kontroll | Målt konklusjon |
-|---|---|---|
-| 1 | Klokker/tilgjengelighet | Native as-of/modning består; alle historiske makrovintager er ikke bevist. |
-| 2 | Pauser/kildehull | Ukestenging er bundet; andre hull forblir ukjente. |
-| 3 | Fasit/FLAT | Ny high-low-kontrakt er konsistent; rå/.3ATR er bevart. |
-| 4 | Gradientbalanse | Ett ekte panel: aux/M5=6,09, cosinus=+0,5235; ingen optimalvekt valgt. |
-| 5 | Observasjonsskjevhet | D1s1379 FLAT-celler er bare5unike barer; selektiv støtte er tallfestet. |
-| 6 | Normalisering | Samme whole-TRAIN-statistikk består; ikke prefix-OOF. |
-| 7 | Åtte familier | Alle har ikke-null datagradient etter første update; nytte er ubevist. |
-| 8 | Læring | Samme64TRAIN-raders NLL0,620206→0,609131; D1-side har0fasitceller. |
-| 9 | Referanser | INITIAL=prior på64rader; helkohort-baseline mangler fortsatt. |
-| 10 | Kald replay | Ny prosess gjentar steg4 eksakt for alle state-/steg-/skårbevis. |
-| 11 | Ressurser/lagring | CPU12GiB-prøve og3persistente disk-readbacks består; ny CUDA er umålt. |
-| 12 | Fryst plan | 4logiske/5fysiske updates utført; alle porter konsumert/stengt. |
+### Rettet faktisk COT-tidslekkasje
 
-To konkrete feil i den nye tekniske ruten er rettet før ekte kjøring:
-checkpoint-readback leste minnebufferen fremfor filen, og replay manglet
-policybinding mellom prosessene. Nå verifiseres faktisk diskhash/readback
-og continuous-claimens identiske policy før replay laster modell/data.
-Metodedokumentets påstand om faktiske makropubliseringstider er også presisert
-til det bevisene viser: deklarerte tilgjengelighetsklokker, med vintager som
-egen ubevist grense. Ingen genuine features er fjernet eller endret.
+Den tidligere publiseringskalenderen dekket2025, men manglet forsinkede2023-
+rapporter. As-of31.01.2023 ble først publisert24.02; as_of+7d kunne gi for tidlig
+input. Eksisterende kalender har nå21daterte unntak:8nye og13bevarte2025rader.
+Source-spec og makroeierens pinnede SHA er oppdatert sammen.15fokuserte tester
+består, inklusive UTC/NY, DST og streng grense etter publikasjonens NY-dato.
 
-Prøven brukte to ferske modeller,22forwards,3autograd,5fysiske updates og
-0normaliserings-/priorfits. Continuous80,36s + replay46,02s. Cursor3 og begge
-finalcheckpoints er bevart med no-replace, fil-/katalog-fsync, diskhash og
-readback. Dette beviser kald prosessreplay, ikke ny OS-reboot/diskhavari.
+Én ekte, avgrenset COT-korrigering er COMPLETE/exit0 og konsumert:
+`/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001`.
+135,568s under12GiB/512MiB/1tråd. Alle21datoer matcher nøyaktig én faktisk
+innfanget COT-rapport og korrekt tilgjengelighetsklokke. Alle61makrofelt er
+rematerialisert kanonisk iF64;57andre makrofelt er byteidentiske iF32. Bare
+fire COT-felt og ctx-aliasene endret verdi på8083beholdte lokale rader.
+24øvrige arrays, native/TF-klokker og lineage er byteidentiske. Ny27-arraycache
+har bestått full publiserings-readback og reload. TRAIN354550 og utvikling34934
+beholdes ufiltrert; eksakt TRAIN-issue-SHA er fortsattc0805f39...997ea.
+0TA-rebuild, normaliseringsfits, modeller, targets eller updates i korrigeringen.
 
-Før storfit må ny helkohort-INITIAL, en eksplisitt produksjonsoppskrift for
-læring/gradient og gjeldende CUDA-kapasitet/effekt/temperatur/throughput
-kvalifiseres. D1s begrensede side-/FLAT-støtte og historisk makro-vintage
-må fortsatt rapporteres. Ingen ny storfit, ekstra epoke, CONTROL-basert
-utvalg/early stop, TEST, serving eller handel er innrømmet.
+Ny snapshot: `FEATURE_INPUTS.json`, SHA2b8a3596...f9cac7 i denne runroten.
+Ny akseidentitet:8d975752...caa056. Gammel normalisering/checkpoint/baseline
+kvalifiserer ikke denne nye inputfunksjonen. Historiske målinger og originale
+kvitteringer beholdes med gammelt omfang.40avgrensede cachetester består:
+39i log002 + én rettet testforventning i003. NumPy-only-testene bruker
+`--noconftest`; første loggs globale Torch-fixture-feil er bevart.
 
-Forrige mål `native_future_state_qualification_20261121_001` er ferdig og
-pushet som5e27199cc. Target → ekte native output → loss → TRAIN-prior → score
-følger samme nye kontrakt. Den separate optimizerprøven over kommer i tillegg;
-hele kvalifiseringskjeden under beholdes uten omkjøring.
+### D1-dekning og gjenværende kildegrenser
+
+`D1_SLOT_RESULT001.json` er COMPLETE/exit0,2,672s under4GiB. Den beviser hele
+native TRAIN-tidsaksen før issue−5min utledes. Eksisterende234komplette D1-
+barer rekonstrueres eksakt:73søndager om vinteren og161torsdager om sommeren.
+Av17869uobserverte ikke-ukestengte M5-slots er12516 på1043mandag–torsdager
+kl17–18NY, med0observerte.5353andre slots forblir også ukjente. Dagens OANDA-
+timeplan dokumenterer ikke historisk drift for akkurat denne native feeden;
+ingen daglig/helligdagskalender er gjettet inn eller observert bar fjernet.
+Input- og targetfasene samt issue-kausal ATR stemmer; liten D1-støtte skyldes
+ikke ATR-warmup. Treasury/VIX/GLD har dokumentert normal publiseringsklokke,
+men full historisk verdi-/revisjonsledger er fortsatt ubevist. Ingen konkret
+ny tallfeil ble funnet i disse kildene. Teknisk PASS er ikke kausal vintage-PASS.
+
+### Gradientreferanse og neste nødvendige kvalifisering
+
+Den nye modellen har nå eksplisitt opt-in `backbone_gradient_policy='M5_primary'`:
+M5-aktivitet og side beholder shared-gradient; høyere TF løsnes bare før sine
+readouts. Alle inputs/familier/hoder beholdes. DefaultNone er uendret og fullt
+koblet.18fokuserte modelltester består, med ikke-null hoder,
+forward-/state-/RNG-paritet og avvist cross-policy-load før parameterkopiering.
+Dette velger ingen produksjonsvinner og åpner ingen fit. Forrige CPU-prefix-
+mekanikk gjelder gamle makroinputs, ikke ny funksjonsklarhet.
+
+Neste nødvendige steg er én fersk whole-TRAIN-normalisering gjennom eksisterende
+eier på den korrigerte cachen; ingen patch av fire løse konstanter. Deretter
+kvalifiseres ny CUDA-mekanikk, kald replay, effekt/temperatur/throughput og fersk
+helkohort-INITIAL samt en eksplisitt begrenset lærings-/gradientoppskrift.
+Ingen gammel engangsplan relanseres. TEST/M1/GC/handel/Exit er fortsatt stengt
+for den aktive retningsruten. Ingen ny sletting eller full TA-rebuild er gjort.
+
+Den tidligere tolvpunktgjennomgangen og target/output/loss/prior/score-kjeden
+er bevart i policy og deres originale runrøtter. Targetens native klokke/
+prisfakta er uendret av COT-inputrettelsen; mål/prior kan bare gjenbrukes ved
+eksakt samme issue-/truth-/kontraktbevis. Historisk input-/baselinebevis nedenfor
+skal ikke oppfattes som en fersk kausal baseline for den korrigerte funksjonen.
 
 Operatøren valgte **high–low i neste helt framtidige TF-bar**, med alle
 M5/M15/H1/H4/D1 beholdt. M5 er beslutningsklokke, ikke maksimal holdetid.

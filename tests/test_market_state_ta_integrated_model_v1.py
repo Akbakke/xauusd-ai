@@ -1211,3 +1211,118 @@ def test_native_future_state_factory_legacy_default_seeded_state_and_rng_parity(
         current = owner.build_native_bar_direction_model(**base)
         assert torch.equal(legacy_rng, torch.random.get_rng_state())
     assert all(torch.equal(value, legacy.state_dict()[key]) for key, value in current.state_dict().items())
+
+
+@pytest.fixture(scope='module')
+def future_native_m5_primary_packet(future_native_full_packet):
+    from gx1.contracts import market_state_ta_integrated_model_v1 as owner
+    default, args, features, truth = future_native_full_packet
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(47)
+        explicit_none = owner.build_native_future_state_model(**args, backbone_gradient_policy=None).eval()
+        none_rng = torch.random.get_rng_state().clone()
+        assert all(torch.equal(value, explicit_none.state_dict()[key])
+                   for key, value in default.state_dict().items())
+        del explicit_none
+        torch.manual_seed(47)
+        routed = owner.build_native_future_state_model(**args, backbone_gradient_policy='M5_primary').eval()
+        assert torch.equal(none_rng, torch.random.get_rng_state())
+    return default, routed, args, features, truth
+
+
+def test_native_future_state_m5_primary_contract_default_state_and_seed_rng_parity(
+        future_native_m5_primary_packet):
+    from gx1.contracts import market_state_ta_integrated_model_v1 as owner
+    default, routed, args, features, truth = future_native_m5_primary_packet
+    contract_args = {key: args[key] for key in ('input_binding', 'architecture', 'train_prior', 'target_contract')}
+    assert owner.native_future_state_model_contract(**contract_args) == \
+           owner.native_future_state_model_contract(**contract_args, backbone_gradient_policy=None)
+    assert 'backbone_gradient_policy' not in default.research_objective
+    descriptor = routed.research_objective['backbone_gradient_policy']
+    assert descriptor == owner.native_future_state_backbone_gradient_policy_contract('M5_primary')
+    assert descriptor['attached_heads'] == ['activity.M5', 'side.M5']
+    assert len(descriptor['detached_heads']) == 8 and descriptor['production_training_admitted'] is False
+    assert set(default.state_dict()) == set(routed.state_dict())
+    assert all(torch.equal(value, routed.state_dict()[key])
+               for key, value in default.state_dict().items() if key != 'future_state_model_sha256')
+    assert not torch.equal(default.future_state_model_sha256, routed.future_state_model_sha256)
+    assert all(p.requires_grad for model in (default, routed) for p in model.parameters())
+
+
+def test_native_future_state_m5_primary_nonzero_head_routing_and_forward_parity(
+        future_native_m5_primary_packet, monkeypatch, native_gc_single_thread):
+    from gx1.contracts import market_state_ta_integrated_model_v1 as owner
+    from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+    default, routed, args, features, truth = future_native_m5_primary_packet
+    def synthetic_encode(self, **values):
+        assert values.pop('research_representation_only') is True
+        assert values.pop('research_timeframe_representations') is True
+        source = values['seq_x'][:, -1, :self.cfg.d_model]
+        hidden = self.entry_q_joint_in(torch.cat((source,) * 4, dim=1))
+        return {'entry_q_timeframe_hidden': hidden[:, None].expand(-1, 5, -1)}
+    monkeypatch.setattr(owner.EntryV10CtxHybridTransformer, 'forward', synthetic_encode)
+    values = {key: value.repeat((2,) + (1,) * (value.ndim - 1)) for key, value in features.items()}
+    kwargs = dict(truth={key: value[:2].copy() for key, value in truth.items()},
+        fold_upper_ns=args['train_prior']['fit_population']['cutoff_ns'], target_contract=args['target_contract'])
+    models = (default, routed)
+    saved = [{name: value.detach().clone() for name, value in model.readout.named_parameters()} for model in models]
+    try:
+        with torch.no_grad():
+            for model in models:
+                for index, head in enumerate([*model.readout.activity_heads.values(), *model.readout.side_heads.values()]):
+                    source = torch.arange(head.weight.numel(), dtype=torch.float32).reshape_as(head.weight)
+                    head.weight.copy_(torch.sin(source * .13 + index) * .02)
+        outputs = [model(**values) for model in models]
+        assert all(torch.equal(outputs[0][key], outputs[1][key]) for key in outputs[0])
+        gradients = []
+        for model, output in zip(models, outputs):
+            result = native_future_state_loss(model_output=output, **kwargs)
+            primary = (result['loss_sums']['activity'][0] + result['loss_sums']['side'][0]) / result['count']
+            auxiliary = (result['loss_sums']['activity'][1:].sum() + result['loss_sums']['side'][1:].sum()) / result['count']
+            shared = model.backbone.entry_q_joint_in.weight
+            primary_heads = [p for heads in (model.readout.activity_heads, model.readout.side_heads)
+                             for p in heads['M5'].parameters()]
+            auxiliary_heads = [p for heads in (model.readout.activity_heads, model.readout.side_heads)
+                               for tf in owner.TIMEFRAMES if tf != 'M5' for p in heads[tf].parameters()]
+            g5 = torch.autograd.grad(primary, [shared, *primary_heads], retain_graph=True)
+            gaux = torch.autograd.grad(auxiliary, [shared, *auxiliary_heads], allow_unused=True, retain_graph=True)
+            total = torch.autograd.grad(result['loss'], shared)[0]
+            gradients.append((g5, gaux, total))
+        left, right = gradients
+        assert all(torch.equal(a, b) for a, b in zip(left[0], right[0]))
+        assert all(torch.count_nonzero(g) > 0 for g in right[0])
+        assert left[1][0] is not None and torch.count_nonzero(left[1][0]) > 0
+        assert right[1][0] is None or torch.count_nonzero(right[1][0]) == 0
+        assert all(torch.equal(a, b) for a, b in zip(left[1][1:], right[1][1:]))
+        assert all(torch.count_nonzero(g) > 0 for g in right[1][1:])
+        assert torch.equal(right[2], right[0][0])
+        assert all(p.grad is None for model in models for p in model.parameters())
+    finally:
+        with torch.no_grad():
+            for model, state in zip(models, saved):
+                for name, parameter in model.readout.named_parameters():
+                    parameter.copy_(state[name])
+
+
+@pytest.mark.parametrize('reverse', [False, True])
+def test_native_future_state_m5_primary_crosspolicy_restore_rejected_before_parameter_copy(
+        future_native_m5_primary_packet, reverse):
+    default, routed, args, features, truth = future_native_m5_primary_packet
+    source, destination = (routed, default) if reverse else (default, routed)
+    before = destination.backbone.entry_q_joint_in.weight.detach().clone()
+    state = dict(source.state_dict())
+    state['backbone.entry_q_joint_in.weight'] = torch.full_like(before, 42)
+    with pytest.raises(ValueError, match='FUTURE_MODEL_STATE_IDENTITY'):
+        destination.load_state_dict(state)
+    assert torch.equal(destination.backbone.entry_q_joint_in.weight, before)
+
+
+@pytest.mark.parametrize('policy', [True, 'M5_close_only', 'unknown'])
+def test_native_future_state_m5_primary_invalid_policy_rejected_before_factory(
+        future_native_full_packet, monkeypatch, policy):
+    from gx1.contracts import market_state_ta_integrated_model_v1 as owner
+    model, args, features, truth = future_native_full_packet
+    monkeypatch.setattr(owner, 'build_native_bar_direction_model',
+                        lambda **kwargs: pytest.fail('invalid policy reached backbone construction'))
+    with pytest.raises(ValueError, match='FUTURE_BACKBONE_GRADIENT_POLICY'):
+        owner.build_native_future_state_model(**args, backbone_gradient_policy=policy)

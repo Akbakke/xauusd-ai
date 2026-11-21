@@ -68,7 +68,7 @@ D1_MACRO_CONTEXT_DIM = len(D1_MACRO_CONTEXT_FIELDS)
 # The committed source spec the native dataset builder reads; pinned by hash (rule 2a).
 D1_MACRO_CONTEXT_SOURCE_SPEC = {
     "path": "configs/research/D1_MACRO_CONTEXT_SOURCES_20261011_001.json",
-    "sha256": "b8e2c01ddc5c1941dd509f1c3507a4211b2d0f7e3820f64c7607e95a0916d6b3",
+    "sha256": "0372508910a88993540327b17cf651d519fc4ef7d9b960f245eb969ccdf1ec04",
 }
 
 
