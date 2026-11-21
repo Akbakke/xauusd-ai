@@ -882,3 +882,143 @@ def test_native_future_state_cuda_qualification_cannot_bypass_canonical_scope(mo
     monkeypatch.setattr(capped_execution.Path,'read_text',lambda *a,**kw:pytest.fail('invalid scope reached cgroup'))
     with pytest.raises(RuntimeError,match='GX1_CUDA_TRAINER_ENV_INVALID'):
         capped_execution.require_native_future_state_cuda_qualification_execution(plan_sha256='a'*64,lane='continuous')
+
+
+
+def _native_future_leaf_fixture(lane=None):
+    env, files = _native_future_cuda_fixture()
+    seconds = 1800 if lane is None or lane == 'recovery_probe' or str(lane).endswith('_replay') else (12000 if lane in ('main','main_resume') else 5400)
+    env.update(GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION='false', GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS='false',
+        GX1_NATIVE_FUTURE_STATE_THROUGHPUT='true' if lane is None else 'false',
+        GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256='a'*64 if lane is None else '',
+        GX1_NATIVE_FUTURE_STATE_TRAINING='false' if lane is None else 'true',
+        GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256='' if lane is None else 'a'*64,
+        GX1_NATIVE_FUTURE_STATE_TRAINING_LANE='' if lane is None else lane,
+        GX1_TRAINER_MAX_WALL_SECONDS=str(seconds), GX1_TRAINER_MODEL_MAX_WALL_SECONDS=str(seconds),
+        GX1_TRAINER_ATTENDED_STAGE_REQUIRED='false', GX1_TRAINER_GPU_INDEX='0',
+        GX1_TRAINER_GPU_MAX_POWER_LIMIT_W='300', GX1_TRAINER_GPU_MAX_POWER_DRAW_W='310',
+        GX1_TRAINER_GPU_MAX_CORE_TEMP_C='85', GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C='80',
+        GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB='12288', GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS='1',
+        GX1_POWER_BENCHMARK_SCOPE_JSON='', GX1_POWER_BENCHMARK_SCOPE_SHA256='')
+    return env, files, seconds
+
+
+def _native_future_leaf_call(lane=None,sha='a'*64):
+    if lane is None:return capped_execution.require_native_future_state_throughput_execution(plan_sha256=sha)
+    return capped_execution.require_native_future_state_training_execution(plan_sha256=sha,lane=lane)
+
+
+@pytest.mark.parametrize('lane',[None,'joint','joint_replay','m5_primary','m5_primary_replay','main','recovery_probe','main_resume'])
+def test_native_future_state_leaf_reuses_exact_canonical_trainer_proof(monkeypatch,lane):
+    env, files, seconds = _native_future_leaf_fixture(lane)
+    monkeypatch.setattr(capped_execution.os,'environ',env)
+    monkeypatch.setattr(capped_execution.os,'sched_getaffinity',lambda pid:set(range(19)))
+    monkeypatch.setattr(capped_execution.Path,'read_text',lambda path,**kw:files[str(path)])
+    monkeypatch.setattr(capped_execution,'require_capped_lock_ancestry',lambda:{'canonical':'lock'})
+    proof=_native_future_leaf_call(lane)
+    fixed={None:'NATIVE_FUTURE_STATE_THROUGHPUT_20261121_001','main':'NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001',
+        'recovery_probe':'NATIVE_FUTURE_STATE_RECOVERY_PROBE_20261121_001','main_resume':'NATIVE_FUTURE_STATE_ONE_EPOCH_RESUME_20261121_001'}
+    basename=fixed.get(lane,'NATIVE_FUTURE_STATE_PAIRED_LEARNING_20261121_001')
+    assert proof['plan_path'].endswith('/configs/research/'+basename+'.json')
+    assert proof['plan']=={'path':proof['plan_path'],'sha256':'a'*64}
+    assert proof['output_root']=='/home/andre2/GX1_RUNS/'+basename+(''if lane in fixed else'/'+lane)
+    assert proof['outer_seconds']==seconds and proof['internal_seconds']==seconds-30
+    assert proof['memory_max']==proof['memory_high']==20*1024**3 and proof['pids']==128
+    assert proof['swap']==512*1024**2 and proof['cpu_affinity']==list(range(19)) and proof['numerical_threads']==8
+    assert proof['training_authority_granted']is False and proof['execution_mode']=='canonical'
+
+
+@pytest.mark.parametrize('lane',[None,'joint'])
+@pytest.mark.parametrize('field,value',[
+    ('GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION','true'),('GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS','true'),
+    ('GX1_TRAINER_MAX_WALL_SECONDS','12001'),('GX1_TRAINER_MODEL_MAX_WALL_SECONDS','12001'),
+    ('GX1_TRAINER_GPU_MAX_CORE_TEMP_C','86'),('GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C','81'),
+    ('GX1_TRAINER_GPU_MAX_POWER_LIMIT_W','301'),('GX1_TRAINER_GPU_MAX_POWER_DRAW_W','311'),
+    ('GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB','12289'),('GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS','2'),
+    ('GX1_TRAINER_GPU_INDEX','1'),('GX1_TRAINER_ATTENDED_STAGE_REQUIRED','true'),
+    ('GX1_POWER_BENCHMARK_SCOPE_JSON','/unit/other.json'),('GX1_POWER_BENCHMARK_SCOPE_SHA256','b'*64)])
+def test_native_future_state_leaf_rejects_private_or_hardware_drift_before_canonical_proof(monkeypatch,lane,field,value):
+    env,_,_=_native_future_leaf_fixture(lane);env[field]=value
+    monkeypatch.setattr(capped_execution.os,'environ',env)
+    monkeypatch.setattr(capped_execution,'require_guarded_cuda_trainer_execution',lambda:pytest.fail('invalid private scope reached trainer'))
+    with pytest.raises(RuntimeError,match='GX1_NATIVE_FUTURE_LEAF_ENV_INVALID'):_native_future_leaf_call(lane)
+
+
+@pytest.mark.parametrize('lane',[None,'joint'])
+@pytest.mark.parametrize('fault',['missing_mode','wrong_sha','foreign_mode','wrong_lane'])
+def test_native_future_state_leaf_binds_its_private_route(monkeypatch,lane,fault):
+    env,_,_=_native_future_leaf_fixture(lane)
+    mode='THROUGHPUT'if lane is None else'TRAINING'
+    if fault=='missing_mode':env.pop('GX1_NATIVE_FUTURE_STATE_'+mode)
+    elif fault=='wrong_sha':env['GX1_NATIVE_FUTURE_STATE_'+mode+'_PLAN_SHA256']='b'*64
+    elif fault=='foreign_mode':env['GX1_NATIVE_FUTURE_STATE_'+('TRAINING'if lane is None else'THROUGHPUT')]='true'
+    elif fault=='wrong_lane':env['GX1_NATIVE_FUTURE_STATE_TRAINING_LANE']='main'
+    monkeypatch.setattr(capped_execution.os,'environ',env)
+    monkeypatch.setattr(capped_execution,'require_guarded_cuda_trainer_execution',lambda:pytest.fail('bad route reached trainer'))
+    with pytest.raises(RuntimeError,match='GX1_NATIVE_FUTURE_LEAF_ENV_INVALID'):_native_future_leaf_call(lane)
+
+
+@pytest.mark.parametrize('sha,lane',[('bad','joint'),('A'*64,'joint'),(None,'joint'),('a'*64,'fit'),('a'*64,True)])
+def test_native_future_state_leaf_invalid_request_fails_before_any_proof(monkeypatch,sha,lane):
+    monkeypatch.setattr(capped_execution,'require_guarded_cuda_trainer_execution',lambda:pytest.fail('bad request reached trainer'))
+    with pytest.raises(RuntimeError,match='GX1_NATIVE_FUTURE_LEAF_'):_native_future_leaf_call(lane,sha)
+
+
+def test_native_future_state_leaf_cannot_bypass_existing_trainer_environment(monkeypatch):
+    env,_,_=_native_future_leaf_fixture('joint');env['GX1_CAPPED_CLASS']='producer'
+    monkeypatch.setattr(capped_execution.os,'environ',env)
+    monkeypatch.setattr(capped_execution.Path,'read_text',lambda *a,**kw:pytest.fail('invalid class reached cgroup'))
+    with pytest.raises(RuntimeError,match='GX1_CUDA_TRAINER_ENV_INVALID'):_native_future_leaf_call('joint')
+
+
+def _native_future_guard_parent():
+    import json
+    path=Path(__file__).resolve().parents[1]/'configs/research/NATIVE_M5_FUTURE_STATE_CUDA_INITIAL_20261121_001.json'
+    value=json.loads(path.read_text())
+    return value['source_owners'],value['metadata']['runtime']['source_commit']
+
+
+def test_native_future_state_guard_bridge_preserves_whole_previous_modules():
+    owners,commit=_native_future_guard_parent()
+    proof=capped_execution.native_future_state_guard_source_bridge(owners,producer_commit=commit)
+    assert proof['checked_guard_owners']==2 and proof['other_parent_owners_to_be_checked_by_caller']==56
+    assert set(proof['owners'])=={'scripts/gx1_capped_run.sh','gx1/contracts/gx1_capped_execution_v1.py'}
+    assert proof['owners']['scripts/gx1_capped_run.sh']['normalized_sha256']==owners['scripts/gx1_capped_run.sh']
+
+
+@pytest.mark.parametrize('fault',['commit','absolute','payload_suffix','parent_traversal','bad_sha','wrong_guard_sha','missing_guard'])
+def test_native_future_state_guard_bridge_rejects_invalid_inventory_before_source_IO(monkeypatch,fault):
+    import subprocess
+    owners,commit=_native_future_guard_parent();owners=dict(owners)
+    if fault=='commit':commit='0'*40
+    elif fault=='bad_sha':owners['scripts/gx1_capped_run.sh']='not-a-sha'
+    elif fault=='wrong_guard_sha':owners['scripts/gx1_capped_run.sh']='0'*64
+    elif fault=='missing_guard':owners['renamed.py']=owners.pop('scripts/gx1_capped_run.sh')
+    else:
+        name=next(k for k in owners if k not in capped_execution._NATIVE_FUTURE_STATE_GUARD_PARENT_HASHES)
+        replacement={'absolute':'/unit/model.py','payload_suffix':'unit/payload.pt','parent_traversal':'unit/../payload.py'}[fault]
+        owners[replacement]=owners.pop(name)
+    monkeypatch.setattr(subprocess,'check_output',lambda *a,**kw:pytest.fail('invalid bridge reached Git source read'))
+    monkeypatch.setattr(capped_execution.Path,'read_bytes',lambda *a,**kw:pytest.fail('invalid bridge reached current source read'))
+    with pytest.raises(RuntimeError,match='GX1_NATIVE_FUTURE_GUARD_BRIDGE_'):
+        capped_execution.native_future_state_guard_source_bridge(owners,producer_commit=commit)
+
+
+@pytest.mark.parametrize('fault',['duplicate_function','rename_function','old_constant','old_body','shell_old','shell_new','shell_duplicate'])
+def test_native_future_state_guard_bridge_rejects_renames_redefinitions_and_guard_changes(monkeypatch,fault):
+    owners,commit=_native_future_guard_parent();real=capped_execution.Path.read_bytes
+    python_name='gx1/contracts/gx1_capped_execution_v1.py';shell_name='scripts/gx1_capped_run.sh'
+    repo=Path(__file__).resolve().parents[1]
+    target=repo/(shell_name if fault.startswith('shell_')else python_name)
+    raw=real(target)
+    if fault=='duplicate_function':changed=raw+b'\ndef require_guarded_cuda_trainer_execution(): return {}\n'
+    elif fault=='rename_function':changed=raw.replace(b'def require_guarded_cuda_trainer_execution(',b'def renamed_trainer(',1)
+    elif fault=='old_constant':changed=raw.replace(b'_MAX_MEMORY_BYTES = 20 * 1024**3',b'_MAX_MEMORY_BYTES = 21 * 1024**3',1)
+    elif fault=='old_body':changed=raw.replace(b'max_pids=128, error_prefix="GX1_CUDA_TRAINER"',b'max_pids=129, error_prefix="GX1_CUDA_TRAINER"',1)
+    elif fault=='shell_old':changed=raw.replace(b'TRAINER_GPU_MAX_MEMORY_TEMP_C=80',b'TRAINER_GPU_MAX_MEMORY_TEMP_C=81',1)
+    elif fault=='shell_new':changed=raw.replace(b'NATIVE_FUTURE_STATE_THROUGHPUT=false',b'NATIVE_FUTURE_STATE_THROUGHPUT=true',1)
+    else:changed=raw+capped_execution._NATIVE_FUTURE_STATE_GUARD_SHELL_ADDITIONS[0][2].encode()
+    assert changed!=raw
+    monkeypatch.setattr(capped_execution.Path,'read_bytes',lambda path:changed if path==target else real(path))
+    with pytest.raises(RuntimeError,match='GX1_NATIVE_FUTURE_GUARD_BRIDGE_'):
+        capped_execution.native_future_state_guard_source_bridge(owners,producer_commit=commit)

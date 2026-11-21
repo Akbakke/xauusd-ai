@@ -148,7 +148,7 @@ full immutable publisering/reload. Normalisering refittes av eksisterende
 whole-TRAIN-eier; fire løse konstantpatcher beviser ikke support, extrema eller
 statistikkbinding. Gamle input/checkpoint-bevis beholder sitt tidligere omfang.
 Den korrigerte whole-TRAIN-normaliseringen krever eksakt uendret native issue-
- og vindusunion, uendrede ikke-COT-statistikker og uavhengig råkolonneberegning
+og vindusunion, uendrede ikke-COT-statistikker og uavhengig råkolonneberegning
 av berørte robuststatistikker, ikke bare like outputdimensjoner.
 
 CUDA-mekanikk bruker ny eksakt plan og aktuell idle-/boot-/bibliotek-/GPU-
@@ -158,6 +158,42 @@ Full INITIAL er en separat null-update-plan på hele ufiltrerte input-TRAIN.
 Equal-length-TF-optimalisering kvalifiseres i sin faktiske no_grad-evalrute;
 slik outputparitet er ikke alene bevis for treningsgradientparitet. Bevar
 umiddelbar/gruppert finite-check-paritet separat gjennom backward.
+
+En mindre TRAIN-kohort har en kildeklokkeselektor låst før nytt målinnsyn.
+Klokkeutvalget forsegles før kohortens måloppslag: alle observerte22UTC-døgn,
+opptil16jevnt spredte issues per døgn, inkludert endepunktene.
+Ingen targetfilter, klassekvote eller top-up. Whole-TRAIN-normalisering og
+factoryprior beholdes. En ny kohortprior er kun sammenligningsgrunnlag ved
+scoring; den mates ikke til modellen. Null støtte bestemmes av fit_status/
+count, selv om den kanoniske Laplace-representasjonen har0,5 som plassholder.
+Uidentifiserte priorer gir ingen estimert sannsynlighet eller avhengig
+fulltreklasse-/Brier-/rangeringkreditt.
+
+Fullt koblet og M5_primary sammenlignes med samme ferske seed, kohort,
+forhåndskvalifiserte batcher og to faste kronologiske pass. INITIAL og begge
+pass scores uten ekstra forward ved logitfangst; kjente masker og unike
+framtidsbarer rapporteres separat. Tre kildeklokkefaste sluttmodellpaneler
+måler data-gradienter, ikke optimale taskvekter eller AdamW-nytte. Kald replay
+har egen eksakt engangsadmisjon og dupliserer bare det deklarerte steget.
+Batch-effektivitet velges kun fra fullførte rader/sekund innen vaktene;
+prosessens reserverte minnehøyvann er ikke en kandidatspesifikk måling.
+
+Checkpointets uforanderlige trajektorie binder også faktisk inputbygger,
+normalisering, prior, mål, numerisk kilde, rekkefølge og epokebudsjett.
+Ny eksekveringsplan kan ha ny boot/policy/output, men endrer ikke original
+trajektorie eller cursor. Hver INITIAL/periodisk/final PT får varig JSON-
+kvittering med original fil-SHA, posisjon og full stateproof før en senere
+feil kan inntreffe. Restore validerer autentisert originalproof og faktisk
+optimizer-slotinventar før parameterkopiering; andre AdamW-momenter skal
+være endelige og ikke-negative. Primitive checkpointmetadata lagres med
+vanlige Python-typer; weights_only=False eller ekstra pickle-allowlist er
+ikke en gjenopprettingsløsning.
+
+En egen fysisk recovery-prøve krever dokumentert ny Windows- og WSL-boot,
+kompatibel GPU/bibliotek/funksjon, original checkpointkvittering og eksakt
+sluttproof. Main/resume har egne porter og opprinnelig én-epokesgrense;
+private prøver åpner ingen hovedfit. Én epoke vurderes før eventuell senere
+fortsettelse. Ingen automatisk femepokerserie eller CONTROL-basert early stop.
 
 
 En teknisk optimizerprøve med whole-TRAIN-statistikk/prior er et avgrenset

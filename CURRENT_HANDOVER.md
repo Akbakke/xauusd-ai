@@ -96,18 +96,41 @@ mekanikkreferanse; ingen produksjonsgradientvinner er valgt. Nye private
 mekanikkporter åpner bare dette avgrensede forsøket, aldri hovedfitten.
 HelTRAIN-INITIAL er nå COMPLETE/exit0:354550issues/5540forwards,0optimizer,
 backward,updates eller statistikkfits. Alle hidden er endeligeF32; samtlige
-logits og wholeTRain-skår er eksakt frossen prior.1732317kjente aktivitetsceller,
+logits og wholeTRAIN-skår er eksakt frossen prior.1732317kjente aktivitetsceller,
 partialNLL0,653420166847. Kjøring2324,667s,58uendrede kildeeiere og disk-readback
 av INITIAL_STATE.pt. Signert guard: topp59Ckjerne/66Cminne/167,62W/844MiB,
 faktisk250Weffektgrense; ingen CPU package-watt/temperaturmåling.
 Runrot: `/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CUDA_INITIAL_20261121_001`.
 
 B64 er kvalifisert referanse, ikke dokumentert optimum: gamle forsøk mangler
-TRAINB96/B128 og nyfunksjonens større evalbatch. Neste steg er separat diskkopi,
+TRAINB96/B128 og nyfunksjonens større evalbatch. Separat diskkopi er ferdig. Neste steg er
 én forhåndsvalgt mekanisk throughput-prøve og samme kildevalgte TRAIN-kohort
 for fullt koblet vsM5_primary, to faste pass.16jevnt spredte issues per22UTC-
 døgn er låst før nytt målinnsyn; ingen targetfilter, top-up eller CONTROL-valg.
 Studiens matchede prior scores separat, aldri som erstatning for factoryprior.
+Backup:49kvalifiserte input-/target-/normaliserings-/prior-/checkpointartefakter,
+854323425bytes, på fysisk separat Mac-disk under
+`/Users/andrekildalbakke/GX1_BACKUP/CURRENT_FUTURE_STATE_QUALIFIED_20261121_001`.
+ManifestSHA8530d17c...39b8. Fem peer-/backupmetadatafiler og gjenopprettingsverktøy
+er også sikret separat.54source-readers har uavhengig kontroll av4GiB/512MiB-
+vakten, diagnosticsSHA og vellykket resultat. Atomisk no-replace, fsync,
+MacF_FULLFSYNC og faktisk disk-SHA-readback; ingen modell-/arraydeserialisering
+i kopieringen. Dette er den kvalifiserte aktuelle kjeden, ikke hele DATA/RUNS.
+Nye throughput-/studie-/generiske checkpointleaves er implementert og
+ikke innrømmet. Gammel qualifier og modellfunksjon bevares; nye vaktgrener har
+kildebro til den faktiske INITIAL-produsenten. Første213fokuserte tilfeller ga208PASS/5FAIL. To kildefeil ble rettet:
+UNFITTED følger kanonisk fit_status/count og AUC-return er vanlig Pythonfloat,
+slik at trygg weights_only-checkpointreadback virker. Tre testforventninger
+bruker nå riktig immutable-publisher-unntak.23berørte/nærliggende tilfeller
+består etterpå; omfanget overlapper de213. Ingen ekstra pickle-tillatelser.
+Siste recoveryreview rettet også referansevalidering før hashing,
+checkpoint-/proofmetadata før CLAIM og kravet om reelt ny Windows-/WSL-boot.
+27nye/nærliggende metadatakontroller består;24av dem er nye. Samlet237unike
+fokuserte tilfeller er dekket over bølgene, med overlapp i retestene. Codebridge
+bevarer56gamle kjerneeiere og hele opprinnelige vaktmodulen/shellruten.
+Ekte throughput/cohort/studie/PC-recovery gjenstår før produksjonsoppskrift
+fryses. Ingen ny CLAIM eller hovedfit er innrømmet.
+
 Begge armer trenger egne optimizer-/replaybevis før produksjonsvalg. Hovedplanen
 skal senere fryse én epoke; ingen automatisk femepokerserie.
 Ingen gammel engangsplan relanseres. TEST/M1/GC/handel/Exit er fortsatt stengt

@@ -292,3 +292,149 @@ def test_native_future_state_cuda_qualification_precedes_old_selectors_and_expor
     assert nested.index('nested native CUDA qualification differs') < nested.index('exec "$GPU_GUARD_PATH" "$@"')
     assert 'NATIVE_M5_FUTURE_STATE_CUDA_MECHANICS_20261121_001/$8' in branch
     assert 'NATIVE_M5_FUTURE_STATE_CUDA_INITIAL_20261121_001' in branch
+
+
+
+FUTURE_LEAF_LANES=(None,'joint','joint_replay','m5_primary','m5_primary_replay','main','recovery_probe','main_resume')
+
+
+def _future_leaf_fixture(tmp_path,lane='joint'):
+    folder=tmp_path/'configs/research';folder.mkdir(parents=True)
+    names=('NATIVE_FUTURE_STATE_THROUGHPUT_20261121_001','NATIVE_FUTURE_STATE_PAIRED_LEARNING_20261121_001',
+        'NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001','NATIVE_FUTURE_STATE_RECOVERY_PROBE_20261121_001',
+        'NATIVE_FUTURE_STATE_ONE_EPOCH_RESUME_20261121_001')
+    plans={name:folder/(name+'.json')for name in names}
+    for name,path in plans.items():path.write_text(json.dumps({'synthetic_only':name})+'\n')
+    fixed={None:names[0],'main':names[2],'recovery_probe':names[3],'main_resume':names[4]}
+    name=fixed.get(lane,names[1])
+    module='gx1.audit.measure_native_future_state_throughput_v1'if lane is None else'gx1.audit.native_future_state_training_v1'
+    args=[str(tmp_path/'.venv/bin/python'),'-m',module,'--plan-sha256',hashlib.sha256(plans[name].read_bytes()).hexdigest()]
+    if lane is not None:args+=['--lane',lane]
+    source=RUNNER.read_text()
+    def fragment(label):
+        begin='# BEGIN GX1 FUTURE LEAF ROUTES 20261121 '+label+'\n'
+        end='# END GX1 FUTURE LEAF ROUTES 20261121 '+label+'\n'
+        return begin+source.split(begin,1)[1].split(end,1)[0]+end
+    block=fragment('MATCHERS');state=fragment('STATE');dispatch=fragment('DISPATCH')
+    runs=tmp_path/'runs';runs.mkdir();output=runs/name
+    if lane not in fixed:output/=lane
+    output.parent.mkdir(exist_ok=True)
+    prefix='set -eu\nREPO_ROOT='+shlex.quote(str(tmp_path))+'\nCANONICAL_TRAINER_PYTHON='+shlex.quote(args[0])+'\n'
+    prefix+=state+block.replace('/home/andre2/GX1_RUNS',str(runs))
+    return plans[name],args,prefix,dispatch,output
+
+
+@pytest.mark.parametrize('lane',FUTURE_LEAF_LANES)
+@pytest.mark.parametrize('preflight',[False,True])
+def test_native_future_state_leaf_exact_fixed_plan_and_lane(tmp_path,lane,preflight):
+    _,args,prefix,_,_=_future_leaf_fixture(tmp_path,lane)
+    if preflight:args.append('--preflight')
+    matcher='matches_bound_native_future_state_throughput'if lane is None else'matches_bound_native_future_state_training'
+    result=subprocess.run(['bash','-c',prefix+'\n'+matcher+' '+shlex.join(args)],cwd=tmp_path,capture_output=True,text=True)
+    assert result.returncode==0,result.stderr
+
+
+@pytest.mark.parametrize('lane',[None,'joint'])
+@pytest.mark.parametrize('fault',['wrong_sha','bad_sha','python','module','abbreviation','extra','duplicate',
+    'reordered','symlink_plan','missing_plan','wrong_cwd','wrapper','bad_preflight'])
+def test_native_future_state_leaf_rejects_nonliteral_argv_and_bindings(tmp_path,lane,fault):
+    plan,args,prefix,_,_=_future_leaf_fixture(tmp_path,lane);cwd=tmp_path
+    if fault=='wrong_sha':args[4]='0'*64
+    elif fault=='bad_sha':args[4]='A'*64
+    elif fault=='python':args[0]='/usr/bin/python3'
+    elif fault=='module':args[2]+='.extra'
+    elif fault=='abbreviation':args[3]='--plan-sha'
+    elif fault=='extra':args.append('--train')
+    elif fault=='duplicate':args+=['--plan-sha256',args[4]]
+    elif fault=='reordered':args[3:5]=list(reversed(args[3:5]))
+    elif fault=='symlink_plan':
+        actual=plan.with_suffix('.original');plan.rename(actual);plan.symlink_to(actual)
+    elif fault=='missing_plan':plan.unlink()
+    elif fault=='wrong_cwd':cwd=tmp_path.parent
+    elif fault=='wrapper':args=['/usr/bin/timeout','1800s',*args]
+    elif fault=='bad_preflight':args.append('--preflight-extra')
+    matcher='matches_bound_native_future_state_throughput'if lane is None else'matches_bound_native_future_state_training'
+    result=subprocess.run(['bash','-c',prefix+'\n'+matcher+' '+shlex.join(args)],cwd=cwd,capture_output=True,text=True)
+    assert result.returncode!=0
+
+
+@pytest.mark.parametrize('lane',FUTURE_LEAF_LANES)
+def test_native_future_state_leaf_dispatch_binds_private_mode_deadline_and_hardware(tmp_path,lane):
+    _,args,prefix,_,output=_future_leaf_fixture(tmp_path,lane)
+    scope='\nJOB_CLASS=trainer\nMEM=20G\nSWAP=512M\nATTENDED_SMOKE=false\nCUDA_PRODUCER_GUARD=false\nPOWER_BENCHMARK_SCOPE_JSON=\nPOWER_BENCHMARK_SCOPE_SHA256=\n'
+    fields=['NATIVE_FUTURE_STATE_THROUGHPUT','NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256',
+        'NATIVE_FUTURE_STATE_TRAINING','NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256','NATIVE_FUTURE_STATE_TRAINING_LANE',
+        'TRAINER_DEVICE','TRAINER_EXECUTION_MODE','TRAINER_OUT_BUNDLE_DIR','TRAINER_MAX_WALL_SECONDS',
+        'TRAINER_MODEL_MAX_WALL_SECONDS','TRAINER_GPU_MAX_POWER_LIMIT_W','TRAINER_GPU_MAX_POWER_DRAW_W',
+        'TRAINER_GPU_MAX_CORE_TEMP_C','TRAINER_GPU_MAX_MEMORY_TEMP_C','TRAINER_GPU_MAX_MEMORY_USED_MIB']
+    shell=prefix+scope+'configure_native_future_state_leaf '+shlex.join(args)+'\n'
+    shell+='printf "%s\n" '+' '.join('"$'+field+'"'for field in fields)+'\n'
+    result=subprocess.run(['bash','-c',shell],cwd=tmp_path,capture_output=True,text=True)
+    assert result.returncode==0,result.stderr
+    seconds='1800'if lane is None or lane=='recovery_probe' or str(lane).endswith('_replay')else'12000'if lane in ('main','main_resume')else'5400'
+    expected=['true',args[4],'false','','']if lane is None else['false','','true',args[4],lane]
+    assert result.stdout.splitlines()==expected+['cuda','canonical',str(output),seconds,seconds,'300','310','85','80','12288']
+
+
+@pytest.mark.parametrize('fault',['audit','producer','memory','swap','attended','cuda_producer','benchmark',
+    'benchmark_sha','output_exists','output_symlink','parent_missing','parent_symlink'])
+def test_native_future_state_leaf_rejects_broader_scope_or_unfresh_output(tmp_path,fault):
+    _,args,prefix,_,output=_future_leaf_fixture(tmp_path,'joint')
+    env={'JOB_CLASS':'trainer','MEM':'20G','SWAP':'512M','ATTENDED_SMOKE':'false','CUDA_PRODUCER_GUARD':'false',
+        'POWER_BENCHMARK_SCOPE_JSON':'','POWER_BENCHMARK_SCOPE_SHA256':''}
+    if fault in ('audit','producer'):env['JOB_CLASS']=fault
+    elif fault=='memory':env['MEM']='12G'
+    elif fault=='swap':env['SWAP']='1G'
+    elif fault=='attended':env['ATTENDED_SMOKE']='true'
+    elif fault=='cuda_producer':env['CUDA_PRODUCER_GUARD']='true'
+    elif fault=='benchmark':env['POWER_BENCHMARK_SCOPE_JSON']='/unit/scope.json'
+    elif fault=='benchmark_sha':env['POWER_BENCHMARK_SCOPE_SHA256']='a'*64
+    elif fault=='output_exists':output.mkdir()
+    elif fault=='output_symlink':output.symlink_to(tmp_path/'absent')
+    elif fault=='parent_missing':output.parent.rmdir()
+    elif fault=='parent_symlink':
+        actual=output.parent.with_name('real-parent');output.parent.rename(actual);output.parent.symlink_to(actual)
+    shell=prefix+'\n'+'\n'.join(k+'='+shlex.quote(v)for k,v in env.items())+'\nconfigure_native_future_state_leaf '+shlex.join(args)
+    result=subprocess.run(['bash','-c',shell],cwd=tmp_path,capture_output=True,text=True)
+    assert result.returncode==75 and 'native future-state leaf'in result.stderr
+
+
+@pytest.mark.parametrize('args,expected',[
+    (['python','-c','from gx1.audit.native_future_state_training_v1 import build_plan'],False),
+    (['python','-m','pytest','tests/test_native_future_state_training_v1.py'],False),
+    (['python','-m','gx1.audit.native_future_state_training_v1'],True),
+    (['env','python','-m','gx1.audit.measure_native_future_state_throughput_v1'],True),
+    (['python','gx1/audit/native_future_state_training_v1.py'],True)])
+def test_native_future_state_leaf_reservation_allows_metadata_import_and_reserves_direct_execution(tmp_path,args,expected):
+    _,_,prefix,dispatch,_=_future_leaf_fixture(tmp_path)
+    shell=prefix+'\nconfigure_native_future_state_leaf() { echo reserved; }\nvalidate_reservation() {\n'+dispatch+'\necho ordinary;\n}\n'
+    result=subprocess.run(['bash','-c',shell+'validate_reservation '+shlex.join(args)],cwd=tmp_path,capture_output=True,text=True)
+    assert result.returncode==0 and result.stdout.strip()==('reserved'if expected else'ordinary')
+
+
+def test_native_future_state_leaf_exports_and_nested_checks_are_additive_before_execution():
+    source=RUNNER.read_text()
+    for field in ('GX1_NATIVE_FUTURE_STATE_THROUGHPUT','GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256',
+        'GX1_NATIVE_FUTURE_STATE_TRAINING','GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256','GX1_NATIVE_FUTURE_STATE_TRAINING_LANE'):
+        assert source.count('--setenv='+field+'=')==1
+    begin=source.index('# BEGIN GX1 FUTURE LEAF ROUTES 20261121 NESTED')
+    end=source.index('# END GX1 FUTURE LEAF ROUTES 20261121 NESTED',begin)
+    assert begin<end<source.index('  if [[ "$NATIVE_FUTURE_STATE_CUDA_QUALIFICATION" == true ]]; then',begin)
+    assert end<source.index('exec "$GPU_GUARD_PATH" "$@"',end)
+    nested=source[begin:end]
+    for field in ('GX1_NATIVE_FUTURE_STATE_TRAINING_LANE','GX1_TRAINER_MAX_WALL_SECONDS','GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C'):
+        assert field in nested
+
+
+@pytest.mark.parametrize('lane',['recovery_probe','main_resume'])
+@pytest.mark.parametrize('fault',['cross_plan','output_exists','output_symlink','missing_parent'])
+def test_native_future_state_leaf_recovery_routes_bind_their_own_fixed_plan_and_root(tmp_path,lane,fault):
+    _,args,prefix,_,output=_future_leaf_fixture(tmp_path,lane)
+    if fault=='cross_plan':args[-1]='main_resume'if lane=='recovery_probe'else'recovery_probe'
+    elif fault=='output_exists':output.mkdir()
+    elif fault=='output_symlink':output.symlink_to(tmp_path/'missing-output')
+    else:output.parent.rmdir()
+    scope='\nJOB_CLASS=trainer\nMEM=20G\nSWAP=512M\nATTENDED_SMOKE=false\nCUDA_PRODUCER_GUARD=false\nPOWER_BENCHMARK_SCOPE_JSON=\nPOWER_BENCHMARK_SCOPE_SHA256=\n'
+    result=subprocess.run(['bash','-c',prefix+scope+'configure_native_future_state_leaf '+shlex.join(args)],
+        cwd=tmp_path,capture_output=True,text=True)
+    assert result.returncode==75 and 'native future-state leaf'in result.stderr

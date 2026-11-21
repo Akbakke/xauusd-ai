@@ -636,6 +636,134 @@ def require_native_future_state_cuda_qualification_execution(
             "cpu_affinity": list(range(19)), "numerical_threads": 8}
 
 
+_NATIVE_FUTURE_STATE_GUARD_PARENT_COMMIT = 'c1cd096cfde51719bb1ba5bbd9036864526081df'
+_NATIVE_FUTURE_STATE_GUARD_PARENT_HASHES = {
+    'gx1/contracts/gx1_capped_execution_v1.py': '31d3d805cd368b2f4e6ea379e266fc30f82a1bf3ede127e147f91a7de4c9172d',
+    'scripts/gx1_capped_run.sh': 'fa8326946291ba324e30848cb169380411ddf1c1ba964afc4bf82fcf999c32fb',
+}
+
+_NATIVE_FUTURE_STATE_GUARD_SHELL_ADDITIONS = (('TRAINER_MAX_WALL_SECONDS=7200\n', 'before', '# BEGIN GX1 FUTURE LEAF ROUTES 20261121 STATE\nNATIVE_FUTURE_STATE_THROUGHPUT_MODULE=gx1.audit.measure_native_future_state_throughput_v1\nNATIVE_FUTURE_STATE_TRAINING_MODULE=gx1.audit.native_future_state_training_v1\nNATIVE_FUTURE_STATE_THROUGHPUT=false\nNATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256=\nNATIVE_FUTURE_STATE_TRAINING=false\nNATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256=\nNATIVE_FUTURE_STATE_TRAINING_LANE=\n# END GX1 FUTURE LEAF ROUTES 20261121 STATE\n'), ('validate_target_command() {\n', 'before', '# BEGIN GX1 FUTURE LEAF ROUTES 20261121 MATCHERS\nmatches_bound_native_future_state_throughput() {\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_001.json"\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1\n  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == "$NATIVE_FUTURE_STATE_THROUGHPUT_MODULE" \\\n    && "$4" == --plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1\n  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\n\nmatches_bound_native_future_state_training() {\n  local expected_plan\n  if [[ $# -eq 8 ]]; then\n    [[ "$8" == --preflight ]] || return 1\n    set -- "${@:1:7}"\n  fi\n  [[ $# -eq 7 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1\n  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == "$NATIVE_FUTURE_STATE_TRAINING_MODULE" \\\n    && "$4" == --plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ && "$6" == --lane ]] || return 1\n  case "$7" in\n    joint|joint_replay|m5_primary|m5_primary_replay)\n      expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_PAIRED_LEARNING_20261121_001.json" ;;\n    main) expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001.json" ;;\n    recovery_probe) expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_RECOVERY_PROBE_20261121_001.json" ;;\n    main_resume) expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_ONE_EPOCH_RESUME_20261121_001.json" ;;\n    *) return 1 ;;\n  esac\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1\n  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\n\nconfigure_native_future_state_leaf() {\n  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \\\n    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo "FATAL: native future-state leaf requires exact canonical trainer scope" >&2\n    exit 75\n  }\n  local future_leaf_output future_leaf_seconds future_leaf_kind\n  if [[ "${3:-}" == "$NATIVE_FUTURE_STATE_THROUGHPUT_MODULE" ]] \\\n    && matches_bound_native_future_state_throughput "$@"; then\n    future_leaf_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_THROUGHPUT_20261121_001\n    future_leaf_seconds=1800\n    future_leaf_kind=throughput\n  elif [[ "${3:-}" == "$NATIVE_FUTURE_STATE_TRAINING_MODULE" ]] \\\n    && matches_bound_native_future_state_training "$@"; then\n    future_leaf_kind=training\n    case "$7" in\n      joint|m5_primary) future_leaf_seconds=5400 ;;\n      joint_replay|m5_primary_replay|recovery_probe) future_leaf_seconds=1800 ;;\n      main|main_resume) future_leaf_seconds=12000 ;;\n    esac\n    case "$7" in\n      main) future_leaf_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001 ;;\n      recovery_probe) future_leaf_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_RECOVERY_PROBE_20261121_001 ;;\n      main_resume) future_leaf_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_ONE_EPOCH_RESUME_20261121_001 ;;\n      *) future_leaf_output="/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_PAIRED_LEARNING_20261121_001/$7" ;;\n    esac\n  else\n    echo "FATAL: native future-state leaf CLI/plan is not exactly bound" >&2\n    exit 75\n  fi\n  [[ ! -e "$future_leaf_output" && ! -L "$future_leaf_output" \\\n    && -d "${future_leaf_output%/*}" && ! -L "${future_leaf_output%/*}" \\\n    && "$(readlink -f "${future_leaf_output%/*}")" == "${future_leaf_output%/*}" ]] || {\n    echo "FATAL: native future-state leaf output/guard-log parent is not fresh canonical scope" >&2\n    exit 75\n  }\n  if [[ "$future_leaf_kind" == throughput ]]; then\n    NATIVE_FUTURE_STATE_THROUGHPUT=true\n    NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256="$5"\n  else\n    NATIVE_FUTURE_STATE_TRAINING=true\n    NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256="$5"\n    NATIVE_FUTURE_STATE_TRAINING_LANE="$7"\n  fi\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$future_leaf_output"\n  TRAINER_MAX_WALL_SECONDS="$future_leaf_seconds"\n  TRAINER_MODEL_MAX_WALL_SECONDS="$future_leaf_seconds"\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=300\n  TRAINER_GPU_MAX_POWER_DRAW_W=310\n  TRAINER_GPU_MAX_CORE_TEMP_C=85\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n}\n# END GX1 FUTURE LEAF ROUTES 20261121 MATCHERS\n\n'), ('validate_target_command() {\n', 'after', '# BEGIN GX1 FUTURE LEAF ROUTES 20261121 DISPATCH\n  local future_leaf_arg future_leaf_reference=false\n  for future_leaf_arg in "$@"; do\n    case "$future_leaf_arg" in\n      "$NATIVE_FUTURE_STATE_THROUGHPUT_MODULE"|"$NATIVE_FUTURE_STATE_TRAINING_MODULE"|*/gx1/audit/measure_native_future_state_throughput_v1.py|*/gx1/audit/native_future_state_training_v1.py|gx1/audit/measure_native_future_state_throughput_v1.py|gx1/audit/native_future_state_training_v1.py)\n        future_leaf_reference=true ;;\n    esac\n  done\n  if [[ "$future_leaf_reference" == true ]]; then\n    configure_native_future_state_leaf "$@"\n    return\n  fi\n# END GX1 FUTURE LEAF ROUTES 20261121 DISPATCH\n'), ('  if [[ "$NATIVE_FUTURE_STATE_CUDA_QUALIFICATION" == true ]]; then\n', 'before', '# BEGIN GX1 FUTURE LEAF ROUTES 20261121 NESTED\n  [[ "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == "$NATIVE_FUTURE_STATE_THROUGHPUT" \\\n    && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == "$NATIVE_FUTURE_STATE_TRAINING" ]] || {\n    echo "FATAL: nested native future-state leaf mode differs from parent" >&2\n    exit 75\n  }\n  if [[ "$NATIVE_FUTURE_STATE_THROUGHPUT" == true || "$NATIVE_FUTURE_STATE_TRAINING" == true ]]; then\n    [[ "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256:-}" == "$NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256" \\\n      && "${GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256:-}" == "$NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256" \\\n      && "${GX1_NATIVE_FUTURE_STATE_TRAINING_LANE:-}" == "$NATIVE_FUTURE_STATE_TRAINING_LANE" \\\n      && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-false}" == false \\\n      && "${GX1_TRAINER_EXECUTION_MODE:-}" == canonical \\\n      && "${GX1_TRAINER_MAX_WALL_SECONDS:-}" == "$TRAINER_MAX_WALL_SECONDS" \\\n      && "${GX1_TRAINER_MODEL_MAX_WALL_SECONDS:-}" == "$TRAINER_MODEL_MAX_WALL_SECONDS" \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W:-}" == 300 \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_DRAW_W:-}" == 310 \\\n      && "${GX1_TRAINER_GPU_MAX_CORE_TEMP_C:-}" == 85 \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C:-}" == 80 \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB:-}" == 12288 ]] || {\n      echo "FATAL: nested native future-state leaf plan/deadline/hardware differs from parent" >&2\n      exit 75\n    }\n  fi\n# END GX1 FUTURE LEAF ROUTES 20261121 NESTED\n'), ('  --setenv=GX1_POWER_BENCHMARK_SCOPE_JSON="$POWER_BENCHMARK_SCOPE_JSON" \\\n', 'before', '  --setenv=GX1_NATIVE_FUTURE_STATE_THROUGHPUT="$NATIVE_FUTURE_STATE_THROUGHPUT" \\\n  --setenv=GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256="$NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256" \\\n  --setenv=GX1_NATIVE_FUTURE_STATE_TRAINING="$NATIVE_FUTURE_STATE_TRAINING" \\\n  --setenv=GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256="$NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256" \\\n  --setenv=GX1_NATIVE_FUTURE_STATE_TRAINING_LANE="$NATIVE_FUTURE_STATE_TRAINING_LANE" \\\n'))
+
+
+def _native_future_state_leaf_execution(*, plan_sha256: str, kind: str, lane: str | None) -> dict[str, Any]:
+    """Containment only; exact source, recipe and one-use training authority belong to the leaf."""
+    if type(plan_sha256) is not str or re.fullmatch(r"[0-9a-f]{64}", plan_sha256) is None:
+        raise RuntimeError("[GX1_NATIVE_FUTURE_LEAF_PLAN_SHA256_INVALID]")
+    if kind == "throughput" and lane is None:
+        seconds, basename, output_lane = 1800, "NATIVE_FUTURE_STATE_THROUGHPUT_20261121_001", None
+    elif kind == "training" and type(lane) is str and lane in (
+            "joint", "joint_replay", "m5_primary", "m5_primary_replay", "main", "recovery_probe", "main_resume"):
+        seconds = (12000 if lane in ("main", "main_resume") else
+                   1800 if lane.endswith("_replay") or lane == "recovery_probe" else 5400)
+        fixed = {"main": "NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001",
+                 "recovery_probe": "NATIVE_FUTURE_STATE_RECOVERY_PROBE_20261121_001",
+                 "main_resume": "NATIVE_FUTURE_STATE_ONE_EPOCH_RESUME_20261121_001"}
+        basename = fixed.get(lane, "NATIVE_FUTURE_STATE_PAIRED_LEARNING_20261121_001")
+        output_lane = None if lane in fixed else lane
+    else:
+        raise RuntimeError("[GX1_NATIVE_FUTURE_LEAF_KIND_LANE_INVALID]")
+    expected = {
+        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT": "true" if kind == "throughput" else "false",
+        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256": plan_sha256 if kind == "throughput" else "",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING": "true" if kind == "training" else "false",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256": plan_sha256 if kind == "training" else "",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING_LANE": lane if kind == "training" else "",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION": "false",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS": "false",
+        "GX1_TRAINER_MAX_WALL_SECONDS": str(seconds),
+        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": str(seconds),
+        "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": "false",
+        "GX1_TRAINER_GPU_INDEX": "0", "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": "300",
+        "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": "310", "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "85",
+        "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "80", "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": "12288",
+        "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
+        "GX1_POWER_BENCHMARK_SCOPE_JSON": "", "GX1_POWER_BENCHMARK_SCOPE_SHA256": "",
+    }
+    for name, value in expected.items():
+        if os.environ.get(name) != value:
+            raise RuntimeError(f"[GX1_NATIVE_FUTURE_LEAF_ENV_INVALID] field={name}")
+    proof = require_guarded_cuda_trainer_execution()
+    plan_path = Path(__file__).resolve().parents[2] / "configs/research" / (basename + ".json")
+    output_root = Path("/home/andre2/GX1_RUNS") / basename
+    if output_lane is not None:
+        output_root /= output_lane
+    return {**proof, "class": "trainer", "execution_mode": "canonical", "kind": kind,
+            "training_authority_granted": False, "plan": {"path": str(plan_path), "sha256": plan_sha256},
+            "plan_path": str(plan_path), "output_root": str(output_root), "lane": lane,
+            "outer_seconds": seconds, "internal_seconds": seconds - 30, "kill_after_seconds": 10,
+            "cpu_affinity": list(range(19)), "numerical_threads": 8}
+
+
+def require_native_future_state_throughput_execution(*, plan_sha256: str) -> dict[str, Any]:
+    return _native_future_state_leaf_execution(plan_sha256=plan_sha256, kind="throughput", lane=None)
+
+
+def require_native_future_state_training_execution(*, plan_sha256: str, lane: str) -> dict[str, Any]:
+    return _native_future_state_leaf_execution(plan_sha256=plan_sha256, kind="training", lane=lane)
+
+
+def native_future_state_guard_source_bridge(previous_source_owners, *, producer_commit):
+    """Metadata-only two-owner bridge; callers authenticate the full INITIAL58 inventory and other56."""
+    import ast
+    import hashlib
+    import subprocess
+    def require(ok, reason):
+        if not ok:
+            raise RuntimeError("[GX1_NATIVE_FUTURE_GUARD_BRIDGE_" + reason + "]")
+    require(type(producer_commit) is str and producer_commit == _NATIVE_FUTURE_STATE_GUARD_PARENT_COMMIT,
+            "PRODUCER_COMMIT")
+    require(type(previous_source_owners) is dict and len(previous_source_owners) == 58, "OWNER_COUNT")
+    for name, digest in previous_source_owners.items():
+        require(type(name) is str and not Path(name).is_absolute() and ".." not in Path(name).parts
+                and str(Path(name)) == name and Path(name).suffix in (".py", ".sh"), "SOURCE_PATH")
+        require(type(digest) is str and re.fullmatch(r"[0-9a-f]{64}", digest) is not None, "SOURCE_SHA")
+    require(all(previous_source_owners.get(name) == digest
+                for name, digest in _NATIVE_FUTURE_STATE_GUARD_PARENT_HASHES.items()), "PARENT_GUARD_HASHES")
+    repo = Path(__file__).resolve().parents[2]
+    report = {}
+    for name, expected_sha in _NATIVE_FUTURE_STATE_GUARD_PARENT_HASHES.items():
+        original = subprocess.check_output(["git", "show", producer_commit + ":" + name], cwd=repo)
+        require(hashlib.sha256(original).hexdigest() == expected_sha, "ORIGINAL_GIT_BYTES")
+        current = (repo / name).read_bytes()
+        if name.endswith(".py"):
+            old_tree, new_tree = ast.parse(original), ast.parse(current)
+            names = [node.name for node in new_tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))]
+            require(len(names) == len(set(names)), "DUPLICATE_FUNCTION")
+            added_functions = {"_native_future_state_leaf_execution", "require_native_future_state_throughput_execution",
+                "require_native_future_state_training_execution", "native_future_state_guard_source_bridge"}
+            added_constants = {"_NATIVE_FUTURE_STATE_GUARD_PARENT_COMMIT", "_NATIVE_FUTURE_STATE_GUARD_PARENT_HASHES",
+                "_NATIVE_FUTURE_STATE_GUARD_SHELL_ADDITIONS"}
+            retained = []
+            seen_functions, seen_constants = set(), set()
+            for node in new_tree.body:
+                if isinstance(node, ast.FunctionDef) and node.name in added_functions:
+                    seen_functions.add(node.name)
+                elif isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) and node.targets[0].id in added_constants:
+                    require(node.targets[0].id not in seen_constants, "DUPLICATE_CONSTANT")
+                    seen_constants.add(node.targets[0].id)
+                else:
+                    retained.append(node)
+            require(seen_functions == added_functions and seen_constants == added_constants, "EXACT_ADDITIONS")
+            new_tree.body = retained
+            before, after = ast.dump(old_tree, include_attributes=False), ast.dump(new_tree, include_attributes=False)
+            require(before == after, "OLD_PYTHON_MODULE_CHANGED")
+            normalized_sha = hashlib.sha256(after.encode()).hexdigest()
+            proof = "whole_module_AST_equal_after_only_named_additions"
+        else:
+            text = current.decode()
+            for anchor, position, fragment in reversed(_NATIVE_FUTURE_STATE_GUARD_SHELL_ADDITIONS):
+                composite = fragment + anchor if position == "before" else anchor + fragment
+                require(text.count(fragment) == text.count(composite) == 1, "EXACT_SHELL_INSERTION")
+                text = text.replace(composite, anchor, 1)
+            require(text.encode() == original, "OLD_SHELL_BYTES_CHANGED")
+            normalized_sha = hashlib.sha256(text.encode()).hexdigest()
+            proof = "all_old_shell_bytes_equal_after_only_exact_anchored_insertions"
+        report[name] = {"original_sha256": expected_sha, "current_sha256": hashlib.sha256(current).hexdigest(),
+                        "normalized_sha256": normalized_sha, "proof": proof}
+    return {"producer_commit": producer_commit, "checked_guard_owners": 2,
+            "other_parent_owners_to_be_checked_by_caller": 56, "owners": report}
+
+
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")
     operation = parser.add_mutually_exclusive_group(required=True)
