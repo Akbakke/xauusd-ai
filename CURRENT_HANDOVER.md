@@ -6,14 +6,49 @@ Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 ## Gjeldende status 21.11.2026
 
-Den bestilte fullprosjektrevisjonen og ekstra checkpoint/resume-sikringen er ferdige
-innen dokumentert omfang. Main003 er ADMITTED_ONE_USE, venter på første launch:
-CLAIM=0, remaining=1, outputrot finnes ikke. Bare dens egne training/native-porter
-er åpnet; alle øvrige porter er stengt. Kilde og policy fryses gjennom kjøringen.
-Aktivt nattmål skal nå innrømme og kjøre nøyaktig én full kronologisk TRAIN-epoke,
-deretter vurdere resultatet mot frosset TRAIN-prior og separat utviklings-VAL.
-Bruker valgte én epoke først; ingen automatisk ekstraepoke eller femepoke-earlystop.
-Stabil langkjøring kontrolleres hvert30.minutt; maskinvarevaktene går kontinuerlig.
+Main003 er COMPLETE_CONSUMED/exit0: nøyaktig én full kronologisk TRAIN-epoke og
+full utviklings-VAL er ferdig.5540updates/7062forwards,1modell,0autograd og0nye
+norm-/priorfits. Alle treningsporter er stengt; ingen ekstraepoke er innrømmet.
+Varighet7281,263s (~2t1min).23checkpointkvitteringer bevarer cursor0→5540.
+Stabil drift ble fulgt opp hvert30.minutt med kontinuerlige maskinvarevakter.
+Uavhengig integritetsreview består, og læringsreview er ferdig. Nattmålets ene
+epoke og praktiske gjenopptakelse er fullført; ingen videre trening er autorisert.
+
+GPUvaktens5682samples: topp67Ccore/74Cmem/231,6W/7488MiB. Ingen vaktavslag
+under main. CPUwatt/temperatur er fortsatt ikke målt. Kilde er uendret og TEST
+urørt etter produsentens kilde-/IO-brannmur. Teknisk fullføring er ikke edge.
+
+## Målt læring og neste beslutning
+
+Frossen TRAIN-prior (identisk med INITIAL) → sluttmodell, alle faktiske predictive
+celler; kjent-open-diagnostikk teller aldri som prediktiv kvalitet:
+
+| Omfang | Log-loss | Brier |
+|---|---:|---:|
+| TRAIN, alle10heads | 1,082061→0,980241 | 0,655284→0,591833 |
+| Utviklings-VAL, alle10heads | 1,085805→0,993167 | 0,657712→0,599772 |
+| TRAIN, primær M5close | 1,091087→1,082956 | 0,661521→0,655787 |
+| Utviklings-VAL, primær M5close | 1,086871→1,077720 | 0,658601→0,652040 |
+
+Alle10TRAINheads og8/10VALheads forbedrer begge proper scores. D1open/-close
+forverres på VAL. M5close velger bare105DOWN på TRAIN og32på VAL; DOWNrecall
+0,031%/0,117%. Dette beviser ikke balansert retningskvalitet eller kalibrering.
+Fullhistorikken har423/44genuine predictiveD1open-celler; de er med i poolen,
+mens kjent-open er utelatt. Gjentatte høy-TF-targetbars er ikke uavhengige prøver.
+
+Én initial/sluttmåling viser læring utover prior, ingen konvergenskurve eller beste
+epoke. Ingen konkret kode-/mål-/optimizerfeil er bevist. Ingen automatisk femserie
+eller earlystop/CONTROL-utvalg er innrømmet. Neste avgrensede beslutning bør bruke
+lagrede bevis til å undersøke M5DOWN-dekning før en separat kvalifisert fortsettelse;
+ingen taps-/terskelendring begrunnes av argmaxtelling alene. Utviklings-VAL er
+gjenbrukt, uavhengig generalisering og økonomisk edge er fortsatt ubevist.
+
+`OVERNIGHT_GOAL_COMPLETION001.json` binder fullføring, integritets-/læringsreview,
+389gjenbrukte fokustester på uendrede runtimekilder og faktiske ressursutfall.
+53kildeeiere er fersk SHA-/syntakskontrollert. Integritetsreview kontrollerer alle
+23JSONkvitteringer/5540steg/prefikser. Mainens24PT-filer tar2230690101bytes;
+sluttreview gjenbruker produsentens PT-SHA/stateproof og leser bare PT-metadata.
+Checkpoint1 fra restartprøven er derimot helhashet før/etter reboot.
 
 ## Praktisk gjenopptakelse og lagring
 
@@ -24,7 +59,7 @@ Et ferskt uavbrutt WINDOW002 utførte2updates; separat WINDOW001 utførte1update
 Deretter ble maskinen kontrollert ledig, fil-/katalog-fsync og filesystemsync utført,
 og Windows ble restartet668→669 med ny WSLboot. Alle102kritiske filer og10arkiverte
 hjelpere matchet etter boot. Ny engangsCONTINUE001 fra prefix1 utførte1ny update.
-Modell, AdamW, RNG, schedule/bindinger og stegrapporter skal være bitidentiske med
+Modell, AdamW, RNG, schedule/bindinger og stegrapporter er bitidentiske med
 uavbrutt2; eksakt uavhengig bevis er bundet i policy/readiness. Ingen levendeparent.
 Main bruker fersk initialmodell, aldri vekter fra kvalifiseringene.
 
@@ -42,7 +77,8 @@ faktisk CONTINUE utførte deretter eksakt én admisjon. Windowskommandoer kjøre
 med stdin=DEVNULL for å unngå at de konsumerer resten av SSH-scriptet.
 
 Bevisrot: `/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001`.
-Readiness: `MAIN003_READINESS001.json`; aktuelle eksakte SHA/referanser i policy.
+Readiness: `MAIN003_READINESS001.json`; fullføring: `OVERNIGHT_GOAL_COMPLETION001.json`.
+Aktuelle eksakte SHA/referanser står i policy.
 
 ## Gjeldende datasett, plan og effektivitet
 
