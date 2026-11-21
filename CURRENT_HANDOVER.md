@@ -311,3 +311,10 @@ historiske flater er ikke bevist.0,3ATR er nettoendringsproxy, ikke bevist rolig
 prisbane/økonomisk FLAT. Juni2026 er gjenbrukt utvikling. TRAIN-fit, senere
 generalisering, referanseverdi og realisert økonomi holdes adskilt. Edge/profitt er
 fortsatt ubevist. Teknisk beredskap betyr ikke bedre handelsbeslutninger.
+
+Aktuell diagnoseadmisjon: `NATIVE_M5_TA_CURRENT_COOPERATION_GRADIENT_20261121_001`,
+planSHA9c8229417e175abcd9eea4e31ab6c3147b64153c32f7fcc91a413e7e0cc8b8f2.
+20kildevalgte kvartalspaneler×16TRAINrader,1CPUmodell/20forwards/60autograd,
+0optimizer/updates/norm-/priorfits.12GiB/512MiB/1tråd/64tasks,870s intern/900s ytre.
+Dette analyserer dagens5TF-referanse og valgte mål, ingen nyframtids-/M30-kandidat.
+Alle treningsporter forblir stengt; kilde/policy fryses gjennom diagnosen.
