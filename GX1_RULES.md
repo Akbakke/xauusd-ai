@@ -42,6 +42,27 @@ M5-barer med kausal M15/H1/H4/D1-kontekst, M1-avledet nåtilstand bare
 ved M5-tidspunkter, og ingen egen M1-Entry-klokke. Tettere overvåking av
 en åpen handel og Exit hører til senere faser.
 
+## Operatørpresisering21.11.2026: nyttig samarbeid med M5 som hovedklokke
+
+M5 er hovedklokke for prognoser og senere handelsbeslutninger med støtte fra
+M15/H1/H4/D1. Scalp, intradag og swing kan følge den lærte muligheten; M5 betyr
+ikke fem minutters holdetid. Ingen fast tapsgrense eller maksimal holdetid innføres.
+M1 er bare for senere hands-on-analyse/oppfølging av en allerede åpen handel,
+aldri for retningsinputs, fasit, normalisering, utvalg eller trening.
+
+Alle åtte spesialistfamilier og D1/makro skal samarbeide om nyttig prognose.
+OHLC-geometri, spikes/veker, candle-/chart-formasjoner, støtte/motstand, trend,
+EMA/ATR og øvrige genuine felt bevares. Barenes slutt er observasjonsklokke;
+high/low og prisforløpets form skal ikke reduseres til bare sluttfortegn.
+Modellen skal lære betinget betydning av kombinasjonene, ikke håndskrevne stemmer
+eller et krav om at alle TF peker samme vei. Kildekobling alene beviser ikke nytte.
+
+Beste shared-gradientopplegg må kvalifiseres på faktisk gjeldende oppgave.
+Dagens M5-primary-rute beholdes som referanse inntil en konkret kandidat er
+målt; et tidligere lite gradientavvik er ingen generell dom over multitasklæring.
+Denne presiseringen åpner nødvendig design/kvalifisering, ingen automatisk
+treningsserie, mål-/klassevektendring, TEST, Entry/Exit, broker eller handel.
+
 ## Operatørpresisering20.11.2026: eksisterende FLAT videreføres
 
 Brukeren bekrefter at FLAT betyr sideveis marked, at eksakt like priser

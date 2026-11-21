@@ -129,6 +129,34 @@ framtidig bevegelse. Bevar høyereTF-konteksten og mål dens bidrag til M5.
 Bevis: `MTF_M5_WIRING_REVIEW001.json`, kilde-/planbundet; ingen modell/data/TEST
 lest eller endret i denne kildesporingen. Ingen ny treningsadmisjon.
 
+### Nyttig samarbeid: presisert mål og neste kvalifisering
+
+Brukeren presiserer M5 som hovedklokke med høyereTF-støtte for scalp/intradag/
+swing, alle8familier, OHLC-spikes/candles/chart/SR/trend/EMA/ATR. M1 er bare for
+senere oppfølging av åpen handel. Beslutningsklokke er ingen holdetidsgrense.
+Dette er ført i GX1_RULES og metodekrav, ikke innført som ny runtime/loss.
+
+Eksakt fullTA-profil matcher main003. De8familiene er structure_swing,
+smc_liquidity, trend_ema, vol_compression, momentum_flow, session_regime,
+chart_geometry og price_action_candle. Aktive flater:318lokale/132kontinuerlig
+kontekst/1kategorisk/256perTF og61makrofelt (bredder, ikke antall uavhengige
+indikatorer). Hammer/doji/fullbar har rå formgrunnlag, ikke gamle navngitte
+håndregelflagg; chartgeometri omfatter linjer/kanaler/konvergens/apeks.
+Tilgjengelighet er kontrollert, faktisk lært mønsternytte er ikke bevist.
+
+M5-tapet kan allerede lære alle tilkoblede familie-/TF-encodere. Bare de øvrige
+hodenes direkte shared-gradient er avkoblet. Ruten ble begrunnet av en tidligere
+liten råbar-test:63M5close-celler, pooledcosinus−0,289 og råfellesgradient som
+motarbeidet M5. Den brukte annen målidentitet enn dagens0,3ATR/heleTRAIN og
+beviser ikke at kontrollert multitasklæring nå er dårligere. Ingen AdamW-/
+læringshistorisk årsak eller generell modellbegrensning følger av rågradienten.
+
+Neste konkrete spørsmål er om dagens ekte framtidshjelpemål støtter M5 gjennom
+fellesgradienten eller motarbeider den på faste TRAIN-paneler. Deretter kan én
+begrunnet M5-primary/delt-gradient-kandidat kvalifiseres. Ingen algoritme,
+prosentvekter eller framtidshorisonter erklæres optimale eller endres nå.
+`COOPERATION_DESIGN_RECORD001.json` binder dette; alle treningsporter er stengt.
+
 ## Praktisk gjenopptakelse og lagring
 
 Fryst runtimekilde060fe55f.389målrettede testtilfeller består. Modellens numeriske

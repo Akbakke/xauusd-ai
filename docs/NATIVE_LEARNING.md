@@ -154,6 +154,37 @@ observasjoner, og unike målbarer rapporteres. TEST er forseglet.
 Metode for tidligere og senere faser nedenfor gir ingen adgang til M1
 eller den avløste ATR-/intrabarfasiten i det aktive retningsarbeidet.
 
+## M5-hovedklokke og nyttig samarbeid
+
+Beslutningstakt, prognoseskala og senere holdetid er forskjellige begreper.
+M5 er hovedklokke; høyere TF og alle åtte familier støtter forståelsen av
+korte og lange forløp. Lukkede OHLC-baserte geometrier/relasjoner bevarer
+kropp, veker, avvisning, brudd, retest, trend og mønsterkontekst. Ingen navngitt
+candle-klasse trenger et eget supervisert hode bare fordi den er en inputform.
+OHLC alene beviser ikke high/low-rekkefølge inne i samme bar.
+
+M5-only direkte shared-gradient kan allerede lære å bruke H1/H4- og øvrige
+inputencodere gjennom M5-feilen. Det som avkobles er hjelpetaps direkte
+oppdatering av fellesparametrene. Fellesgradient fra flere oppgaver er en
+kandidat, ingen garanti for nyttig samarbeid. Den må vurderes mot M5-primary-
+referansen, etter kontroll av at hjelpeoppgavene måler ukjent framtid.
+Et godt høyereTF-tall på en delvis observert målbar beviser ikke M5-støtte
+eller framtidig bevegelse fra utstedelsestidspunktet.
+
+Før ny gradientruting: bruk faste kildevalgte TRAIN-paneler fra gjeldende
+modell/mål til en oppdateringsfri diagnose av primær-/hjelpegradientnormer og
+retning på de samme fellesparametrene. Oppgi faktiske celle-/målbartellinger,
+ukjente masker og hvilken tapsdenominator som brukes. Vekter/algoritme velges
+ikke ved gjettede prosenter eller CONTROL-utvalg. Rå gradientretning er ikke
+AdamWs faktiske oppdatering og beviser ikke læringsgevinst. Gjenbruk tidligere
+målinger innen eksakt gyldig omfang; eldre råbarfasit avgjør ikke en ny oppgave.
+
+Én begrunnet kandidat kan deretter kvalifiseres med bundet mål/output/loss/
+prior/score, fersk initialbaseline når funksjonen endres og ekte gradient-/
+resume-kontroll. Nyttig samarbeid vurderes på primær framtidig retningskvalitet
+og de deklarerte øvrige skalaene, ikke store attentionvekter eller hvor ofte
+TF-ene er enige. TEST og alle modell-/treningsporter består.
+
 ## Kort native barretnings-fit
 
 Lås tidligere TRAIN og senere CONTROL på kildeklokker før utfall/skåring.
