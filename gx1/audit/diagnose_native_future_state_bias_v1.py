@@ -27,9 +27,14 @@ def expected_cursors(main):
  n=main['limits']['main']['optimizer_steps'];every=main['recipe']['checkpoint_every_optimizer_updates']
  need(n==3694 and every==256,'ORIGINAL_SCHEDULE');return [0,*range(every,n,every),n]
 
-def source_bridge(main):
+def source_bridge(main,*,driver_probe=False):
  from gx1.contracts.gx1_capped_execution_v1 import native_future_state_bias_guard_source_bridge
  train.require_source_inventory(main['source_owners'])
+ if driver_probe:
+  proof=native_future_state_bias_guard_source_bridge(main['source_owners'],producer_commit=main['source_base_commit'],driver_requalification=True)
+  exempt=GUARDS|{'gx1/audit/native_future_state_training_v1.py'}
+  need(all(sha(REPO/k)==v for k,v in main['source_owners'].items()if k not in exempt),'ORIGINAL_59_NUMERIC_SOURCES')
+  return proof
  need(all(sha(REPO/k)==v for k,v in main['source_owners'].items()if k not in GUARDS),'ORIGINAL_NUMERIC_SOURCES')
  return native_future_state_bias_guard_source_bridge(main['source_owners'],producer_commit=main['source_base_commit'])
 

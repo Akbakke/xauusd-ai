@@ -104,14 +104,16 @@ def test_reference_proof_rejects_extra_claimed_components():
  with pytest.raises(ValueError,match='REFERENCE_STATE'):owner.validate_reference_state(actual,reference_proof())
 
 
-def test_exact_budget_counts_only_the_one_new_genuine_technical_parameter_fit():
+def test_exact_budget_counts_both_driver_qualified_technical_parameter_fits():
  limits=owner.LIMITS
- assert limits['model_constructions']==1 and limits['optimizer_constructions']==1
- assert limits['checkpoint_loads']==1 and limits['checkpoint_restores']==1
- assert limits['model_forwards']==limits['backbone_forwards']==limits['readout_forwards']==447
- assert limits['backward_calls']==limits['optimizer_steps']==366
- assert limits['technical_parameter_fits']==1
- assert limits['checkpoint_writes']==limits['checkpoint_readbacks']==6
+ assert limits['model_constructions']==1 and limits['optimizer_constructions']==2
+ assert limits['checkpoint_loads']==1 and limits['checkpoint_restores']==2
+ assert limits['model_forwards']==limits['backbone_forwards']==limits['readout_forwards']==894
+ assert limits['backward_calls']==limits['optimizer_steps']==732
+ assert limits['technical_parameter_fits']==2
+ assert limits['checkpoint_writes']==limits['checkpoint_readbacks']==12
+ assert limits['capture_writes']==limits['capture_readbacks']==2 and limits['reference_capture_archive_loads']==1
+ assert owner.STAGE.endswith('_003')and '003'in str(owner.ROOT)
  assert limits['normalization_fits']==limits['prior_fits']==limits['autograd_calls']==limits['CONTROL_VAL_TEST_rows']==0
 
 
@@ -237,47 +239,6 @@ def test_main_source_inventory_rejected_before_source_hashing(monkeypatch):
  with pytest.raises(ValueError,match='EXACT_SOURCE_INVENTORY'):owner.build_plan(runtime={})
 
 
-def control_fixture():
- main=main_fixture();main['schedule']['batch_source_rows_sha256']=[str(i)for i in range(3694)]
- inputs={k:{'path':'/'+k,'sha256':'a'*64}for k in ('main_plan','paired_plan','main_result','main_terminal','frozen_result','frozen_terminal','frozen_plan','checkpoint_receipt','original_final_receipt')}
- order=owner.make_orders(main);runtime={'source_commit':owner.CONTROL_SOURCE,'library_versions':{'torch':'original'},'gpu':{'name':'original'}}
- control={'stage':'native_future_state_bias_suffix_order_20261122_001','output_root':str(owner.CONTROL_ROOT),'source_base_commit':owner.CONTROL_SOURCE,
-  'runtime':runtime,'inputs':copy.deepcopy(inputs),'orders':order,
-  'order_source_row_hashes':{arm:[main['schedule']['batch_source_rows_sha256'][i]for i in order[arm]]for arm in ('chronological','reordered')}}
- claim={'plan':copy.deepcopy(owner.CONTROL_PLAN),'runtime':copy.deepcopy(runtime),'remaining_invocations':0,'relaunch_allowed':False,
-  'technical_parameter_fits':2,'optimizer_updates':732,'full_epoch':False}
- steps=reference_steps();original={'report':{'steps':[None]*3328+steps}};proof=reference_proof()
- saved={'bitexact':True,'components':list(owner.REFERENCE_KEYS),'proof':proof,'source_batch_order_sha256':owner.core.state_sha(order['chronological']),
-  'suffix_steps_sha256':owner.core.state_sha(steps)}
- return control,claim,saved,dict(control_plan_ref=copy.deepcopy(owner.CONTROL_PLAN),main=main,inputs=inputs,original=original,final_receipt={'proof':{**proof,'trajectory':'untouched'}})
-
-
-def test_authentic_saved_control_is_reused_without_claiming_another_fit():
- control,claim,saved,kw=control_fixture();before=copy.deepcopy((control,claim,saved,kw))
- actual=owner.validate_reference_reuse(control,claim,saved,**kw)
- assert actual['generated_in_this_study']is False and actual['bitexact']is True
- assert actual['control_plan']==owner.CONTROL_PLAN and actual['proof_artifact']==owner.CONTROL_PROOF
- assert (control,claim,saved,kw)==before
- assert owner.STAGE.endswith('_002')and owner.ROOT!=owner.CONTROL_ROOT
-
-
-@pytest.mark.parametrize('change',['plan_hash','claim_plan','claim_source','claim_updates','relaunch','foreign_input','order','step','proof','not_bitexact','components'])
-def test_reused_control_tampering_fails_before_any_candidate_model(change):
- control,claim,saved,kw=control_fixture()
- if change=='plan_hash':kw['control_plan_ref']['sha256']='b'*64
- elif change=='claim_plan':claim['plan']['sha256']='b'*64
- elif change=='claim_source':claim['runtime']['source_commit']='foreign'
- elif change=='claim_updates':claim['optimizer_updates']=366
- elif change=='relaunch':claim['relaunch_allowed']=True
- elif change=='foreign_input':control['inputs']['checkpoint_receipt']['sha256']='b'*64
- elif change=='order':control['orders']['reordered'][0],control['orders']['reordered'][1]=control['orders']['reordered'][1],control['orders']['reordered'][0]
- elif change=='step':saved['suffix_steps_sha256']='b'*64
- elif change=='proof':saved['proof']['rng_state']='foreign'
- elif change=='not_bitexact':saved['bitexact']=False
- else:saved['components'].reverse()
- with pytest.raises(ValueError):owner.validate_reference_reuse(control,claim,saved,**kw)
-
-
 class CheckpointModel:
  training=True
  def state_dict(self):return {'model':'actual-state'}
@@ -290,7 +251,7 @@ class CheckpointOptimizer:
 
 def candidate_fixture(monkeypatch,completed):
  main=main_fixture();order=owner.make_orders(main)
- plan={'orders':order,'inputs':{'checkpoint_receipt':{'path':'/original/CP3328','sha256':'a'*64},'main_plan':{'path':'/original/MAIN','sha256':'b'*64},'original_control_proof':owner.CONTROL_PROOF}}
+ plan={'orders':order,'runtime':{'gpu':{'driver_version':'610.88'}},'driver_requalification':{'equivalence_proven':False},'inputs':{'checkpoint_receipt':{'path':'/original/CP3328','sha256':'a'*64},'main_plan':{'path':'/original/MAIN','sha256':'b'*64},'original_final_receipt':{'path':'/original/FINAL','sha256':'c'*64}}}
  steps=[{'logical_step':i+1,'skip_update':False}for i in order['reordered'][:completed]]
  monkeypatch.setattr(owner.core,'training_rng',lambda:{'actual':'RNG'})
  return CheckpointModel(),CheckpointOptimizer(),plan,steps
@@ -338,7 +299,8 @@ def test_external_stop_is_consumed_and_reports_completed_durable_checkpoints(mon
  monkeypatch.setattr(owner,'physical',stopped)
  with pytest.raises(InterruptedError,match='EXTERNAL_SIGNAL'):owner.run('a'*64)
  assert records[-1][1]['status']=='FAILED_CONSUMED'and records[-1][1]['retained_candidate_checkpoints']==[checkpoint]
- assert records[0][1]['technical_parameter_fits']==1 and records[0][1]['optimizer_updates']==366
+ assert records[0][1]['technical_parameter_fits']==2 and records[0][1]['optimizer_updates']==732
+ assert records[-1][1]['progress']['candidate_started']is False
 
 
 def test_metric_comparison_retains_five_tf_support_and_distinguishes_absolute_bias():
@@ -355,3 +317,56 @@ def test_metric_comparison_retains_five_tf_support_and_distinguishes_absolute_bi
   assert cell['Brier_delta']==pytest.approx(.01)and cell['AUC_delta']is None
  candidate[owner.train.TF[0]]['side']['count']=161
  with pytest.raises(ValueError,match='SAME_METRIC_SUPPORT'):owner.metric_comparison({'ALL':candidate},{'ALL':reference})
+
+
+@pytest.mark.parametrize('difference',[0,63,64])
+def test_chronological_training_stops_at_first_changed_step_and_preserves_prior_checkpoints(monkeypatch,tmp_path,difference):
+ main=main_fixture();plan={'orders':owner.make_orders(main)};original=[None]*3328+reference_steps();calls=[];saved=[];artifacts=[];counts={'optimizer_steps':0}
+ monkeypatch.setattr(owner,'ROOT',tmp_path);monkeypatch.setattr(owner.train,'packet',lambda full,batch:batch)
+ def step(model,optimizer,packet,actual_main,actual_counts,index):
+  calls.append(index);actual_counts['optimizer_steps']+=1;actual=copy.deepcopy(original[index])
+  actual['skip_update']=False
+  if index==3328+difference:actual['loss']+=1
+  return actual
+ # Original real step dictionaries include skip_update=False.
+ for item in original[3328:]:item['skip_update']=False
+ monkeypatch.setattr(owner.train,'training_step',step)
+ monkeypatch.setattr(owner,'publish',lambda path,data:(artifacts.append((path.name,data))or{'path':str(path),'sha256':'e'*64}))
+ def checkpoint(*args,**kwargs):saved.append((kwargs['arm'],len(kwargs['steps'])));return {},{}
+ monkeypatch.setattr(owner,'publish_candidate_checkpoint',checkpoint);progress={}
+ with pytest.raises(ValueError,match='REFERENCE_STEP_BITEXACT'):
+  owner.train_arm(object(),object(),{'batches':list(range(3694))},main,plan,{},counts,'chronological',progress,original)
+ assert calls==list(range(3328,3329+difference))and counts['optimizer_steps']==difference+1
+ assert saved==[('chronological',64)]if difference==64 else saved==[]
+ assert artifacts[-1][0]=='REFERENCE_STEP_MISMATCH.json'and artifacts[-1][1]['source_batch_index']==3328+difference
+ assert artifacts[-1][1]['candidate_started']is False and progress['attempting_original_source_batch_index']==3328+difference
+
+
+def reference_capture_fixture(monkeypatch,tmp_path):
+ issue=np.array([1,2,3],np.int64);outputs={name:np.arange(15,dtype=np.float32).reshape(3,5)for name in ('activity_logits','side_logits')}
+ arrays={'issue_ns':issue,**{f'cursor3694__{name}':a for name,a in outputs.items()}};path=tmp_path/'original.npz';np.savez_compressed(path,**arrays)
+ reference={'frozen_capture':owner.ref(path),'frozen_capture_array_headers':{k:{'shape':list(v.shape),'dtype':v.dtype.str,'sha256':owner.train.array_sha(v)}for k,v in arrays.items()}}
+ return issue,outputs,reference,dict.fromkeys(owner.LIMITS,0)
+
+
+def test_new_driver_control_requires_both_original_final_heads_bitexact(monkeypatch,tmp_path):
+ issue,outputs,reference,counts=reference_capture_fixture(monkeypatch,tmp_path)
+ report=owner.reference_logits_parity(outputs,issue,reference,counts)
+ assert report['bitexact']is True and report['tolerance']==0. and set(report['heads'])=={'activity_logits','side_logits'}
+ assert all(x['mismatched_elements']==0 for x in report['heads'].values())and counts['reference_capture_archive_loads']==1
+
+
+@pytest.mark.parametrize('head',['activity_logits','side_logits'])
+@pytest.mark.parametrize('difference',['one_ulp','dtype'])
+def test_any_control_head_change_fails_without_tolerance_expansion(monkeypatch,tmp_path,head,difference):
+ issue,outputs,reference,counts=reference_capture_fixture(monkeypatch,tmp_path)
+ if difference=='one_ulp':outputs[head][1,1]=np.nextafter(outputs[head][1,1],np.float32(np.inf))
+ else:outputs[head]=outputs[head].astype(np.float64)
+ report=owner.reference_logits_parity(outputs,issue,reference,counts)
+ assert report['bitexact']is False and report['heads'][head]['bitexact']is False and report['tolerance']==0.
+ if difference=='one_ulp':assert report['heads'][head]['mismatched_elements']==1
+
+
+def test_original_capture_issue_axis_mismatch_stops_qualification(monkeypatch,tmp_path):
+ issue,outputs,reference,counts=reference_capture_fixture(monkeypatch,tmp_path)
+ with pytest.raises(ValueError,match='ISSUE_AXIS'):owner.reference_logits_parity(outputs,issue+1,reference,counts)

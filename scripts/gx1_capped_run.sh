@@ -92,11 +92,11 @@ NATIVE_FUTURE_STATE_BIAS_FROZEN_MODULE=gx1.audit.diagnose_native_future_state_bi
 NATIVE_FUTURE_STATE_BIAS_FROZEN=false
 NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256=
 # END GX1 FROZEN BIAS ROUTE 20261122 STATE
-# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 002 STATE
+# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 003 STATE
 NATIVE_FUTURE_STATE_BIAS_SUFFIX_MODULE=gx1.audit.diagnose_native_future_state_bias_suffix_v1
 NATIVE_FUTURE_STATE_BIAS_SUFFIX=false
 NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256=
-# END GX1 BIAS SUFFIX ROUTE 20261122 002 STATE
+# END GX1 BIAS SUFFIX ROUTE 20261122 003 STATE
 # BEGIN GX1 FUTURE LEAF ROUTES 20261121 STATE
 NATIVE_FUTURE_STATE_THROUGHPUT_MODULE=gx1.audit.measure_native_future_state_throughput_v1
 NATIVE_FUTURE_STATE_TRAINING_MODULE=gx1.audit.native_future_state_training_v1
@@ -918,9 +918,9 @@ configure_native_future_state_bias_frozen() {
 }
 # END GX1 FROZEN BIAS ROUTE 20261122 MATCHERS
 
-# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 002 MATCHERS
+# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 003 MATCHERS
 matches_bound_native_future_state_bias_suffix() {
-  local expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_002.json"
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_003.json"
   if [[ $# -eq 6 ]]; then
     [[ "$6" == --preflight ]] || return 1
     set -- "${@:1:5}"
@@ -945,7 +945,7 @@ configure_native_future_state_bias_suffix() {
     echo "FATAL: bias suffix order study CLI/plan is not exactly bound" >&2
     exit 75
   }
-  local suffix_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_002
+  local suffix_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_003
   [[ ! -e "$suffix_output" && ! -L "$suffix_output" \
     && -d "${suffix_output%/*}" && ! -L "${suffix_output%/*}" \
     && "$(readlink -f "${suffix_output%/*}")" == "${suffix_output%/*}" ]] || {
@@ -967,10 +967,10 @@ configure_native_future_state_bias_suffix() {
   TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
   TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
 }
-# END GX1 BIAS SUFFIX ROUTE 20261122 002 MATCHERS
+# END GX1 BIAS SUFFIX ROUTE 20261122 003 MATCHERS
 
 validate_target_command() {
-# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 002 DISPATCH
+# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 003 DISPATCH
   local frozen_bias_arg frozen_bias_reference=false
   for frozen_bias_arg in "$@"; do
     case "$frozen_bias_arg" in
@@ -982,7 +982,7 @@ validate_target_command() {
     configure_native_future_state_bias_suffix "$@"
     return
   fi
-# END GX1 BIAS SUFFIX ROUTE 20261122 002 DISPATCH
+# END GX1 BIAS SUFFIX ROUTE 20261122 003 DISPATCH
 # BEGIN GX1 FROZEN BIAS ROUTE 20261122 DISPATCH
   local frozen_bias_arg frozen_bias_reference=false
   for frozen_bias_arg in "$@"; do
@@ -1917,7 +1917,7 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
     }
   fi
 # END GX1 FROZEN BIAS ROUTE 20261122 NESTED
-# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 002 NESTED
+# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 003 NESTED
   [[ "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-false}" == "$NATIVE_FUTURE_STATE_BIAS_SUFFIX" ]] || {
     echo "FATAL: nested bias suffix mode differs from protected parent" >&2
     exit 75
@@ -1946,7 +1946,7 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
       exit 75
     }
   fi
-# END GX1 BIAS SUFFIX ROUTE 20261122 002 NESTED
+# END GX1 BIAS SUFFIX ROUTE 20261122 003 NESTED
 # BEGIN GX1 FUTURE LEAF ROUTES 20261121 NESTED
   [[ "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == "$NATIVE_FUTURE_STATE_THROUGHPUT" \
     && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == "$NATIVE_FUTURE_STATE_TRAINING" ]] || {

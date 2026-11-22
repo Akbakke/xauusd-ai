@@ -123,3 +123,42 @@ def test_plan_builder_rejects_inventory_before_source_hashes(monkeypatch):
  monkeypatch.setattr(owner.train,'require_source_inventory',reject)
  monkeypatch.setattr(owner,'sha',lambda *a:pytest.fail('source hashed before inventory'))
  with pytest.raises(ValueError,match='bad inventory'):owner.build_plan(runtime={})
+
+
+
+def driver_source_fixture(monkeypatch):
+ from gx1.contracts import gx1_capped_execution_v1 as guard
+ loader='gx1/audit/native_future_state_training_v1.py';numeric='gx1/model_numeric.py';calls=[]
+ main={'source_owners':{**{k:'old-'+k for k in owner.GUARDS},loader:'old-loader',numeric:'numeric'},'source_base_commit':'original'}
+ monkeypatch.setattr(owner.train,'require_source_inventory',lambda owners:calls.append('inventory'))
+ def source_hash(path):calls.append('hash:'+str(path));return 'numeric'if str(path).endswith(numeric)else'changed-loader'
+ monkeypatch.setattr(owner,'sha',source_hash)
+ def bridge(owners,**kwargs):calls.append(('bridge',kwargs));return {'checked_guard_owners':3}
+ monkeypatch.setattr(guard,'native_future_state_bias_guard_source_bridge',bridge)
+ return main,calls,guard,numeric
+
+
+def test_explicit_driver_probe_validates_three_owner_bridge_before_other_numeric_sources(monkeypatch):
+ main,calls,guard,numeric=driver_source_fixture(monkeypatch)
+ assert owner.source_bridge(main,driver_probe=True)=={'checked_guard_owners':3}
+ assert calls[0]=='inventory'and calls[1]==('bridge',{'producer_commit':'original','driver_requalification':True})
+ assert len(calls)==3 and calls[-1].endswith(numeric)
+
+
+def test_driver_probe_bridge_failure_precedes_all_other_source_hashing(monkeypatch):
+ main,calls,guard,numeric=driver_source_fixture(monkeypatch)
+ def reject(*args,**kwargs):calls.append('rejected-bridge');raise ValueError('unreviewed loader')
+ monkeypatch.setattr(guard,'native_future_state_bias_guard_source_bridge',reject)
+ with pytest.raises(ValueError,match='unreviewed loader'):owner.source_bridge(main,driver_probe=True)
+ assert calls==['inventory','rejected-bridge']
+
+
+def test_driver_probe_still_rejects_changed_numeric_owner(monkeypatch):
+ main,calls,guard,numeric=driver_source_fixture(monkeypatch);main['source_owners'][numeric]='changed-math'
+ with pytest.raises(ValueError,match='ORIGINAL_59_NUMERIC_SOURCES'):owner.source_bridge(main,driver_probe=True)
+
+
+def test_default_source_bridge_does_not_exempt_changed_metadata_loader(monkeypatch):
+ main,calls,guard,numeric=driver_source_fixture(monkeypatch)
+ with pytest.raises(ValueError,match='ORIGINAL_NUMERIC_SOURCES'):owner.source_bridge(main)
+ assert not any(isinstance(x,tuple)and x[0]=='bridge'for x in calls)

@@ -2,121 +2,85 @@
 
 Arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 Les `GX1_RULES.md` helt. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus.
-Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git.
+Prosessobservasjon og eksakte terminalkvitteringer overstyrer prosa.
 
-## Sikret vedlikeholdsomstart og modellstopp 22.11.2026
+## Aktiv årsaksdiagnose og kvalifiserte ressursvakter
 
-Målchat01a20035-2836-7f62-bb88-9e24603a51a5. Årsaksmålet er IKKE fullført.
-Brukeren22.11 autoriserer «Ja lag mål og fortsett»: ressursvaktene er neste
-delmål. Målverktøyet kan ikke opprette et nytt mål mens årsaksmålet er ufullført.
-Aktiv scope er native_host_resource_safety_20261122_001: utvid eksisterende
-signert Windows-telemetri og eksisterende oppstarts-/runtimevakt. Kontrollert
-CPU-sensorkvalifisering og tester med ufarlig sleeper, ingen modell/stress.
-Alle fem treningsporter er fortsatt stengt. Ingen sikkerhets-/Defender-/boot-
-svekkelse eller betalt tjeneste er tillatt. Eksakte status/bevis følger policy.
-Ressursdelmålet er FULLFØRT for nåværende boot og testede mekanismer:
-56query+54guard+15installerkontrakter og18PowerShelltilfeller PASS.
-Signert v2bro er deployert med uendret sertifikat; faktisk nonce/signatur/14felt
-og overvåket ufarlig sleeper PASS, feilsertifikat stoppet før child-start.
-HOST_RESOURCE_QUALIFICATION_REVIEW001.json og HOST_RESOURCE_LIVE_GUARD003.json
-binder bevis. Separat diskverifisert Mac-backup:
+Årsaksmålet i chat01a20035-2836-7f62-bb88-9e24603a51a5 er IKKE fullført.
+Brukeren22.11 ba om mål og videreføring. Målverktøyet kan ikke erstatte et
+ufullført mål; ressursarbeidet er derfor registrert som fullført delmål i policy.
+Alle fem treningsporter er nå stengt. Ingen003plan/CLAIM/modell er opprettet.
+Ingen ny hovedepoke, TEST, M1, GC, Entry/Exit, handel eller promotion er åpnet.
+
+Ressursvakt: eksisterende signerte Windows-bro og eksisterende capped/runtime-
+vakt er utvidet med ferske ti-kjerners/package-temperaturer, package-watt,
+fysisk Windows-RAM/commit og konservativ vedlikeholds-/rebootstatus. Cachede
+CPUverdier nulles før måling. Manglende/ugyldige verdier avvises. CPU80°C/125W
+og8GiB RAM/commitreserve er konservative stoppgrenser, ikke maskinvarens maks.
+Før start kreves også fysisk RAM til hele cgroup-grensen. GammelGPU/cgroup/
+CPU-affinitet/tråd-/walltimevakt består. Ingen sikkerhets-/Defender-/boot-
+innstillinger er svekket, og ingen betalt tjeneste brukes.
+
+56query+54guard+15installerkontrakter+18PowerShelltilfeller PASS. Ekte signertv2,
+nonce/signatur/14felt og overvåket ufarlig sleeper PASS; feilsertifikat avvist
+før child-start. Ingen modell/stress i ressurskvalifikasjonen. PawnIO2.2.0 er
+hash-/Authenticode-verifisert og installert én gang(exit0), driverRunning.
+Førsteinstallforsøk stanset før kjøring av vedlikeholdsworker. Første v2query
+fikk2s-timeout; samme uendrede2s-kontrakt bestod senere. Innledende forsinkelse
+uavklart. Opprinnelig testsertifikatfeil i harness og alle feilkvitteringer beholdes.
+Ressursbevis: HOST_RESOURCE_QUALIFICATION_REVIEW001.json og LIVE_GUARD003.json
+under bevisroten nedenfor. Separat diskverifisert Mac-backup:
 `/Users/andrekildalbakke/GX1_BACKUP/CURRENT_HOST_RESOURCE_SAFETY_20261122_001/MANIFEST.json`,
 SHA `43ff822f0161ea1447e5fc659feb92de95c45efd400c30625a1061e9e393b12c`.
-Første query fikk2s-timeout; senere samme2s-kontrakt bestod. Årsaken til den
-første forsinkelsen er ikke bevist. En testsertifikat-feil i kvalifiserings-
-oppsettet ble avvist før child-start og rettet; originalfeilkvitteringer beholdes.
-Ingen kapasitets-/ytelsespåstand under modelllast eller automatisk admisjon.
-PawnIO2.2.0 er hash-/Authenticode-verifisert, installert én gang(exit0), driver
-Running. Førsteinstallforsøk ble stanset før kjøring av vedlikeholdsworker.
-Tre ekte CPU/Windows-målinger er gyldige: CPUmaks28°C, package9,41–15,27W,
-fysiskledigca61,3GB. Ingen modell/stress. Signert v2bro er deployert og kontrollert.
-Konkrete CPU-cacheverdier nulles før update; alle10cores+package+positiv
-packagepower må være ferske. Stoppgrenser CPU80°C/125W og8GiB RAM/commit-
-reserve er konservative admissionstak, ikke maskinvarens maksimum/optimalitet.
-Nyeste observerte WindowsBootId4/14:45:57.5UTC og WSLboot
-5e297a5c-dffd-4219-9c59-a944fe992542 avløser eldre runtimeadmisjon.
-Neste er én ny avgrenset rekkefølgekandidat med gjenbrukt ferdig kontrollarm.
-002kilde er kvalifisert:79modul-/62unikeguardkontroller PASS. Kun366
-permuterte updates/447FW,1fit og6durableCP64/128/192/256/320/366.
-Autentisk001kontroll gjenbrukes med8FINALproofkomponenter; ingen nykontrollfit
-eller kontroll-rescore. GPUceilingstrammettil250/250W,75/80°C; CPU80°C/125W
-og8GiBWindowsRAM/commitreserve består. Ingen maskinvareeffektinnstillingendret.
-Eksaktplan/runtime/lettmetadata-preflight er ennå ikke kvalifisert eller innrømmet.
-Kun2guardkilder avMAIN62 avviker, alle60modell/input/target/loss-eiere erbitlike;
-eksakt63a→674ressursdelta og navngitt002rute er bindet, ingen generellwhitelist.
-OBJECTIVE_NORMALIZATION_BOUNDS001.json er peer-reprodusert utenarrays/modell:
-D1analytiskkonstantprior53,4573–55,1239%, ikke en grensepå detlærtenonlineære
-modelloutput. Det er ingen ny prior-fit eller dokumentert hovedårsak alene.
-Konsumerte biasplaner forblir stengt; etter sikkerhetskvalifikasjonen trengs en
-ny eksakt guard-sourcebridge/admisjon før én kort rekkefølgekandidat.
-Brukeren minnet om etablert restartprosedyre. Integrator utførte én ny,
-maskinvidt idle-kontrollert Windows-omstart uten Force; gamle dispatch ble ikke
-brukt. Ny WindowsBootId3, oppstart22.11kl12:08:50.5UTC/13:08:50.5Oslo.
-Ny WSLboot5ab15b63-8a20-476d-9f96-2d62fbb098bb. Etter omstart er både
-CBSRebootPending og WURebootRequired=false. Omstartsblokkeringen er løst.
-Kilde/preboot-referanser er uendret; originale CP3328 og FINAL er sjekksum-
-verifisert fra fil under capped4G-audit uten deserialisering eller modell.
-CONTROLLED_REBOOT_INTENT001.json, CONTROLLED_REBOOT_DISPATCH_CLAIM001.json
-og CONTROLLED_REBOOT_POSTBOOT001.json ligger i bevisroten nedenfor.
-Separat diskverifisert Mac-postbootbackup:
-`/Users/andrekildalbakke/GX1_BACKUP/CURRENT_FUTURE_STATE_MAINTENANCE_POSTBOOT_20261122_001/MANIFEST.json`,
-SHA `39a48a2f88e77488a138983057de0725444462e4bbd313dc98d4083ba886e502`.
+Fremtidig postboot-providerstart og kapasitet under modelllast er ikke bevist;
+ny faktisk runtime/preflight kreves alltid. Workerpresence kan også blokkere en
+idle worker; det er ingen garanti mot enhver fremtidig Windows-omstart.
 
-Brukeren understreker at PC-en ikke må overbelastes. Alle fem treningsporter
-og alle nye modell-/belastningsjobber er fortsatt stengt. Ingen konsumert plan
-relanseres; ingen automatisk ny hovedepoke/TEST/handel. CPU-temperatur/effekt, fysisk Windows-RAM/commit og vedlikeholdsstatus er nå
-bundet i signert oppstarts-/runtimevakt. Mekanismene er kvalifisert uten modell-
-last. En ny eksakt plan, sourcebridge og fersk vertsadmisjon gjenstår.
+Aktuell blokkering ble funnet FØR002plan/CLAIM/modell: NVIDIA591.86→610.88,
+alle biblioteker/GPUUUID/navn/24GiB ellers identiske. Nyeste observerte
+WindowsBootId4/22.11kl14:45:57.5UTC og WSL5e297a5c-dffd-4219-9c59-a944fe992542.
+Actualruntime lagret i SUFFIX002_RUNTIME_COMPARISON001.json; gammelruntime
+substitueres aldri. 002ble bare kilde-/testforberedt og er ikke innrømmet.
 
-Siste suffixstudie er konsumert/ufullført: controllerexit75, ingen originalTERMINAL,
-RESULT eller REORDERED_FINAL.pt. Ikke fabriker terminal eller kandidatutfall.
-Kontrollarmen rakk366oppdateringer og gjenskapte originalFINAL bitlikt for modell,
-AdamW, RNG, scheduler, position, training og parameternavn. Hele steglisten
-(3328 gjenbrukte prefikssteg + 366 nye kontrollsteg) samsvarte med originalen.
-REFERENCE_PROOF.json er bevart. Antall ferdige kandidatupdates er UNKNOWN;
-732var autorisertmaks, ikke et bekreftetutførtantall. Ingen kausalrekkefølgekonklusjon ennå.
-Runrot `/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_001`.
+003kilde er nå kvalifisert:106unikeguard/loader- og80modul/brotilfeller PASS.
+29negative harnesscases ventet først feil exceptiontype; kun forventningen ble
+rettet og bare de29omkjørt. Produksjonsaksepten ble ikke lempet. Plan003 krever
+provisorisk driverkvalifikasjon: hver av366chrono-steps må straks væreidentisk
+med originalen, så alle8FINALstateproofs og81eval/20727rader med bitidentiske
+originalFINALactivity/side-logits. Ethvert avvik stopper FØR kandidatarmen.
+BarefullPASS åpner366permuterteupdates+81eval. Maks2fits/732updates/894FW og
+12durableCP(hver64ogFINAL perarm). Siste kontrollcheckpointvariabel frigis
+før andre restore, så CUDA AdamW-slots ikke beholdes dobbelt.
 
-Dokumentert vertsavbrudd: arkivertWindowsSystem.evtx/User32ID1074,record151582,
-22.11kl09:30:04.3567486UTC/10:30:04Oslo: MoUsoCoreWorker.exe/SYSTEM initierte
-planlagt OS-oppdateringsomstart, kode0x80020010. Vakten registrerte tapt
-telemetri og sendte stopp kl.09:30:07UTC, 2,64 sekunder etter Windows-hendelsen. EventLogstopp09:36:08; nyplanlagtoppgraderingsomstart
-09:54:21; Windows11version25H2fullført09:56:48. NyWindowsBootId2 ogWSLboot
-9aeae3ed-1a80-4ac8-b064-250b31c30e21; gamleboot670/runtime er ikke aktuelladmisjon.
-Ved første innhenting var CBSRebootPending=true/WURebootRequired=false;
-dette er historisk og avløst av verifisert vedlikeholdsomstart ovenfor.
-Ingen vaktregistrertGPUgrenseoverskridelse: topper64°Ckjerne/70°Cminne/213,85W/
-9796MiB. Overbelastning er IKKE påvist som hendelsesårsak. CPUtemperatur/package-
-watt/Windowsminnetrykk underkjøringen er fortsatt ukjent; intet frikjenningsbevis.
-Guardminneporten målerWSL/proc, ikke fysiskWindowsminne. Windowsrapporterernå
-ca64GiBfysiskmotWSLca31GiBvirtuelt. Runtime mangler vedlikeholds-/omstartsport.
-Ingen ny lavereB96effektprofil er kvalifisert bare fordi gamle160W/B8kilder finnes.
+Standard runtime_compatible/strict_restore er fortsatt eksakt. Kun hashbundet,
+innrømmet003guard/policy med eksakt591.86→610.88 og CP3328/proofbinding får
+provisorisk metadataauthority. OriginalCP/trajectory/producer/training_leaf_AST
+endres aldri. Smal3-owner-kildebro beviser2guard-eiere+2loadermetafunksjoner;
+59andre MAIN-eiere er bitlike. Alle tensor-/optimizer-/RNG-operasjoner i restore
+er AST-identiske med originalen. Ingen modell/input/target/loss-matematikkendring.
+GPU003ceiling er strammettil250/250W og75/80°C, VRAM12288MiB. CPU80/125 og
+20G/512M/8threads/CPU0–18/outer3600/model3570s består. Ingen hardwarepowerwrite.
 
-Gjeldende kilde63a1ff0ac er publisert; ingen numeriskmodell/target/lossrecipeendring.
-Metadataplanen d2c2f9e5...32f8cf5 er konsumert, aldri relanserbar.
-Bevisrot `/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_BIAS_CAUSE_20261122_001`:
-HOST_STOP_REVIEW001.json, HOST_CRASH_WINDOWS_LOGS002.json,
-HOST_CRASH_ARCHIVED_WINDOWS001.json ogHOST_CRASH_TRAINING_CLOSED001.json.
-Den eksterne stoppreviewen er ikke originalkjøringens terminal.
-Separat Mac-backup av 15 stopp-/OS-/kontroll-/policyartefakter er diskverifisert:
-`/Users/andrekildalbakke/GX1_BACKUP/CURRENT_FUTURE_STATE_SUFFIX_HOST_STOP_20261122_001/MANIFEST.json`,
-SHA `ac7ba15262b0e82fe6ae2a58e57e9be745ea5df32408beac9e8052c80af1f4c2`.
-HOST_SAFETY_BOOKEND001.json bekrefter lukkede porter og ingen GX1-modulprosesser.
-Ingen modell, vekter eller belastningstest ble startet under denne sikringen.
+Første frosne16CPdiagnose er komplett: D1middelP(OPP)67,73%@CP512→38,75%@1792
+→55,37%@3328→64,10%FINAL påfasit54,32%. Readoutbytter trekker høyereTFlogitUP
+med hiddenfast; hiddenbytter alene trekkerNED. Funksjonelle bidrag er bevist,
+SGD-rekkefølgeårsak er ennå ikke bevist. Objektivnormaliseringens analytiske
+konstantpriorgrenser er peer-reprodusert utenarrays/modell: D153,4573–55,1239%.
+Dette er ikke en grense på et lært ikke-lineært output eller en ny prior-fit.
+OBJECTIVE_NORMALIZATION_BOUNDS001.json binder formel/kilder/rasjonalberegning.
 
-Frossen16CPdiagnose er komplett/828,399s,20727sammeTRAINrader,1296modell/
-backboneforwards+324ekstrareadoutforwards,16CPloads,0updates/fits. Diagonaler er
-bitlike. D1middelP(OPP)svinger67,73%@CP512→38,75%@CP1792→55,37%@CP3328→
-64,10%FINAL påfasit54,32%. Readoutbytter trekkerhøyereTFlogitOPP medhiddenfast;
-hiddenbytteralene trekkerNED. Funksjonellebidrag bevist, SGDrekkefølgeårsak uavklart.
-Resultatrot `/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_FROZEN_20261122_001`.
-SeparatMacbackupCURRENT_FUTURE_STATE_BIAS_FROZEN_20261122_001/MANIFEST.json,
-SHAfaa02cbb5ef5fbf4c14cd6f4b609599890413224527ec0f4fd5efda03841bc21.
-Alle16originalMAINcheckpoints og deres tidligereseparatebackup er beholdt.
+Siste001suffixstudie er konsumert/ufullført: controllerexit75, ingen original
+TERMINAL/RESULT/REORDERED_FINAL.pt. Kontrollarmen366updates gjenskapte original
+FINALbitlikt; kandidatupdates UNKNOWN. Ingen konsumert plan relanseres.
+Windows-arkivert User32ID1074 viste planlagt WindowsUpdate-restart09:30:04UTC;
+GPU-vakten mistettelemetri09:30:07. Overbelastning er IKKE påvist som årsak.
+Original16MAINCP+frozenCAPTURE+001kontroll og separateMac-backuper er bevart.
 
-Neste: kvalifiser ny kort rekkefølgekandidat/sourcebridge og fersk vertsstatus
-før eksakt modelladmisjon. Ressursmekanismene er kvalifisert for aktuell boot. Ingen ny kjøring startes nå. Arbeidet videre
-må bygge på sikrede resultater, ikke en ukvalifisert gjentakelse etter omstart.
+Bevisrot `/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_BIAS_CAUSE_20261122_001`.
+ORDER_CANDIDATE003_DECISION001.json, SHA94773aee44afe833df884ac28b9e2ccbd735c8530ceb149c3becf422c4645edb,
+forhåndsregistrerer kontrollførst, ingen toleranseutvidelse og begrenset konklusjon.
+Neste: faktisk003runtime/plan/lett0modell-preflight og eksakt engangsadmisjon.
+Ingen ny kode/policyendring under kjøring. Resultatet vurderes før flere fits.
 
 ## Undersøkt retningsskjevhet 22.11.2026
 

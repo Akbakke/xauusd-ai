@@ -318,13 +318,39 @@ def trajectory_bindings(plan,arm):
         'training_leaf_AST':plan['training_leaf_AST']})
 
 
-def runtime_compatible(original,current):
+def runtime_compatible(original,current,*,driver_requalification=None):
     core.future_cuda_require_runtime(current)
-    need(set(original)=={'library_versions','gpu'}and all(original[k]==current[k]for k in original),
-        'RECOVERY_RUNTIME_COMPATIBILITY')
-    # Boot, observation, policy and execution-plan identities are provenance,
-    # never silently substituted for immutable function/trajectory identity.
-    return True
+    if driver_requalification is None:
+        need(set(original)=={'library_versions','gpu'}and all(original[k]==current[k]for k in original),
+            'RECOVERY_RUNTIME_COMPATIBILITY')
+        # Existing callers retain exact compatibility; no driver default is relaxed.
+        return True
+    need(type(driver_requalification)is dict and set(driver_requalification)=={'plan_sha256'}
+        and type(driver_requalification['plan_sha256'])is str and len(driver_requalification['plan_sha256'])==64
+        and all(c in '0123456789abcdef'for c in driver_requalification['plan_sha256']),
+        'EXACT_DRIVER_REQUALIFICATION_AUTHORITY')
+    from gx1.contracts.gx1_capped_execution_v1 import (require_native_future_state_bias_suffix_execution,
+        native_future_state_driver_requalification_metadata)
+    guard=require_native_future_state_bias_suffix_execution(plan_sha256=driver_requalification['plan_sha256'])
+    basename='NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_003';stage='native_future_state_bias_suffix_order_20261122_003'
+    need(guard['kind']=='bias_suffix_driver_requalification_order'and guard['plan_path']==str(REPO/'configs/research'/(basename+'.json'))
+        and guard['output_root']==str(Path('/home/andre2/GX1_RUNS')/basename),'EXACT_DRIVER_REQUALIFICATION_GUARD')
+    binding=guard['plan'];plan=read(binding);policy=read(ref(POLICY))
+    from gx1.audit import diagnose_native_future_state_bias_suffix_v1 as suffix
+    need(suffix.STAGE==stage and plan['stage']==stage and policy[stage]==suffix.gate_expected(binding,True),
+        'EXACT_DRIVER_REQUALIFICATION_POLICY')
+    suffix.validate_flags(policy,admitted=True)
+    core.future_cuda_runtime_matches(plan['runtime'],current)
+    transition=native_future_state_driver_requalification_metadata(original,current)
+    need(plan['driver_requalification']==transition,'EXACT_DRIVER_REQUALIFICATION_TRANSITION')
+    inputs=plan['inputs'];receipt_ref=inputs['checkpoint_receipt'];main_ref=inputs['main_plan']
+    need(main_ref==ref(MAIN_PLAN)and receipt_ref==ref(MAIN_ROOT/'UPDATE003328.json'),'EXACT_DRIVER_REQUALIFICATION_INPUT_REFS')
+    receipt=read(receipt_ref)
+    need(receipt['logical_cursor']==receipt['optimizer_updates']==3328 and receipt['producer_lane']=='main'
+        and receipt['original_plan']==receipt['execution_plan']==main_ref
+        and {k:receipt['producer_runtime'][k]for k in ('library_versions','gpu')}==original,
+        'EXACT_DRIVER_REQUALIFICATION_SOURCE_CHECKPOINT')
+    return {'original_plan':main_ref,'expected_cursor':3328,'expected_state_proof':receipt['proof']}
 
 
 def position(schedule,cursor):
@@ -350,7 +376,7 @@ def checkpoint_proof(checkpoint):
     return {k:core.state_sha(checkpoint[k])for k in keys}
 
 
-def strict_restore(model,optimizer,checkpoint,*,trajectory,original_plan_ref,expected_cursor,current_runtime,expected_state_proof):
+def strict_restore(model,optimizer,checkpoint,*,trajectory,original_plan_ref,expected_cursor,current_runtime,expected_state_proof,driver_requalification=None):
     """Validate authentic original trajectory before any parameter copy.
 
     A new execution may have a new boot/policy/plan. Its admission must bind the
@@ -368,7 +394,10 @@ def strict_restore(model,optimizer,checkpoint,*,trajectory,original_plan_ref,exp
         and len(checkpoint['steps'])==expected_cursor,'CHECKPOINT_TRAJECTORY_CURSOR')
     need(type(expected_state_proof)is dict and checkpoint_proof(checkpoint)==expected_state_proof,
         'AUTHENTIC_ORIGINAL_CHECKPOINT_STATE_PROOF_BEFORE_COPY')
-    runtime_compatible(trajectory['runtime_compatibility'],current_runtime)
+    runtime_binding=runtime_compatible(trajectory['runtime_compatibility'],current_runtime,driver_requalification=driver_requalification)
+    if driver_requalification is not None:
+        need(original_plan_ref==runtime_binding['original_plan']and expected_cursor==runtime_binding['expected_cursor']
+            and expected_state_proof==runtime_binding['expected_state_proof'],'EXACT_DRIVER_REQUALIFICATION_RESTORE_SCOPE')
     need(checkpoint['optimizer_parameter_names']==[n for n,_ in model.named_parameters()],
         'CHECKPOINT_PARAMETER_NAMES')
     expected=model.state_dict();state=checkpoint['model_state']
