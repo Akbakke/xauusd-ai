@@ -52,41 +52,79 @@ GC/orderbok er utsatt, M1-retning forbudt, M30 ikke implementert i checkpointet.
 MAIN hadde allerede100%TRAIN-fit og aggregatscore; bare senere detaljcapture
 var20727rader/5,85%. Det observerte loggingshullet er nå lukket, uten ny fit.
 
-## CPU-prisforløpstesten gjenstår
+## CPU-prisforløpstesten er fullført; prediksjonsmålet er ikke nådd
 
-Forhåndslåst SELECTIVE_MOVE_PREREGISTRATION001, FULL_COVERAGE_REVERSAL_SCOPE001
-og UP_DOWN_REPORT_PARTITION001 finnes i bevisroten nedenfor. Før ny CPU-plan
-innrømmes skal minimal report-only OPP/NED-partisjon føyes til etter full GPU-
-stopp; ingen endring av hendelser, score, terskler, signalvalg eller modell.
+NATIVE_SELECTIVE_MOVE_AUDIT_20261122_001 er COMPLETE på22,10s, kilde9f4f04b4a.
+Eksakt CPU-plan3c4509d5...3b8144; RESULT1b1e30e1...bff6a6;
+TERMINAL5db61feb...2d758. Fullcapture-, target- og native-prisklokke er bitlike
+på354550rader. Alle5TF/25forhåndslåste terskelceller er rapportert, også nullvarsler,
+falske/sene varsler, oversette bevegelser, UNKNOWN og begge vendingsretninger.
+Nullmodell/forward/fit/checkpointload/TEST. Wrapperexit0; ingen kanoniske
+leafprosesser igjen; CPU-lesegaten er lukket/konsumert med0gjenstående.
 
-CPU-owner audit_native_selective_moves_v1 bruker fullcapture og bare fem native
-TRAIN-prisår. Hver av5TF/terskler0,50/0,60/0,70/0,80/0,90 rapporteres uten
-vinnerutvalg. Score=a*max(s,1-s), side fra s. Klokkevalgt første issue per
-native targetgruppe er anker. Første ±1TFATR14-kryss fra kjent M5-close fram
-til kanonisk validity_ns er observasjon, aldri ny treningsfasit/stop/holdregel.
-Første kvalifiserende varsel beholdes selv om et senere varsel er bedre.
+Modellen velger OPP på86,269%M5,98,357%M15 og100%H1/H4/D1. Ved terskel0,50:
+M5 fanger25084/42527kjente OPP-vinduer, men bare52/43747NED;
+M15 fanger16197/23160OPP og1/23546NED; H1/H4/D1 fanger0NED.
+Dette er targetvinduer, ikke uavhengige markedsepisoder eller handler.
+Ingen av25celler slår alltid-OPP ved identiske modellvarslingstidspunkter:
+24like (inkl13uten varsler), M5/0,50 er16timelytreff svakere (25136mot25152).
+Høyere scoreterskel løser ikke ensidig retning; intet vinnerutvalg er adoptert.
+Sammenligningen avgrenser retningsvalg ved egne varslingstidspunkter; den
+avviser ikke all aktivitets-/tidsinformasjon. M5s kjente bevegelsesandel er
+24,33%allegrupper,32,17%valgt0,50 og43,18%valgt0,60. Kun beskrivende TRAIN,
+ikke terskelutvalg eller edge. Event-/reversal-direction presisjonsfelt er
+betinget på faktisk fremtidig retning; bruk dem som recall/support, aldri
+prospektiv varselpresisjon. DIRECTION_SELECTION_INTERPRETATION001 binder dette.
+CPU_SELECTIVE_REVIEW001 (7e0188b2...20ca) kontrollerer125modell/baseline-summaries.
 
-Manglende forventede åpne M5-barer gir UNKNOWN; bare manifestbundet ukestenging
-unntas. Begge barrierer i samme M5-bar har ukjent rekkefølge. Alle grupper,
-ukjente, falske/sene varsler og oversette bevegelser telles. Alltid-OPP/NED og
-frossen prior sammenlignes ved samme varslingstidspunkter. OPP/NED og begge
-vendingsretninger splittes eksplisitt. Reversal mot fortidsretning måles ved
-anker. Varsel ved anker skilles fra senere varsel før1ATR-treff; ingen av dem
-beviser før latent fysisk vendingsøyeblikk. Headroom/progresjon synliggjør dette.
-TRAIN-vekter/norm/prior brukte hele2021–25: dette er en historisk TRAIN-diagnose,
-ikke et ærlig out-of-sample2021-modellforløp eller bevist fremtidig edge.
-M5 første treff er et femminutters intervall. Overlappende targetvinduer er
-ikke uavhengige episoder. Midpris-markout er ikke fills/PnL; kostnader og
-MAE/MFE er ikke målt. Opprinnelig sidehode er ikke kalibrert1ATR-eventmodell.
+D1 har897/1290UNKNOWN-hendelsesvinduer (69,53%) fordi forventede åpne barer
+mangler før treff eller i uavsluttet no-hit-vindu. De er ikke fylt/droppet.
+D1-bevisene er derfor begrenset; D1-kontekst beholdes. Det er ikke dokumentert
+nytte for hvert indikatorfelt eller at lang context nødvendigvis har lært edge.
+
+Testen målte første ±1TFATR14-kryss fra klokkevalgt anker/M5-close til eksisterende
+validity_ns, kausal ATR, score=a*max(s,1-s), første varsel per targetgruppe.
+Alle5TF og terskler0,50/0,60/0,70/0,80/0,90 ble låst før nye prognoser/prisutfall.
+Opp-/nedreversal måles mot kjent fortidsretning ved anker. Varsel ved anker
+skilles fra senere varsel før1ATR-treff; ingen av dem beviser før latent fysisk
+vendingsstart. Lead0minutter deler den ukjente femminutters treffbaren.
+Bare manifestbundet ukestenging unntas; same-bar toveistreff har ukjent rekkefølge.
+Overlappende vinduer og TF skal ikke summeres til uavhengige episoder.
+
+Vekter/normalisering/prior brukte heleTRAIN2021–25. Dette er in-sample historisk
+diagnose, ingen ærlig out-of-sample2021modell eller bevist fremtidig edge.
+Opprinnelig endpoint-side er ikke en kalibrert first-cross/reversal-sannsynlighet.
+Målmismatch er en konkret designrisiko, ikke bevist eneste årsak til bias.
+Midpris-markout er ikke fills/PnL; kostnader og MAE/MFE er ikke målt.
+
+FULL_COVERAGE_SELECTIVE_ASSESSMENT001.json SHA62e42c8b...952de5 binder alle25celler,
+klokke-/inputdekning, baselinegap og ærlige grenser. Deknings-/testmålet kan
+lukkes med negativt prediksjonsresultat; prosjektets hovedmål om før-varsling og
+økonomisk edge er fortsatt IKKE oppnådd. Ingen ny epoke/automatisk fortsettelse.
+Neste designprioritet er et eksplisitt kausalt mål for selektiv opp/nedbevegelse/
+vending, inklusive muligheten til å avstå, og senere kronologisk utviklings-
+validering. Behold indikatorene/TF; ikke tving50/50 eller velg vinnende terskel.
 
 ## Kvalifisering og neste handling
 
 190unike fokuserte cases og obligatoriske3Entry-kontraktfiler/64cases PASS før
-GPU-planbinding. Testforventninger ble rettet for45negative guardcases og én
-immutabel publisherexception; bare feilcases omkjørt, ingen vern ble svekket.
-Minimal CPU-rapportpartisjon skal verifiseres med egne nye fokuserte cases.
-Commit fryst CPU-kilde, bind så egen nøyaktig CPU-plan og CLI-preflight uten
-CLAIM/output/arraydecode, åpne kun én lesegate, kjør og lukk etter wrapperexit.
+GPU-planbinding. Kun nødvendige testforventninger ble rettet og bare feilcases
+omkjørt; ingen vern svekket. Den forhåndslåste minimale CPU-rapportpartisjonen
+fikk3nye fokuserte PASS-cases; tidligere46ble ikke omkjørt. AST/diff--check PASS.
+
+GPU-guard:535målinger, topper65°Ckjerne/72°Cminne/215,3W/1924MiB;
+CPU44°C/27,52W. Minste Windows fysisk ledig55397228544B, commitreserve58051346432B.
+Ingen guardstopp, alle registrerte maintenance/CBS/WU false. Eksakt metadatareview
+FULL_CAPTURE_HOST_REVIEW001.json SHA71289b52...056e20. Den egne guardkvitteringen
+lagrer ikke boot-ID; modellrun-kildens separate boot-bookend passerte før RESULT.
+
+CPU-resultat, alle vurderinger/reviews, plan, snapshots, kode og logger er
+Mac-diskverifisert: CURRENT_FULL_COVERAGE_SELECTIVE_TEST_COMPLETE_20261122_001,
+manifest686a18fe...a52d74 (21artefakter/27243365bytes). Capture er separat sikret.
+Sluttsyntaks/scoped stale-path/diffkontroll PASS; handover-observasjon før
+metadatacommit viste kun forventet dirty metadata (policy/overlevering/CPU-plan).
+Avsluttende ren kildeidentitet og push bookendes etter denne metadatacommitten.
+Ingen videre modellkjøring er innrømmet; deknings-/testarbeidet er ferdig.
 
 Én tung CURRENT-jobb via capped. GPU20G/512M/8tråder/CPU0–18/tasks128 og
 3600souter/3570sintern; GPU250Wdraw/limit,75°Ckjerne/80°Cminne/12288MiB.
