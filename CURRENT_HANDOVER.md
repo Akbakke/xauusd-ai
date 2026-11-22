@@ -14,17 +14,28 @@ signert Windows-telemetri og eksisterende oppstarts-/runtimevakt. Kontrollert
 CPU-sensorkvalifisering og tester med ufarlig sleeper, ingen modell/stress.
 Alle fem treningsporter er fortsatt stengt. Ingen sikkerhets-/Defender-/boot-
 svekkelse eller betalt tjeneste er tillatt. Eksakte status/bevis følger policy.
-Delmål: 56query+54guard+15installerkontrakter og18PowerShelltilfeller PASS.
+Ressursdelmålet er FULLFØRT for nåværende boot og testede mekanismer:
+56query+54guard+15installerkontrakter og18PowerShelltilfeller PASS.
+Signert v2bro er deployert med uendret sertifikat; faktisk nonce/signatur/14felt
+og overvåket ufarlig sleeper PASS, feilsertifikat stoppet før child-start.
+HOST_RESOURCE_QUALIFICATION_REVIEW001.json og HOST_RESOURCE_LIVE_GUARD003.json
+binder bevis. Separat diskverifisert Mac-backup:
+`/Users/andrekildalbakke/GX1_BACKUP/CURRENT_HOST_RESOURCE_SAFETY_20261122_001/MANIFEST.json`,
+SHA `43ff822f0161ea1447e5fc659feb92de95c45efd400c30625a1061e9e393b12c`.
+Første query fikk2s-timeout; senere samme2s-kontrakt bestod. Årsaken til den
+første forsinkelsen er ikke bevist. En testsertifikat-feil i kvalifiserings-
+oppsettet ble avvist før child-start og rettet; originalfeilkvitteringer beholdes.
+Ingen kapasitets-/ytelsespåstand under modelllast eller automatisk admisjon.
 PawnIO2.2.0 er hash-/Authenticode-verifisert, installert én gang(exit0), driver
 Running. Førsteinstallforsøk ble stanset før kjøring av vedlikeholdsworker.
 Tre ekte CPU/Windows-målinger er gyldige: CPUmaks28°C, package9,41–15,27W,
-fysiskledigca61,3GB. Ingen modell/stress. Signert v2bro er ennå ikke deployert.
+fysiskledigca61,3GB. Ingen modell/stress. Signert v2bro er deployert og kontrollert.
 Konkrete CPU-cacheverdier nulles før update; alle10cores+package+positiv
 packagepower må være ferske. Stoppgrenser CPU80°C/125W og8GiB RAM/commit-
 reserve er konservative admissionstak, ikke maskinvarens maksimum/optimalitet.
 Nyeste observerte WindowsBootId4/14:45:57.5UTC og WSLboot
 5e297a5c-dffd-4219-9c59-a944fe992542 avløser eldre runtimeadmisjon.
-Neste er v2bridge-deploy og faktisk nonce/signatur/runtime-sleeperkontroll.
+Neste er én ny avgrenset rekkefølgekandidat med gjenbrukt ferdig kontrollarm.
 Konsumerte biasplaner forblir stengt; etter sikkerhetskvalifikasjonen trengs en
 ny eksakt guard-sourcebridge/admisjon før én kort rekkefølgekandidat.
 Brukeren minnet om etablert restartprosedyre. Integrator utførte én ny,
@@ -42,9 +53,9 @@ SHA `39a48a2f88e77488a138983057de0725444462e4bbd313dc98d4083ba886e502`.
 
 Brukeren understreker at PC-en ikke må overbelastes. Alle fem treningsporter
 og alle nye modell-/belastningsjobber er fortsatt stengt. Ingen konsumert plan
-relanseres; ingen automatisk ny hovedepoke/TEST/handel. Fysisk CPU-temperatur/
-effekt og Windows-minnetrykk under modellkjøring er ennå ikke dekket/kvalifisert.
-Denne ressursdekningen og fersk vertsadmisjon gjenstår før ny modelljobb.
+relanseres; ingen automatisk ny hovedepoke/TEST/handel. CPU-temperatur/effekt, fysisk Windows-RAM/commit og vedlikeholdsstatus er nå
+bundet i signert oppstarts-/runtimevakt. Mekanismene er kvalifisert uten modell-
+last. En ny eksakt plan, sourcebridge og fersk vertsadmisjon gjenstår.
 
 Siste suffixstudie er konsumert/ufullført: controllerexit75, ingen originalTERMINAL,
 RESULT eller REORDERED_FINAL.pt. Ikke fabriker terminal eller kandidatutfall.
@@ -92,8 +103,8 @@ SeparatMacbackupCURRENT_FUTURE_STATE_BIAS_FROZEN_20261122_001/MANIFEST.json,
 SHAfaa02cbb5ef5fbf4c14cd6f4b609599890413224527ec0f4fd5efda03841bc21.
 Alle16originalMAINcheckpoints og deres tidligereseparatebackup er beholdt.
 
-Neste: kvalifiser manglende fysisk vertsressursdekning og fersk vertsstatus
-før ny modelladmisjon. Windows-vedlikeholdet er ferdig. Ingen ny kjøring startes nå. Arbeidet videre
+Neste: kvalifiser ny kort rekkefølgekandidat/sourcebridge og fersk vertsstatus
+før eksakt modelladmisjon. Ressursmekanismene er kvalifisert for aktuell boot. Ingen ny kjøring startes nå. Arbeidet videre
 må bygge på sikrede resultater, ikke en ukvalifisert gjentakelse etter omstart.
 
 ## Undersøkt retningsskjevhet 22.11.2026
