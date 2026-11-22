@@ -1,118 +1,98 @@
 # CURRENT_HANDOVER — GX1
 
-Arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
-Les `GX1_RULES.md` helt. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus.
+Arbeidssted `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
+Les GX1_RULES.md helt. NEXT_RUN_POLICY.json er eneste arbeidsstatus.
 Prosessobservasjon og eksakte terminalkvitteringer overstyrer prosa.
 
 ## Aktiv oppgave: full dekning og varsling før bevegelse
 
-Brukeren slettet det gamle årsaksmålet og ba22.11 om et nytt mål:
-100% av kvalifisert M5-klokke, alle aktive indikatorer/tidsrammer og test av
-selektive OPP/NED-varsler FØR tydelig bevegelse. Nytt mål er ACTIVE i
-chat01a20035-2836-7f62-bb88-9e24603a51a5. Ingen tokenbudsjett er angitt.
-Gamle årsaksresultater er bevart; D1-årsak er ikke feilaktig merket løst.
+Brukeren ba22.11 om nytt mål: full kvalifisert M5-klokke, samtlige aktive
+indikatorer/tidsrammer og selektive OPP/NED-varsler før tydelig bevegelse.
+Målet er ACTIVE i chat01a20035-2836-7f62-bb88-9e24603a51a5. Ingen tokenbudsjett.
+Alle fem globale treningsporter er false. Ingen refit/ny epoke/VAL/TEST,
+M1-retning, GC, Entry/Exit, broker, handel eller spending er autorisert her.
 
-Alle fem globale modell-/treningsporter er false. Ingen ny plan/CLAIM/modell
-for denne oppgaven er ennå publisert eller innrømmet. Ingen ny trening/epoke,
-TEST, M1-retning, GC, Entry/Exit, broker eller handel. Klasse `trainer` skal
-bare brukes som eksisterende GPU-ressursinnkapsling for en lesende kjøring.
+## Full prognosedekning er faktisk gjennomført
 
-## Dekning som er kontrollert før kjøring
+NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001 er COMPLETE og konsumert.
+354550/354550 TRAIN-tidspunkter2021–25,5TF,1385E256-forwards (siste246),
+én modell/én CP-load; null backward/optimizer/fit/CP-writes. Alle batchhashes,
+fulloutput og proper scores er bitlike opprinnelig MAIN/PASS1. Faktiske
+normaliserings-/input-/priorbuffere identiske. Ikke004kandidat: original MAIN
+FINAL modelstatec30b16b4...47ed61 via autentisert003chronological/FINAL.pt.
+Plan638c32e0...54717f; fryst kildeccaa7db2;80eiere/source/input/policy/boot-
+bookends passerte. RESULTce287ed6...68e89a; TERMINALb47b4a90...21115f6;
+CAPTURE.npz5349c1d6...9bc98b. ClaimPID60233 er borte; wrapperexit0 og lesegate
+lukket med0gjenstående. Kjøringen tok839,64s. Ingen relansering av brukt plan.
 
-MAIN brukte alle354550 kvalifiserte TRAIN-rader2021–2025. Bare de senere
-lagrede detaljprognosene var et utvalg20727rader (5,85%, opptil16/24h-bøtte).
-Ny capture skal lagre hver eneste TRAIN-prognose, ikke et nytt utvalg.
-Native2021–25 har fem parquetdeler med til sammen354550rader; faktisk metadata
-og targetklokke/headers er kontrollert uten å laste arraydata.
+Capture, kvitteringer, logger og controller er separat Mac-diskverifisert:
+CURRENT_FULL_TRAIN_CAPTURE_COMPLETE_20261122_001/MANIFEST.json
+SHA812be0eb...ccb7b94 (12artefakter/26383392bytes). Forhåndskontrollens25filer
+finnes i CURRENT_FULL_TRAIN_CAPTURE_PREFLIGHT_20261122_001,
+manifest176c2f60...fb6d4f6. Ingen nye vekter ble laget. Alle opprinnelige
+MAIN/003/004-checkpoints og tidligere capture er bevart i eksisterende backups.
 
-FEATURE_CONSUMPTION_CROSSWALK001.json binder faktiske originale konsumentkilder,
-registry, provider, normalisering og modellruting. Ingen aktive felt er uten
-eier:318signal,132ctx_cont,1kategori,256MTF perTF. Alle åtte familier og
-M5/M15/H1/H4/D1 beholdes. 132aliaser er tilsiktet;186felt går til generell
-snapshot-projeksjon. Alle61makrofelt rutes gjennom session_regime_encoder og
-inngår i familiesamspillet; det finnes ikke en separat niende encoder.
-Makrobindingspredikatet er komplett på389579/389579retinerte snapshotrader.
-Dette beviser ikke historisk revisjons-/first-vintage-fullstendighet.
+Providerens eksisterende readiness_report/support_report ble kalt én gang hver
+på alle354550rader: alle input_ready,0unmaterialized,0feil i erklært historie/
+MTF/readiness, current_field_missingness tom. Support-observedcounts er bare
+np.isfinite og er ikke en total faktisk observasjons- eller nyttegaranti.
 
-Dekningen gjelder gjeldende aktive native TA/MTF-profil. GC/orderbok er utsatt,
-M1-retning er forbudt og M30 er ikke implementert i dette checkpointet.
-Ingen skjult påstand om at alle mulige markedskilder allerede brukes.
-Normaliseringsfilen har ikke numeriske perfelt-observedcounts; finite-counts
-kan også telle nullkodet ukjent. Collector gjenbruker derfor de eksisterende
-provider.readiness_report/support_report én gang hver på hele TRAIN-aksen,
-med ekte current-field-missingness skilt fra finite-support og ukjent nytte.
+## Hva indikator- og tidsrammedekningen betyr
 
-## Låst test og kvalifisert kilde
+FEATURE_CONSUMPTION_CROSSWALK001 binder faktiske originale konsumentkilder,
+registry, provider og normalisering. Ingen aktive felt uten eier eller med
+utilsiktet flere eiere:318signal,132ctx_cont,1kategori,256MTF perTF.
+Alle8familier og M5/M15/H1/H4/D1 beholdes. 132signal/ctx-aliaser er tilsiktet;
+186felt går til generell snapshot-projeksjon. Alle61makrofelt rutes gjennom
+session_regime_encoder; ingen separat niende encoder. Makrobindningen er
+komplett på389579/389579retinerte snapshotrader, men dette beviser ikke
+historisk first-vintage/revisjonsfullstendighet eller lært nytte per felt.
+GC/orderbok er utsatt, M1-retning forbudt, M30 ikke implementert i checkpointet.
+100% gjelder aktiv kvalifisert profil, aldri alle mulige kilder i verden.
+MAIN hadde allerede100%TRAIN-fit og aggregatscore; bare senere detaljcapture
+var20727rader/5,85%. Det observerte loggingshullet er nå lukket, uten ny fit.
 
-Forhåndsvalgt modell er original MAIN FINAL, modellstatec30b16b4...47ed61,
-autentisert gjennom003chronological/FINAL.pt på driver610.88. Ikke004kandidaten.
-003/004 er konsumert og relanseres aldri. Kontrollens hele V3-tree og alle åtte
-originale FINAL-komponenter valideres før parameterkopi. Bare modellvekter lastes;
-ingen optimizer. Faktiske input-/norm-/priorbuffere må være bitlike.
+## CPU-prisforløpstesten gjenstår
 
-Ny owner `gx1/audit/capture_native_future_state_full_train_v1.py` skal kjøre
-1385E256-forwards på354550rader (sistebatch246), én modell/én CP-load,
-0optimizer/backward/fit/normaliseringsfit/priorfit/VAL/TEST og0CP-writes.
-Hver batchs rålogit-hasher sammenlignes straks med opprinnelig MAIN/PASS1;
-første avvik stopper. Fulloutput-SHA og alle proper scores må også være bitlike.
-Én fullcapture med issue/source/position-akse publiseres atomisk og diskleses.
-Sourcebro beholder75gamle eiere bitlike og tillater bare to guard-eieres
-navngitte innsettinger; ingen modell-/feature-/target-/loss-matematikk endres.
+Forhåndslåst SELECTIVE_MOVE_PREREGISTRATION001, FULL_COVERAGE_REVERSAL_SCOPE001
+og UP_DOWN_REPORT_PARTITION001 finnes i bevisroten nedenfor. Før ny CPU-plan
+innrømmes skal minimal report-only OPP/NED-partisjon føyes til etter full GPU-
+stopp; ingen endring av hendelser, score, terskler, signalvalg eller modell.
 
-Ny CPU-owner `gx1/audit/audit_native_selective_moves_v1.py` skal deretter måle
-alle354550issues, alle5TF og terskler0,50/0,60/0,70/0,80/0,90 separat.
-Score=a*max(s,1-s), retning fra s; ingen TF-stemmer, kvote eller vinnerutvalg.
-Hver native targetbar-gruppe får et klokkevalgt første issue-anker. Fra kjent
-M5-close og kausal TF-ATR måles første ±1ATR-kryss fram til eksisterende
-validity_ns. Dette er en observasjonstest, ikke ny treningsfasit, tapsgrense,
-holdetid eller Entry-/Exit-regel. Første varsel beholdes selv om et senere er bedre.
+CPU-owner audit_native_selective_moves_v1 bruker fullcapture og bare fem native
+TRAIN-prisår. Hver av5TF/terskler0,50/0,60/0,70/0,80/0,90 rapporteres uten
+vinnerutvalg. Score=a*max(s,1-s), side fra s. Klokkevalgt første issue per
+native targetgruppe er anker. Første ±1TFATR14-kryss fra kjent M5-close fram
+til kanonisk validity_ns er observasjon, aldri ny treningsfasit/stop/holdregel.
+Første kvalifiserende varsel beholdes selv om et senere varsel er bedre.
 
 Manglende forventede åpne M5-barer gir UNKNOWN; bare manifestbundet ukestenging
-unntas. Begge barrierer i samme første M5-bar har ukjent rekkefølge. Treff før
-selve targetbarens start rapporteres separat. Alle signaler/ukjente utfall og
-oversette kjente bevegelser blir med. Unike targetvinduer og fysiske hitbarer
-rapporteres uten å påstå uavhengige handelsepisoder.
+unntas. Begge barrierer i samme M5-bar har ukjent rekkefølge. Alle grupper,
+ukjente, falske/sene varsler og oversette bevegelser telles. Alltid-OPP/NED og
+frossen prior sammenlignes ved samme varslingstidspunkter. OPP/NED og begge
+vendingsretninger splittes eksplisitt. Reversal mot fortidsretning måles ved
+anker. Varsel ved anker skilles fra senere varsel før1ATR-treff; ingen av dem
+beviser før latent fysisk vendingsøyeblikk. Headroom/progresjon synliggjør dette.
+TRAIN-vekter/norm/prior brukte hele2021–25: dette er en historisk TRAIN-diagnose,
+ikke et ærlig out-of-sample2021-modellforløp eller bevist fremtidig edge.
+M5 første treff er et femminutters intervall. Overlappende targetvinduer er
+ikke uavhengige episoder. Midpris-markout er ikke fills/PnL; kostnader og
+MAE/MFE er ikke målt. Opprinnelig sidehode er ikke kalibrert1ATR-eventmodell.
 
-Reversal/continuation-strata bruker bare prisretning i et komplett kjent
-fortidsvindu med samme kanoniske TF-varighet ved ankeret. Varsel ved ankeret
-før usett prisbane skilles fra senere varsel før1ATR-treff. Det siste er ikke
-automatisk før en latent markedsvending. Progresjon/headroom synliggjør sene
-varsler. Samme varslingstidspunkter brukes for alltid-OPP/NED og frossen prior.
-Midpris-markout er ikke fill/PnL; kostnader og MAE/MFE er ikke målt i piloten.
-TRAIN-gjenbruk beviser ikke senere generalisering eller økonomisk edge.
+## Kvalifisering og neste handling
 
-190 unike fokuserte cases PASS:76guard+68collector+46CPU-audit. Først45negative
-guardcases ventet gammelt feilnavn og én immutabel-publiseringscase feil exception;
-bare testforventninger ble rettet og bare feilcaser omkjørt. Produksjonsvern ble
-ikke lempet. En statisk oppdaget CPU-vindusfeil ble rettet før første test:
-anchor<=target_start<end, med to regressjoner. Faktiske input-/header-/MAIN-
-referanser, native TRAIN-footere og fullplan-view/capped CPU-lås er kontrollert.
-Ingen modell, checkpoint-payload eller dataarray er lastet i kvalifiseringen.
+190unike fokuserte cases og obligatoriske3Entry-kontraktfiler/64cases PASS før
+GPU-planbinding. Testforventninger ble rettet for45negative guardcases og én
+immutabel publisherexception; bare feilcases omkjørt, ingen vern ble svekket.
+Minimal CPU-rapportpartisjon skal verifiseres med egne nye fokuserte cases.
+Commit fryst CPU-kilde, bind så egen nøyaktig CPU-plan og CLI-preflight uten
+CLAIM/output/arraydecode, åpne kun én lesegate, kjør og lukk etter wrapperexit.
 
-## Neste steg og vakter
-
-Bind en eksakt ny lesende captureplan fra fryst kilde. Røykprøv den kanoniske
-absolutte Python -m-kommandoen med --preflight uten CLAIM/OUTPUT/modell.
-Behold alle fem globale treningsporter false også ved admisjon; åpne bare
-én eksakt lesegate. Kjør så capture og deretter egen CPU-auditplan.
-
-Én tung CURRENT-jobb, eksisterende capped/signed Windows-vakter. GPU250Wdraw/
-limit,75°Ckjerne/80°Cminne/12288MiB. CPU80°C/125W og8GiB fysisk/commitreserve;
-prelaunch RAM til cgroup+reserve. GPU20G/512M/8tråder/CPU0–18/tasks128,
-3600souter/3570sintern. CPU-audit4G/512M/1tråd/600souter/570sintern.
-Ingen endring av effektgrense eller Windows-sikkerhet. Stabile kjøringer
-kontrolleres omtrent hvert15.–30.minutt; ingen minuttvise modellrunder.
-Ingen kilde-/policyendring under kjøring. Alle originale checkpoints beholdes;
-ny capture/resultater skal sikres og diskverifiseres på separat Mac-disk.
-
-Bevisrot `/home/andre2/GX1_RUNS/GX1_NATIVE_SELECTIVE_MOVE_PREPARATION_20261122_001`.
-SELECTIVE_MOVE_PREREGISTRATION001.json SHA94e93090...52825c9;
-FULL_COVERAGE_REVERSAL_SCOPE001.json SHA005422b0...488d50;
-FEATURE_CONSUMPTION_CROSSWALK001.json SHAbc88ae03...85f876;
-SOURCE_QUALIFICATION001.json binder alle testlogger og faktiske metadata-prober.
-
-Tidligere fullførte004resultat og tre checkpoints er Mac-sikret i
-CURRENT_BIAS_SUFFIX004_COMPLETE_20261122_001, manifest2b7e08b1...24918a.
-003s ni durableCP finnes i CURRENT_BIAS_SUFFIX003_HOST_MAINTENANCE_STOP_20261122_001,
-manifest e3e4e0c1...0d6d3e0. Alle16MAINCP og frossen16CP-capture er også bevart.
-Ingen DATA/RUNS-rydding. Øvrig historikk ligger i Git og immutable kvitteringer.
+Én tung CURRENT-jobb via capped. GPU20G/512M/8tråder/CPU0–18/tasks128 og
+3600souter/3570sintern; GPU250Wdraw/limit,75°Ckjerne/80°Cminne/12288MiB.
+CPU80°C/125W;8GiB fysisk/commitreserve og prelaunch cgroup+reserve. Signed
+Windows-vakter må være tilgjengelige. CPU-audit4G/512M/1tråd/600souter/570sintern.
+Ingen kilde/policyendring under fryst kjøring. Stabilt tilsyn15–30min, ingen
+minuttpolling/fyllarbeid. Ingen maskinvaregrenser/Windows-sikkerhet endres.
+Bevisrot /home/andre2/GX1_RUNS/GX1_NATIVE_SELECTIVE_MOVE_PREPARATION_20261122_001.
+Ingen DATA/RUNS-rydding. Historikken er i Git og immutable kvitteringer.

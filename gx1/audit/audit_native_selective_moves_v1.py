@@ -29,6 +29,8 @@ PREREG = {'path': '/home/andre2/GX1_RUNS/GX1_NATIVE_SELECTIVE_MOVE_PREPARATION_2
           'sha256': '94e93090a49b62c3a0b17fc0403db6a69993bd140e65f4fa378dd43ed52825c9'}
 ADDENDUM = {'path': '/home/andre2/GX1_RUNS/GX1_NATIVE_SELECTIVE_MOVE_PREPARATION_20261122_001/FULL_COVERAGE_REVERSAL_SCOPE001.json',
             'sha256': '005422b037ca509e8c2c88a05e73d4e279d0130a2a468b6334752d8608488d50'}
+REPORT_PARTITION = {'path': '/home/andre2/GX1_RUNS/GX1_NATIVE_SELECTIVE_MOVE_PREPARATION_20261122_001/UP_DOWN_REPORT_PARTITION001.json',
+                    'sha256': '8d47b8223cdef9bd8a0520c5e6e88170e59c8cce5d2b23f687d68b4428ed0513'}
 TF = ('M5', 'M15', 'H1', 'H4', 'D1')
 THRESHOLDS = (.50, .60, .70, .80, .90)
 ROWS = 354550
@@ -134,6 +136,11 @@ def build_plan(*, capture_result, capture, source_base_commit=None):
          and scope['coverage']['years'] == list(range(2021, 2026))
          and scope['reversal_observation']['new_training_target_or_fit'] is False
          and scope['reversal_observation']['scores_and_thresholds_unchanged'] is True, 'SCOPE_ADDENDUM')
+    partition = read(REPORT_PARTITION)
+    need(partition['schema_version'] == 'gx1_native_selective_UP_DOWN_report_partition_v1'
+         and partition['execution_authorized'] is False and partition['scope_addendum'] == ADDENDUM
+         and partition['method_unchanged'] is True and partition['selector_thresholds_events_baselines_unchanged'] is True,
+         'LOCKED_REPORT_PARTITION')
     original = read(prereg['model_identity']['original_MAIN_plan'])
     result = read(capture_result)
     capture_plan = read(result['plan'])
@@ -144,7 +151,7 @@ def build_plan(*, capture_result, capture, source_base_commit=None):
          and dataset['TRAIN_issue_ns_sha256'] == m['TRAIN_issue_ns_sha256']
          and dataset['array_headers']['issue_ns']['shape'] == [ROWS], 'ACTUAL_MAIN_TRAIN_DATASET')
     spec, meta = native_train_source(m['native_manifest'])
-    inputs = {'preregistration': PREREG, 'scope_addendum': ADDENDUM, 'main_plan': prereg['model_identity']['original_MAIN_plan'],
+    inputs = {'preregistration': PREREG, 'scope_addendum': ADDENDUM, 'report_partition': REPORT_PARTITION, 'main_plan': prereg['model_identity']['original_MAIN_plan'],
               'main_result': prereg['model_identity']['original_MAIN_result'], 'capture_result': capture_result,
               'capture_plan': result['plan'], 'capture': capture, 'dataset': m['dataset'],
               'target_arrays': dataset['arrays'], 'source_snapshot': m['source_snapshot'],
@@ -158,7 +165,7 @@ def build_plan(*, capture_result, capture, source_base_commit=None):
             'capture_array_headers': result['report']['capture_array_headers'],
             'target_array_headers': {k: dataset['array_headers'][k] for k in TARGET_FIELDS},
             'TRAIN_issue_ns_sha256': m['TRAIN_issue_ns_sha256'], 'diagnostic': diagnostic,
-            'reversal_observation': scope['reversal_observation'],
+            'reversal_observation': scope['reversal_observation'], 'report_partitions': partition['partitions'],
             'execution': EXECUTION, 'runtime_versions': {'numpy': np.__version__, 'pandas': pd.__version__, 'pyarrow': pyarrow.__version__},
             'model_forwards': 0, 'checkpoint_loads': 0, 'optimizer_updates': 0, 'fits': 0,
             'CONTROL_VAL_TEST_rows': 0, 'max_invocations': 1, 'automatic_continuation': False}
@@ -425,6 +432,9 @@ def warning_summary(events, warnings, side_by_row, issues, starts, prices):
     return {'selected_warnings': n, 'classification': counts,
             'correct_timely_at_anchor': int(at_anchor.sum()), 'correct_later_before_1ATR_hit': int(later_before_hit.sum()),
             'event_strata': {k: stratum_summary(v) for k, v in event_strata(events['kind'], past).items()},
+            'event_direction': {KIND[d]: stratum_summary(events['kind'] == d) for d in (UP, DOWN)},
+            'warning_direction': {name: stratum_summary(selected & (sides == d)) for name, d in (('UP', UP), ('DOWN', DOWN))},
+            'reversal_direction': {KIND[d]: stratum_summary((events['kind'] == d) & (past == -d)) for d in (UP, DOWN)},
             'warning_relation_to_past_at_GROUP_ANCHOR': {k: stratum_summary(v) for k, v in warning_relation.items()},
             'timing_limit': 'Anchor and later-before-1ATR-hit are distinct; neither certifies warning before latent physical turn onset.',
             'selected_precision_lower': good / n if n else None, 'selected_precision_upper': (good + uncertain) / n if n else None,
@@ -546,7 +556,7 @@ def run(plan_sha):
         checked_inputs(plan)
         need(source_clean(plan) and ref(POLICY) == pref and ref(PLAN) == binding, 'SOURCE_INPUT_POLICY_BOOKEND')
         result_ref = publish('RESULT.json', {'status': 'COMPLETE_NATIVE_SELECTIVE_MOVE_AUDIT', 'stage': STAGE,
-            'plan': binding, 'claim': claim, 'policy_at_claim': pref, 'preregistration': PREREG, 'scope_addendum': ADDENDUM, 'report': report,
+            'plan': binding, 'claim': claim, 'policy_at_claim': pref, 'preregistration': PREREG, 'scope_addendum': ADDENDUM, 'report_partition': REPORT_PARTITION, 'report': report,
             'source_unchanged': True, 'model_forwards': 0, 'checkpoint_loads': 0, 'optimizer_updates': 0,
             'fits': 0, 'test_data_used': False, 'economic_edge_proven': False, 'elapsed_seconds': time.monotonic() - started})
         terminal = publish('TERMINAL.json', {'status': 'COMPLETE', 'exit_code': 0, 'stage': STAGE, 'plan': binding,

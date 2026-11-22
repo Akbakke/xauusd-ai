@@ -380,3 +380,57 @@ def test_reversal_stratum_reports_timely_warning_progress_and_headroom():
     assert reverse['correct_timely_progress_ATR']['mean'] == 0.
     assert reverse['correct_timely_headroom_ATR']['mean'] == 1.
     assert report['warning_relation_to_past_at_GROUP_ANCHOR']['OPPOSES_PAST']['selected_warnings'] == 1
+
+
+
+def test_up_down_report_partitions_are_disjoint_and_preserve_false_unknown_and_missed_counts():
+    starts = np.arange(12, dtype=np.int64)*T
+    prices = np.tile(np.array([100., 100.4, 99.6, 100.]), (12, 1))
+    issues = np.arange(1, 9, dtype=np.int64)*T
+    events = {'kind': np.array([audit.UP, audit.DOWN, audit.NONE, audit.UNKNOWN, audit.BOTH, audit.UP]),
+        'hit_row': np.array([2, 3, -1, -1, 5, 7]), 'hit_start': np.array([2*T, 3*T, -1, -1, 5*T, 7*T]),
+        'hit_end': np.array([3*T, 4*T, -1, -1, 6*T, 8*T]), 'end_row': np.array([8, 9, 9, -1, 9, 10]),
+        'anchor_price': np.full(6, 100.), 'atr': np.ones(6),
+        'complete': np.array([True, True, True, False, True, True]), 'pretarget_hit': np.zeros(6, np.bool_),
+        'anchor_ns': np.arange(1, 7, dtype=np.int64)*T, 'target_start': np.arange(2, 8, dtype=np.int64)*T,
+        'past_direction_at_anchor': np.array([audit.DOWN, audit.UP, audit.UP, audit.UP, audit.DOWN, audit.DOWN])}
+    sides = np.array([audit.UP, audit.DOWN, audit.UP, audit.DOWN, audit.UP, audit.DOWN, audit.UP, audit.DOWN])
+    report = audit.warning_summary(events, np.array([0, 1, 2, 3, 4, -1]), sides, issues, starts, prices)
+    event = report['event_direction']; warning = report['warning_direction']; reversal = report['reversal_direction']
+    assert set(event) == set(reversal) == {'UP_FIRST', 'DOWN_FIRST'}
+    assert set(warning) == {'UP', 'DOWN'}
+    assert event['UP_FIRST']['eligible_known_moves'] == 2 and event['DOWN_FIRST']['eligible_known_moves'] == 1
+    for key in ('eligible_known_moves', 'captured_known_moves', 'missed_known_moves'):
+        aggregate = report[{'eligible_known_moves': 'known_moves'}.get(key, key)]
+        assert sum(row[key] for row in event.values()) == aggregate
+        assert sum(row[key] for row in reversal.values()) == report['event_strata']['REVERSAL'][key]
+    assert warning['UP']['selected_warnings'] == 3 and warning['DOWN']['selected_warnings'] == 2
+    assert sum(row['selected_warnings'] for row in warning.values()) == report['selected_warnings'] == 5
+    for key, value in report['classification'].items():
+        assert sum(row['classification'][key] for row in warning.values()) == value
+    assert warning['UP']['selected_false_wrong_late_nohit'] == 1
+    assert warning['UP']['selected_unknown_or_same_bar_order'] == warning['DOWN']['selected_unknown_or_same_bar_order'] == 1
+    assert sum(row['correct_timely_at_anchor'] for row in event.values()) == report['correct_timely_at_anchor'] == 2
+    assert reversal['UP_FIRST']['missed_known_moves'] == 1
+
+
+@pytest.mark.parametrize('direction', [audit.UP, audit.DOWN])
+def test_direction_partition_retains_strict_anchor_and_later_reversal_counts(direction):
+    starts, prices, table = path_case()
+    if direction == audit.DOWN:
+        prices = np.column_stack((200-prices[:, 0], 200-prices[:, 2], 200-prices[:, 1], 200-prices[:, 3]))
+    issues = np.array([T, 2*T, 3*T, 4*T], np.int64)
+    events = audit.event_arrays(issues, np.full(4, 4*T), np.full(4, 6*T), np.ones(4), issues,
+                                starts, prices, table)
+    events['past_direction_at_anchor'][:] = -direction
+    sides = np.full(4, direction)
+    first = audit.warning_summary(events, np.array([0]), sides, issues, starts, prices)
+    later = audit.warning_summary(events, np.array([1]), sides, issues, starts, prices)
+    key = audit.KIND[direction]
+    for partition in ('event_direction', 'reversal_direction'):
+        assert first[partition][key]['captured_known_moves'] == 1
+        assert first[partition][key]['correct_timely_at_anchor'] == 1
+        assert first[partition][key]['correct_later_before_1ATR_hit'] == 0
+        assert later[partition][key]['correct_timely_at_anchor'] == 0
+        assert later[partition][key]['correct_later_before_1ATR_hit'] == 1
+        assert first[partition][audit.KIND[-direction]]['eligible_known_moves'] == 0
