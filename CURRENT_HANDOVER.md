@@ -4,17 +4,27 @@ Arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 Les `GX1_RULES.md` helt. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus.
 Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git.
 
-## Blokkert årsaksmål og modellstopp 22.11.2026
+## Sikret vedlikeholdsomstart og modellstopp 22.11.2026
 
-Målchat01a20035-2836-7f62-bb88-9e24603a51a5. Målet er IKKE fullført.
-Målet er blokkert av uferdig Windows-vedlikehold og manglende ny vertsadmisjon.
-Samme omstartskrav er bekreftet ved tre påfølgende målturner, sist
-22.11.2026 kl.10:28:17UTC: CBSRebootPending=true. Brukeren er bedt om å
-fullføre omstarten når annet arbeid er lagret. Ingen gjentatte kontrollrunder
-eller ny modelljobb før ekstern tilstand endres og sikkerhetsportene kvalifiseres.
+Målchat01a20035-2836-7f62-bb88-9e24603a51a5. Årsaksmålet er IKKE fullført.
+Brukeren minnet om etablert restartprosedyre. Integrator utførte én ny,
+maskinvidt idle-kontrollert Windows-omstart uten Force; gamle dispatch ble ikke
+brukt. Ny WindowsBootId3, oppstart22.11kl12:08:50.5UTC/13:08:50.5Oslo.
+Ny WSLboot5ab15b63-8a20-476d-9f96-2d62fbb098bb. Etter omstart er både
+CBSRebootPending og WURebootRequired=false. Omstartsblokkeringen er løst.
+Kilde/preboot-referanser er uendret; originale CP3328 og FINAL er sjekksum-
+verifisert fra fil under capped4G-audit uten deserialisering eller modell.
+CONTROLLED_REBOOT_INTENT001.json, CONTROLLED_REBOOT_DISPATCH_CLAIM001.json
+og CONTROLLED_REBOOT_POSTBOOT001.json ligger i bevisroten nedenfor.
+Separat diskverifisert Mac-postbootbackup:
+`/Users/andrekildalbakke/GX1_BACKUP/CURRENT_FUTURE_STATE_MAINTENANCE_POSTBOOT_20261122_001/MANIFEST.json`,
+SHA `39a48a2f88e77488a138983057de0725444462e4bbd313dc98d4083ba886e502`.
+
 Brukeren understreker at PC-en ikke må overbelastes. Alle fem treningsporter
-og alle nye modell-/belastningsjobber er stengt. Bare logger/artefaktsikring tillates
-nå. Ingen konsumert plan relanseres; ingen automatisk nyhovedepoke/TEST/handel.
+og alle nye modell-/belastningsjobber er fortsatt stengt. Ingen konsumert plan
+relanseres; ingen automatisk ny hovedepoke/TEST/handel. Fysisk CPU-temperatur/
+effekt og Windows-minnetrykk under modellkjøring er ennå ikke dekket/kvalifisert.
+Denne ressursdekningen og fersk vertsadmisjon gjenstår før ny modelljobb.
 
 Siste suffixstudie er konsumert/ufullført: controllerexit75, ingen originalTERMINAL,
 RESULT eller REORDERED_FINAL.pt. Ikke fabriker terminal eller kandidatutfall.
@@ -31,7 +41,8 @@ planlagt OS-oppdateringsomstart, kode0x80020010. Vakten registrerte tapt
 telemetri og sendte stopp kl.09:30:07UTC, 2,64 sekunder etter Windows-hendelsen. EventLogstopp09:36:08; nyplanlagtoppgraderingsomstart
 09:54:21; Windows11version25H2fullført09:56:48. NyWindowsBootId2 ogWSLboot
 9aeae3ed-1a80-4ac8-b064-250b31c30e21; gamleboot670/runtime er ikke aktuelladmisjon.
-Ved innhentingvarCBSRebootPending=true/WURebootRequired=false.
+Ved første innhenting var CBSRebootPending=true/WURebootRequired=false;
+dette er historisk og avløst av verifisert vedlikeholdsomstart ovenfor.
 Ingen vaktregistrertGPUgrenseoverskridelse: topper64°Ckjerne/70°Cminne/213,85W/
 9796MiB. Overbelastning er IKKE påvist som hendelsesårsak. CPUtemperatur/package-
 watt/Windowsminnetrykk underkjøringen er fortsatt ukjent; intet frikjenningsbevis.
@@ -61,8 +72,8 @@ SeparatMacbackupCURRENT_FUTURE_STATE_BIAS_FROZEN_20261122_001/MANIFEST.json,
 SHAfaa02cbb5ef5fbf4c14cd6f4b609599890413224527ec0f4fd5efda03841bc21.
 Alle16originalMAINcheckpoints og deres tidligereseparatebackup er beholdt.
 
-Neste: fullførWindowsvedlikehold/ventendeomstart og kvalifiser fysiskvertsstatus/
-ressursdekning før ny modelladmisjon. Ingen ny kjøring startes nå. Arbeidet videre
+Neste: kvalifiser manglende fysisk vertsressursdekning og fersk vertsstatus
+før ny modelladmisjon. Windows-vedlikeholdet er ferdig. Ingen ny kjøring startes nå. Arbeidet videre
 må bygge på sikrede resultater, ikke en ukvalifisert gjentakelse etter omstart.
 
 ## Undersøkt retningsskjevhet 22.11.2026
