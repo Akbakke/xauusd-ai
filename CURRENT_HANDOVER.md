@@ -4,9 +4,14 @@ Arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 Les `GX1_RULES.md` helt. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus.
 Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git.
 
-## Aktivt årsaksmål og modellstopp 22.11.2026
+## Blokkert årsaksmål og modellstopp 22.11.2026
 
 Målchat01a20035-2836-7f62-bb88-9e24603a51a5. Målet er IKKE fullført.
+Målet er blokkert av uferdig Windows-vedlikehold og manglende ny vertsadmisjon.
+Samme omstartskrav er bekreftet ved tre påfølgende målturner, sist
+22.11.2026 kl.10:28:17UTC: CBSRebootPending=true. Brukeren er bedt om å
+fullføre omstarten når annet arbeid er lagret. Ingen gjentatte kontrollrunder
+eller ny modelljobb før ekstern tilstand endres og sikkerhetsportene kvalifiseres.
 Brukeren understreker at PC-en ikke må overbelastes. Alle fem treningsporter
 og alle nye modell-/belastningsjobber er stengt. Bare logger/artefaktsikring tillates
 nå. Ingen konsumert plan relanseres; ingen automatisk nyhovedepoke/TEST/handel.
