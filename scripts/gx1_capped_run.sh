@@ -97,6 +97,11 @@ NATIVE_FUTURE_STATE_BIAS_SUFFIX_MODULE=gx1.audit.diagnose_native_future_state_bi
 NATIVE_FUTURE_STATE_BIAS_SUFFIX=false
 NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256=
 # END GX1 BIAS SUFFIX ROUTE 20261122 003 STATE
+# BEGIN GX1 BIAS CONTINUE ROUTE 20261122 004 STATE
+NATIVE_FUTURE_STATE_BIAS_CONTINUE_MODULE=gx1.audit.continue_native_future_state_bias_suffix_v1
+NATIVE_FUTURE_STATE_BIAS_CONTINUE=false
+NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256=
+# END GX1 BIAS CONTINUE ROUTE 20261122 004 STATE
 # BEGIN GX1 FUTURE LEAF ROUTES 20261121 STATE
 NATIVE_FUTURE_STATE_THROUGHPUT_MODULE=gx1.audit.measure_native_future_state_throughput_v1
 NATIVE_FUTURE_STATE_TRAINING_MODULE=gx1.audit.native_future_state_training_v1
@@ -969,7 +974,71 @@ configure_native_future_state_bias_suffix() {
 }
 # END GX1 BIAS SUFFIX ROUTE 20261122 003 MATCHERS
 
+# BEGIN GX1 BIAS CONTINUE ROUTE 20261122 004 MATCHERS
+matches_bound_native_future_state_bias_suffix_continuation() {
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_BIAS_SUFFIX_CONTINUE_20261122_004.json"
+  if [[ $# -eq 6 ]]; then
+    [[ "$6" == --preflight ]] || return 1
+    set -- "${@:1:5}"
+  fi
+  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$NATIVE_FUTURE_STATE_BIAS_CONTINUE_MODULE" \
+    && "$4" == --plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]
+}
+
+configure_native_future_state_bias_suffix_continuation() {
+  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \
+    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \
+    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {
+    echo "FATAL: bias suffix continuation requires exact canonical trainer containment" >&2
+    exit 75
+  }
+  matches_bound_native_future_state_bias_suffix_continuation "$@" || {
+    echo "FATAL: bias suffix continuation CLI/plan is not exactly bound" >&2
+    exit 75
+  }
+  local suffix_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_SUFFIX_CONTINUE_20261122_004
+  [[ ! -e "$suffix_output" && ! -L "$suffix_output" \
+    && -d "${suffix_output%/*}" && ! -L "${suffix_output%/*}" \
+    && "$(readlink -f "${suffix_output%/*}")" == "${suffix_output%/*}" ]] || {
+    echo "FATAL: bias suffix continuation output is not fresh canonical scope" >&2
+    exit 75
+  }
+  NATIVE_FUTURE_STATE_BIAS_CONTINUE=true
+  NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256="$5"
+  TRAINER_DEVICE=cuda
+  TRAINER_EXECUTION_MODE=canonical
+  TRAINER_OUT_BUNDLE_DIR="$suffix_output"
+  TRAINER_MAX_WALL_SECONDS=3600
+  TRAINER_MODEL_MAX_WALL_SECONDS=3570
+  TRAINER_GPU_INDEX=0
+  TRAINER_GPU_MAX_POWER_LIMIT_W=250
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_MEMORY_TEMP_C=80
+  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+}
+# END GX1 BIAS CONTINUE ROUTE 20261122 004 MATCHERS
+
 validate_target_command() {
+# BEGIN GX1 BIAS CONTINUE ROUTE 20261122 004 DISPATCH
+  local frozen_bias_arg frozen_bias_reference=false
+  for frozen_bias_arg in "$@"; do
+    case "$frozen_bias_arg" in
+      "$NATIVE_FUTURE_STATE_BIAS_CONTINUE_MODULE"|*/gx1/audit/continue_native_future_state_bias_suffix_v1.py|gx1/audit/continue_native_future_state_bias_suffix_v1.py)
+        frozen_bias_reference=true ;;
+    esac
+  done
+  if [[ "$frozen_bias_reference" == true ]]; then
+    configure_native_future_state_bias_suffix_continuation "$@"
+    return
+  fi
+# END GX1 BIAS CONTINUE ROUTE 20261122 004 DISPATCH
 # BEGIN GX1 BIAS SUFFIX ROUTE 20261122 003 DISPATCH
   local frozen_bias_arg frozen_bias_reference=false
   for frozen_bias_arg in "$@"; do
@@ -1947,6 +2016,38 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
     }
   fi
 # END GX1 BIAS SUFFIX ROUTE 20261122 003 NESTED
+# BEGIN GX1 BIAS CONTINUE ROUTE 20261122 004 NESTED
+  [[ "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE:-false}" == "$NATIVE_FUTURE_STATE_BIAS_CONTINUE" ]] || {
+    echo "FATAL: nested bias suffix continuation mode differs from protected parent" >&2
+    exit 75
+  }
+  if [[ "$NATIVE_FUTURE_STATE_BIAS_CONTINUE" == true ]]; then
+    [[ "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256:-}" == "$NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-false}" == false \
+      && -z "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-false}" == false \
+      && -z "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" \
+      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == false \
+      && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == false \
+      && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-false}" == false \
+      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-false}" == false \
+      && "${GX1_TRAINER_EXECUTION_MODE:-}" == canonical \
+      && "${GX1_TRAINER_MAX_WALL_SECONDS:-}" == 3600 \
+      && "${GX1_TRAINER_MODEL_MAX_WALL_SECONDS:-}" == 3570 \
+      && "${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W:-}" == 250 \
+      && "${GX1_TRAINER_GPU_MAX_POWER_DRAW_W:-}" == 250 \
+      && "${GX1_TRAINER_GPU_MAX_CORE_TEMP_C:-}" == 75 \
+      && "${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C:-}" == 80 \
+      && "${GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB:-}" == 12288 \
+      && "${GX1_TRAINER_CPU_MAX_TEMP_C:-}" == 80 \
+      && "${GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W:-}" == 125 \
+      && "${GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES:-}" == 8589934592 \
+      && "${GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES:-}" == 8589934592 ]] || {
+      echo "FATAL: nested bias suffix continuation plan/deadline/hardware differs from protected parent" >&2
+      exit 75
+    }
+  fi
+# END GX1 BIAS CONTINUE ROUTE 20261122 004 NESTED
 # BEGIN GX1 FUTURE LEAF ROUTES 20261121 NESTED
   [[ "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == "$NATIVE_FUTURE_STATE_THROUGHPUT" \
     && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == "$NATIVE_FUTURE_STATE_TRAINING" ]] || {
@@ -2192,6 +2293,8 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256" \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX="$NATIVE_FUTURE_STATE_BIAS_SUFFIX" \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE="$NATIVE_FUTURE_STATE_BIAS_CONTINUE" \
+  --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256" \
   --setenv=GX1_NATIVE_FUTURE_STATE_THROUGHPUT="$NATIVE_FUTURE_STATE_THROUGHPUT" \
   --setenv=GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256="$NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256" \
   --setenv=GX1_NATIVE_FUTURE_STATE_TRAINING="$NATIVE_FUTURE_STATE_TRAINING" \

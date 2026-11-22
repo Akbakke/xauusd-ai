@@ -1056,6 +1056,125 @@ def native_future_state_guard_source_bridge(previous_source_owners, *, producer_
             "other_parent_owners_to_be_checked_by_caller": 56, "owners": report}
 
 
+_NATIVE_FUTURE_STATE_BIAS_CONTINUE_GUARD_SHELL_ADDITIONS = (('# BEGIN GX1 FUTURE LEAF ROUTES 20261121 STATE\n', 'before', '# BEGIN GX1 BIAS CONTINUE ROUTE 20261122 004 STATE\nNATIVE_FUTURE_STATE_BIAS_CONTINUE_MODULE=gx1.audit.continue_native_future_state_bias_suffix_v1\nNATIVE_FUTURE_STATE_BIAS_CONTINUE=false\nNATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256=\n# END GX1 BIAS CONTINUE ROUTE 20261122 004 STATE\n'), ('validate_target_command() {\n', 'before', '# BEGIN GX1 BIAS CONTINUE ROUTE 20261122 004 MATCHERS\nmatches_bound_native_future_state_bias_suffix_continuation() {\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_BIAS_SUFFIX_CONTINUE_20261122_004.json"\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1\n  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == "$NATIVE_FUTURE_STATE_BIAS_CONTINUE_MODULE" \\\n    && "$4" == --plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1\n  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\n\nconfigure_native_future_state_bias_suffix_continuation() {\n  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \\\n    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo "FATAL: bias suffix continuation requires exact canonical trainer containment" >&2\n    exit 75\n  }\n  matches_bound_native_future_state_bias_suffix_continuation "$@" || {\n    echo "FATAL: bias suffix continuation CLI/plan is not exactly bound" >&2\n    exit 75\n  }\n  local suffix_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_SUFFIX_CONTINUE_20261122_004\n  [[ ! -e "$suffix_output" && ! -L "$suffix_output" \\\n    && -d "${suffix_output%/*}" && ! -L "${suffix_output%/*}" \\\n    && "$(readlink -f "${suffix_output%/*}")" == "${suffix_output%/*}" ]] || {\n    echo "FATAL: bias suffix continuation output is not fresh canonical scope" >&2\n    exit 75\n  }\n  NATIVE_FUTURE_STATE_BIAS_CONTINUE=true\n  NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$suffix_output"\n  TRAINER_MAX_WALL_SECONDS=3600\n  TRAINER_MODEL_MAX_WALL_SECONDS=3570\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n}\n# END GX1 BIAS CONTINUE ROUTE 20261122 004 MATCHERS\n\n'), ('validate_target_command() {\n', 'after', '# BEGIN GX1 BIAS CONTINUE ROUTE 20261122 004 DISPATCH\n  local frozen_bias_arg frozen_bias_reference=false\n  for frozen_bias_arg in "$@"; do\n    case "$frozen_bias_arg" in\n      "$NATIVE_FUTURE_STATE_BIAS_CONTINUE_MODULE"|*/gx1/audit/continue_native_future_state_bias_suffix_v1.py|gx1/audit/continue_native_future_state_bias_suffix_v1.py)\n        frozen_bias_reference=true ;;\n    esac\n  done\n  if [[ "$frozen_bias_reference" == true ]]; then\n    configure_native_future_state_bias_suffix_continuation "$@"\n    return\n  fi\n# END GX1 BIAS CONTINUE ROUTE 20261122 004 DISPATCH\n'), ('# BEGIN GX1 FUTURE LEAF ROUTES 20261121 NESTED\n', 'before', '# BEGIN GX1 BIAS CONTINUE ROUTE 20261122 004 NESTED\n  [[ "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE:-false}" == "$NATIVE_FUTURE_STATE_BIAS_CONTINUE" ]] || {\n    echo "FATAL: nested bias suffix continuation mode differs from protected parent" >&2\n    exit 75\n  }\n  if [[ "$NATIVE_FUTURE_STATE_BIAS_CONTINUE" == true ]]; then\n    [[ "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256:-}" == "$NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-false}" == false \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-false}" == false \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" \\\n      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-false}" == false \\\n      && "${GX1_TRAINER_EXECUTION_MODE:-}" == canonical \\\n      && "${GX1_TRAINER_MAX_WALL_SECONDS:-}" == 3600 \\\n      && "${GX1_TRAINER_MODEL_MAX_WALL_SECONDS:-}" == 3570 \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W:-}" == 250 \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_DRAW_W:-}" == 250 \\\n      && "${GX1_TRAINER_GPU_MAX_CORE_TEMP_C:-}" == 75 \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C:-}" == 80 \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB:-}" == 12288 \\\n      && "${GX1_TRAINER_CPU_MAX_TEMP_C:-}" == 80 \\\n      && "${GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W:-}" == 125 \\\n      && "${GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES:-}" == 8589934592 \\\n      && "${GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES:-}" == 8589934592 ]] || {\n      echo "FATAL: nested bias suffix continuation plan/deadline/hardware differs from protected parent" >&2\n      exit 75\n    }\n  fi\n# END GX1 BIAS CONTINUE ROUTE 20261122 004 NESTED\n'), ('  --setenv=GX1_NATIVE_FUTURE_STATE_THROUGHPUT="$NATIVE_FUTURE_STATE_THROUGHPUT" \\\n', 'before', '  --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE="$NATIVE_FUTURE_STATE_BIAS_CONTINUE" \\\n  --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256" \\\n'))
+
+
+def require_native_future_state_bias_suffix_continuation_execution(*, plan_sha256: str) -> dict[str, Any]:
+    """Cold-qualified checkpoint continuation containment; technical update authority belongs only to the leaf."""
+    if type(plan_sha256) is not str or re.fullmatch(r"[0-9a-f]{64}", plan_sha256) is None:
+        raise RuntimeError("[GX1_NATIVE_SUFFIX_CONTINUE_PLAN_SHA256_INVALID]")
+    expected = {
+        "GX1_CAPPED_MEMORY_BYTES": "21474836480",
+        "GX1_CAPPED_SWAP_BYTES": "536870912",
+        "GX1_CAPPED_TASKS_MAX": "128",
+        "OMP_NUM_THREADS": "8",
+        "MKL_NUM_THREADS": "8",
+        "OPENBLAS_NUM_THREADS": "8",
+        "NUMEXPR_NUM_THREADS": "8",
+        "VECLIB_MAXIMUM_THREADS": "8",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE": "true",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256": plan_sha256,
+        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT": "false",
+        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING": "false",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING_LANE": "",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION": "false",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS": "false",
+        "GX1_TRAINER_MAX_WALL_SECONDS": "3600",
+        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": "3570",
+        "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": "false",
+        "GX1_TRAINER_GPU_INDEX": "0",
+        "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": "250",
+        "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": "250",
+        "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "75",
+        "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "80",
+        "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": "12288",
+        "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
+        "GX1_TRAINER_CPU_MAX_TEMP_C": "80",
+        "GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W": "125",
+        "GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES": "8589934592",
+        "GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES": "8589934592",
+        "GX1_POWER_BENCHMARK_SCOPE_JSON": "",
+        "GX1_POWER_BENCHMARK_SCOPE_SHA256": "",
+    }
+    for name, value in expected.items():
+        if os.environ.get(name) != value:
+            raise RuntimeError(f"[GX1_NATIVE_SUFFIX_CONTINUE_ENV_INVALID] field={name}")
+    proof = require_guarded_cuda_trainer_execution()
+    basename = "NATIVE_FUTURE_STATE_BIAS_SUFFIX_CONTINUE_20261122_004"
+    plan_path = Path(__file__).resolve().parents[2] / "configs/research" / (basename + ".json")
+    output_root = Path("/home/andre2/GX1_RUNS") / basename
+    return {**proof, "class": "trainer", "execution_mode": "canonical", "kind": "bias_suffix_continuation",
+            "training_authority_granted": False, "optimizer_authority_granted": False,
+            "plan": {"path": str(plan_path), "sha256": plan_sha256},
+            "plan_path": str(plan_path), "output_root": str(output_root),
+            "outer_seconds": 3600, "internal_seconds": 3570, "kill_after_seconds": 10,
+            "cpu_affinity": list(range(19)), "numerical_threads": 8}
+
+
+
+def native_future_state_bias_suffix_continuation_source_bridge(previous_source_owners, *, producer_commit="8ead4ba4e9c8fb4fcd35e6cd40818d6920fe16ed"):
+    """Authenticate consumed003 sources, allowing only the named004 guard additions."""
+    import ast
+    import hashlib
+    import subprocess
+    def require(ok, reason):
+        if not ok:
+            raise RuntimeError("[GX1_NATIVE_SUFFIX_CONTINUE_SOURCE_BRIDGE_" + reason + "]")
+    require(producer_commit == "8ead4ba4e9c8fb4fcd35e6cd40818d6920fe16ed", "PRODUCER_COMMIT")
+    require(type(previous_source_owners) is dict and len(previous_source_owners) == 74, "OWNER_COUNT")
+    for name, digest in previous_source_owners.items():
+        require(type(name) is str, "OWNER_SCHEMA")
+        path = Path(name)
+        require(type(name) is str and not path.is_absolute() and ".." not in path.parts and str(path) == name
+            and path.suffix in (".py", ".sh", ".ps1") and type(digest) is str
+            and re.fullmatch("[0-9a-f]{64}", digest) is not None, "OWNER_SCHEMA")
+    repo = Path(__file__).resolve().parents[2]
+    guards = {"gx1/contracts/gx1_capped_execution_v1.py": "baae091dab72f0dc13f5be08e27cb8e0987b4de3da2c8bf8bf6a702334ebdaaa",
+              "scripts/gx1_capped_run.sh": "beee246f2c4b6e716531bdea6fccf1d35c5c82bc30edb77e742706c0ad044495"}
+    functions = {"require_native_future_state_bias_suffix_continuation_execution", "native_future_state_bias_suffix_continuation_source_bridge"}
+    constant = "_NATIVE_FUTURE_STATE_BIAS_CONTINUE_GUARD_SHELL_ADDITIONS"
+    report = {}
+    for name, digest in guards.items():
+        original = subprocess.check_output(["git", "show", producer_commit + ":" + name], cwd=repo)
+        require(previous_source_owners.get(name) == hashlib.sha256(original).hexdigest() == digest, "AUTHENTIC_003_GUARD_HASH")
+        current = (repo / name).read_bytes()
+        if name.endswith(".py"):
+            old_tree = ast.parse(original); new_tree = ast.parse(current)
+            names = [n.name for n in new_tree.body if isinstance(n, ast.FunctionDef)]
+            require(len(names) == len(set(names)), "DUPLICATE_FUNCTION")
+            require(functions <= set(names), "EXACT_004_FUNCTIONS")
+            nodes = [n for n in new_tree.body if isinstance(n, ast.Assign) and len(n.targets) == 1
+                     and isinstance(n.targets[0], ast.Name) and n.targets[0].id == constant]
+            require(len(nodes) == 1 and ast.literal_eval(nodes[0].value) == _NATIVE_FUTURE_STATE_BIAS_CONTINUE_GUARD_SHELL_ADDITIONS,
+                    "EXACT_004_ROUTE_CONSTANT")
+            new_tree.body = [n for n in new_tree.body if not (
+                isinstance(n, ast.FunctionDef) and n.name in functions or n is nodes[0])]
+            normalized = ast.dump(new_tree, include_attributes=False)
+            require(normalized == ast.dump(old_tree, include_attributes=False), "ALL_003_PYTHON_AST_UNCHANGED")
+            proof = "all003moduleAST_equal_after_only_two_named004_functions_and_one_literal_route_tuple"
+        else:
+            text = current.decode()
+            require(len(_NATIVE_FUTURE_STATE_BIAS_CONTINUE_GUARD_SHELL_ADDITIONS) == 5, "EXACT_004_FRAGMENT_COUNT")
+            for anchor, position, fragment in reversed(_NATIVE_FUTURE_STATE_BIAS_CONTINUE_GUARD_SHELL_ADDITIONS):
+                composite = fragment + anchor if position == "before" else anchor + fragment
+                require(text.count(fragment) == text.count(composite) == 1, "EXACT_004_SHELL_INSERTION")
+                text = text.replace(composite, anchor, 1)
+            require(text.encode() == original, "ALL_003_SHELL_BYTES_UNCHANGED")
+            normalized = text
+            proof = "all003shellbytes_equal_after_only_five_exact_named004_insertions"
+        report[name] = {"original_sha256": digest, "current_sha256": hashlib.sha256(current).hexdigest(),
+                        "normalized_sha256": hashlib.sha256(normalized.encode()).hexdigest(), "proof": proof}
+    return {"producer_commit": producer_commit, "checked_guard_owners": 2,
+            "other_parent_owners_to_be_checked_by_caller": 72, "owners": report}
+
+
+
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")
     operation = parser.add_mutually_exclusive_group(required=True)
