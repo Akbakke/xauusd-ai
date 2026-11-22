@@ -98598,10 +98598,16 @@
           "path": "/tmp/gx1_suffix003_guard_loader_tests002.log",
           "sha256": "2d92b8acd3ea8a29245ed3adc3ac73b91d7f0fd3785664dbadd0f6fb482c76b2"
         },
-        "module_and_frozen_bridge": 80,
+        "module_and_frozen_bridge": 81,
         "module_log": {
           "path": "/tmp/gx1_suffix003_module_tests001.log",
           "sha256": "3d0f2a5cc6289f8b2565568a91c8764ddae3fded9bdde33cc3b1916f2caea76c"
+        },
+        "affected_signed_zero": {
+          "path": "/tmp/gx1_suffix003_signed_zero_tests001.log",
+          "sha256": "aef7b8471d2e1c54b0eba5f1c411857714e4fdf42df86998d0e5fb333eed2bae",
+          "affected_rerun": 6,
+          "new_unique": 1
         }
       },
       "default_runtime_guard": "Unchanged exact runtime comparison when driver_requalification=None. Only hashbound admitted003guard/plan/flags and originalCP3328/proof unlock provisional driver probe.",

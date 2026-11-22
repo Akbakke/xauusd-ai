@@ -158,7 +158,7 @@ def reference_logits_parity(outputs,issue_ns,reference,counts):
    key=f'cursor{END_CURSOR}__{name}';expected=z[key];header=reference['frozen_capture_array_headers'][key]
    need(expected.dtype.str==header['dtype']and list(expected.shape)==header['shape']and train.array_sha(expected)==header['sha256'],'REFERENCE_CAPTURE_ORIGINAL_HEADER')
    same=actual.shape==expected.shape and actual.dtype==expected.dtype
-   exact=same and np.array_equal(actual,expected)
+   exact=same and np.array_equal(actual,expected)and train.array_sha(actual)==header['sha256']
    report[name]={'bitexact':bool(exact),'actual_sha256':train.array_sha(actual),'original_sha256':header['sha256'],
     'same_shape_and_dtype':same,'mismatched_elements':int(np.count_nonzero(actual!=expected))if same else None,
     'max_absolute_error':float(np.max(np.abs(actual.astype(np.float64)-expected.astype(np.float64))))if same else None}

@@ -370,3 +370,14 @@ def test_any_control_head_change_fails_without_tolerance_expansion(monkeypatch,t
 def test_original_capture_issue_axis_mismatch_stops_qualification(monkeypatch,tmp_path):
  issue,outputs,reference,counts=reference_capture_fixture(monkeypatch,tmp_path)
  with pytest.raises(ValueError,match='ISSUE_AXIS'):owner.reference_logits_parity(outputs,issue+1,reference,counts)
+
+
+
+def test_signed_zero_logit_change_is_not_bitidentical(monkeypatch,tmp_path):
+ issue,outputs,reference,counts=reference_capture_fixture(monkeypatch,tmp_path)
+ outputs['side_logits'][0,0]=np.float32(-0.)
+ with np.load(reference['frozen_capture']['path'],allow_pickle=False)as z:
+  assert np.array_equal(outputs['side_logits'],z['cursor3694__side_logits'])
+ report=owner.reference_logits_parity(outputs,issue,reference,counts);head=report['heads']['side_logits']
+ assert head['actual_sha256']!=head['original_sha256']
+ assert report['bitexact']is False and head['bitexact']is False and report['tolerance']==0.

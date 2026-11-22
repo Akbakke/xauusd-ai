@@ -42,7 +42,9 @@ WindowsBootId4/22.11kl14:45:57.5UTC og WSL5e297a5c-dffd-4219-9c59-a944fe992542.
 Actualruntime lagret i SUFFIX002_RUNTIME_COMPARISON001.json; gammelruntime
 substitueres aldri. 002ble bare kilde-/testforberedt og er ikke innrømmet.
 
-003kilde er nå kvalifisert:106unikeguard/loader- og80modul/brotilfeller PASS.
+003kilde er nå kvalifisert:106unikeguard/loader- og81modul/brotilfeller PASS.
+En signed-zero-negativcase fant at np.array_equal alene ikke er bitlikhet;
+paritet krever også identisk array-SHA. Kun7berørte tilfeller ble kjørt igjen.
 29negative harnesscases ventet først feil exceptiontype; kun forventningen ble
 rettet og bare de29omkjørt. Produksjonsaksepten ble ikke lempet. Plan003 krever
 provisorisk driverkvalifikasjon: hver av366chrono-steps må straks væreidentisk
