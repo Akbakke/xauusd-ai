@@ -14,15 +14,16 @@ nå. Ingen konsumert plan relanseres; ingen automatisk nyhovedepoke/TEST/handel.
 Siste suffixstudie er konsumert/ufullført: controllerexit75, ingen originalTERMINAL,
 RESULT eller REORDERED_FINAL.pt. Ikke fabriker terminal eller kandidatutfall.
 Kontrollarmen rakk366oppdateringer og gjenskapte originalFINAL bitlikt for modell,
-AdamW,RNG,scheduler,position,training,parameternavn og alle3694stegrapporter.
+AdamW, RNG, scheduler, position, training og parameternavn. Hele steglisten
+(3328 gjenbrukte prefikssteg + 366 nye kontrollsteg) samsvarte med originalen.
 REFERENCE_PROOF.json er bevart. Antall ferdige kandidatupdates er UNKNOWN;
 732var autorisertmaks, ikke et bekreftetutførtantall. Ingen kausalrekkefølgekonklusjon ennå.
 Runrot `/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_001`.
 
 Dokumentert vertsavbrudd: arkivertWindowsSystem.evtx/User32ID1074,record151582,
 22.11kl09:30:04.3567486UTC/10:30:04Oslo: MoUsoCoreWorker.exe/SYSTEM initierte
-planlagtOSoppdateringsomstart, kode0x80020010. Telemetrifalt09:30:07UTC,
-vaktenstoppet2,64s senere. EventLogstopp09:36:08; nyplanlagtoppgraderingsomstart
+planlagt OS-oppdateringsomstart, kode0x80020010. Vakten registrerte tapt
+telemetri og sendte stopp kl.09:30:07UTC, 2,64 sekunder etter Windows-hendelsen. EventLogstopp09:36:08; nyplanlagtoppgraderingsomstart
 09:54:21; Windows11version25H2fullført09:56:48. NyWindowsBootId2 ogWSLboot
 9aeae3ed-1a80-4ac8-b064-250b31c30e21; gamleboot670/runtime er ikke aktuelladmisjon.
 Ved innhentingvarCBSRebootPending=true/WURebootRequired=false.
