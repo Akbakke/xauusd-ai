@@ -4,41 +4,55 @@ Arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 Les `GX1_RULES.md` helt. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus.
 Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git.
 
-## Aktivt årsaksmål 22.11.2026
+## Aktivt årsaksmål og modellstopp 22.11.2026
 
-Brukeren bestiller nytt mål for å finne årsaken til OPP-skjevheten.
-Målchat01a20035-2836-7f62-bb88-9e24603a51a5; eiernative_future_state_bias_cause_20261122_001.
-Frossen16checkpointdiagnose er nå COMPLETE/exit0/konsumert,828,399s,
-20727sammeTRAINrader/E256,1296modell-backboneforwards/1620readoutforwards,
-16checkpointloads,4readoutloads,0optimizer/autograd/statfits. Alle4diagonaloutputs
-(activity/side vedCP256/FINAL) erbitlike. Kilde66870a838 ogfrosnepolicybytes varuendret.
-Runrot: `/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_FROZEN_20261122_001`.
-Vurdering: `/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_BIAS_CAUSE_20261122_001/FROZEN_REVIEW001.json`.
+Målchat01a20035-2836-7f62-bb88-9e24603a51a5. Målet er IKKE fullført.
+Brukeren understreker at PC-en ikke må overbelastes. Alle fem treningsporter
+og alle nye modell-/belastningsjobber er stengt. Bare logger/artefaktsikring tillates
+nå. Ingen konsumert plan relanseres; ingen automatisk nyhovedepoke/TEST/handel.
 
-PåsammefasitD154,32% gårmiddelP(OPP)fra67,73%@CP512til38,75%@CP1792,
-55,37%@CP3328og64,10%FINAL. Kalibreringen oscillerer; ingen ensidigkollaps.
-HøyereTF-readoutbytter trekkerlogitOPP medhiddenfast, menshiddenbytteralene
-trekkerNED. Dettebeviser funksjonellebidrag påkohorten, ikkeSGDrekkefølgensårsaksrolle.
-FraCP3328tilFINAL forverresBrierogmiddelOPP påALLE5TF. D1Brier0,247591→0,258023;
-H4:0,247407→0,251117; M5:0,249725→0,250322. FinaleBCE-/Brier-biasderiverte er
-positive påalleTF; lokalinterceptkalibrering kanbedrepropermetrics, ikkerangering/edge.
+Siste suffixstudie er konsumert/ufullført: controllerexit75, ingen originalTERMINAL,
+RESULT eller REORDERED_FINAL.pt. Ikke fabriker terminal eller kandidatutfall.
+Kontrollarmen rakk366oppdateringer og gjenskapte originalFINAL bitlikt for modell,
+AdamW,RNG,scheduler,position,training,parameternavn og alle3694stegrapporter.
+REFERENCE_PROOF.json er bevart. Antall ferdige kandidatupdates er UNKNOWN;
+732var autorisertmaks, ikke et bekreftetutførtantall. Ingen kausalrekkefølgekonklusjon ennå.
+Runrot `/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_001`.
 
-Nesteer énny avgrenset årsaksstudie fraCP3328:366oppdateringer ikronologiskkontroll
-må først gjenskapeoriginalFINALsmodell/AdamW/RNGog366stegrapporter bitlikt.
-Énannenarm endrerbarerekkefølgenpåsamme365fullbatcher medforhåndsbundetseed;
-kortsistebatchblirsist.732genuineoptimizerupdates totalt, ingen nyfullepoke.
-Suffixkilden er nå kvalifisert:55diagnosecaser,47vaktcaser, én nyfrozen-builder-
-inventarregresjon og faktisk68eiermetadata/0payload/0modell/0CLAIM består.
-Én autentisertCPpayload deepcopies vedhverrestore så CPUAdamstep ikke muterer
-originalen. Delteinput/15kohortarrays valideres som eksaktsubset avMAIN.
-NyKANDIDATCP har studieskjema/eksplisittbatchrekkefølge og full diskreadback.
-Den krever egen eksaktteknisktreningsadmisjon; allefemporter erfortsattfalse
-mensplan/runtime/preflight klargjøres. Ingen TEST/CONTROL/VAL/handel/Exit åpnes.
-Originalecheckpoints, input/norm/prior ogalle genuinefamilier/TF beholdes.
-59fokuserte kilde/vaktcaser, faktiskmetadata ogobligatoriskeprecommitkontrakter bestod.
-Minste nyekilde er en avgrensetstudie-/vaktrute; numeriskmodell/target/lossrecipe erurørt.
-Førstefrossenoppstart bleavvist førCLAIM påufullførtpolicyadmisjon; ingenmodell/payloadåpnet,
-korrektgjenværendeadmisjon blebrukten gang. Alleoriginalkvitteringerbeholdes.
+Dokumentert vertsavbrudd: arkivertWindowsSystem.evtx/User32ID1074,record151582,
+22.11kl09:30:04.3567486UTC/10:30:04Oslo: MoUsoCoreWorker.exe/SYSTEM initierte
+planlagtOSoppdateringsomstart, kode0x80020010. Telemetrifalt09:30:07UTC,
+vaktenstoppet2,64s senere. EventLogstopp09:36:08; nyplanlagtoppgraderingsomstart
+09:54:21; Windows11version25H2fullført09:56:48. NyWindowsBootId2 ogWSLboot
+9aeae3ed-1a80-4ac8-b064-250b31c30e21; gamleboot670/runtime er ikke aktuelladmisjon.
+Ved innhentingvarCBSRebootPending=true/WURebootRequired=false.
+Ingen vaktregistrertGPUgrenseoverskridelse: topper64°Ckjerne/70°Cminne/213,85W/
+9796MiB. Overbelastning er IKKE påvist som hendelsesårsak. CPUtemperatur/package-
+watt/Windowsminnetrykk underkjøringen er fortsatt ukjent; intet frikjenningsbevis.
+Guardminneporten målerWSL/proc, ikke fysiskWindowsminne. Windowsrapporterernå
+ca64GiBfysiskmotWSLca31GiBvirtuelt. Runtime mangler vedlikeholds-/omstartsport.
+Ingen ny lavereB96effektprofil er kvalifisert bare fordi gamle160W/B8kilder finnes.
+
+Gjeldende kilde63a1ff0ac er publisert; ingen numeriskmodell/target/lossrecipeendring.
+Metadataplanen d2c2f9e5...32f8cf5 er konsumert, aldri relanserbar.
+Bevisrot `/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_BIAS_CAUSE_20261122_001`:
+HOST_STOP_REVIEW001.json, HOST_CRASH_WINDOWS_LOGS002.json,
+HOST_CRASH_ARCHIVED_WINDOWS001.json ogHOST_CRASH_TRAINING_CLOSED001.json.
+Den eksterne stoppreviewen er ikke originalkjøringens terminal.
+
+Frossen16CPdiagnose er komplett/828,399s,20727sammeTRAINrader,1296modell/
+backboneforwards+324ekstrareadoutforwards,16CPloads,0updates/fits. Diagonaler er
+bitlike. D1middelP(OPP)svinger67,73%@CP512→38,75%@CP1792→55,37%@CP3328→
+64,10%FINAL påfasit54,32%. Readoutbytter trekkerhøyereTFlogitOPP medhiddenfast;
+hiddenbytteralene trekkerNED. Funksjonellebidrag bevist, SGDrekkefølgeårsak uavklart.
+Resultatrot `/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_FROZEN_20261122_001`.
+SeparatMacbackupCURRENT_FUTURE_STATE_BIAS_FROZEN_20261122_001/MANIFEST.json,
+SHAfaa02cbb5ef5fbf4c14cd6f4b609599890413224527ec0f4fd5efda03841bc21.
+Alle16originalMAINcheckpoints og deres tidligereseparatebackup er beholdt.
+
+Neste: fullførWindowsvedlikehold/ventendeomstart og kvalifiser fysiskvertsstatus/
+ressursdekning før ny modelladmisjon. Ingen ny kjøring startes nå. Arbeidet videre
+må bygge på sikrede resultater, ikke en ukvalifisert gjentakelse etter omstart.
 
 ## Undersøkt retningsskjevhet 22.11.2026
 
