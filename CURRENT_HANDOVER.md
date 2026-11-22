@@ -4,6 +4,59 @@ Arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 Les `GX1_RULES.md` helt. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus.
 Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git.
 
+## Undersøkt retningsskjevhet 22.11.2026
+
+Brukeren bestilte undersøkelse av OPP-skjevhet og stabilitetsalternativer.
+Én ny capped CPU-audit er COMPLETE/exit0/konsumert,21,971s,audit4GiB/512MiB/1tråd.
+Bevisrot `/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_DIRECTION_BIAS_20261122_001`:
+`RESULT001.json`, `INTERPRETATION001.json` og `PEER_REVIEW001.json` er gjeldende.
+12nativeTRAINtruthfelt og16originale checkpoints er lest; allearray-/filhasher og
+komplette opprinnelige checkpointproofs stemmer.0modeller/forwards/optimizerupdates/fits.
+Kanoniske masker/targeteier er gjenbrukt; ingen modell-/mål-/taps-/recipekode er endret.
+Alle62kildehashene stemmer også i etterkontrollen. Første metadata-preflight fant
+én feilimport i audithjelperen; denne ble rettet før CLAIM/payloadlesing. Originallogg beholdes.
+Alle fem treningsporter er fortsatt false; ingen ny epoke er innrømmet.
+
+OPPargmax må tolkes riktig: den konstante wholeTRAINprioren gir allerede100%OPP
+på alle5TF. MangeOPPvalg alene beviser derfor ingen ny kollaps. Det robuste
+negative resultatet er dårligere sideBrier/logloss enn prior på alleTF.
+H4/D1s laveste finale P(OPP|aktiv) er56,49/56,03%, over faktisk55,22/54,34%.
+
+| TF | Hele TRAIN OPP gitt kjent side | Siste256batcher OPP |
+|---|---:|---:|
+| M5 |51,12%|53,68%|
+| M15 |51,85%|56,33%|
+| H1 |53,63%|59,91%|
+| H4 |55,22%|67,21%|
+| D1 |54,34%|76,92%|
+
+Slutten av det kronologiske passet har beviselig annen labelfordeling.
+Dette styrker rekkefølge-/sluttpåvirkning som hypotese; det beviser ikke årsaken
+til sluttprognosen. D1s siste256batcher har bare13unike kjente målbarer (10OPP/3NED).
+D1harfasit i626av3694batcher; alle626erensidige.3068manglerD1sidefasit,
+lengste opphold82batcher. Gjentatte mål gir ikke tilsvarende uavhengig støtte.
+WholeTRAINOPPandel perunikmålbar er nesten lik prognosecelleandelen; repetisjon
+forklarer derfor ikke alene den samlede basefrekvensen.
+
+Direkte sidegradient er null når side er ukjent. AdamWfortsetter likevel med
+nullgradienttensor/momentum ogglobalstep; D1headAdamstep3694mot626støttede
+batcher er verifisert i checkpoint. SistekjenteD1batch varNED og siste9utenstøtte;
+finalt momentum trekker biasNED. Dette er ingen bevist årsak tilOPPskjevhet.
+BiasparameterdeltaH4/D1bare0,00587/0,00721logit forklarer ikke heleprognosen;
+vekt·hidden er også positiv på allekjentesiderader. Representasjonsnytte/årsaken
+krever tidsdelte frosne prognosemålinger. Ingen aktiv UP/DOWNsign-/maskefeil er påvist.
+M5_primary-backbone styres avM5aktivitet+side; øvrigehoder følger bevegelighidden.
+Globalnormklipping varaktiv2199/3694steg ogkobler allehoder i skaleringsfaktoren;
+fullMAINgradientfordeling perhode er ikke lagret. Ingen gjettede tapsvekter innføres.
+
+Anbefalt videre: kvalifiser én avgrenset lesende kalibrerings-/tidsblokkscoring av
+lagredecheckpoints først. Førsteisolertefitkandidat er fastomrekkefølge avhele
+TRAINbatcher, medallekausalevinduer/rader/masker/klassefrekvenser/tap/recipebevart.
+Lavere/avtakendeLR er et eget alternativ ved måltoverskyting; støttefriheadfreeze
+trenger egen perheadAdamstep-/checkpoint-/kaldreplaykvalifisering og gjelder særligH4/D1.
+Kalibrering kanbedre sannsynligheter, ikke skape rangering/edge. Ingen klassekvoter,
+FLATommerking, TFfjerning, automatiskflereepoker eller nyTESTadgang.
+
 ## Gjort og vurdert 22.11.2026
 
 Brukerens bestilling er gjennomført: nøyaktig én epoke, timevis oppfølging,
@@ -77,9 +130,8 @@ Atomisk no-replace, kildeSHA/størrelse/statbookends, fsync/F_FULLFSYNC og fakti
 MacdiskSHAreadback består;0modelldeserialisering. Tidligere49+60+21+29pakker
 beholder avhengighetene. Dette er den kvalifiserte kjeden, ikke hele DATA/RUNSrestore.
 
-Ingen ny epoke er innrømmet. Anbefalt neste bevis er å diagnostisere lagret
-retningsskjevhet/kalibrering og kronologi før en ny fit. Radvise finallogits er ikke
-lagret; detaljert oppdeling eller senere frossen evaluering må få egen eksakt
+Ingen ny epoke er innrømmet. Biasdiagnosen ovenfor er fullført. Radvise finallogits
+er ikke lagret; én avgrenset lesende tidsdelt prognoseskåring krever egen eksakt
 kvalifikasjon/plan uten optimizerupdates. Ingen automatisk taps-/klassevektendring.
 Bruk uendrede beståtte kontroller; ingen jobb bare for å fylle ventetid.
 TEST/CONTROL/VAL-scoring, M1-retning, GC, Entry/Exit, broker, live/paper, handel,
