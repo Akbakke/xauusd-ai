@@ -113,3 +113,13 @@ def test_source_inventory_is_checked_before_hashing(monkeypatch):
  monkeypatch.setattr(owner.train,'require_source_inventory',reject)
  monkeypatch.setattr(owner,'sha',lambda *args:pytest.fail('payload hash before inventory'))
  with pytest.raises(ValueError,match='bad inventory'):owner.source_bridge({'source_owners':{'/payload.npz':'a'*64}})
+
+
+def test_plan_builder_rejects_inventory_before_source_hashes(monkeypatch):
+ bad={'source_owners':{'/payload.npz':'a'*64}}
+ monkeypatch.setattr(owner,'ref',lambda p:{'path':str(p),'sha256':'a'*64})
+ monkeypatch.setattr(owner,'read',lambda r:bad)
+ def reject(*a):raise ValueError('bad inventory')
+ monkeypatch.setattr(owner.train,'require_source_inventory',reject)
+ monkeypatch.setattr(owner,'sha',lambda *a:pytest.fail('source hashed before inventory'))
+ with pytest.raises(ValueError,match='bad inventory'):owner.build_plan(runtime={})

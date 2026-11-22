@@ -8,18 +8,37 @@ Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 
 Brukeren bestiller nytt mål for å finne årsaken til OPP-skjevheten.
 Målchat01a20035-2836-7f62-bb88-9e24603a51a5; eiernative_future_state_bias_cause_20261122_001.
-Frossen16checkpointdiagnose klargjøres på samme20727TRAINkohort, E256,
-med1296modell/backboneforwards og324ekstrareadoutforwards,0optimizer/autograd/fits.
-CP256/FINAL2x2readout/hiddenbytter skal skille funksjonelle bidrag; de alene
-beviser ikke treningsrekkefølgens årsaksrolle. Velg senere én isolert intervensjon
-ut fra målt onset; ingen automatisk hovedepoke eller nyTEST/CONTROL/VAL-scoring.
-Alle fem treningsporter er false. Eksakt plan/runtime/admisjon og faktiskCUDA gjenstår.
-Minste nødvendige kildeutvidelse er én separat readonlyvakt/diagnoseeier fordi
-fortidige entrypoints ikke støtter dette. Ingen numeriskmodell/input/target/lossrecipe er endret.
-17fokuserte diagnosecaser og42vaktcaser samt faktisk bundet norm/input/prior/CP-
-kontraktmetadata består. Begge kildebroer bevarer gamle vakter; peerreview av
-konsument/restore/masker/tellere/feilrapportering er utført og konkrete gap rettet.
-Bevisrot: `/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_BIAS_CAUSE_20261122_001`.
+Frossen16checkpointdiagnose er nå COMPLETE/exit0/konsumert,828,399s,
+20727sammeTRAINrader/E256,1296modell-backboneforwards/1620readoutforwards,
+16checkpointloads,4readoutloads,0optimizer/autograd/statfits. Alle4diagonaloutputs
+(activity/side vedCP256/FINAL) erbitlike. Kilde66870a838 ogfrosnepolicybytes varuendret.
+Runrot: `/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_FROZEN_20261122_001`.
+Vurdering: `/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_BIAS_CAUSE_20261122_001/FROZEN_REVIEW001.json`.
+
+PåsammefasitD154,32% gårmiddelP(OPP)fra67,73%@CP512til38,75%@CP1792,
+55,37%@CP3328og64,10%FINAL. Kalibreringen oscillerer; ingen ensidigkollaps.
+HøyereTF-readoutbytter trekkerlogitOPP medhiddenfast, menshiddenbytteralene
+trekkerNED. Dettebeviser funksjonellebidrag påkohorten, ikkeSGDrekkefølgensårsaksrolle.
+FraCP3328tilFINAL forverresBrierogmiddelOPP påALLE5TF. D1Brier0,247591→0,258023;
+H4:0,247407→0,251117; M5:0,249725→0,250322. FinaleBCE-/Brier-biasderiverte er
+positive påalleTF; lokalinterceptkalibrering kanbedrepropermetrics, ikkerangering/edge.
+
+Nesteer énny avgrenset årsaksstudie fraCP3328:366oppdateringer ikronologiskkontroll
+må først gjenskapeoriginalFINALsmodell/AdamW/RNGog366stegrapporter bitlikt.
+Énannenarm endrerbarerekkefølgenpåsamme365fullbatcher medforhåndsbundetseed;
+kortsistebatchblirsist.732genuineoptimizerupdates totalt, ingen nyfullepoke.
+Suffixkilden er nå kvalifisert:55diagnosecaser,47vaktcaser, én nyfrozen-builder-
+inventarregresjon og faktisk68eiermetadata/0payload/0modell/0CLAIM består.
+Én autentisertCPpayload deepcopies vedhverrestore så CPUAdamstep ikke muterer
+originalen. Delteinput/15kohortarrays valideres som eksaktsubset avMAIN.
+NyKANDIDATCP har studieskjema/eksplisittbatchrekkefølge og full diskreadback.
+Den krever egen eksaktteknisktreningsadmisjon; allefemporter erfortsattfalse
+mensplan/runtime/preflight klargjøres. Ingen TEST/CONTROL/VAL/handel/Exit åpnes.
+Originalecheckpoints, input/norm/prior ogalle genuinefamilier/TF beholdes.
+59fokuserte kilde/vaktcaser, faktiskmetadata ogobligatoriskeprecommitkontrakter bestod.
+Minste nyekilde er en avgrensetstudie-/vaktrute; numeriskmodell/target/lossrecipe erurørt.
+Førstefrossenoppstart bleavvist førCLAIM påufullførtpolicyadmisjon; ingenmodell/payloadåpnet,
+korrektgjenværendeadmisjon blebrukten gang. Alleoriginalkvitteringerbeholdes.
 
 ## Undersøkt retningsskjevhet 22.11.2026
 

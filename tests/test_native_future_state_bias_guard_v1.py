@@ -135,7 +135,7 @@ def test_shell_rejects_cli_and_plan_substitutions(tmp_path, case):
 def test_shell_insertions_are_exactly_reversible_to_current_pre_diagnosis_shell():
     repo = Path(g.__file__).resolve().parents[2]
     text = (repo / 'scripts/gx1_capped_run.sh').read_text()
-    for anchor, position, fragment in reversed(g._NATIVE_FUTURE_STATE_BIAS_GUARD_SHELL_ADDITIONS):
+    for anchor, position, fragment in reversed(g._NATIVE_FUTURE_STATE_BIAS_GUARD_SHELL_ADDITIONS + g._NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS):
         composite = fragment + anchor if position == 'before' else anchor + fragment
         assert text.count(fragment) == text.count(composite) == 1
         text = text.replace(composite, anchor, 1)

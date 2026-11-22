@@ -43,7 +43,7 @@ def validate_function_metadata(main,pair):
  need(expected==m['arm_model_contracts']['m5_primary'],'CHECKPOINT_FUNCTION_CONTRACT')
 
 def build_plan(*,runtime,source_base_commit=None):
- main=read(ref(train.MAIN_PLAN));pair=read(ref(train.PAIR_PLAN));core.future_cuda_require_runtime(runtime);validate_function_metadata(main,pair)
+ main=read(ref(train.MAIN_PLAN));train.require_source_inventory(main['source_owners']);pair=read(ref(train.PAIR_PLAN));core.future_cuda_require_runtime(runtime);validate_function_metadata(main,pair)
  need(main['mode']=='whole_train_one_epoch'and main['backbone_gradient_policy']=='M5_primary'
   and main['metadata']['cohort_report']==pair['metadata']['cohort_report'],'ORIGINAL_COHORT')
  terminal=read(ref(train.MAIN_ROOT/'TERMINAL.json'));result=read(terminal['result'])
