@@ -17,7 +17,13 @@ import pytest
 REPO = Path(__file__).resolve().parents[1]
 QUERY = REPO / "scripts" / "gx1_host_telemetry_bridge_query.sh"
 UUID = "GPU-8c6ac5f1-4254-6cec-9780-44b019cafd29"
-RESPONSE_SCHEMA = "gx1_host_gpu_telemetry_v1"
+RESPONSE_SCHEMA = "gx1_host_resource_telemetry_v2"
+HOST_FIELDS = (
+    "cpu_max_temp_c", "cpu_package_power_w",
+    "host_physical_total_bytes", "host_physical_available_bytes",
+    "host_commit_used_bytes", "host_commit_limit_bytes",
+    "cbs_reboot_pending", "wu_reboot_required", "maintenance_active",
+)
 
 
 @pytest.fixture(scope="module")
@@ -62,6 +68,15 @@ def _sign_response(
     power_limit_w: float = 250.0,
     memory_used_mib: int = 457,
     observed_monotonic_ms: int = 991_234,
+    cpu_max_temp_c: float = 65.5,
+    cpu_package_power_w: float = 35.25,
+    host_physical_total_bytes: int = 64 * 1024**3,
+    host_physical_available_bytes: int = 40 * 1024**3,
+    host_commit_used_bytes: int = 20 * 1024**3,
+    host_commit_limit_bytes: int = 68 * 1024**3,
+    cbs_reboot_pending: bool = False,
+    wu_reboot_required: bool = False,
+    maintenance_active: bool = False,
 ) -> dict[str, object]:
     payload = "\n".join(
         (
@@ -74,6 +89,15 @@ def _sign_response(
             f"{power_limit_w:.6f}",
             str(memory_used_mib),
             str(observed_monotonic_ms),
+            f"{cpu_max_temp_c:.6f}",
+            f"{cpu_package_power_w:.6f}",
+            str(host_physical_total_bytes),
+            str(host_physical_available_bytes),
+            str(host_commit_used_bytes),
+            str(host_commit_limit_bytes),
+            str(cbs_reboot_pending).lower(),
+            str(wu_reboot_required).lower(),
+            str(maintenance_active).lower(),
             "",
         )
     ).encode("utf-8")
@@ -94,6 +118,15 @@ def _sign_response(
         "power_limit_w": power_limit_w,
         "memory_used_mib": memory_used_mib,
         "observed_monotonic_ms": observed_monotonic_ms,
+        "cpu_max_temp_c": cpu_max_temp_c,
+        "cpu_package_power_w": cpu_package_power_w,
+        "host_physical_total_bytes": host_physical_total_bytes,
+        "host_physical_available_bytes": host_physical_available_bytes,
+        "host_commit_used_bytes": host_commit_used_bytes,
+        "host_commit_limit_bytes": host_commit_limit_bytes,
+        "cbs_reboot_pending": cbs_reboot_pending,
+        "wu_reboot_required": wu_reboot_required,
+        "maintenance_active": maintenance_active,
         "signature": base64.b64encode(result.stdout).decode("ascii"),
     }
 
@@ -136,7 +169,7 @@ def _host_bridge(builder: ResponseBuilder) -> Iterator[str]:
         server.server_close()
 
 
-def _query(url: str, certificate: Path, certificate_sha256: str, *, timeout: int = 2) -> subprocess.CompletedProcess[str]:
+def _query(url: str, certificate: Path, certificate_sha256: str, *, timeout: int = 2, host_resources: bool = False, extra_args: tuple[str, ...] = ()) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
             "bash",
@@ -146,6 +179,8 @@ def _query(url: str, certificate: Path, certificate_sha256: str, *, timeout: int
             certificate_sha256,
             UUID,
             str(timeout),
+            *(["--host-resources"] if host_resources else []),
+            *extra_args,
         ],
         cwd=REPO,
         text=True,
@@ -227,3 +262,112 @@ def test_host_telemetry_query_rejects_timeout(
 
     assert result.returncode == 75
     assert "bridge request failed or timed out" in result.stderr
+
+
+def test_extended_resource_view_preserves_all_fourteen_fields(signing_material):
+    private_key, certificate, digest = signing_material
+    def builder(request):
+        return 200, _sign_response(private_key, nonce=request['request_nonce'],
+            cbs_reboot_pending=True, wu_reboot_required=False, maintenance_active=True), 0.0
+    with _host_bridge(builder) as url:
+        result = _query(url, certificate, digest, host_resources=True)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == '57,64,120.5,250,457,65.5,35.25,68719476736,42949672960,21474836480,73014444032,true,false,true\n'
+    assert len(result.stdout.strip().split(',')) == 14
+
+
+def test_safe_integer_boundary_preserves_exact_decimal_bytes(signing_material):
+    private_key, certificate, digest = signing_material
+    exact = 2**53 - 1
+    def builder(request):
+        return 200, _sign_response(private_key, nonce=request['request_nonce'],
+            host_physical_total_bytes=exact, host_physical_available_bytes=exact,
+            host_commit_used_bytes=exact, host_commit_limit_bytes=exact), 0.0
+    with _host_bridge(builder) as url:
+        result = _query(url, certificate, digest, host_resources=True)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip().split(',')[7:11] == [str(exact)] * 4
+
+
+@pytest.mark.parametrize('field', HOST_FIELDS)
+def test_each_host_field_is_mandatory_even_for_five_column_readiness(signing_material, field):
+    private_key, certificate, digest = signing_material
+    def builder(request):
+        response = _sign_response(private_key, nonce=request['request_nonce'])
+        del response[field]
+        return 200, response, 0.0
+    with _host_bridge(builder) as url:
+        result = _query(url, certificate, digest)
+    assert result.returncode == 75 and result.stdout == ''
+    assert 'schema, nonce, UUID, or finite-value validation' in result.stderr
+
+
+@pytest.mark.parametrize('field', HOST_FIELDS)
+def test_each_host_field_is_covered_by_signature(signing_material, field):
+    private_key, certificate, digest = signing_material
+    def builder(request):
+        response = _sign_response(private_key, nonce=request['request_nonce'])
+        response[field] = not response[field] if isinstance(response[field], bool) else response[field] + 1
+        return 200, response, 0.0
+    with _host_bridge(builder) as url:
+        result = _query(url, certificate, digest, host_resources=True)
+    assert result.returncode == 75 and result.stdout == ''
+    assert 'response signature verification failed' in result.stderr
+
+
+@pytest.mark.parametrize(('field', 'bad'), [
+    ('cpu_max_temp_c', 0), ('cpu_max_temp_c', -1), ('cpu_max_temp_c', None),
+    ('cpu_max_temp_c', float('nan')), ('cpu_package_power_w', float('inf')),
+    ('cpu_package_power_w', 0), ('cpu_package_power_w', -1), ('cpu_package_power_w', 'unknown'),
+    ('host_physical_total_bytes', 0), ('host_physical_total_bytes', 2**53),
+    ('host_physical_available_bytes', -1), ('host_physical_available_bytes', 1.5),
+    ('host_physical_available_bytes', 65 * 1024**3),
+    ('host_commit_used_bytes', -1), ('host_commit_used_bytes', True),
+    ('host_commit_used_bytes', 69 * 1024**3),
+    ('host_commit_limit_bytes', 0), ('host_commit_limit_bytes', 2**53),
+    ('cbs_reboot_pending', 0), ('cbs_reboot_pending', 'false'),
+    ('wu_reboot_required', None), ('wu_reboot_required', 1),
+    ('maintenance_active', 'unknown'), ('maintenance_active', 0),
+])
+def test_host_resource_schema_rejects_unknown_types_bounds_and_inconsistent_memory(signing_material, field, bad):
+    private_key, certificate, digest = signing_material
+    def builder(request):
+        response = _sign_response(private_key, nonce=request['request_nonce'])
+        response[field] = bad
+        return 200, response, 0.0
+    with _host_bridge(builder) as url:
+        result = _query(url, certificate, digest, host_resources=True)
+    assert result.returncode == 75 and result.stdout == ''
+    assert 'schema, nonce, UUID, or finite-value validation' in result.stderr
+
+
+def test_gpu_only_v1_response_is_never_a_fallback(signing_material):
+    private_key, certificate, digest = signing_material
+    def builder(request):
+        response = _sign_response(private_key, nonce=request['request_nonce'])
+        response['schema_version'] = 'gx1_host_gpu_telemetry_v1'
+        for field in HOST_FIELDS:
+            del response[field]
+        return 200, response, 0.0
+    with _host_bridge(builder) as url:
+        result = _query(url, certificate, digest)
+    assert result.returncode == 75 and result.stdout == ''
+
+
+@pytest.mark.parametrize('extra', [('unexpected',), ('--host-resources', 'unexpected')])
+def test_only_exact_optional_host_resource_view_is_accepted(signing_material, extra):
+    _, certificate, digest = signing_material
+    result = _query('http://127.0.0.1:38127/gx1/v1/telemetry/', certificate, digest, extra_args=extra)
+    assert result.returncode == 75 and result.stdout == ''
+    assert 'optional --host-resources' in result.stderr
+
+
+@pytest.mark.parametrize('host_resources', [False, True])
+def test_unavailable_host_measurement_never_falls_back_to_gpu_only(signing_material, host_resources):
+    _, certificate, digest = signing_material
+    def builder(request):
+        return 503, {'error': 'telemetry_unavailable'}, 0.0
+    with _host_bridge(builder) as url:
+        result = _query(url, certificate, digest, host_resources=host_resources)
+    assert result.returncode == 75 and result.stdout == ''
+    assert 'bridge request failed or timed out' in result.stderr

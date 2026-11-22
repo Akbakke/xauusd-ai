@@ -111,8 +111,12 @@ def _guard_env(
         "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": str(max_power_draw_w),
         "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": str(max_memory_used_mib),
         "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
+        "GX1_TRAINER_CPU_MAX_TEMP_C": "80",
+        "GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W": "125",
+        "GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES": str(8 * 1024**3),
+        "GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES": str(8 * 1024**3),
         # The fake script accepts arbitrary arguments and returns the exact
-        # five signed-bridge telemetry fields the guard consumes.
+        # fourteen signed-bridge GPU and host fields the guard consumes.
         "GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH": str(nvidia_smi_path),
         "GX1_TRAINER_HOST_TELEMETRY_URL": "http://172.30.224.1:38128/gx1/v1/telemetry/",
         "GX1_TRAINER_HOST_TELEMETRY_CERT_PATH": str(Path(__file__).resolve()),
@@ -518,7 +522,37 @@ def test_attended_preflight_marker_requires_an_attended_tier(
         os.close(reader)
 
 
-def _fake_nvidia_smi(tmp_path: Path, output: str, *, exit_code: int = 0) -> Path:
+_SAFE_HOST_TELEMETRY = "40, 35, 68719476736, 51539607552, 8589934592, 68719476736, false, false, false"
+
+
+def _extend_fake_telemetry(output: str) -> str:
+    # Existing GPU cases keep their treatment and gain a safe host observation.
+    return f"{output}, {_SAFE_HOST_TELEMETRY}" if output.count(",") == 4 else output
+
+
+def _host_telemetry(**overrides: object) -> str:
+    values = {
+        "cpu_temp": 40,
+        "cpu_power": 35,
+        "physical_total": 64 * 1024**3,
+        "physical_available": 48 * 1024**3,
+        "commit_used": 8 * 1024**3,
+        "commit_limit": 64 * 1024**3,
+        "cbs_pending": "false",
+        "wu_pending": "false",
+        "maintenance_active": "false",
+    }
+    assert overrides.keys() <= values.keys()
+    values.update(overrides)
+    return "50, 70, 100, 250, 1000, " + ", ".join(str(value) for value in values.values())
+
+
+def _fake_nvidia_smi(
+    tmp_path: Path, output: str, *, exit_code: int = 0,
+    include_host_resources: bool = True,
+) -> Path:
+    if include_host_resources:
+        output = _extend_fake_telemetry(output)
     path = tmp_path / "nvidia-smi"
     path.write_text(
         "#!/bin/sh\n"
@@ -911,7 +945,10 @@ def _sequenced_nvidia_smi(
     *,
     later_output: str,
     later_exit_code: int = 0,
+    include_host_resources: bool = True,
 ) -> Path:
+    if include_host_resources:
+        later_output = _extend_fake_telemetry(later_output)
     counter = tmp_path / "telemetry-call-count"
     path = tmp_path / "nvidia-smi-sequenced"
     path.write_text(
@@ -922,10 +959,10 @@ def _sequenced_nvidia_smi(
         "count=$((count + 1))\n"
         "printf '%s' \"$count\" >\"$counter\"\n"
         "if [ \"$count\" -eq 1 ]; then\n"
-        # The production guard queries all five values, including residency.
+        # The production guard requires GPU and host fields, including residency.
         # Keep the first sequenced sample a fully valid telemetry record so
         # the second sample actually exercises the running-child stop path.
-        "  printf '%s\\n' '50, 70, 100, 250, 1000'\n"
+        f"  printf '%s\\n' '50, 70, 100, 250, 1000, {_SAFE_HOST_TELEMETRY}'\n"
         "  exit 0\n"
         "fi\n"
         f"printf '%s\\n' '{later_output}'\n"
@@ -1025,6 +1062,183 @@ def test_trainer_guard_kills_running_group_on_thermal_breach(
     assert "GPU safety threshold breached" in result.stderr
     assert (tmp_path / "telemetry-call-count").read_text() == "2"
 
+
+
+@pytest.mark.parametrize(
+    ("override", "reason"),
+    [
+        ({"cpu_temp": 81}, "cpu_temperature"),
+        ({"cpu_power": 126}, "cpu_package_power"),
+        ({"physical_available": 8 * 1024**3 - 1}, "host_physical_memory"),
+        ({"commit_used": 56 * 1024**3 + 1}, "host_commit_headroom"),
+        ({"cbs_pending": "true"}, "host_cbs_reboot_pending"),
+        ({"wu_pending": "true"}, "host_wu_reboot_required"),
+        ({"maintenance_active": "true"}, "host_maintenance_active"),
+    ],
+)
+def test_trainer_guard_rejects_host_breach_before_child(
+    tmp_path: Path, override: dict[str, object], reason: str,
+) -> None:
+    query = _fake_nvidia_smi(tmp_path, _host_telemetry(**override))
+    marker = tmp_path / "child-started"
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/usr/bin/touch", str(marker)],
+        cwd=REPO, env=_guard_env(device="cuda", nvidia_smi_path=query),
+        text=True, capture_output=True, timeout=15, check=False,
+    )
+    assert result.returncode == 75
+    assert f"host resource safety threshold breached: {reason} during preflight" in result.stderr
+    assert not marker.exists()
+
+
+def test_trainer_guard_reserves_physical_ram_for_scope_before_child(tmp_path: Path) -> None:
+    query = _fake_nvidia_smi(tmp_path, _host_telemetry())
+    env = _guard_env(device="cuda", nvidia_smi_path=query)
+    available = int(env["GX1_CAPPED_MEMORY_BYTES"]) + 8 * 1024**3 - 1
+    _fake_nvidia_smi(tmp_path, _host_telemetry(physical_available=available))
+    marker = tmp_path / "child-started"
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/usr/bin/touch", str(marker)],
+        cwd=REPO, env=env, text=True, capture_output=True, timeout=15, check=False,
+    )
+    assert result.returncode == 75
+    assert "host_preflight_memory_capacity" in result.stderr
+    assert not marker.exists()
+
+
+def test_trainer_guard_accepts_host_threshold_boundaries_and_requires_extended_view(tmp_path: Path) -> None:
+    query = _fake_nvidia_smi(tmp_path, _host_telemetry())
+    env = _guard_env(device="cuda", nvidia_smi_path=query)
+    sample = _host_telemetry(
+        cpu_temp=80, cpu_power=125,
+        physical_available=int(env["GX1_CAPPED_MEMORY_BYTES"]) + 8 * 1024**3,
+        commit_used=56 * 1024**3,
+    )
+    query.write_text(
+        "#!/bin/sh\n[ \"$#\" -eq 6 ] && [ \"$6\" = '--host-resources' ] || exit 91\n"
+        f"printf '%s\\n' '{sample}'\n",
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/true"], cwd=REPO, env=env,
+        text=True, capture_output=True, timeout=15, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize(
+    "telemetry",
+    [
+        "50, 70, 100, 250, 1000",
+        _host_telemetry(cpu_temp=""),
+        _host_telemetry(cpu_power=0),
+        _host_telemetry(cpu_temp="NaN"),
+        _host_telemetry(physical_available="1.5"),
+        _host_telemetry(physical_available="08"),
+        _host_telemetry(physical_total=2**53),
+        _host_telemetry(physical_available=65 * 1024**3),
+        _host_telemetry(commit_used=65 * 1024**3),
+        _host_telemetry(cbs_pending="null"),
+        _host_telemetry(wu_pending="False"),
+        _host_telemetry(maintenance_active="0"),
+        _host_telemetry() + ",",
+        _host_telemetry() + "\nextra-row",
+    ],
+)
+def test_trainer_guard_rejects_incomplete_or_malformed_host_observation(
+    tmp_path: Path, telemetry: str,
+) -> None:
+    query = _fake_nvidia_smi(tmp_path, telemetry, include_host_resources=False)
+    marker = tmp_path / "child-started"
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/usr/bin/touch", str(marker)], cwd=REPO,
+        env=_guard_env(device="cuda", nvidia_smi_path=query),
+        text=True, capture_output=True, timeout=15, check=False,
+    )
+    assert result.returncode == 75
+    assert "CUDA telemetry unavailable during preflight" in result.stderr
+    assert not marker.exists()
+
+
+@pytest.mark.parametrize(
+    "missing",
+    [
+        "GX1_TRAINER_CPU_MAX_TEMP_C",
+        "GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W",
+        "GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES",
+        "GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES",
+    ],
+)
+def test_trainer_guard_requires_protected_host_limits(tmp_path: Path, missing: str) -> None:
+    query = _fake_nvidia_smi(tmp_path, _host_telemetry())
+    env = _guard_env(device="cuda", nvidia_smi_path=query)
+    del env[missing]
+    marker = tmp_path / "child-started"
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/usr/bin/touch", str(marker)], cwd=REPO,
+        env=env, text=True, capture_output=True, timeout=15, check=False,
+    )
+    assert result.returncode == 75
+    assert f"missing protected environment: {missing}" in result.stderr
+    assert not marker.exists()
+
+
+@pytest.mark.parametrize(
+    ("override", "reason"),
+    [
+        ({"cpu_temp": 81}, "cpu_temperature"),
+        ({"cpu_power": 126}, "cpu_package_power"),
+        ({"physical_available": 8 * 1024**3 - 1}, "host_physical_memory"),
+        ({"commit_used": 56 * 1024**3 + 1}, "host_commit_headroom"),
+        ({"cbs_pending": "true"}, "host_cbs_reboot_pending"),
+        ({"wu_pending": "true"}, "host_wu_reboot_required"),
+        ({"maintenance_active": "true"}, "host_maintenance_active"),
+    ],
+)
+def test_trainer_guard_stops_owned_group_on_running_host_breach(
+    tmp_path: Path, override: dict[str, object], reason: str,
+) -> None:
+    query = _sequenced_nvidia_smi(tmp_path, later_output=_host_telemetry(**override))
+    identities = tmp_path / "child-pids"
+    script = f"echo $$ > {shlex.quote(str(identities))}; /bin/sleep 60 & echo $! >> {shlex.quote(str(identities))}; wait"
+    guard_log = tmp_path / "guard.log"
+    guard_log.touch()
+    env = _guard_env(device="cuda", nvidia_smi_path=query, max_wall_seconds=30)
+    env["GX1_TRAINER_GUARD_LOG_PATH"] = str(guard_log)
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/bash", "-c", script], cwd=REPO, env=env,
+        text=True, capture_output=True, timeout=45, check=False,
+    )
+    assert result.returncode == 75
+    assert f"reason={reason}" in result.stderr
+    assert "host resource safety threshold breached" in result.stderr
+    assert (tmp_path / "telemetry-call-count").read_text() == "2"
+    pids = [int(pid) for pid in identities.read_text().splitlines()]
+    assert len(pids) == 2
+    for pid in pids:
+        _assert_guard_owned_process_stopped(pid)
+    log_text = guard_log.read_text()
+    assert f"event=host_breach reason={reason}" in log_text
+    assert "cpu_max_temp_c=" in log_text
+    assert "min_host_available_bytes=" in log_text
+
+
+def test_trainer_guard_stops_owned_group_if_running_host_fields_disappear(tmp_path: Path) -> None:
+    query = _sequenced_nvidia_smi(
+        tmp_path, later_output="50, 70, 100, 250, 1000", include_host_resources=False,
+    )
+    identities = tmp_path / "child-pids"
+    script = f"echo $$ > {shlex.quote(str(identities))}; /bin/sleep 60 & echo $! >> {shlex.quote(str(identities))}; wait"
+    result = subprocess.run(
+        ["bash", str(TRAINER_GUARD), "/bin/bash", "-c", script], cwd=REPO,
+        env=_guard_env(device="cuda", nvidia_smi_path=query, max_wall_seconds=30),
+        text=True, capture_output=True, timeout=45, check=False,
+    )
+    assert result.returncode == 75
+    assert "reason=telemetry_unavailable" in result.stderr
+    assert (tmp_path / "telemetry-call-count").read_text() == "2"
+    for pid in map(int, identities.read_text().splitlines()):
+        _assert_guard_owned_process_stopped(pid)
 
 def test_trainer_guard_persists_child_stdio_when_path_is_precreated(
     tmp_path: Path,
@@ -1196,6 +1410,14 @@ def test_capped_runner_preserves_hard_limits_project_lock_and_validation_order()
     assert "TRAINER_GPU_MAX_POWER_DRAW_W=170" in source
     assert "TRAINER_GPU_MAX_MEMORY_USED_MIB=12288" in source
     assert "TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1" in source
+    for name, value in {
+        "TRAINER_CPU_MAX_TEMP_C": "80",
+        "TRAINER_CPU_MAX_PACKAGE_POWER_W": "125",
+        "TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES": "$((8 * 1024 * 1024 * 1024))",
+        "TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES": "$((8 * 1024 * 1024 * 1024))",
+    }.items():
+        assert f"{name}={value}" in source
+        assert f'--setenv=GX1_{name}="${name}"' in source
     assert "TRAINER_EXECUTION_MODE=canonical" in source
     assert "CUDA_PRODUCER_MODULE=gx1.scripts.evaluate_entry_candidate_selective_edge_v1" in source
     assert "TECHNICAL_VALIDATION_PRODUCER_MODULE=gx1.scripts.validate_entry_model_native_technical_checkpoint_v1" in source

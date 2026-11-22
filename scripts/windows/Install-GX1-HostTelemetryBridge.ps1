@@ -10,8 +10,9 @@
   port proxy from the Windows WSL gateway to the existing loopback listener,
   plus an inbound firewall rule limited to that single WSL client address; it
   never listens on a LAN or wildcard address.  The service loads the already
-  hash-verified LibreHardwareMonitor library solely to obtain Nvidia "GPU Memory
-  Junction"; the remaining physical fields come from native Windows nvidia-smi.
+  hash-verified LibreHardwareMonitor library for Nvidia "GPU Memory Junction"
+  and CPU core/package temperature and package power. Native Windows memory
+  counters and conservative maintenance facts share the same signed response.
 
   It is not a training command and does not change the GPU power limit.  The
   Linux canonical guard will remain locked until the exported public-certificate
@@ -362,7 +363,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$responseSchema = 'gx1_host_gpu_telemetry_v1'
+$responseSchema = 'gx1_host_resource_telemetry_v2'
 $requestSchema = 'gx1_host_gpu_telemetry_request_v1'
 $invariant = [System.Globalization.CultureInfo]::InvariantCulture
 
@@ -462,6 +463,7 @@ function Get-NativeGpuTelemetry {
 
 function Get-MemoryJunctionTemperature {
     param([LibreHardwareMonitor.Hardware.Computer]$Computer)
+    Clear-CpuSensorValues -Computer $Computer
     $Computer.Accept([Gx1HostTelemetryUpdateVisitor]::new())
     $gpus = @($Computer.Hardware | Where-Object {
         $_.HardwareType.ToString() -eq 'GpuNvidia' -and $_.Name -eq $ExpectedGpuName
@@ -480,6 +482,79 @@ function Get-MemoryJunctionTemperature {
         throw 'LibreHardwareMonitor memory junction is non-finite'
     }
     return $value
+}
+
+function Clear-CpuSensorValues {
+    param([object]$Computer)
+    foreach ($cpu in @($Computer.Hardware | Where-Object { $_.HardwareType.ToString() -eq 'Cpu' })) {
+        foreach ($sensor in @($cpu.Sensors | Where-Object { $_.SensorType.ToString() -in @('Temperature', 'Power') })) {
+            # Public LHM Sensor.Value cache only; no private state or MSR write.
+            # Power/CoreMax otherwise retain old values on a failed update.
+            $sensor.Value = $null
+            if ($null -ne $sensor.Value) { throw 'CPU sensor cache could not be cleared' }
+        }
+    }
+}
+
+function Get-CpuResourceTelemetry {
+    param([object]$Computer)
+    $cpus = @($Computer.Hardware | Where-Object { $_.HardwareType.ToString() -eq 'Cpu' })
+    if ($cpus.Count -ne 1 -or $cpus[0].Name -notmatch 'i9-10900K') {
+        throw 'CPU identity did not match the qualified i9-10900K host'
+    }
+    $package = @($cpus[0].Sensors | Where-Object { $_.SensorType.ToString() -eq 'Temperature' -and $_.Name -eq 'CPU Package' })
+    $cores = @($cpus[0].Sensors | Where-Object { $_.SensorType.ToString() -eq 'Temperature' -and $_.Name -match '^(CPU )?Core #[0-9]+$' })
+    $power = @($cpus[0].Sensors | Where-Object { $_.SensorType.ToString() -eq 'Power' -and $_.Name -eq 'CPU Package' })
+    if ($package.Count -ne 1 -or $cores.Count -ne 10 -or $power.Count -ne 1) {
+        throw 'CPU package, ten physical core temperatures or package power sensor is missing'
+    }
+    foreach ($sensor in (@($package[0], $power[0]) + $cores)) {
+        if ($null -eq $sensor.Value) { throw 'CPU sensor value is unavailable' }
+        $value = [double]$sensor.Value
+        if ([double]::IsNaN($value) -or [double]::IsInfinity($value) -or $value -le 0) {
+            throw 'CPU sensor is non-finite or non-positive'
+        }
+    }
+    return [pscustomobject]@{
+        cpu_max_temp_c = [Math]::Max([double]$package[0].Value, [double](($cores | ForEach-Object { [double]$_.Value } | Measure-Object -Maximum).Maximum))
+        cpu_package_power_w = [double]$power[0].Value
+    }
+}
+
+function Get-HostResourceTelemetry {
+    # Read real Windows counters; WSL /proc memory is a separate cgroup gate.
+    $memory = Get-CimInstance Win32_PerfRawData_PerfOS_Memory -ErrorAction Stop
+    foreach ($name in @('AvailableBytes', 'CommittedBytes', 'CommitLimit')) {
+        if ($null -eq $memory.$name) { throw "Windows memory counter is unavailable: $name" }
+    }
+    $available = [uint64]$memory.AvailableBytes
+    $used = [uint64]$memory.CommittedBytes
+    $limit = [uint64]$memory.CommitLimit
+    if ($limit -eq 0 -or $available -gt $script:HostPhysicalTotalBytes -or $used -gt $limit) {
+        throw 'Windows memory counters violate physical bounds'
+    }
+    foreach ($value in @($available, $used, $limit, $script:HostPhysicalTotalBytes)) {
+        if ($value -gt 9007199254740991) { throw 'Windows memory counter exceeds exact JSON integer range' }
+    }
+    $setup = Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\Setup' -ErrorAction Stop
+    foreach ($name in @('SystemSetupInProgress', 'OOBEInProgress')) {
+        if ($null -eq $setup.$name -or $setup.$name -notin @(0, 1)) { throw 'Windows setup state is unknown' }
+    }
+    # Worker presence is a conservative proxy, including an idle worker. It is
+    # not a claim to know every update phase or to prevent future OS restarts.
+    $workers = @(Get-CimInstance Win32_Process -Filter "Name='TiWorker.exe' OR Name='MoUsoCoreWorker.exe' OR Name='SetupHost.exe' OR Name='SetupPrep.exe' OR Name='WindowsUpdateBox.exe' OR Name='wuauclt.exe'" -ErrorAction Stop)
+    $cbs = Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' -ErrorAction Stop
+    $wu = Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' -ErrorAction Stop
+    $rebooting = Test-Path -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootInProgress' -ErrorAction Stop
+    return [pscustomobject]@{
+        host_physical_total_bytes = $script:HostPhysicalTotalBytes
+        host_physical_available_bytes = $available
+        host_commit_used_bytes = $used
+        host_commit_limit_bytes = $limit
+        cbs_reboot_pending = [bool]$cbs
+        wu_reboot_required = [bool]$wu
+        maintenance_active = [bool]($workers.Count -gt 0 -or $setup.SystemSetupInProgress -ne 0 -or $setup.OOBEInProgress -ne 0 -or $rebooting)
+    }
 }
 
 function Format-CanonicalFloat {
@@ -517,7 +592,16 @@ if (-not (Test-Path -LiteralPath $lhmLibrary -PathType Leaf)) {
 Add-BridgeUpdateVisitor -LibraryPath $lhmLibrary
 $computer = [LibreHardwareMonitor.Hardware.Computer]::new()
 $computer.IsGpuEnabled = $true
+$computer.IsCpuEnabled = $true
 $computer.Open()
+$os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+if ($null -eq $os.TotalVisibleMemorySize -or [uint64]$os.TotalVisibleMemorySize -eq 0) { throw 'Windows physical memory total is unavailable' }
+$script:HostPhysicalTotalBytes = [uint64]$os.TotalVisibleMemorySize * 1024
+$computer.Accept([Gx1HostTelemetryUpdateVisitor]::new())
+Start-Sleep -Milliseconds 250
+Clear-CpuSensorValues -Computer $computer
+$computer.Accept([Gx1HostTelemetryUpdateVisitor]::new())
+$null = Get-CpuResourceTelemetry -Computer $computer
 $listener = [System.Net.HttpListener]::new()
 $listener.Prefixes.Add("http://127.0.0.1:$Port/gx1/v1/telemetry/")
 
@@ -529,6 +613,8 @@ try {
             $nonce = Require-RequestNonce -Request $context.Request
             $native = Get-NativeGpuTelemetry
             $memory = Get-MemoryJunctionTemperature -Computer $computer
+            $cpu = Get-CpuResourceTelemetry -Computer $computer
+            $hostResources = Get-HostResourceTelemetry
             $observed = [int64][Math]::Floor(
                 ([System.Diagnostics.Stopwatch]::GetTimestamp() * 1000.0) / [System.Diagnostics.Stopwatch]::Frequency
             )
@@ -536,6 +622,11 @@ try {
             $memoryField = Format-CanonicalFloat -Value $memory
             $drawField = Format-CanonicalFloat -Value $native.power_draw_w
             $limitField = Format-CanonicalFloat -Value $native.power_limit_w
+            $cpuTempField = Format-CanonicalFloat -Value $cpu.cpu_max_temp_c
+            $cpuPowerField = Format-CanonicalFloat -Value $cpu.cpu_package_power_w
+            $cbsField = $hostResources.cbs_reboot_pending.ToString().ToLowerInvariant()
+            $wuField = $hostResources.wu_reboot_required.ToString().ToLowerInvariant()
+            $maintenanceField = $hostResources.maintenance_active.ToString().ToLowerInvariant()
             $payload = @(
                 $responseSchema,
                 $nonce,
@@ -545,14 +636,24 @@ try {
                 $drawField,
                 $limitField,
                 [string]($native.memory_used_mib),
-                [string]$observed
+                [string]$observed,
+                $cpuTempField,
+                $cpuPowerField,
+                [string]$hostResources.host_physical_total_bytes,
+                [string]$hostResources.host_physical_available_bytes,
+                [string]$hostResources.host_commit_used_bytes,
+                [string]$hostResources.host_commit_limit_bytes,
+                $cbsField,
+                $wuField,
+                $maintenanceField
             ) -join "`n"
             $payload += "`n"
             $signature = Sign-BridgePayload -Rsa $rsa -Payload $payload
-            $json = '{"schema_version":"' + $responseSchema + '","request_nonce":"' + $nonce + '","gpu_uuid":"' + $native.uuid + '","core_temp_c":' + $coreField + ',"memory_temp_c":' + $memoryField + ',"power_draw_w":' + $drawField + ',"power_limit_w":' + $limitField + ',"memory_used_mib":' + $native.memory_used_mib + ',"observed_monotonic_ms":' + $observed + ',"signature":"' + $signature + '"}'
+            $json = '{"schema_version":"' + $responseSchema + '","request_nonce":"' + $nonce + '","gpu_uuid":"' + $native.uuid + '","core_temp_c":' + $coreField + ',"memory_temp_c":' + $memoryField + ',"power_draw_w":' + $drawField + ',"power_limit_w":' + $limitField + ',"memory_used_mib":' + $native.memory_used_mib + ',"observed_monotonic_ms":' + $observed + ',"cpu_max_temp_c":' + $cpuTempField + ',"cpu_package_power_w":' + $cpuPowerField + ',"host_physical_total_bytes":' + $hostResources.host_physical_total_bytes + ',"host_physical_available_bytes":' + $hostResources.host_physical_available_bytes + ',"host_commit_used_bytes":' + $hostResources.host_commit_used_bytes + ',"host_commit_limit_bytes":' + $hostResources.host_commit_limit_bytes + ',"cbs_reboot_pending":' + $cbsField + ',"wu_reboot_required":' + $wuField + ',"maintenance_active":' + $maintenanceField + ',"signature":"'  + $signature + '"}'
             Write-BridgeResponse -Context $context -StatusCode 200 -Body $json
         }
         catch {
+            Write-Warning ("telemetry-unavailable: " + $_.Exception.Message)
             Write-BridgeResponse -Context $context -StatusCode 503 -Body '{"error":"telemetry_unavailable"}'
         }
     }

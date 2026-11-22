@@ -68,14 +68,22 @@ telemetry_peak_core_temp=N/A
 telemetry_peak_memory_temp=N/A
 telemetry_peak_power_draw=N/A
 telemetry_peak_memory_used=N/A
+telemetry_peak_cpu_temp=N/A
+telemetry_peak_cpu_power=N/A
+telemetry_min_host_available=N/A
+telemetry_min_commit_headroom=N/A
 
 telemetry_summary_fields() {
-  printf 'telemetry_samples=%s peak_core_temp_c=%s peak_memory_temp_c=%s peak_power_draw_w=%s peak_memory_used_mib=%s' \
+  printf 'telemetry_samples=%s peak_core_temp_c=%s peak_memory_temp_c=%s peak_power_draw_w=%s peak_memory_used_mib=%s peak_cpu_temp_c=%s peak_cpu_package_power_w=%s min_host_available_bytes=%s min_host_commit_headroom_bytes=%s' \
     "$telemetry_sample_count" \
     "$telemetry_peak_core_temp" \
     "$telemetry_peak_memory_temp" \
     "$telemetry_peak_power_draw" \
-    "$telemetry_peak_memory_used"
+    "$telemetry_peak_memory_used" \
+    "$telemetry_peak_cpu_temp" \
+    "$telemetry_peak_cpu_power" \
+    "$telemetry_min_host_available" \
+    "$telemetry_min_commit_headroom"
 }
 
 die() {
@@ -119,6 +127,10 @@ for variable in \
   GX1_TRAINER_GPU_MAX_POWER_DRAW_W \
   GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB \
   GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS \
+  GX1_TRAINER_CPU_MAX_TEMP_C \
+  GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W \
+  GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES \
+  GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES \
   GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH \
   GX1_TRAINER_HOST_TELEMETRY_URL \
   GX1_TRAINER_HOST_TELEMETRY_CERT_PATH \
@@ -166,7 +178,11 @@ for variable in \
   GX1_TRAINER_GPU_MAX_POWER_LIMIT_W \
   GX1_TRAINER_GPU_MAX_POWER_DRAW_W \
   GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB \
-  GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS; do
+  GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS \
+  GX1_TRAINER_CPU_MAX_TEMP_C \
+  GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W \
+  GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES \
+  GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES; do
   require_uint "$variable" "${!variable}"
 done
 [[ "$GX1_TRAINER_GPU_INDEX" =~ ^[0-9]+$ ]] \
@@ -215,7 +231,9 @@ trim() {
 
 telemetry_values=()
 read_gpu_telemetry() {
-  local output core_temp memory_temp power_draw power_limit memory_used extra
+  local output commas core_temp memory_temp power_draw power_limit memory_used
+  local cpu_temp cpu_power physical_total physical_available commit_used commit_limit
+  local cbs_pending wu_pending maintenance_active value
   output=$(
     /usr/bin/timeout --signal=KILL 7s \
       "$GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH" \
@@ -223,21 +241,49 @@ read_gpu_telemetry() {
       "$GX1_TRAINER_HOST_TELEMETRY_CERT_PATH" \
       "$GX1_TRAINER_HOST_TELEMETRY_CERT_SHA256" \
       "$GX1_TRAINER_HOST_TELEMETRY_GPU_UUID" \
-      "$GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS" 2>/dev/null
+      "$GX1_TRAINER_HOST_TELEMETRY_TIMEOUT_SECONDS" --host-resources 2>/dev/null
   ) || return 1
-  IFS=, read -r core_temp memory_temp power_draw power_limit memory_used extra <<<"$output"
-  [[ -z "${extra:-}" ]] || return 1
+  # A GPU-only or truncated row must never silently disable the host guards.
+  commas=${output//[^,]/}
+  [[ ${#commas} == 13 && "$output" != *$'\n'* ]] || return 1
+  IFS=, read -r core_temp memory_temp power_draw power_limit memory_used \
+    cpu_temp cpu_power physical_total physical_available commit_used commit_limit \
+    cbs_pending wu_pending maintenance_active <<<"$output"
   core_temp=$(trim "${core_temp:-}")
   memory_temp=$(trim "${memory_temp:-}")
   power_draw=$(trim "${power_draw:-}")
   power_limit=$(trim "${power_limit:-}")
   memory_used=$(trim "${memory_used:-}")
+  cpu_temp=$(trim "${cpu_temp:-}")
+  cpu_power=$(trim "${cpu_power:-}")
+  physical_total=$(trim "${physical_total:-}")
+  physical_available=$(trim "${physical_available:-}")
+  commit_used=$(trim "${commit_used:-}")
+  commit_limit=$(trim "${commit_limit:-}")
+  cbs_pending=$(trim "${cbs_pending:-}")
+  wu_pending=$(trim "${wu_pending:-}")
+  maintenance_active=$(trim "${maintenance_active:-}")
   [[ "$core_temp" =~ ^[0-9]+([.][0-9]+)?$ \
     && "$memory_temp" =~ ^[0-9]+([.][0-9]+)?$ \
     && "$power_draw" =~ ^[0-9]+([.][0-9]+)?$ \
     && "$power_limit" =~ ^[0-9]+([.][0-9]+)?$ \
-    && "$memory_used" =~ ^[0-9]+$ ]] || return 1
-  telemetry_values=("$core_temp" "$memory_temp" "$power_draw" "$power_limit" "$memory_used" true)
+    && "$memory_used" =~ ^(0|[1-9][0-9]{0,15})$ \
+    && "$cpu_temp" =~ ^[0-9]+([.][0-9]+)?$ \
+    && "$cpu_power" =~ ^[0-9]+([.][0-9]+)?$ ]] || return 1
+  float_gt "$cpu_temp" 0 && float_gt "$cpu_power" 0 || return 1
+  for value in "$memory_used" "$physical_total" "$physical_available" "$commit_used" "$commit_limit"; do
+    [[ "$value" =~ ^(0|[1-9][0-9]{0,15})$ ]] || return 1
+    (( value <= 9007199254740991 )) || return 1
+  done
+  (( physical_total > 0 && commit_limit > 0 \
+    && physical_available <= physical_total && commit_used <= commit_limit )) || return 1
+  for value in "$cbs_pending" "$wu_pending" "$maintenance_active"; do
+    [[ "$value" == true || "$value" == false ]] || return 1
+  done
+  # Preserve the original GPU indices, including observed junction at index 5.
+  telemetry_values=("$core_temp" "$memory_temp" "$power_draw" "$power_limit" "$memory_used" true \
+    "$cpu_temp" "$cpu_power" "$physical_total" "$physical_available" "$commit_used" "$commit_limit" \
+    "$cbs_pending" "$wu_pending" "$maintenance_active")
 }
 
 float_gt() {
@@ -266,6 +312,54 @@ record_gpu_telemetry() {
   fi
 }
 
+host_telemetry_fields() {
+  printf 'cpu_max_temp_c=%s cpu_package_power_w=%s host_physical_total_bytes=%s host_physical_available_bytes=%s host_commit_used_bytes=%s host_commit_limit_bytes=%s cbs_reboot_pending=%s wu_reboot_required=%s maintenance_active=%s' \
+    "${telemetry_values[@]:6}"
+}
+
+record_host_telemetry() {
+  local cpu_temp=${telemetry_values[6]} cpu_power=${telemetry_values[7]}
+  local available=${telemetry_values[9]} headroom=$((telemetry_values[11] - telemetry_values[10]))
+  if [[ "$telemetry_peak_cpu_temp" == N/A ]] || float_gt "$cpu_temp" "$telemetry_peak_cpu_temp"; then
+    telemetry_peak_cpu_temp=$cpu_temp
+  fi
+  if [[ "$telemetry_peak_cpu_power" == N/A ]] || float_gt "$cpu_power" "$telemetry_peak_cpu_power"; then
+    telemetry_peak_cpu_power=$cpu_power
+  fi
+  if [[ "$telemetry_min_host_available" == N/A ]] || (( available < telemetry_min_host_available )); then
+    telemetry_min_host_available=$available
+  fi
+  if [[ "$telemetry_min_commit_headroom" == N/A ]] || (( headroom < telemetry_min_commit_headroom )); then
+    telemetry_min_commit_headroom=$headroom
+  fi
+}
+
+host_breach=
+check_host_safety() {
+  local phase="$1" available=${telemetry_values[9]}
+  local headroom=$((telemetry_values[11] - telemetry_values[10]))
+  host_breach=
+  if [[ "${telemetry_values[12]}" == true ]]; then
+    host_breach=host_cbs_reboot_pending
+  elif [[ "${telemetry_values[13]}" == true ]]; then
+    host_breach=host_wu_reboot_required
+  elif [[ "${telemetry_values[14]}" == true ]]; then
+    host_breach=host_maintenance_active
+  elif float_gt "${telemetry_values[6]}" "$GX1_TRAINER_CPU_MAX_TEMP_C"; then
+    host_breach=cpu_temperature
+  elif float_gt "${telemetry_values[7]}" "$GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W"; then
+    host_breach=cpu_package_power
+  elif (( available < GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES )); then
+    host_breach=host_physical_memory
+  elif (( headroom < GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES )); then
+    host_breach=host_commit_headroom
+  elif [[ "$phase" == preflight ]] \
+    && (( available < GX1_CAPPED_MEMORY_BYTES + GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES )); then
+    host_breach=host_preflight_memory_capacity
+  fi
+  return 0
+}
+
 assert_safe_telemetry() {
   local phase="$1" core_temp memory_temp power_draw power_limit memory_used memory_observed
   read_gpu_telemetry \
@@ -278,7 +372,10 @@ assert_safe_telemetry() {
   memory_observed=${telemetry_values[5]}
   record_gpu_telemetry \
     "$core_temp" "$memory_temp" "$power_draw" "$memory_used" "$memory_observed"
-  guard_log "event=telemetry phase=$phase core_temp_c=$core_temp memory_temp_c=$memory_temp memory_observed=$memory_observed power_draw_w=$power_draw power_limit_w=$power_limit memory_used_mib=$memory_used"
+  record_host_telemetry
+  guard_log "event=telemetry phase=$phase core_temp_c=$core_temp memory_temp_c=$memory_temp memory_observed=$memory_observed power_draw_w=$power_draw power_limit_w=$power_limit memory_used_mib=$memory_used $(host_telemetry_fields)"
+  check_host_safety "$phase"
+  [[ -z "$host_breach" ]] || die "host resource safety threshold breached: $host_breach during $phase"
   float_gt "$power_limit" "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" \
     && die "configured GPU power limit ${power_limit}W exceeds ${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W}W during $phase"
   if [[ "$benchmark_claimed" == true ]] && float_gt "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" "$power_limit"; then
@@ -290,8 +387,8 @@ assert_safe_telemetry() {
     float_gt "$memory_temp" "$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C" \
       && die "GPU memory temperature ${memory_temp}C exceeds ${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C}C during $phase"
   fi
-  # The physical 160 W cap is independently verified; actual draw remains a
-  # strict separately observed safety boundary for every CUDA tier.
+  # The admitted physical limit and actual draw are separately observed
+  # safety boundaries for every CUDA tier.
   float_gt "$power_draw" "$GX1_TRAINER_GPU_MAX_POWER_DRAW_W" \
     && die "GPU draw ${power_draw}W exceeds ${GX1_TRAINER_GPU_MAX_POWER_DRAW_W}W during $phase"
   (( memory_used > GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB )) \
@@ -513,7 +610,9 @@ while child_process_exists; do
     memory_observed=${telemetry_values[5]}
     record_gpu_telemetry \
       "$core_temp" "$memory_temp" "$power_draw" "$memory_used" "$memory_observed"
+    record_host_telemetry
     breach=
+    breach_kind=GPU
     float_gt "$power_limit" "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" && breach=power_limit
     if [[ "$benchmark_claimed" == true ]] && float_gt "$GX1_TRAINER_GPU_MAX_POWER_LIMIT_W" "$power_limit"; then
       breach=benchmark_treatment_changed
@@ -524,17 +623,23 @@ while child_process_exists; do
     if [[ "$memory_observed" == true ]]; then
       float_gt "$memory_temp" "$GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C" && breach=memory_temperature
     fi
+    check_host_safety running
+    if [[ -n "$host_breach" ]]; then
+      breach=$host_breach
+      breach_kind="host resource"
+      guard_log "event=host_breach reason=$host_breach $(host_telemetry_fields)"
+    fi
     if [[ -n "$breach" ]]; then
       terminate_child_group "$breach"
       child_pid=
-      die "GPU safety threshold breached: $breach"
+      die "$breach_kind safety threshold breached: $breach"
     fi
   fi
   if (( now_uptime - last_heartbeat_uptime >= 30 )); then
     if [[ "$GX1_TRAINER_DEVICE" == cuda ]]; then
       printf '[trainer_safety_heartbeat] stage=%s stage_elapsed_seconds=%s core_temp_c=%s memory_temp_c=%s memory_observed=%s power_draw_w=%s power_limit_w=%s memory_used_mib=%s\n' \
         "$stage_name" "$stage_elapsed" "$core_temp" "$memory_temp" "$memory_observed" "$power_draw" "$power_limit" "$memory_used" >&2
-      guard_log "event=heartbeat stage=$stage_name stage_elapsed_seconds=$stage_elapsed core_temp_c=$core_temp memory_temp_c=$memory_temp memory_observed=$memory_observed power_draw_w=$power_draw power_limit_w=$power_limit memory_used_mib=$memory_used"
+      guard_log "event=heartbeat stage=$stage_name stage_elapsed_seconds=$stage_elapsed core_temp_c=$core_temp memory_temp_c=$memory_temp memory_observed=$memory_observed power_draw_w=$power_draw power_limit_w=$power_limit memory_used_mib=$memory_used $(host_telemetry_fields)"
     else
       printf '[trainer_safety_heartbeat] stage=%s stage_elapsed_seconds=%s device=cpu\n' "$stage_name" "$stage_elapsed" >&2
     fi

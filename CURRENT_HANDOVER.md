@@ -7,6 +7,26 @@ Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git
 ## Sikret vedlikeholdsomstart og modellstopp 22.11.2026
 
 Målchat01a20035-2836-7f62-bb88-9e24603a51a5. Årsaksmålet er IKKE fullført.
+Brukeren22.11 autoriserer «Ja lag mål og fortsett»: ressursvaktene er neste
+delmål. Målverktøyet kan ikke opprette et nytt mål mens årsaksmålet er ufullført.
+Aktiv scope er native_host_resource_safety_20261122_001: utvid eksisterende
+signert Windows-telemetri og eksisterende oppstarts-/runtimevakt. Kontrollert
+CPU-sensorkvalifisering og tester med ufarlig sleeper, ingen modell/stress.
+Alle fem treningsporter er fortsatt stengt. Ingen sikkerhets-/Defender-/boot-
+svekkelse eller betalt tjeneste er tillatt. Eksakte status/bevis følger policy.
+Delmål: 56query+54guard+15installerkontrakter og18PowerShelltilfeller PASS.
+PawnIO2.2.0 er hash-/Authenticode-verifisert, installert én gang(exit0), driver
+Running. Førsteinstallforsøk ble stanset før kjøring av vedlikeholdsworker.
+Tre ekte CPU/Windows-målinger er gyldige: CPUmaks28°C, package9,41–15,27W,
+fysiskledigca61,3GB. Ingen modell/stress. Signert v2bro er ennå ikke deployert.
+Konkrete CPU-cacheverdier nulles før update; alle10cores+package+positiv
+packagepower må være ferske. Stoppgrenser CPU80°C/125W og8GiB RAM/commit-
+reserve er konservative admissionstak, ikke maskinvarens maksimum/optimalitet.
+Nyeste observerte WindowsBootId4/14:45:57.5UTC og WSLboot
+5e297a5c-dffd-4219-9c59-a944fe992542 avløser eldre runtimeadmisjon.
+Neste er v2bridge-deploy og faktisk nonce/signatur/runtime-sleeperkontroll.
+Konsumerte biasplaner forblir stengt; etter sikkerhetskvalifikasjonen trengs en
+ny eksakt guard-sourcebridge/admisjon før én kort rekkefølgekandidat.
 Brukeren minnet om etablert restartprosedyre. Integrator utførte én ny,
 maskinvidt idle-kontrollert Windows-omstart uten Force; gamle dispatch ble ikke
 brukt. Ny WindowsBootId3, oppstart22.11kl12:08:50.5UTC/13:08:50.5Oslo.

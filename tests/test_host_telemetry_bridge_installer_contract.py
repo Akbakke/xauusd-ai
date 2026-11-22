@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -80,7 +81,7 @@ def test_host_bridge_service_stays_loopback_nonce_bound_and_sensor_complete() ->
     assert "GPU Memory Junction" in source
     assert "--query-gpu=name,uuid,temperature.gpu,power.draw,power.limit,memory.used" in source
     assert "RSASignaturePadding]::Pkcs1" in source
-    assert "gx1_host_gpu_telemetry_v1" in source
+    assert "gx1_host_resource_telemetry_v2" in source
     assert "memory_temp_c" in source
     assert "observed_monotonic_ms" in source
     assert "untrusted" not in source.lower()
@@ -191,3 +192,95 @@ def test_gpu_idle_guard_has_offline_policy_self_test_and_one_shot_probe() -> Non
     assert "normal sample did not reset the sustained counter" in guard
     assert "gx1_gpu_power_and_idle_guard_once_v1" in guard
     assert "exit 0" not in guard
+
+
+def test_host_bridge_resource_v2_has_all_mandatory_cpu_memory_and_maintenance_fields() -> None:
+    source = INSTALLER.read_text(encoding="utf-8")
+    assert "gx1_host_resource_telemetry_v2" in source
+    for name in ("cpu_max_temp_c", "cpu_package_power_w", "host_physical_total_bytes",
+                 "host_physical_available_bytes", "host_commit_used_bytes", "host_commit_limit_bytes",
+                 "cbs_reboot_pending", "wu_reboot_required", "maintenance_active"):
+        assert name in source
+    assert "Sign-BridgePayload" in source
+    assert 'StatusCode 503' in source
+
+
+def _signed_resource_service_source() -> str:
+    source = INSTALLER.read_text(encoding="utf-8")
+    return source.split("$serviceSource = @'\n", 1)[1].split("\n'@\n", 1)[0]
+
+
+def test_resource_payload_and_json_have_exact_agreed_order_and_inventory() -> None:
+    service = _signed_resource_service_source()
+    payload = service.split('$payload = @(\n', 1)[1].split(') -join "`n"', 1)[0]
+    entries = [line.strip().rstrip(',') for line in payload.splitlines() if line.strip()]
+    assert entries == [
+        '$responseSchema', '$nonce', '$native.uuid', '$coreField', '$memoryField',
+        '$drawField', '$limitField', '[string]($native.memory_used_mib)', '[string]$observed',
+        '$cpuTempField', '$cpuPowerField', '[string]$hostResources.host_physical_total_bytes',
+        '[string]$hostResources.host_physical_available_bytes', '[string]$hostResources.host_commit_used_bytes',
+        '[string]$hostResources.host_commit_limit_bytes', '$cbsField', '$wuField', '$maintenanceField',
+    ]
+    json_line = next(line for line in service.splitlines() if line.strip().startswith('$json = '))
+    assert re.findall(r'"([a-z0-9_]+)":', json_line) == [
+        'schema_version', 'request_nonce', 'gpu_uuid', 'core_temp_c', 'memory_temp_c',
+        'power_draw_w', 'power_limit_w', 'memory_used_mib', 'observed_monotonic_ms',
+        'cpu_max_temp_c', 'cpu_package_power_w', 'host_physical_total_bytes',
+        'host_physical_available_bytes', 'host_commit_used_bytes', 'host_commit_limit_bytes',
+        'cbs_reboot_pending', 'wu_reboot_required', 'maintenance_active', 'signature',
+    ]
+    assert '$payload += "`n"' in service
+    assert "$requestSchema = 'gx1_host_gpu_telemetry_request_v1'" in service
+    assert "$responseSchema = 'gx1_host_resource_telemetry_v2'" in service
+
+
+def test_cpu_f6_and_boolean_canonical_values_are_identical_in_signature_and_json() -> None:
+    service = _signed_resource_service_source()
+    json_line = next(line for line in service.splitlines() if line.strip().startswith('$json = '))
+    assert '$cpuTempField = Format-CanonicalFloat -Value $cpu.cpu_max_temp_c' in service
+    assert '$cpuPowerField = Format-CanonicalFloat -Value $cpu.cpu_package_power_w' in service
+    assert '$hostResources.cbs_reboot_pending.ToString().ToLowerInvariant()' in service
+    assert '$hostResources.wu_reboot_required.ToString().ToLowerInvariant()' in service
+    assert '$hostResources.maintenance_active.ToString().ToLowerInvariant()' in service
+    for variable in ('$cpuTempField', '$cpuPowerField', '$cbsField', '$wuField', '$maintenanceField'):
+        assert variable in json_line
+    assert '$computer.IsCpuEnabled = $true' in service
+    assert service.index('$null = Get-CpuResourceTelemetry -Computer $computer') < service.index('$listener.Start()')
+
+
+def test_host_memory_and_maintenance_use_real_windows_sources_and_fail_closed() -> None:
+    service = _signed_resource_service_source()
+    assert 'Get-CimInstance Win32_PerfRawData_PerfOS_Memory -ErrorAction Stop' in service
+    assert 'Get-CimInstance Win32_OperatingSystem -ErrorAction Stop' in service
+    for name in ('AvailableBytes', 'CommittedBytes', 'CommitLimit', 'TotalVisibleMemorySize'):
+        assert name in service
+    assert '9007199254740991' in service
+    assert 'Windows memory counters violate physical bounds' in service
+    for marker in ('SystemSetupInProgress', 'OOBEInProgress', 'RebootPending', 'RebootRequired', 'RebootInProgress'):
+        assert marker in service
+    assert "Name='MoUsoCoreWorker.exe'" in service and "Name='TiWorker.exe'" in service
+    assert 'Worker presence is a conservative proxy' in service
+    assert 'not a claim to know every update phase or to prevent future OS restarts' in service
+    assert 'Write-BridgeResponse -Context $context -StatusCode 503' in service
+
+
+def test_cpu_readings_clear_cached_values_and_require_all_physical_cores() -> None:
+    service = _signed_resource_service_source()
+    clear = service.split('function Clear-CpuSensorValues {', 1)[1].split('function Get-CpuResourceTelemetry {', 1)[0]
+    cpu = service.split('function Get-CpuResourceTelemetry {', 1)[1].split('function Get-HostResourceTelemetry {', 1)[0]
+    assert "@('Temperature', 'Power')" in clear
+    assert '$sensor.Value = $null' in clear
+    assert "if ($null -ne $sensor.Value) { throw 'CPU sensor cache could not be cleared' }" in clear
+    assert "i9-10900K" in cpu
+    assert "$_.Name -eq 'CPU Package'" in cpu
+    assert "$_.Name -match '^(CPU )?Core #[0-9]+$'" in cpu
+    assert '$package.Count -ne 1 -or $cores.Count -ne 10 -or $power.Count -ne 1' in cpu
+    assert 'if ($null -eq $sensor.Value)' in cpu
+    assert '[double]::IsNaN($value) -or [double]::IsInfinity($value) -or $value -le 0' in cpu
+    assert 'Measure-Object -Maximum' in cpu
+    assert 'cpu_max_temp_c = [Math]::Max([double]$package[0].Value' in cpu
+    assert 'CoreMax' not in cpu
+    refresh = service.split('function Get-MemoryJunctionTemperature {', 1)[1].split('function Clear-CpuSensorValues {', 1)[0]
+    assert refresh.index('Clear-CpuSensorValues -Computer $Computer') < refresh.index('$Computer.Accept(')
+    request = service.split('$nonce = Require-RequestNonce -Request $context.Request', 1)[1]
+    assert request.index('$memory = Get-MemoryJunctionTemperature -Computer $computer') < request.index('$cpu = Get-CpuResourceTelemetry -Computer $computer')
