@@ -40,6 +40,11 @@ Bevisrot `/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_BIAS_CAUSE_20261122_001`
 HOST_STOP_REVIEW001.json, HOST_CRASH_WINDOWS_LOGS002.json,
 HOST_CRASH_ARCHIVED_WINDOWS001.json ogHOST_CRASH_TRAINING_CLOSED001.json.
 Den eksterne stoppreviewen er ikke originalkjøringens terminal.
+Separat Mac-backup av 15 stopp-/OS-/kontroll-/policyartefakter er diskverifisert:
+`/Users/andrekildalbakke/GX1_BACKUP/CURRENT_FUTURE_STATE_SUFFIX_HOST_STOP_20261122_001/MANIFEST.json`,
+SHA `ac7ba15262b0e82fe6ae2a58e57e9be745ea5df32408beac9e8052c80af1f4c2`.
+HOST_SAFETY_BOOKEND001.json bekrefter lukkede porter og ingen GX1-modulprosesser.
+Ingen modell, vekter eller belastningstest ble startet under denne sikringen.
 
 Frossen16CPdiagnose er komplett/828,399s,20727sammeTRAINrader,1296modell/
 backboneforwards+324ekstrareadoutforwards,16CPloads,0updates/fits. Diagonaler er
