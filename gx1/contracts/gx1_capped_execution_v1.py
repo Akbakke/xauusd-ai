@@ -648,7 +648,7 @@ _NATIVE_FUTURE_STATE_GUARD_SHELL_ADDITIONS = (('TRAINER_MAX_WALL_SECONDS=7200\n'
 _NATIVE_FUTURE_STATE_BIAS_GUARD_SHELL_ADDITIONS = (('# BEGIN GX1 FUTURE LEAF ROUTES 20261121 STATE\n', 'before', '# BEGIN GX1 FROZEN BIAS ROUTE 20261122 STATE\nNATIVE_FUTURE_STATE_BIAS_FROZEN_MODULE=gx1.audit.diagnose_native_future_state_bias_v1\nNATIVE_FUTURE_STATE_BIAS_FROZEN=false\nNATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256=\n# END GX1 FROZEN BIAS ROUTE 20261122 STATE\n'), ('validate_target_command() {\n', 'before', '# BEGIN GX1 FROZEN BIAS ROUTE 20261122 MATCHERS\nmatches_bound_native_future_state_bias_frozen() {\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_BIAS_FROZEN_20261122_001.json"\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1\n  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == "$NATIVE_FUTURE_STATE_BIAS_FROZEN_MODULE" \\\n    && "$4" == --plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1\n  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\n\nconfigure_native_future_state_bias_frozen() {\n  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \\\n    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo "FATAL: frozen bias diagnosis requires exact canonical trainer containment" >&2\n    exit 75\n  }\n  matches_bound_native_future_state_bias_frozen "$@" || {\n    echo "FATAL: frozen bias diagnosis CLI/plan is not exactly bound" >&2\n    exit 75\n  }\n  local frozen_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_FROZEN_20261122_001\n  [[ ! -e "$frozen_output" && ! -L "$frozen_output" \\\n    && -d "${frozen_output%/*}" && ! -L "${frozen_output%/*}" \\\n    && "$(readlink -f "${frozen_output%/*}")" == "${frozen_output%/*}" ]] || {\n    echo "FATAL: frozen bias output is not fresh canonical scope" >&2\n    exit 75\n  }\n  NATIVE_FUTURE_STATE_BIAS_FROZEN=true\n  NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$frozen_output"\n  TRAINER_MAX_WALL_SECONDS=3600\n  TRAINER_MODEL_MAX_WALL_SECONDS=3600\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=300\n  TRAINER_GPU_MAX_POWER_DRAW_W=310\n  TRAINER_GPU_MAX_CORE_TEMP_C=85\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n}\n# END GX1 FROZEN BIAS ROUTE 20261122 MATCHERS\n\n'), ('validate_target_command() {\n', 'after', '# BEGIN GX1 FROZEN BIAS ROUTE 20261122 DISPATCH\n  local frozen_bias_arg frozen_bias_reference=false\n  for frozen_bias_arg in "$@"; do\n    case "$frozen_bias_arg" in\n      "$NATIVE_FUTURE_STATE_BIAS_FROZEN_MODULE"|*/gx1/audit/diagnose_native_future_state_bias_v1.py|gx1/audit/diagnose_native_future_state_bias_v1.py)\n        frozen_bias_reference=true ;;\n    esac\n  done\n  if [[ "$frozen_bias_reference" == true ]]; then\n    configure_native_future_state_bias_frozen "$@"\n    return\n  fi\n# END GX1 FROZEN BIAS ROUTE 20261122 DISPATCH\n'), ('# BEGIN GX1 FUTURE LEAF ROUTES 20261121 NESTED\n', 'before', '# BEGIN GX1 FROZEN BIAS ROUTE 20261122 NESTED\n  [[ "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-false}" == "$NATIVE_FUTURE_STATE_BIAS_FROZEN" ]] || {\n    echo "FATAL: nested frozen bias mode differs from protected parent" >&2\n    exit 75\n  }\n  if [[ "$NATIVE_FUTURE_STATE_BIAS_FROZEN" == true ]]; then\n    [[ "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" == "$NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256" \\\n      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-false}" == false \\\n      && "${GX1_TRAINER_EXECUTION_MODE:-}" == canonical \\\n      && "${GX1_TRAINER_MAX_WALL_SECONDS:-}" == 3600 \\\n      && "${GX1_TRAINER_MODEL_MAX_WALL_SECONDS:-}" == 3600 \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W:-}" == 300 \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_DRAW_W:-}" == 310 \\\n      && "${GX1_TRAINER_GPU_MAX_CORE_TEMP_C:-}" == 85 \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C:-}" == 80 \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB:-}" == 12288 ]] || {\n      echo "FATAL: nested frozen bias plan/deadline/hardware differs from protected parent" >&2\n      exit 75\n    }\n  fi\n# END GX1 FROZEN BIAS ROUTE 20261122 NESTED\n'), ('  --setenv=GX1_NATIVE_FUTURE_STATE_THROUGHPUT="$NATIVE_FUTURE_STATE_THROUGHPUT" \\\n', 'before', '  --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN="$NATIVE_FUTURE_STATE_BIAS_FROZEN" \\\n  --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256" \\\n'))
 
 
-_NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS = (('# BEGIN GX1 FUTURE LEAF ROUTES 20261121 STATE\n', 'before', '# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 STATE\nNATIVE_FUTURE_STATE_BIAS_SUFFIX_MODULE=gx1.audit.diagnose_native_future_state_bias_suffix_v1\nNATIVE_FUTURE_STATE_BIAS_SUFFIX=false\nNATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256=\n# END GX1 BIAS SUFFIX ROUTE 20261122 STATE\n'), ('validate_target_command() {\n', 'before', '# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 MATCHERS\nmatches_bound_native_future_state_bias_suffix() {\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_001.json"\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1\n  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == "$NATIVE_FUTURE_STATE_BIAS_SUFFIX_MODULE" \\\n    && "$4" == --plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1\n  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\n\nconfigure_native_future_state_bias_suffix() {\n  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \\\n    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo "FATAL: bias suffix order study requires exact canonical trainer containment" >&2\n    exit 75\n  }\n  matches_bound_native_future_state_bias_suffix "$@" || {\n    echo "FATAL: bias suffix order study CLI/plan is not exactly bound" >&2\n    exit 75\n  }\n  local suffix_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_001\n  [[ ! -e "$suffix_output" && ! -L "$suffix_output" \\\n    && -d "${suffix_output%/*}" && ! -L "${suffix_output%/*}" \\\n    && "$(readlink -f "${suffix_output%/*}")" == "${suffix_output%/*}" ]] || {\n    echo "FATAL: bias suffix output is not fresh canonical scope" >&2\n    exit 75\n  }\n  NATIVE_FUTURE_STATE_BIAS_SUFFIX=true\n  NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$suffix_output"\n  TRAINER_MAX_WALL_SECONDS=3600\n  TRAINER_MODEL_MAX_WALL_SECONDS=3600\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=300\n  TRAINER_GPU_MAX_POWER_DRAW_W=310\n  TRAINER_GPU_MAX_CORE_TEMP_C=85\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n}\n# END GX1 BIAS SUFFIX ROUTE 20261122 MATCHERS\n\n'), ('validate_target_command() {\n', 'after', '# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 DISPATCH\n  local frozen_bias_arg frozen_bias_reference=false\n  for frozen_bias_arg in "$@"; do\n    case "$frozen_bias_arg" in\n      "$NATIVE_FUTURE_STATE_BIAS_SUFFIX_MODULE"|*/gx1/audit/diagnose_native_future_state_bias_suffix_v1.py|gx1/audit/diagnose_native_future_state_bias_suffix_v1.py)\n        frozen_bias_reference=true ;;\n    esac\n  done\n  if [[ "$frozen_bias_reference" == true ]]; then\n    configure_native_future_state_bias_suffix "$@"\n    return\n  fi\n# END GX1 BIAS SUFFIX ROUTE 20261122 DISPATCH\n'), ('# BEGIN GX1 FUTURE LEAF ROUTES 20261121 NESTED\n', 'before', '# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 NESTED\n  [[ "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-false}" == "$NATIVE_FUTURE_STATE_BIAS_SUFFIX" ]] || {\n    echo "FATAL: nested bias suffix mode differs from protected parent" >&2\n    exit 75\n  }\n  if [[ "$NATIVE_FUTURE_STATE_BIAS_SUFFIX" == true ]]; then\n    [[ "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" == "$NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-false}" == false \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" \\\n      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-false}" == false \\\n      && "${GX1_TRAINER_EXECUTION_MODE:-}" == canonical \\\n      && "${GX1_TRAINER_MAX_WALL_SECONDS:-}" == 3600 \\\n      && "${GX1_TRAINER_MODEL_MAX_WALL_SECONDS:-}" == 3600 \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W:-}" == 300 \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_DRAW_W:-}" == 310 \\\n      && "${GX1_TRAINER_GPU_MAX_CORE_TEMP_C:-}" == 85 \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C:-}" == 80 \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB:-}" == 12288 ]] || {\n      echo "FATAL: nested bias suffix plan/deadline/hardware differs from protected parent" >&2\n      exit 75\n    }\n  fi\n# END GX1 BIAS SUFFIX ROUTE 20261122 NESTED\n'), ('  --setenv=GX1_NATIVE_FUTURE_STATE_THROUGHPUT="$NATIVE_FUTURE_STATE_THROUGHPUT" \\\n', 'before', '  --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX="$NATIVE_FUTURE_STATE_BIAS_SUFFIX" \\\n  --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256" \\\n'))
+_NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS = (('# BEGIN GX1 FUTURE LEAF ROUTES 20261121 STATE\n', 'before', '# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 002 STATE\nNATIVE_FUTURE_STATE_BIAS_SUFFIX_MODULE=gx1.audit.diagnose_native_future_state_bias_suffix_v1\nNATIVE_FUTURE_STATE_BIAS_SUFFIX=false\nNATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256=\n# END GX1 BIAS SUFFIX ROUTE 20261122 002 STATE\n'), ('validate_target_command() {\n', 'before', '# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 002 MATCHERS\nmatches_bound_native_future_state_bias_suffix() {\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_002.json"\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1\n  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == "$NATIVE_FUTURE_STATE_BIAS_SUFFIX_MODULE" \\\n    && "$4" == --plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1\n  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\n\nconfigure_native_future_state_bias_suffix() {\n  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \\\n    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo "FATAL: bias suffix order study requires exact canonical trainer containment" >&2\n    exit 75\n  }\n  matches_bound_native_future_state_bias_suffix "$@" || {\n    echo "FATAL: bias suffix order study CLI/plan is not exactly bound" >&2\n    exit 75\n  }\n  local suffix_output=/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_002\n  [[ ! -e "$suffix_output" && ! -L "$suffix_output" \\\n    && -d "${suffix_output%/*}" && ! -L "${suffix_output%/*}" \\\n    && "$(readlink -f "${suffix_output%/*}")" == "${suffix_output%/*}" ]] || {\n    echo "FATAL: bias suffix output is not fresh canonical scope" >&2\n    exit 75\n  }\n  NATIVE_FUTURE_STATE_BIAS_SUFFIX=true\n  NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$suffix_output"\n  TRAINER_MAX_WALL_SECONDS=3600\n  TRAINER_MODEL_MAX_WALL_SECONDS=3570\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n}\n# END GX1 BIAS SUFFIX ROUTE 20261122 002 MATCHERS\n\n'), ('validate_target_command() {\n', 'after', '# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 002 DISPATCH\n  local frozen_bias_arg frozen_bias_reference=false\n  for frozen_bias_arg in "$@"; do\n    case "$frozen_bias_arg" in\n      "$NATIVE_FUTURE_STATE_BIAS_SUFFIX_MODULE"|*/gx1/audit/diagnose_native_future_state_bias_suffix_v1.py|gx1/audit/diagnose_native_future_state_bias_suffix_v1.py)\n        frozen_bias_reference=true ;;\n    esac\n  done\n  if [[ "$frozen_bias_reference" == true ]]; then\n    configure_native_future_state_bias_suffix "$@"\n    return\n  fi\n# END GX1 BIAS SUFFIX ROUTE 20261122 002 DISPATCH\n'), ('# BEGIN GX1 FUTURE LEAF ROUTES 20261121 NESTED\n', 'before', '# BEGIN GX1 BIAS SUFFIX ROUTE 20261122 002 NESTED\n  [[ "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-false}" == "$NATIVE_FUTURE_STATE_BIAS_SUFFIX" ]] || {\n    echo "FATAL: nested bias suffix mode differs from protected parent" >&2\n    exit 75\n  }\n  if [[ "$NATIVE_FUTURE_STATE_BIAS_SUFFIX" == true ]]; then\n    [[ "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" == "$NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-false}" == false \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" \\\n      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-false}" == false \\\n      && "${GX1_TRAINER_EXECUTION_MODE:-}" == canonical \\\n      && "${GX1_TRAINER_MAX_WALL_SECONDS:-}" == 3600 \\\n      && "${GX1_TRAINER_MODEL_MAX_WALL_SECONDS:-}" == 3570 \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W:-}" == 250 \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_DRAW_W:-}" == 250 \\\n      && "${GX1_TRAINER_GPU_MAX_CORE_TEMP_C:-}" == 75 \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C:-}" == 80 \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB:-}" == 12288 \\\n      && "${GX1_TRAINER_CPU_MAX_TEMP_C:-}" == 80 \\\n      && "${GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W:-}" == 125 \\\n      && "${GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES:-}" == 8589934592 \\\n      && "${GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES:-}" == 8589934592 ]] || {\n      echo "FATAL: nested bias suffix plan/deadline/hardware differs from protected parent" >&2\n      exit 75\n    }\n  fi\n# END GX1 BIAS SUFFIX ROUTE 20261122 002 NESTED\n'), ('  --setenv=GX1_NATIVE_FUTURE_STATE_THROUGHPUT="$NATIVE_FUTURE_STATE_THROUGHPUT" \\\n', 'before', '  --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX="$NATIVE_FUTURE_STATE_BIAS_SUFFIX" \\\n  --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256" \\\n'), ('TRAINER_HOST_TELEMETRY_QUERY_PATH="$REPO_ROOT/scripts/gx1_host_telemetry_bridge_query.sh"\n', 'before', '# Conservative initial host ceilings, not hardware limits or an optimization claim.\nTRAINER_CPU_MAX_TEMP_C=80\nTRAINER_CPU_MAX_PACKAGE_POWER_W=125\nTRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=$((8 * 1024 * 1024 * 1024))\nTRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=$((8 * 1024 * 1024 * 1024))\n'), ('  [[ "$TRAINER_HOST_TELEMETRY_CERT_SHA256" =~ ^[0-9a-f]{64}$ \\\n', 'before', '  for host_limit in "$TRAINER_CPU_MAX_TEMP_C" "$TRAINER_CPU_MAX_PACKAGE_POWER_W" \\\n    "$TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES" "$TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES"; do\n    [[ "$host_limit" =~ ^[1-9][0-9]*$ ]] || {\n      echo "FATAL: protected host resource limit is malformed" >&2\n      exit 75\n    }\n  done\n'), ('  --setenv=GX1_TRAINER_HOST_TELEMETRY_QUERY_PATH="$TRAINER_HOST_TELEMETRY_QUERY_PATH" \\\n', 'before', '  --setenv=GX1_TRAINER_CPU_MAX_TEMP_C="$TRAINER_CPU_MAX_TEMP_C" \\\n  --setenv=GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W="$TRAINER_CPU_MAX_PACKAGE_POWER_W" \\\n  --setenv=GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES="$TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES" \\\n  --setenv=GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES="$TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES" \\\n'))
 
 
 def require_native_future_state_bias_suffix_execution(*, plan_sha256: str) -> dict[str, Any]:
@@ -668,15 +668,19 @@ def require_native_future_state_bias_suffix_execution(*, plan_sha256: str) -> di
         "GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION": "false",
         "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS": "false",
         "GX1_TRAINER_MAX_WALL_SECONDS": "3600",
-        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": "3600",
+        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": "3570",
         "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": "false",
         "GX1_TRAINER_GPU_INDEX": "0",
-        "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": "300",
-        "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": "310",
-        "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "85",
+        "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": "250",
+        "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": "250",
+        "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "75",
         "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "80",
         "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": "12288",
         "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
+        "GX1_TRAINER_CPU_MAX_TEMP_C": "80",
+        "GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W": "125",
+        "GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES": "8589934592",
+        "GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES": "8589934592",
         "GX1_POWER_BENCHMARK_SCOPE_JSON": "",
         "GX1_POWER_BENCHMARK_SCOPE_SHA256": "",
     }
@@ -684,7 +688,7 @@ def require_native_future_state_bias_suffix_execution(*, plan_sha256: str) -> di
         if os.environ.get(name) != value:
             raise RuntimeError(f"[GX1_NATIVE_SUFFIX_BIAS_ENV_INVALID] field={name}")
     proof = require_guarded_cuda_trainer_execution()
-    basename = "NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_001"
+    basename = "NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_002"
     plan_path = Path(__file__).resolve().parents[2] / "configs/research" / (basename + ".json")
     output_root = Path("/home/andre2/GX1_RUNS") / basename
     return {**proof, "class": "trainer", "execution_mode": "canonical", "kind": "bias_suffix_order",
@@ -697,77 +701,143 @@ def require_native_future_state_bias_suffix_execution(*, plan_sha256: str) -> di
 
 
 def native_future_state_bias_guard_source_bridge(previous_source_owners, *, producer_commit):
-    """Prove only named bias-diagnosis containment additions versus authentic MAIN guards."""
+    """Prove MAIN→001, the fixed qualified host-resource delta, and only the named002 route."""
     import ast
     import hashlib
     import subprocess
     def require(ok, reason):
         if not ok:
             raise RuntimeError("[GX1_NATIVE_FROZEN_BIAS_GUARD_BRIDGE_" + reason + "]")
-    require(producer_commit == "f96d89f88ea742a9a90460d81cc386f8abea6e2a", "PRODUCER_COMMIT")
-    require(type(previous_source_owners) is dict and len(previous_source_owners) == 62, "OWNER_COUNT")
     repo = Path(__file__).resolve().parents[2]
+    prior_commit = "63a1ff0ac8889046691dafe1acd1a63b55974cc0"
+    resource_commit = "6749062726c8562db35194857f56ee8aa4859d23"
     guards = ("gx1/contracts/gx1_capped_execution_v1.py", "scripts/gx1_capped_run.sh")
-    added_functions = {"require_native_future_state_bias_frozen_execution", "require_native_future_state_bias_suffix_execution", "native_future_state_bias_guard_source_bridge"}
-    added_constants = {"_NATIVE_FUTURE_STATE_BIAS_GUARD_SHELL_ADDITIONS", "_NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS"}
-    report = {}
+    hashes = ("d29344a8b591e58500e71b38dd41d4124a3f3f234d09751fffc31585a2366f3f",
+              "d6883f0f642f5e5304ee7f615fd8f80d364c7472d9f53cfbd12592a2c031f17f")
+    historical = {name: subprocess.check_output(["git", "show", prior_commit + ":" + name], cwd=repo) for name in guards}
+    qualified = {name: subprocess.check_output(["git", "show", resource_commit + ":" + name], cwd=repo) for name in guards}
+    require(all(hashlib.sha256(historical[name]).hexdigest() == sha for name, sha in zip(guards, hashes)), "AUTHENTIC_001_GUARDS")
+    require(qualified[guards[0]] == historical[guards[0]], "RESOURCE_PYTHON_UNCHANGED")
+    require(hashlib.sha256(qualified[guards[1]]).hexdigest() == "8a88a7da0daaff455e1bf25670c121163ccd123b6ac82c743e910d3fc864b3a1", "QUALIFIED_RESOURCE_SHELL")
+    diff = subprocess.check_output(["git", "diff", "--no-ext-diff", "--no-renames", "--no-color", "--unified=3", prior_commit, resource_commit, "--", guards[1]], cwd=repo)
+    diff_sha = hashlib.sha256(diff).hexdigest()
+    require(diff_sha == "45627527b5019aa87d92acb18c2fff1177fdd5ec457daf835b5715c30a879804", "EXACT_RESOURCE_DIFF")
+    historical_tree = ast.parse(historical[guards[0]])
+    historical_suffix = ast.literal_eval(next(n.value for n in historical_tree.body if isinstance(n, ast.Assign)
+        and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name)
+        and n.targets[0].id == "_NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS"))
+    def verify_main_to_001():
+        """Prove only named bias-diagnosis containment additions versus authentic MAIN guards."""
+        import ast
+        import hashlib
+        import subprocess
+        def require(ok, reason):
+            if not ok:
+                raise RuntimeError("[GX1_NATIVE_FROZEN_BIAS_GUARD_BRIDGE_" + reason + "]")
+        require(producer_commit == "f96d89f88ea742a9a90460d81cc386f8abea6e2a", "PRODUCER_COMMIT")
+        require(type(previous_source_owners) is dict and len(previous_source_owners) == 62, "OWNER_COUNT")
+        repo = Path(__file__).resolve().parents[2]
+        guards = ("gx1/contracts/gx1_capped_execution_v1.py", "scripts/gx1_capped_run.sh")
+        added_functions = {"require_native_future_state_bias_frozen_execution", "require_native_future_state_bias_suffix_execution", "native_future_state_bias_guard_source_bridge"}
+        added_constants = {"_NATIVE_FUTURE_STATE_BIAS_GUARD_SHELL_ADDITIONS", "_NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS"}
+        _NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS = historical_suffix
+        report = {}
+        for name in guards:
+            original = subprocess.check_output(["git", "show", producer_commit + ":" + name], cwd=repo)
+            expected_sha = hashlib.sha256(original).hexdigest()
+            require(previous_source_owners.get(name) == expected_sha, "AUTHENTIC_MAIN_GUARD_HASH")
+            current = historical[name]
+            if name.endswith(".py"):
+                old_tree, new_tree = ast.parse(original), ast.parse(current)
+                names = [n.name for n in new_tree.body if isinstance(n, ast.FunctionDef)]
+                require(len(names) == len(set(names)), "DUPLICATE_FUNCTION")
+                retained = []; removed_functions = set(); removed_constants = set()
+                for node in new_tree.body:
+                    if isinstance(node, ast.FunctionDef) and node.name in added_functions:
+                        removed_functions.add(node.name)
+                    elif (isinstance(node, ast.Assign) and len(node.targets) == 1
+                          and isinstance(node.targets[0], ast.Name) and node.targets[0].id in added_constants):
+                        require(node.targets[0].id not in removed_constants, "DUPLICATE_CONSTANT"); removed_constants.add(node.targets[0].id)
+                    else:
+                        retained.append(node)
+                require(removed_functions == added_functions and removed_constants == added_constants, "EXACT_ADDITIONS")
+                bridge = [n for n in retained if isinstance(n, ast.FunctionDef) and n.name == "native_future_state_guard_source_bridge"]
+                require(len(bridge) == 1, "ORIGINAL_BRIDGE_OWNER")
+                normalized = {"functions": 0, "constants": 0, "shell_loop": 0}
+                for node in ast.walk(bridge[0]):
+                    if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                            and isinstance(node.targets[0], ast.Name) and isinstance(node.value, ast.Set)):
+                        name_ = node.targets[0].id
+                        if name_ in ("added_functions", "added_constants"):
+                            remove = added_functions if name_ == "added_functions" else added_constants
+                            matched = {x.value for x in node.value.elts if isinstance(x, ast.Constant) and x.value in remove}
+                            require(matched == remove, "EXACT_BRIDGE_WHITELIST")
+                            node.value.elts = [x for x in node.value.elts if not (isinstance(x, ast.Constant) and x.value in remove)]
+                            normalized["functions" if name_ == "added_functions" else "constants"] += 1
+                    if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "reversed"
+                            and len(node.args) == 1 and ast.dump(node.args[0], include_attributes=False) == ast.dump(
+                                ast.parse("_NATIVE_FUTURE_STATE_GUARD_SHELL_ADDITIONS + _NATIVE_FUTURE_STATE_BIAS_GUARD_SHELL_ADDITIONS + _NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS", mode="eval").body,
+                                include_attributes=False)):
+                        node.args = [ast.Name(id="_NATIVE_FUTURE_STATE_GUARD_SHELL_ADDITIONS", ctx=ast.Load())]
+                        normalized["shell_loop"] += 1
+                require(normalized == {"functions": 1, "constants": 1, "shell_loop": 1}, "EXACT_BRIDGE_NORMALIZATION")
+                new_tree.body = retained
+                before, after = ast.dump(old_tree, include_attributes=False), ast.dump(new_tree, include_attributes=False)
+                require(before == after, "OLD_PYTHON_MODULE_CHANGED")
+                normalized_sha = hashlib.sha256(after.encode()).hexdigest()
+                proof = "whole_MAIN_module_AST_equal_after_named_bias_additions_and_exact_bridge_whitelist_normalization"
+            else:
+                text = current.decode()
+                for anchor, position, fragment in reversed(_NATIVE_FUTURE_STATE_BIAS_GUARD_SHELL_ADDITIONS + _NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS):
+                    composite = fragment + anchor if position == "before" else anchor + fragment
+                    require(text.count(fragment) == text.count(composite) == 1, "EXACT_SHELL_INSERTION")
+                    text = text.replace(composite, anchor, 1)
+                require(text.encode() == original, "OLD_SHELL_BYTES_CHANGED")
+                normalized_sha = hashlib.sha256(text.encode()).hexdigest()
+                proof = "all_MAIN_shell_bytes_equal_after_only_named_bias_insertions"
+            report[name] = {"original_sha256": expected_sha, "current_sha256": hashlib.sha256(current).hexdigest(),
+                            "normalized_sha256": normalized_sha, "proof": proof}
+        return {"producer_commit": producer_commit, "checked_guard_owners": 2,
+                "other_main_owners_to_be_checked_by_caller": 60, "owners": report}
+
+    result = verify_main_to_001()
+    additions = _NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS
+    require(len(historical_suffix) == 5 and len(additions) == 8, "EXACT_002_AND_RESOURCE_INSERTION_COUNTS")
+    # These three removals must reverse exactly the reviewed16-line resource delta.
+    stripped = qualified[guards[1]].decode()
+    for anchor, position, fragment in reversed(additions[5:]):
+        require(position == "before" and stripped.count(fragment + anchor) == 1, "EXACT_RESOURCE_INSERTION")
+        stripped = stripped.replace(fragment + anchor, anchor, 1)
+    require(stripped.encode() == historical[guards[1]], "RESOURCE_DELTA_BYTES")
+    current_shell = (repo / guards[1]).read_text()
+    for (anchor, position, fragment), (old_anchor, old_position, old_fragment) in zip(additions[:5], historical_suffix):
+        require((anchor, position) == (old_anchor, old_position), "EXACT_002_ROUTE_ANCHOR")
+        composite = fragment + anchor if position == "before" else anchor + fragment
+        replacement = old_fragment + anchor if position == "before" else anchor + old_fragment
+        require(current_shell.count(fragment) == current_shell.count(composite) == 1, "EXACT_002_ROUTE_INSERTION")
+        current_shell = current_shell.replace(composite, replacement, 1)
+    require(current_shell.encode() == qualified[guards[1]], "ONLY_002_ROUTE_CHANGED")
+    current_tree = ast.parse((repo / guards[0]).read_bytes())
+    names = [n.name for n in current_tree.body if isinstance(n, ast.FunctionDef)]
+    require(len(names) == len(set(names)), "DUPLICATE_FUNCTION")
+    changed_functions = {"native_future_state_bias_guard_source_bridge", "require_native_future_state_bias_suffix_execution"}
+    require(changed_functions <= set(names), "EXACT_002_GUARD_FUNCTIONS")
+    route_constants = [n for n in current_tree.body if isinstance(n, ast.Assign) and len(n.targets) == 1
+        and isinstance(n.targets[0], ast.Name) and n.targets[0].id == "_NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS"]
+    require(len(route_constants) == 1, "EXACT_002_ROUTE_CONSTANT")
+    require(ast.literal_eval(route_constants[0].value) == additions, "CURRENT_002_ROUTE_LITERAL")
+    def retained(tree):
+        return ast.Module(body=[n for n in tree.body if not (
+            isinstance(n, ast.FunctionDef) and n.name in changed_functions or
+            isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name)
+            and n.targets[0].id == "_NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS")], type_ignores=[])
+    require(ast.dump(retained(current_tree), include_attributes=False) == ast.dump(retained(historical_tree), include_attributes=False), "OLD_001_PYTHON_MODULE_CHANGED")
     for name in guards:
-        original = subprocess.check_output(["git", "show", producer_commit + ":" + name], cwd=repo)
-        expected_sha = hashlib.sha256(original).hexdigest()
-        require(previous_source_owners.get(name) == expected_sha, "AUTHENTIC_MAIN_GUARD_HASH")
-        current = (repo / name).read_bytes()
-        if name.endswith(".py"):
-            old_tree, new_tree = ast.parse(original), ast.parse(current)
-            names = [n.name for n in new_tree.body if isinstance(n, ast.FunctionDef)]
-            require(len(names) == len(set(names)), "DUPLICATE_FUNCTION")
-            retained = []; removed_functions = set(); removed_constants = set()
-            for node in new_tree.body:
-                if isinstance(node, ast.FunctionDef) and node.name in added_functions:
-                    removed_functions.add(node.name)
-                elif (isinstance(node, ast.Assign) and len(node.targets) == 1
-                      and isinstance(node.targets[0], ast.Name) and node.targets[0].id in added_constants):
-                    require(node.targets[0].id not in removed_constants, "DUPLICATE_CONSTANT"); removed_constants.add(node.targets[0].id)
-                else:
-                    retained.append(node)
-            require(removed_functions == added_functions and removed_constants == added_constants, "EXACT_ADDITIONS")
-            bridge = [n for n in retained if isinstance(n, ast.FunctionDef) and n.name == "native_future_state_guard_source_bridge"]
-            require(len(bridge) == 1, "ORIGINAL_BRIDGE_OWNER")
-            normalized = {"functions": 0, "constants": 0, "shell_loop": 0}
-            for node in ast.walk(bridge[0]):
-                if (isinstance(node, ast.Assign) and len(node.targets) == 1
-                        and isinstance(node.targets[0], ast.Name) and isinstance(node.value, ast.Set)):
-                    name_ = node.targets[0].id
-                    if name_ in ("added_functions", "added_constants"):
-                        remove = added_functions if name_ == "added_functions" else added_constants
-                        matched = {x.value for x in node.value.elts if isinstance(x, ast.Constant) and x.value in remove}
-                        require(matched == remove, "EXACT_BRIDGE_WHITELIST")
-                        node.value.elts = [x for x in node.value.elts if not (isinstance(x, ast.Constant) and x.value in remove)]
-                        normalized["functions" if name_ == "added_functions" else "constants"] += 1
-                if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "reversed"
-                        and len(node.args) == 1 and ast.dump(node.args[0], include_attributes=False) == ast.dump(
-                            ast.parse("_NATIVE_FUTURE_STATE_GUARD_SHELL_ADDITIONS + _NATIVE_FUTURE_STATE_BIAS_GUARD_SHELL_ADDITIONS + _NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS", mode="eval").body,
-                            include_attributes=False)):
-                    node.args = [ast.Name(id="_NATIVE_FUTURE_STATE_GUARD_SHELL_ADDITIONS", ctx=ast.Load())]
-                    normalized["shell_loop"] += 1
-            require(normalized == {"functions": 1, "constants": 1, "shell_loop": 1}, "EXACT_BRIDGE_NORMALIZATION")
-            new_tree.body = retained
-            before, after = ast.dump(old_tree, include_attributes=False), ast.dump(new_tree, include_attributes=False)
-            require(before == after, "OLD_PYTHON_MODULE_CHANGED")
-            normalized_sha = hashlib.sha256(after.encode()).hexdigest()
-            proof = "whole_MAIN_module_AST_equal_after_named_bias_additions_and_exact_bridge_whitelist_normalization"
-        else:
-            text = current.decode()
-            for anchor, position, fragment in reversed(_NATIVE_FUTURE_STATE_BIAS_GUARD_SHELL_ADDITIONS + _NATIVE_FUTURE_STATE_BIAS_SUFFIX_GUARD_SHELL_ADDITIONS):
-                composite = fragment + anchor if position == "before" else anchor + fragment
-                require(text.count(fragment) == text.count(composite) == 1, "EXACT_SHELL_INSERTION")
-                text = text.replace(composite, anchor, 1)
-            require(text.encode() == original, "OLD_SHELL_BYTES_CHANGED")
-            normalized_sha = hashlib.sha256(text.encode()).hexdigest()
-            proof = "all_MAIN_shell_bytes_equal_after_only_named_bias_insertions"
-        report[name] = {"original_sha256": expected_sha, "current_sha256": hashlib.sha256(current).hexdigest(),
-                        "normalized_sha256": normalized_sha, "proof": proof}
-    return {"producer_commit": producer_commit, "checked_guard_owners": 2,
-            "other_main_owners_to_be_checked_by_caller": 60, "owners": report}
+        result["owners"][name]["current_sha256"] = hashlib.sha256((repo / name).read_bytes()).hexdigest()
+    result["qualified_resource_delta"] = {"from_commit": prior_commit, "to_commit": resource_commit,
+        "diff_sha256": diff_sha, "qualified_shell_sha256": hashlib.sha256(qualified[guards[1]]).hexdigest(),
+        "current_change": "only_named002_route_and_explicit_suffix_guard_bridge_owners"}
+    return result
 
 
 def require_native_future_state_bias_frozen_execution(*, plan_sha256: str) -> dict[str, Any]:

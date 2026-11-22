@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-22T18:41:45.120200+00:00",
+  "observed_utc": "2026-11-22T19:03:25.725298+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -98508,6 +98508,59 @@
         "path": "/Users/andrekildalbakke/GX1_BACKUP/CURRENT_HOST_RESOURCE_SAFETY_20261122_001/MANIFEST.json",
         "sha256": "43ff822f0161ea1447e5fc659feb92de95c45efd400c30625a1061e9e393b12c"
       }
+    },
+    "order_candidate002_preparation": {
+      "status": "SOURCE_TESTS_QUALIFIED_PLAN_RUNTIME_PREFLIGHT_PENDING",
+      "new_plan_id": "NATIVE_FUTURE_STATE_BIAS_SUFFIX_ORDER_20261122_002",
+      "training_authorized": false,
+      "preregistration": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_BIAS_CAUSE_20261122_001/ORDER_CANDIDATE002_DECISION001.json",
+        "sha256": "f97d7c2bf08c5ea4f0dadc85f87b9070819abc5df8aeea4f03c73f349d973c56"
+      },
+      "budgets": {
+        "technical_fits": 1,
+        "updates": 366,
+        "forwards": 447,
+        "checkpoint_updates": [
+          64,
+          128,
+          192,
+          256,
+          320,
+          366
+        ]
+      },
+      "reference_reuse": "Authenticated consumed001 chronological proof only; no reference fit or reference rescore.",
+      "guard_tests": {
+        "unique_cases": 62,
+        "first": {
+          "path": "/tmp/gx1_suffix002_guard_tests001.log",
+          "sha256": "939947e78491b29f27c316f2d36688d2f988ee82982ac5590ae090919cacec55"
+        },
+        "affected": {
+          "path": "/tmp/gx1_suffix002_bridge_owners_tests002.log",
+          "sha256": "7ce360c1d6b06e753daa3dea6d4376844d53800bf1c01e7085116c7ad7a5ef81"
+        }
+      },
+      "module_tests": {
+        "cases": 79,
+        "log": {
+          "path": "/tmp/gx1_suffix002_module_tests001.log",
+          "sha256": "b5014eef89b93afeed93d509d6fde50af2f0d4041c611348dd95d8072f1aaf91"
+        }
+      }
+    },
+    "objective_normalization_bounds": {
+      "status": "ANALYTIC_CONSTANT_PRIOR_OUTER_BOUNDS_PEER_REPRODUCED_NOT_NEW_FIT",
+      "report": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_BIAS_CAUSE_20261122_001/OBJECTIVE_NORMALIZATION_BOUNDS001.json",
+        "sha256": "de992c97dc9421900191cbd39034984079e277b5314640b8126ba8334f3f4db7"
+      },
+      "D1_bounds": [
+        0.5345729972587178,
+        0.5512389731037192
+      ],
+      "scope": "Unregularized constant side optimum under equal batchweight, not a bound on nonlinear trained predictions or AdamW recency."
     }
   }
 ,

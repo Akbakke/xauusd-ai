@@ -36,6 +36,17 @@ reserve er konservative admissionstak, ikke maskinvarens maksimum/optimalitet.
 Nyeste observerte WindowsBootId4/14:45:57.5UTC og WSLboot
 5e297a5c-dffd-4219-9c59-a944fe992542 avløser eldre runtimeadmisjon.
 Neste er én ny avgrenset rekkefølgekandidat med gjenbrukt ferdig kontrollarm.
+002kilde er kvalifisert:79modul-/62unikeguardkontroller PASS. Kun366
+permuterte updates/447FW,1fit og6durableCP64/128/192/256/320/366.
+Autentisk001kontroll gjenbrukes med8FINALproofkomponenter; ingen nykontrollfit
+eller kontroll-rescore. GPUceilingstrammettil250/250W,75/80°C; CPU80°C/125W
+og8GiBWindowsRAM/commitreserve består. Ingen maskinvareeffektinnstillingendret.
+Eksaktplan/runtime/lettmetadata-preflight er ennå ikke kvalifisert eller innrømmet.
+Kun2guardkilder avMAIN62 avviker, alle60modell/input/target/loss-eiere erbitlike;
+eksakt63a→674ressursdelta og navngitt002rute er bindet, ingen generellwhitelist.
+OBJECTIVE_NORMALIZATION_BOUNDS001.json er peer-reprodusert utenarrays/modell:
+D1analytiskkonstantprior53,4573–55,1239%, ikke en grensepå detlærtenonlineære
+modelloutput. Det er ingen ny prior-fit eller dokumentert hovedårsak alene.
 Konsumerte biasplaner forblir stengt; etter sikkerhetskvalifikasjonen trengs en
 ny eksakt guard-sourcebridge/admisjon før én kort rekkefølgekandidat.
 Brukeren minnet om etablert restartprosedyre. Integrator utførte én ny,

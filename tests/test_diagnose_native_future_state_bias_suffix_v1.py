@@ -104,14 +104,14 @@ def test_reference_proof_rejects_extra_claimed_components():
  with pytest.raises(ValueError,match='REFERENCE_STATE'):owner.validate_reference_state(actual,reference_proof())
 
 
-def test_exact_budget_counts_both_genuine_technical_parameter_fits():
+def test_exact_budget_counts_only_the_one_new_genuine_technical_parameter_fit():
  limits=owner.LIMITS
- assert limits['model_constructions']==1 and limits['optimizer_constructions']==2
- assert limits['checkpoint_loads']==1 and limits['checkpoint_restores']==2
- assert limits['model_forwards']==limits['backbone_forwards']==limits['readout_forwards']==813
- assert limits['backward_calls']==limits['optimizer_steps']==732
- assert limits['technical_parameter_fits']==2
- assert limits['checkpoint_writes']==limits['checkpoint_readbacks']==1
+ assert limits['model_constructions']==1 and limits['optimizer_constructions']==1
+ assert limits['checkpoint_loads']==1 and limits['checkpoint_restores']==1
+ assert limits['model_forwards']==limits['backbone_forwards']==limits['readout_forwards']==447
+ assert limits['backward_calls']==limits['optimizer_steps']==366
+ assert limits['technical_parameter_fits']==1
+ assert limits['checkpoint_writes']==limits['checkpoint_readbacks']==6
  assert limits['normalization_fits']==limits['prior_fits']==limits['autograd_calls']==limits['CONTROL_VAL_TEST_rows']==0
 
 
@@ -235,3 +235,123 @@ def test_main_source_inventory_rejected_before_source_hashing(monkeypatch):
  monkeypatch.setattr(owner.train,'expected_source_names',lambda:{'safe.py'})
  monkeypatch.setattr(owner,'sha',lambda *args:pytest.fail('source hash before inventory validation'))
  with pytest.raises(ValueError,match='EXACT_SOURCE_INVENTORY'):owner.build_plan(runtime={})
+
+
+def control_fixture():
+ main=main_fixture();main['schedule']['batch_source_rows_sha256']=[str(i)for i in range(3694)]
+ inputs={k:{'path':'/'+k,'sha256':'a'*64}for k in ('main_plan','paired_plan','main_result','main_terminal','frozen_result','frozen_terminal','frozen_plan','checkpoint_receipt','original_final_receipt')}
+ order=owner.make_orders(main);runtime={'source_commit':owner.CONTROL_SOURCE,'library_versions':{'torch':'original'},'gpu':{'name':'original'}}
+ control={'stage':'native_future_state_bias_suffix_order_20261122_001','output_root':str(owner.CONTROL_ROOT),'source_base_commit':owner.CONTROL_SOURCE,
+  'runtime':runtime,'inputs':copy.deepcopy(inputs),'orders':order,
+  'order_source_row_hashes':{arm:[main['schedule']['batch_source_rows_sha256'][i]for i in order[arm]]for arm in ('chronological','reordered')}}
+ claim={'plan':copy.deepcopy(owner.CONTROL_PLAN),'runtime':copy.deepcopy(runtime),'remaining_invocations':0,'relaunch_allowed':False,
+  'technical_parameter_fits':2,'optimizer_updates':732,'full_epoch':False}
+ steps=reference_steps();original={'report':{'steps':[None]*3328+steps}};proof=reference_proof()
+ saved={'bitexact':True,'components':list(owner.REFERENCE_KEYS),'proof':proof,'source_batch_order_sha256':owner.core.state_sha(order['chronological']),
+  'suffix_steps_sha256':owner.core.state_sha(steps)}
+ return control,claim,saved,dict(control_plan_ref=copy.deepcopy(owner.CONTROL_PLAN),main=main,inputs=inputs,original=original,final_receipt={'proof':{**proof,'trajectory':'untouched'}})
+
+
+def test_authentic_saved_control_is_reused_without_claiming_another_fit():
+ control,claim,saved,kw=control_fixture();before=copy.deepcopy((control,claim,saved,kw))
+ actual=owner.validate_reference_reuse(control,claim,saved,**kw)
+ assert actual['generated_in_this_study']is False and actual['bitexact']is True
+ assert actual['control_plan']==owner.CONTROL_PLAN and actual['proof_artifact']==owner.CONTROL_PROOF
+ assert (control,claim,saved,kw)==before
+ assert owner.STAGE.endswith('_002')and owner.ROOT!=owner.CONTROL_ROOT
+
+
+@pytest.mark.parametrize('change',['plan_hash','claim_plan','claim_source','claim_updates','relaunch','foreign_input','order','step','proof','not_bitexact','components'])
+def test_reused_control_tampering_fails_before_any_candidate_model(change):
+ control,claim,saved,kw=control_fixture()
+ if change=='plan_hash':kw['control_plan_ref']['sha256']='b'*64
+ elif change=='claim_plan':claim['plan']['sha256']='b'*64
+ elif change=='claim_source':claim['runtime']['source_commit']='foreign'
+ elif change=='claim_updates':claim['optimizer_updates']=366
+ elif change=='relaunch':claim['relaunch_allowed']=True
+ elif change=='foreign_input':control['inputs']['checkpoint_receipt']['sha256']='b'*64
+ elif change=='order':control['orders']['reordered'][0],control['orders']['reordered'][1]=control['orders']['reordered'][1],control['orders']['reordered'][0]
+ elif change=='step':saved['suffix_steps_sha256']='b'*64
+ elif change=='proof':saved['proof']['rng_state']='foreign'
+ elif change=='not_bitexact':saved['bitexact']=False
+ else:saved['components'].reverse()
+ with pytest.raises(ValueError):owner.validate_reference_reuse(control,claim,saved,**kw)
+
+
+class CheckpointModel:
+ training=True
+ def state_dict(self):return {'model':'actual-state'}
+ def named_parameters(self):return [('backbone.weight',object()),('readout.weight',object())]
+
+
+class CheckpointOptimizer:
+ def state_dict(self):return {'AdamW':'actual-slots'}
+
+
+def candidate_fixture(monkeypatch,completed):
+ main=main_fixture();order=owner.make_orders(main)
+ plan={'orders':order,'inputs':{'checkpoint_receipt':{'path':'/original/CP3328','sha256':'a'*64},'main_plan':{'path':'/original/MAIN','sha256':'b'*64},'original_control_proof':owner.CONTROL_PROOF}}
+ steps=[{'logical_step':i+1,'skip_update':False}for i in order['reordered'][:completed]]
+ monkeypatch.setattr(owner.core,'training_rng',lambda:{'actual':'RNG'})
+ return CheckpointModel(),CheckpointOptimizer(),plan,steps
+
+
+@pytest.mark.parametrize('completed',[64,128,192,256,320,366])
+def test_six_durable_checkpoints_bind_actual_progress_and_permuted_prefix(monkeypatch,completed):
+ model,optimizer,plan,steps=candidate_fixture(monkeypatch,completed);binding={'path':'/002plan','sha256':'c'*64}
+ cp=owner.checkpoint_state(model,optimizer,binding=binding,plan=plan,steps=steps)
+ assert cp['schema_version']==owner.CHECKPOINT_SCHEMA and cp['study_plan']==binding
+ assert cp['progress']['optimizer_updates_completed']==completed and cp['progress']['optimizer_updates_remaining']==366-completed
+ assert cp['progress']['optimizer_step_count_after_restore']==3328+completed
+ assert cp['visited_source_batch_order']==plan['orders']['reordered'][:completed]
+ assert cp['visited_source_batch_order_sha256']==owner.core.state_sha(cp['visited_source_batch_order'])
+ assert cp['model_state']==model.state_dict()and cp['optimizer_state']==optimizer.state_dict()and cp['rng_state']=={'actual':'RNG'}
+ assert cp['steps']==steps and cp['steps']is not steps and 'trajectory'not in cp and 'execution_plan'not in cp
+
+
+@pytest.mark.parametrize('change',['unscheduled','renumbered','skip'])
+def test_checkpoint_cannot_claim_unfinished_or_chronologically_renumbered_progress(monkeypatch,change):
+ completed=63 if change=='unscheduled'else 64;model,optimizer,plan,steps=candidate_fixture(monkeypatch,completed)
+ if change=='renumbered':steps[0]['logical_step']=3329
+ if change=='skip':steps[-1]['skip_update']=True
+ with pytest.raises(ValueError,match='CHECKPOINT_PROGRESS'):owner.checkpoint_state(model,optimizer,binding={},plan=plan,steps=steps)
+
+
+def test_checkpoint_publication_uses_native_full_readback_and_retains_previous_file(monkeypatch,tmp_path):
+ model,optimizer,plan,steps=candidate_fixture(monkeypatch,64);binding={'path':'/plan','sha256':'a'*64};writes=[];counts={}
+ monkeypatch.setattr(owner,'ROOT',tmp_path)
+ def native(path,checkpoint,actual_counts):
+  assert actual_counts is counts;writes.append((path.name,checkpoint));return {'path':str(path),'sha256':'b'*64}
+ monkeypatch.setattr(owner.core,'future_cuda_publish_checkpoint',native)
+ monkeypatch.setattr(owner,'publish',lambda path,data:{'path':str(path),'sha256':'c'*64})
+ actual,cp=owner.publish_candidate_checkpoint(model,optimizer,binding=binding,plan=plan,steps=steps,counts=counts)
+ assert writes==[('UPDATE000064.pt',cp)]and actual['receipt']['path'].endswith('UPDATE000064.json')
+ assert actual['checkpoint_tree_sha256']==owner.core.state_sha(cp)and actual['main_trajectory_claim']is False
+
+
+def test_external_stop_is_consumed_and_reports_completed_durable_checkpoints(monkeypatch,tmp_path):
+ _,records=mock_claimed_run(monkeypatch,tmp_path);handlers={};checkpoint={'receipt':{'path':'/002/UPDATE000064.json','sha256':'d'*64}}
+ monkeypatch.setattr(owner.signal,'signal',lambda sig,handler:handlers.setdefault(sig,handler))
+ monkeypatch.setattr(owner,'retained_checkpoint_receipts',lambda binding:[checkpoint])
+ monkeypatch.setattr(owner.time,'monotonic',lambda:0.)
+ def stopped(*args):handlers[owner.signal.SIGTERM](owner.signal.SIGTERM,None)
+ monkeypatch.setattr(owner,'physical',stopped)
+ with pytest.raises(InterruptedError,match='EXTERNAL_SIGNAL'):owner.run('a'*64)
+ assert records[-1][1]['status']=='FAILED_CONSUMED'and records[-1][1]['retained_candidate_checkpoints']==[checkpoint]
+ assert records[0][1]['technical_parameter_fits']==1 and records[0][1]['optimizer_updates']==366
+
+
+def test_metric_comparison_retains_five_tf_support_and_distinguishes_absolute_bias():
+ reference={};candidate={}
+ for tf in owner.train.TF:
+  r={'count':162,'unique_target_bars':162,'actual_positive_fraction':.5,'probability_minus_actual':.10,'Brier':.25,'logloss':.7,'AUC':None}
+  c={**r,'probability_minus_actual':-.04,'Brier':.26,'logloss':.72}
+  reference[tf]={task:copy.deepcopy(r)for task in ('activity','side')};candidate[tf]={task:copy.deepcopy(c)for task in ('activity','side')}
+ actual=owner.metric_comparison({'ALL':candidate},{'ALL':reference})
+ assert set(actual['ALL'])==set(owner.train.TF)
+ for tf in owner.train.TF:
+  cell=actual['ALL'][tf]['side'];assert cell['count']==162
+  assert cell['absolute_probability_residual_delta']==pytest.approx(-.06)
+  assert cell['Brier_delta']==pytest.approx(.01)and cell['AUC_delta']is None
+ candidate[owner.train.TF[0]]['side']['count']=161
+ with pytest.raises(ValueError,match='SAME_METRIC_SUPPORT'):owner.metric_comparison({'ALL':candidate},{'ALL':reference})
