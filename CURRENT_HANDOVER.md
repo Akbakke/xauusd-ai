@@ -4,85 +4,100 @@ Arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 Les `GX1_RULES.md` helt. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus.
 Prosessobservasjon og eksakte terminalkvitteringer overstyrer prosa.
 
-## Aktiv årsaksdiagnose og kvalifiserte ressursvakter
+## Aktiv årsaksdiagnose og sikker stopp003
 
 Årsaksmålet i chat01a20035-2836-7f62-bb88-9e24603a51a5 er IKKE fullført.
 Brukeren22.11 ba om mål og videreføring. Målverktøyet kan ikke erstatte et
-ufullført mål; ressursarbeidet er derfor registrert som fullført delmål i policy.
-Alle fem treningsporter er nå stengt. Ingen003plan/CLAIM/modell er opprettet.
+ufullført mål; ressursarbeidet er fullført delmål i policy. Alle fem treningsporter
+og003execution_authorized er nå false; remaining_invocations0/relaunch_allowedfalse.
 Ingen ny hovedepoke, TEST, M1, GC, Entry/Exit, handel eller promotion er åpnet.
 
-Ressursvakt: eksisterende signerte Windows-bro og eksisterende capped/runtime-
-vakt er utvidet med ferske ti-kjerners/package-temperaturer, package-watt,
-fysisk Windows-RAM/commit og konservativ vedlikeholds-/rebootstatus. Cachede
-CPUverdier nulles før måling. Manglende/ugyldige verdier avvises. CPU80°C/125W
-og8GiB RAM/commitreserve er konservative stoppgrenser, ikke maskinvarens maks.
-Før start kreves også fysisk RAM til hele cgroup-grensen. GammelGPU/cgroup/
-CPU-affinitet/tråd-/walltimevakt består. Ingen sikkerhets-/Defender-/boot-
-innstillinger er svekket, og ingen betalt tjeneste brukes.
+003 er faktisk claimet og konsumert: guardexit75/FAILED_CONSUMED ved
+host_maintenance_active22.11kl20:13:02UTC. PID9029 er borte, sammeWSLboot
+5e297a5c-dffd-4219-9c59-a944fe992542. Ingen RESULT eller kandidatcapture finnes.
+KildeHEAD8ead4ba4e og alle74planbundne eiere er etterkontrollert uendret.
+Plan7ee2dc2c3d2d4c99bc149dc66904e01fef2a874f112592eb0f2042ff38754215
+og claimens policy939fde27...fb72724 er bevart i eksakt admittedsnapshot.
+Feilterminalen kjørte ikke suksessgrenens komplette input-/bootbookend; ikke
+omtale uutførte kontroller som PASS. STOP_REVIEW001 og002 avgrenser beviset.
 
-56query+54guard+15installerkontrakter+18PowerShelltilfeller PASS. Ekte signertv2,
-nonce/signatur/14felt og overvåket ufarlig sleeper PASS; feilsertifikat avvist
-før child-start. Ingen modell/stress i ressurskvalifikasjonen. PawnIO2.2.0 er
-hash-/Authenticode-verifisert og installert én gang(exit0), driverRunning.
-Førsteinstallforsøk stanset før kjøring av vedlikeholdsworker. Første v2query
-fikk2s-timeout; samme uendrede2s-kontrakt bestod senere. Innledende forsinkelse
-uavklart. Opprinnelig testsertifikatfeil i harness og alle feilkvitteringer beholdes.
-Ressursbevis: HOST_RESOURCE_QUALIFICATION_REVIEW001.json og LIVE_GUARD003.json
-under bevisroten nedenfor. Separat diskverifisert Mac-backup:
-`/Users/andrekildalbakke/GX1_BACKUP/CURRENT_HOST_RESOURCE_SAFETY_20261122_001/MANIFEST.json`,
-SHA `43ff822f0161ea1447e5fc659feb92de95c45efd400c30625a1061e9e393b12c`.
-Fremtidig postboot-providerstart og kapasitet under modelllast er ikke bevist;
-ny faktisk runtime/preflight kreves alltid. Workerpresence kan også blokkere en
-idle worker; det er ingen garanti mot enhver fremtidig Windows-omstart.
+Før stoppen bestod driverkontrollen: alle366kronologiske steps var bitlike,
+alle8FINALstatekomponenter stemte, og begge logitarrays på20727TRAINrader
+var bitlike med originalfrozenFINAL, inkludert råarraySHA/dtype/shape.
+NVIDIA591.86→610.88 er dermed kvalifisert for akkurat denne kontrollreplayen;
+ingen generell driver-/strategiekvivalens eller edge er bevist.
+OriginalCP/runtime/trajectory/training_leaf_AST er aldri omskrevet.
 
-Aktuell blokkering ble funnet FØR002plan/CLAIM/modell: NVIDIA591.86→610.88,
-alle biblioteker/GPUUUID/navn/24GiB ellers identiske. Nyeste observerte
-WindowsBootId4/22.11kl14:45:57.5UTC og WSL5e297a5c-dffd-4219-9c59-a944fe992542.
-Actualruntime lagret i SUFFIX002_RUNTIME_COMPARISON001.json; gammelruntime
-substitueres aldri. 002ble bare kilde-/testforberedt og er ikke innrømmet.
+Kandidatarmen meldte201ferdige updates; ni durableCP finnes: sekskronologiske
+og treomordnede ved64/128/192. Sist sikre kandidattilstand er192, AdamWstep3520,
+neste ordensposisjon192/originalbatch3518,174updates gjenstår. De ni senere
+ferdige updates er ikke checkpointet. Telleverk649forwardentries mot567returnerte
+backward/optimizerupdates+81kontrolleval inkluderer én ekstra påbegynt forward
+under forsøkt202; avbrutt arbeid er ikke bevist fullført. Ingen ordreeffekt eller
+årsaksdom trekkes fra delkandidaten. Ingen konsumert003plan relanseres.
 
-003kilde er nå kvalifisert:106unikeguard/loader- og81modul/brotilfeller PASS.
-En signed-zero-negativcase fant at np.array_equal alene ikke er bitlikhet;
-paritet krever også identisk array-SHA. Kun7berørte tilfeller ble kjørt igjen.
-29negative harnesscases ventet først feil exceptiontype; kun forventningen ble
-rettet og bare de29omkjørt. Produksjonsaksepten ble ikke lempet. Plan003 krever
-provisorisk driverkvalifikasjon: hver av366chrono-steps må straks væreidentisk
-med originalen, så alle8FINALstateproofs og81eval/20727rader med bitidentiske
-originalFINALactivity/side-logits. Ethvert avvik stopper FØR kandidatarmen.
-BarefullPASS åpner366permuterteupdates+81eval. Maks2fits/732updates/894FW og
-12durableCP(hver64ogFINAL perarm). Siste kontrollcheckpointvariabel frigis
-før andre restore, så CUDA AdamW-slots ikke beholdes dobbelt.
+Guardtopper: GPU65°C/minne72°C/210,64W/9824MiB, CPU44°C/34,60W;
+minste fysisk Windowsledig55,126GB og commitreserve49,779GB. Ingen målt
+ressursgrense ble brutt. CBS/WUrebootfalse ved breach. Vedlikeholdsflagget er
+konservativ OR av workerpresence eller setup/rebootstatus; også idleworker
+kan utløse det. Hvilken ORterm som vartrue vedstoppen er ikke lagret.
+Snapshot20:22:36UTC fant ingen workers, rebootfalse/setup0 og ingen relevante
+restart-/WindowsUpdateevents fra20:08. COMIsBusyUNKNOWN/E_ACCESSDENIED.
+Dette beviser ikke aktivinstallasjon eller planlagt omstart ved003stoppen.
 
-Standard runtime_compatible/strict_restore er fortsatt eksakt. Kun hashbundet,
-innrømmet003guard/policy med eksakt591.86→610.88 og CP3328/proofbinding får
-provisorisk metadataauthority. OriginalCP/trajectory/producer/training_leaf_AST
-endres aldri. Smal3-owner-kildebro beviser2guard-eiere+2loadermetafunksjoner;
-59andre MAIN-eiere er bitlike. Alle tensor-/optimizer-/RNG-operasjoner i restore
-er AST-identiske med originalen. Ingen modell/input/target/loss-matematikkendring.
-GPU003ceiling er strammettil250/250W og75/80°C, VRAM12288MiB. CPU80/125 og
-20G/512M/8threads/CPU0–18/outer3600/model3570s består. Ingen hardwarepowerwrite.
-
-Første frosne16CPdiagnose er komplett: D1middelP(OPP)67,73%@CP512→38,75%@1792
-→55,37%@3328→64,10%FINAL påfasit54,32%. Readoutbytter trekker høyereTFlogitUP
-med hiddenfast; hiddenbytter alene trekkerNED. Funksjonelle bidrag er bevist,
-SGD-rekkefølgeårsak er ennå ikke bevist. Objektivnormaliseringens analytiske
-konstantpriorgrenser er peer-reprodusert utenarrays/modell: D153,4573–55,1239%.
-Dette er ikke en grense på et lært ikke-lineært output eller en ny prior-fit.
-OBJECTIVE_NORMALIZATION_BOUNDS001.json binder formel/kilder/rasjonalberegning.
-
-Siste001suffixstudie er konsumert/ufullført: controllerexit75, ingen original
-TERMINAL/RESULT/REORDERED_FINAL.pt. Kontrollarmen366updates gjenskapte original
-FINALbitlikt; kandidatupdates UNKNOWN. Ingen konsumert plan relanseres.
-Windows-arkivert User32ID1074 viste planlagt WindowsUpdate-restart09:30:04UTC;
-GPU-vakten mistettelemetri09:30:07. Overbelastning er IKKE påvist som årsak.
-Original16MAINCP+frozenCAPTURE+001kontroll og separateMac-backuper er bevart.
+Alle ni CPbytes/receipts og planbindinger er disk-SHAverifisert,0deserialisering.
+33artefakter/869062983bytes er separat Mac-sikret, atomisk no-replace,
+fsync/F_FULLFSYNC/kildebookends og faktiskdisk-SHAreadback PASS:
+`/Users/andrekildalbakke/GX1_BACKUP/CURRENT_BIAS_SUFFIX003_HOST_MAINTENANCE_STOP_20261122_001/MANIFEST.json`,
+SHAe3e4e0c142a3e1d3ae7e7a7ac1c1a366b0696d3fa0eaede5d68fc2eaa0d6d3e0.
+En filhashkontroll er ikke kald numerisk gjenopptakskvalifikasjon.
 
 Bevisrot `/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_BIAS_CAUSE_20261122_001`.
-ORDER_CANDIDATE003_DECISION001.json, SHA94773aee44afe833df884ac28b9e2ccbd735c8530ceb149c3becf422c4645edb,
-forhåndsregistrerer kontrollførst, ingen toleranseutvidelse og begrenset konklusjon.
-Neste: faktisk003runtime/plan/lett0modell-preflight og eksakt engangsadmisjon.
-Ingen ny kode/policyendring under kjøring. Resultatet vurderes før flere fits.
+SUFFIX003_STOP_REVIEW001.json SHAb0be9b90...712a40;002 SHA57650809...9a7f6
+presiserer forwardentrytelling. SUFFIX003_MAINTENANCE_OBSERVATION001.json
+SHAbd7c412d...469f9 binder begrenset senere readonlyOSobservasjon.
+Neste: vurder minste separate continuation fra omordnet192, med ekte full
+model/AdamW/RNG/mode/orderprefix-kaldrestore og eksisterende bitlike kontroll.
+Ingen ny plan/launch er ennå kvalifisert eller innrømmet. Ikke velg delcheckpoint
+etter resultat, ikke gjenta366kontroll uten konkret behov, ikke svekk ressursvakt.
+
+## Kvalifiserte ressursvakter og tidligere årsaksbevis
+
+Eksisterende signerteWindowsv2bro+cappedvakt krever ferske ti-kjerners/package-
+temperaturer/packagewatt, fysiskWindowsRAM/commit og vedlikeholds-/rebootstatus.
+Cachede CPUverdier nulles før måling. Manglende/ugyldige verdier stopper.
+CPU80°C/125W,8GiB RAM/commitreserve; prelaunch fysiskRAM til helecgroup+reserve.
+GPU003grenser250Wdraw/limit,75°Ckjerne/80°Cminne/12288MiB, cgroup20G/512M,
+8tråder/CPU0–18/tasks128/outer3600s. Ingen hardwarepowerwrite eller svekket
+Defender/signering/boot. PawnIO2.2.0 er hash-/Authenticodekvalifisert/installert.
+56query+54guard+15installer+18PowerShelltilfeller og faktisk signedv2/sleeper PASS.
+Første2stimeout og testsertifikatharnessfeil beholdes; sammegrenser bestod senere.
+HOST_RESOURCE_QUALIFICATION_REVIEW001/LIVE_GUARD003 binder beviset.
+MacmanifestCURRENT_HOST_RESOURCE_SAFETY_20261122_001 SHA43ff822f...3b12c.
+Ny faktisk runtime/preflight kreves etter boot; ingen garanti mot enhver OSrestart.
+
+003kilde106unikeguard/loader- og81modul/brotilfeller PASS. Signed-zero-negativcase
+førte til krav om både array_equal og identiskrawSHA; bare7berørte omkjørt.
+29negative harnesscases ventet først feil exceptiontype; bareforventning rettet.
+Strictdefaultloadere er fortsatt eksakte;003metadataauthority er smalt plan-/
+policybundet. Alle tensor-/optimizer-/RNGoperasjoner er ASTidentiske originalen.
+Ingen modell/input/target/lossmatematikkendring. 002 ble stoppet før plan/CLAIM/
+modell fordi ny GPUdriver610.88 var ulik original591.86; ikke relanserbar gammeladmisjon.
+003preflightMacbackup16artefakter5344055bytes SHAefb68f93...98f599 består.
+
+Frossen16CPdiagnose er COMPLETE: D1middelP(OPP)67,73%@512→38,75%@1792
+→55,37%@3328→64,10%FINAL motfasit54,32%. Readoutbytter løfter høyereTFlogits
+medhiddenfast; hiddenbytter alene trekkerNED. Funksjonsbidrag er bevist,
+SGDrekkefølgeårsak er ennåikke bevist. Analytiske konstantpriorgrenser fraekte
+objektivnormalisering D153,4573–55,1239% er peerreprodusert utenarrays/modell;
+dette avgrenser en konstantmodell, ikke lært ikke-lineær output/AdamW/recency.
+OBJECTIVE_NORMALIZATION_BOUNDS001.json binder formel/kilder/rasjonalberegning.
+
+Tidligere001suffix er konsumert/ufullført ved beviselig WindowsUpdate-restart
+(User32ID1074kl09:30:04UTC); guard mistettelemetri09:30:07. Original366kontroll
+varbitlikFINAL, kandidatupdatesUNKNOWN. IngenoriginalTERMINAL/RESULT.
+Overbelastning var ikke påvist. Alleoriginal16MAINCP/frozencapture/001kontroll
+og separateMacbackuper består. 003stoppen har annen og svakere OSårsaksevidens.
 
 ## Undersøkt retningsskjevhet 22.11.2026
 
