@@ -4,6 +4,23 @@ Arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 Les `GX1_RULES.md` helt. `NEXT_RUN_POLICY.json` er eneste arbeidsstatus.
 Originale prosess-/terminalkvitteringer overstyrer prosa. Historikk finnes i Git.
 
+## Aktivt årsaksmål 22.11.2026
+
+Brukeren bestiller nytt mål for å finne årsaken til OPP-skjevheten.
+Målchat01a20035-2836-7f62-bb88-9e24603a51a5; eiernative_future_state_bias_cause_20261122_001.
+Frossen16checkpointdiagnose klargjøres på samme20727TRAINkohort, E256,
+med1296modell/backboneforwards og324ekstrareadoutforwards,0optimizer/autograd/fits.
+CP256/FINAL2x2readout/hiddenbytter skal skille funksjonelle bidrag; de alene
+beviser ikke treningsrekkefølgens årsaksrolle. Velg senere én isolert intervensjon
+ut fra målt onset; ingen automatisk hovedepoke eller nyTEST/CONTROL/VAL-scoring.
+Alle fem treningsporter er false. Eksakt plan/runtime/admisjon og faktiskCUDA gjenstår.
+Minste nødvendige kildeutvidelse er én separat readonlyvakt/diagnoseeier fordi
+fortidige entrypoints ikke støtter dette. Ingen numeriskmodell/input/target/lossrecipe er endret.
+17fokuserte diagnosecaser og42vaktcaser samt faktisk bundet norm/input/prior/CP-
+kontraktmetadata består. Begge kildebroer bevarer gamle vakter; peerreview av
+konsument/restore/masker/tellere/feilrapportering er utført og konkrete gap rettet.
+Bevisrot: `/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_BIAS_CAUSE_20261122_001`.
+
 ## Undersøkt retningsskjevhet 22.11.2026
 
 Brukeren bestilte undersøkelse av OPP-skjevhet og stabilitetsalternativer.
