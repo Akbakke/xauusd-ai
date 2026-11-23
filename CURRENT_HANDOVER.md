@@ -14,7 +14,8 @@ Status: native_twenty_step_qualification_20261123_001 i policy.
 REVIEW_CHECKPOINT009:13PASS/3FAIL/4UNKNOWN; samlet false.
 Administrative20PASS; resten krever navngitteeksternekildebevis.
 REQUIRED_EXTERNAL_EVIDENCE_BLOCKED_AUDIT001 eroppfylt over3målfortsettelser;
-chatmålet settesBLOCKED etter sistekilde-/backupkontroll, aldriCOMPLETE.
+Tidligeremålblokkering beholdes somhistorikk; nyautorisertOANDAkilderute
+girnådirektebevis tilvidereD1målkontraktvurdering, aldriCOMPLETE.
 
 Hovedmålet er fortsatt ONGOING_NOT_MET: nyttige framtidige tosidige prognoser,
 alle aktive genuine indikatorer/åtte familier, M5utstedelse med M15/H1/H4/D1
@@ -159,29 +160,35 @@ Mac002inputs5filer/5213805bytes ogsåseparatverifisert.
 ADMINISTRATIVE_FINAL_READINESS005 og REVIEW_CHECKPOINT009 binder20steg.
 OriginalMAIN59/62helfilhasher likeCURRENT;3historiske vakt-/eksaktgjen-
 opptakelsesutvidelser er eksplisitt avstemt, ikke endret i denne bølgen.
-Root eier policy/launch/samlet kontroll. NyeMac-ruter er avsluttet:
-001 PRELAUNCH_DEFECT_UNCLAIMED_CLOSED:globalvaktglippe førsetup blefanget
-førMacfiler/ROOT/HTTP; originalplan/kvalifisering/ERRATUM001 beholdes.
-002 FAILED_CONSUMED_CLOSED:rettetglobal90 førsetup,20swall/POST,1MiB,
-11fokusertecases ogblokkert metadatabuilderPASS. EttDGS2POST-forsøk fikk
-RemoteDisconnected utenHTTPstatus/body; DGS10/DFII10ikkeforsøkt. Alle
-kilde-/plan-/policybookends true;0obs/modell/FW/fit/nativeinputendring.
-Mac erikke WSLcgroup. Åtteoriginale feilkvitteringer/logger bleoverført
-oghashverifisert i canonicalWSL capped4G/512M/éntråd; RELAY_RECEIPT.json
-ogTREASURY_MAC_RELAY_FAILURE_REVIEW002 binder faktiskfravær avnyedata.
+Root eier policy/launch/samlet kontroll. Brukeren23.11 autoriserte eksplisitt
+ny OANDAdemo-henting fra lagretAPI. Prosjektets CURRENT/.env fungerer;
+sekundær ~/.config/gx1/oanda_practice.env harannen nøkkel ogga401. Ingen
+nøkler/kontoID erlogget/kopiert/endret. Brukprosjektprofilen, barepractice.
 
-Eksternblokkeringsaudit001 er oppfylt: samme03kalenderkrav stårUNKNOWN
-over minst3påfølgende målfortsettelser, avstemt motREVIEW006/007/008 og
-faktiske målmeldingstider. Forrige/nåværende bølge gaekteframgang; nå er
-ikke flere påviste interne feil eller kvalifiserte tilgjengelige kilderuter
-igjen somkanlukke kravene. API-GET output_type4 kreverregistrertnøkkel;
-ingen nøkkel erkonfigurert i kontrollerte miljø-/standardprosjektfiler.
-Ingen konto/APIbruk/gjetting avGET/adgangskrav ellernyePOSTer innrømmes.
+NyttOANDAbevis (OANDA_DEMO_REFERENCE_ACCEPTANCE001):
+- M5gaprequery001:ettGET401, lukket;002:toGET200,3,767s. Ordinært
+  Jan4/2021gap22–23UTC ogsøndagNov21/2021gap23–00UTC manglerfortsatt.
+- D1REFERENCE001:ettGET200,1,067s;1290completeD-bars2021-01-03T22UTC..
+  2025-12-30T22UTC, dailyAlignment22/alignmentTimezoneUTC, MBA. JSON614909B
+  bevartiRUNS, aldriGit. Ingen data/feature/target/pipelinebytte.
+- D1COMPARE001:5bundne2021–25M5parts/354550rader,39,7MBlogisk.
+  Sammenhengende22UTCaggregat inklførstebin/årsskifter:ALLE1290×13
+  bid/ask/midOHLC+tickvolume eksaktlikeleverandør-D1,0mangler/ekstra,
+  0,638sCPU. Detteerobservedaggregatparitet, ikkeallquotes/kalender/vintage.
+- D1TARGETJOIN001:7autentiserteTRAINmålarrays/62,0MB;1289modneunike
+  D1vinduer,234strictcomplete/1055incomplete. ALLE1289harpris-/volumparitet
+  motdirekteOANDA; alle1055utelukkedeer dermednavngitt iD1_WINDOW_LEDGER.
 
-Foråkommevidere trengs datertoffisiell kalender/quoteavailability forsamme
-practice-feed2021–2025 ogautentiskmacroførstevintage/publisering, eller
-en tilgjengelig kvalifisertinnhentingsrute.07deler03/09-avhengigheten;
-11/12målrepresentativitet og15læring/19senerevalidering kanikkegodkjennes
-ved å gjette bortdisse. Ingen nyepoke/fit/fullVAL/TEST/trading; alleporterfalse.
-Bølgen er sikret/kildepublisert ogsluttkontrollert; settchatmåletBLOCKED
-på dokumentert eksternavhengighet. Samletkvalifikasjon ogedge erikkeoppnådd.
+Alle nye engangsjobber erstengt0/false,4G/512M/énnumerisktråd; ingenGPU/
+modell/FW/fit/CP/input-/mål-/maskeendringer. MAINcheckpointsogalle porter
+bevart; allefemtreningsporterfalse. Sourcehelpers/manifest/kvitteringer i
+bevisroten erimmutabile, ikke nye rammeverk ellerfortrengning avoriginaler.
+
+Neste konkretearbeid: vurder snevertleverandør-HLC-observasjonssertifikat
+for1055verifiserteD1vinduer. Selvefasiten brukerH/L/sluttC ogkausalATR,
+ingenførstetreffrekkefølge, mensnågjeldenecomplete-kontrakt kreverhver
+forventetM5utenforweeklyclosure. Nominalcompleteogkalenderfakta skalfå
+ståuendret; ingenautomatiskforcing avknown ellerfit. Egeneksaktkvalifisering
+krevesførmålkontraktendring.03/07/09/19UNKNOWN og11/12/15FAILbestår.
+Tidligereeksternblokkeringsauditbeskriverførnybrukerautorisert kilderute;
+nybevisrute er nååpen fordennevurderingen. Alle20erfortsattikkegodkjent.
