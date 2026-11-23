@@ -11,9 +11,9 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er ACTIVE uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT008:13PASS/3FAIL/4UNKNOWN; alle20 er undersøkt,
-samlet godkjenning er false. Administrative20 er PASS for ærlig status,
-kvalifiserte rettelser, avsluttede jobber, separatdisk og verifisert push.
+Sikret REVIEW_CHECKPOINT008:13PASS/3FAIL/4UNKNOWN; samlet false.
+Ny separat Macreferanserute er under kildekvalifisering; administrative20
+er REVIEWING til nye kontroller/sikring/push. Ingen vitenskapelig status heves.
 
 Hovedmålet er fortsatt ONGOING_NOT_MET: nyttige framtidige tosidige prognoser,
 alle aktive genuine indikatorer/åtte familier, M5utstedelse med M15/H1/H4/D1
@@ -159,5 +159,13 @@ opptakelsesutvidelser er eksplisitt avstemt, ikke endret i denne bølgen.
 Root eier policy/launch/samlet kontroll. Alle nye kildetester/metadatasmoke/prefix/D1jobber er ferdige og stengt;
 Treasury001 feilet trygt utenHTTPrespons. Sikre/push/opphavskontroll og
 oppdater20stegsstatus uten å oppgradere åpne lærings-/datakrav. Neste
-makrorute må være nyexactmanifest/plan; proxyvariabler/getproxies var
+makrorute er nå særskilt manifestert: TREASURY_INITIAL_RELEASE_MAC_RELAY_
+MANIFEST001 SHA5be39ed3...25ef51. SHA-identisk liten stdlib-adapter fra
+CURRENT tilMac; max3POST/20s wall/1MiB,90s totalt, ingen proxy/redirect/
+retry/auth/cookie. Macnett er ikke WSLcgroup; senere WSLbyte-/ZIPkontroll
+beholder4G/512M/éntråd. NyMacadapter/test:8fokusertecasesPASS etterfixtureisolering avpytestTorch;
+produksjonsvaktenuendret. Faktisk blokkertmetadatabuilderPASS/0HTTP/payload/
+ROOT/CLAIM. SOURCE_QUALIFICATION001 binderkilden. IngenfysiskMacinnhenting/
+plan/admisjon ennå.
+Proxyvariabler/getproxies var
 fraværende/tomme på beggeverter i metadatareview, ingen blokkering bevist.
