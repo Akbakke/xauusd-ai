@@ -10,7 +10,21 @@ import pytest
 
 from gx1.audit import native_provider_hlc_learning_v1 as m
 
-_ACTIVE_INPUTS = copy.deepcopy(m.RESUME_INPUTS)
+_LATEST_INPUTS = copy.deepcopy(m.RESUME_INPUTS)
+_ACTIVE_INPUTS = {key: copy.deepcopy(_LATEST_INPUTS[key]) for key in
+                  ('original_plan', 'original_claim', 'original_terminal', 'original_admitted_policy',
+                   'original_stop_review', 'original_backup', 'ancestral_checkpoint_receipt',
+                   'ancestral_checkpoint', 'ancestral_restore_proof')}
+_ACTIVE_INPUTS.update(checkpoint_receipt=_LATEST_INPUTS['previous_initial_receipt'],
+                      original_checkpoint=_LATEST_INPUTS['previous_initial_checkpoint'],
+                      previous_execution_plan=_LATEST_INPUTS['earlier_execution_plan'],
+                      previous_initial_receipt=_LATEST_INPUTS['intervening_checkpoint_receipt'],
+                      previous_initial_checkpoint=_LATEST_INPUTS['intervening_checkpoint'],
+                      earlier_execution_plan=_LATEST_INPUTS['original_resume_execution_plan'],
+                      previous_restore_proof=_LATEST_INPUTS['intervening_restore_proof'])
+_ACTIVE_INPUTS.update({key: {'path': '/synthetic/' + key + '.json', 'sha256': 'a' * 64}
+                      for key in ('previous_claim', 'previous_terminal', 'previous_admitted_policy',
+                                  'previous_stop_review', 'previous_backup', 'resume_scope')})
 _ACTIVE_LIMITS = copy.deepcopy(m.RESUME_LIMITS)
 
 
@@ -365,7 +379,7 @@ def test_physical_resume_has_one_load_restore_and_no_initial_checkpoint_authorit
     assert ast.unparse(next(call for call in calls if named(call, 'train', 'training_step')).args[-1]) == 'j'
 
 
-@pytest.mark.parametrize('start', [512, 1792, 2048])
+@pytest.mark.parametrize('start', [512, 1792, 2048, 3328])
 @pytest.mark.parametrize('restore_failure', [False, True])
 def test_physical_resume_synthetic_full_suffix_preserves_history_and_exact_counts(monkeypatch, restore_failure, start):
     """Exercise orchestration with fake construction/load/step/score, never native data/model."""
@@ -374,9 +388,10 @@ def test_physical_resume_synthetic_full_suffix_preserves_history_and_exact_count
     from gx1.contracts import market_state_ta_integrated_model_v1 as model_owner
     from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
     original, receipt, _, _, _, _, _, _, live, _, _ = _metadata_fixture(monkeypatch)
-    if start in (1792, 2048):
+    if start in (1792, 2048, 3328):
         receipt = copy.deepcopy(receipt)
-        checkpoint = _ACTIVE_INPUTS['previous_initial_checkpoint' if start == 1792 else 'original_checkpoint']
+        checkpoint = (_LATEST_INPUTS['original_checkpoint'] if start == 3328 else
+                      _ACTIVE_INPUTS['previous_initial_checkpoint' if start == 1792 else 'original_checkpoint'])
         receipt.update(logical_cursor=start, optimizer_updates=start, checkpoint=checkpoint)
     monkeypatch.setattr(m, 'RESUME_CURSOR', start)
     monkeypatch.setattr(m, 'RESUME_LIMITS', _suffix_limits(start))
@@ -646,15 +661,16 @@ def test_1792_rejects_wrong_previous_execution_ancestry_or_checkpoint_roles(monk
 def test_resume_bookend_hashing_allows_exact_ancestral_checkpoint_without_load(monkeypatch, tmp_path):
     plan, binding, _, hooks, _ = _run_fixture(monkeypatch, tmp_path)
     plan['inputs']['ancestral_checkpoint'] = {'path': str(tmp_path / 'ancestral512.pt')}
-    plan['inputs']['previous_initial_checkpoint'] = {'path': str(tmp_path / 'ancestral1792.pt')}
+    plan['inputs']['previous_initial_checkpoint'] = {'path': str(tmp_path / 'ancestral2048.pt')}
+    plan['inputs']['intervening_checkpoint'] = {'path': str(tmp_path / 'ancestral1792.pt')}
     hashes = []
     def bookend(checked):
-        for key in ('original_checkpoint', 'ancestral_checkpoint', 'previous_initial_checkpoint'):
+        for key in ('original_checkpoint', 'ancestral_checkpoint', 'previous_initial_checkpoint', 'intervening_checkpoint'):
             hooks[0]('open', (checked['inputs'][key]['path'],))
             hashes.append(checked['inputs'][key]['path'])
     monkeypatch.setattr(m, 'check_resume_sources_inputs', bookend)
     m.run_resume(binding['sha256'])
-    assert hashes == [plan['inputs'][key]['path'] for key in ('original_checkpoint', 'ancestral_checkpoint', 'previous_initial_checkpoint')]
+    assert hashes == [plan['inputs'][key]['path'] for key in ('original_checkpoint', 'ancestral_checkpoint', 'previous_initial_checkpoint', 'intervening_checkpoint')]
 
 
 def _resume2048_fixture(monkeypatch):
@@ -715,7 +731,7 @@ def test_2048_plan_preserves_immediate1792_and_original512_proofs(monkeypatch):
     original, receipt, previous, claim, restore, _, live = _resume2048_fixture(monkeypatch)
     plan = m.build_resume_plan(live)
     assert plan['starting_cursor'] == 2048 and plan['remaining_TRAIN_rows'] == 157942
-    assert plan['limits'] == _ACTIVE_LIMITS == _suffix_limits(2048)
+    assert plan['limits'] == _suffix_limits(2048)
     assert plan['limits']['optimizer_steps'] == 1646 and plan['limits']['model_forwards'] == 3031
     assert plan['checkpoint_global_cursors'] == [2304, 2560, 2816, 3072, 3328, 3584, 3694]
     assert plan['limits']['checkpoint_writes'] == 7
@@ -736,3 +752,124 @@ def test_2048_rejects_immediate_vs_deep_ancestor_confusion(monkeypatch, bad):
     elif bad == 'preserved_proof': values[m.RESUME_INPUTS['ancestral_restore_proof']['path']]['expected_state_proof']['steps'] = '0' * 64
     else: receipt['producer_runtime']['source_commit'] = original['source_commit']
     with pytest.raises(ValueError): m.build_resume_plan(live)
+
+
+def _resume3328_fixture(monkeypatch):
+    original, initial, earlier, earlier_claim, intervening_restore, values, live = _resume2048_fixture(monkeypatch)
+    prior_inputs = copy.deepcopy(m.RESUME_INPUTS)
+    monkeypatch.setattr(m, 'RESUME_INPUTS', copy.deepcopy(_LATEST_INPUTS))
+    monkeypatch.setattr(m, 'RESUME_CURSOR', 3328)
+    monkeypatch.setattr(m, 'RESUME_LIMITS', _suffix_limits(3328))
+    inputs = m.RESUME_INPUTS; original_ref = inputs['original_plan']; previous_ref = inputs['previous_execution_plan']
+    prepared = copy.deepcopy(earlier['metadata']['runtime'])
+    prepared.update(source_commit='222669c12bfff403997c7c80299dcbf38593537b', observed_utc='2026-11-23T22:30:00+00:00')
+    producer = copy.deepcopy(prepared); producer['observed_utc'] = '2026-11-23T22:31:00+00:00'
+    previous = copy.deepcopy(earlier)
+    previous.update(source_commit=prepared['source_commit'], stage=Path(previous_ref['path']).stem.lower(),
+                    output_root=str(Path(inputs['original_checkpoint']['path']).parent), starting_cursor=2048,
+                    inputs={**original['inputs'], **prior_inputs})
+    previous['metadata'].update(runtime=prepared, receipt=copy.deepcopy(initial))
+    receipt = copy.deepcopy(initial)
+    receipt.update(checkpoint=inputs['original_checkpoint'], execution_plan=previous_ref,
+                   producer_runtime=producer, logical_cursor=3328, optimizer_updates=3328)
+    receipt['proof']['position'] = m.core.state_sha(m.train.position(original['schedule'], 3328))
+    claim = copy.deepcopy(earlier_claim)
+    claim.update(plan=previous_ref, runtime=copy.deepcopy(producer), starting_cursor=2048,
+                 restored_checkpoint_receipt=inputs['previous_initial_receipt'], process_identity={'synthetic_previous003': True},
+                 policy_at_claim={'path': str(m.POLICY), 'sha256': inputs['previous_admitted_policy']['sha256']})
+    policy = dict.fromkeys(m.FLAGS, True); policy['full_val_allowed'] = False
+    policy[previous['stage']] = m.resume_gate(previous_ref, True, cursor=2048)
+    terminal = {'status': 'FAILED_CONSUMED', 'exit_code': 1, 'plan': previous_ref,
+                'claim': inputs['previous_claim'], 'remaining_invocations': 0, 'relaunch_allowed': False}
+    restore = copy.deepcopy(intervening_restore)
+    restore.update(status='PASS_CANONICAL_CURSOR2048_MODEL_ADAMW_RNG_RESTORE', execution_plan=previous_ref,
+                   checkpoint=inputs['previous_initial_checkpoint'], checkpoint_receipt=inputs['previous_initial_receipt'],
+                   position=m.train.position(original['schedule'], 2048), expected_state_proof=copy.deepcopy(initial['proof']))
+    review = {'execution_plan': previous_ref, 'original_plan': original_ref, 'process_stopped': True,
+              'completed_epoch': False, 'last_durable_cursor': 3328, 'last_durable_rows': 319488,
+              'last_durable_checkpoint': inputs['original_checkpoint'], 'last_durable_receipt': inputs['checkpoint_receipt'],
+              'restore2048_proof': inputs['previous_restore_proof'], 'actual_cursor2048_tensor_restore_qualified': True,
+              'guard_stop_reason': 'host_maintenance_active'}
+    backup = {'schema_version': 'gx1_bound_separate_disk_backup_ack_v1',
+              'status': 'PASS_FIVE_SUFFIX_CHECKPOINTS_THROUGH3328_AND_ORIGINAL_RECEIPTS',
+              'Mac_F_FULLFSYNC_and_disk_SHA_readback': True, 'checkpoint_files': 5, 'files': 40, 'total_bytes': 502681793}
+    scope = {role: inputs[key] for key, role in {'original_plan': 'original_plan', 'checkpoint_receipt': 'previous_checkpoint_receipt',
+             'original_checkpoint': 'previous_checkpoint', 'previous_execution_plan': 'previous_execution_plan',
+             'previous_claim': 'previous_claim', 'previous_terminal': 'previous_terminal', 'previous_admitted_policy': 'previous_admitted_policy',
+             'previous_stop_review': 'previous_stop_review', 'previous_backup': 'previous_stop_backup'}.items()}
+    scope.update(starting_cursor=3328, previous_source_commit=prepared['source_commit'],
+                 new_plan_path=str(m.RESUME_PLAN), new_output_root=str(m.RESUME_ROOT))
+    preserved = values[prior_inputs['ancestral_restore_proof']['path']]
+    intermediate = values[prior_inputs['previous_initial_receipt']['path']]
+    values.update({inputs[key]['path']: value for key, value in
+                  (('previous_execution_plan', previous), ('checkpoint_receipt', receipt), ('previous_claim', claim),
+                   ('previous_admitted_policy', policy), ('previous_terminal', terminal), ('previous_restore_proof', restore),
+                   ('previous_stop_review', review), ('previous_backup', backup), ('resume_scope', scope),
+                   ('previous_initial_receipt', initial), ('ancestral_restore_proof', preserved),
+                   ('intervening_checkpoint_receipt', intermediate), ('intervening_restore_proof', intervening_restore))})
+    return original, receipt, previous, claim, restore, values, live
+
+
+def test_3328_plan_preserves_distinct2048_1792_512_producer_proofs(monkeypatch):
+    original, receipt, previous, claim, restore, _, live = _resume3328_fixture(monkeypatch)
+    plan = m.build_resume_plan(live)
+    assert plan['starting_cursor'] == 3328 and plan['remaining_TRAIN_rows'] == 35062
+    assert plan['limits'] == _ACTIVE_LIMITS == _suffix_limits(3328)
+    assert plan['limits']['optimizer_steps'] == 366 and plan['limits']['model_forwards'] == 1751
+    assert plan['checkpoint_global_cursors'] == [3584, 3694] and plan['limits']['checkpoint_writes'] == 2
+    assert previous['starting_cursor'] == restore['position']['logical_cursor'] == 2048
+    assert restore['expected_state_proof'] == previous['metadata']['receipt']['proof']
+    assert receipt['producer_runtime'] == claim['runtime']
+    assert plan['metadata']['trajectory'] == m.trajectory(original)
+    assert plan['inputs']['earlier_execution_plan'] != plan['inputs']['original_resume_execution_plan']
+
+
+@pytest.mark.parametrize('bad', ['restore_points1792', 'restore_proof512', 'initial_receipt',
+                                'original_resume_ref', 'intervening_proof', 'intervening_receipt',
+                                'preserved_proof', 'producer_original'])
+def test_3328_rejects_immediate_vs_intervening_vs_original_confusion(monkeypatch, bad):
+    original, receipt, previous, _, restore, values, live = _resume3328_fixture(monkeypatch)
+    if bad == 'restore_points1792': restore['checkpoint'] = m.RESUME_INPUTS['intervening_checkpoint']
+    elif bad == 'restore_proof512': restore['expected_state_proof'] = values[m.RESUME_INPUTS['ancestral_checkpoint_receipt']['path']]['proof']
+    elif bad == 'initial_receipt': previous['metadata']['receipt']['logical_cursor'] = 1792
+    elif bad == 'original_resume_ref': previous['inputs']['earlier_execution_plan'] = m.RESUME_INPUTS['earlier_execution_plan']
+    elif bad == 'intervening_proof': values[m.RESUME_INPUTS['intervening_restore_proof']['path']]['expected_state_proof']['steps'] = '0' * 64
+    elif bad == 'intervening_receipt': values[m.RESUME_INPUTS['intervening_checkpoint_receipt']['path']]['execution_plan'] = m.RESUME_INPUTS['earlier_execution_plan']
+    elif bad == 'preserved_proof': values[m.RESUME_INPUTS['ancestral_restore_proof']['path']]['expected_state_proof']['steps'] = '0' * 64
+    else: receipt['producer_runtime']['source_commit'] = original['source_commit']
+    with pytest.raises(ValueError): m.build_resume_plan(live)
+
+
+@pytest.mark.parametrize('bad', [None, 'size', 'bool_size', 'extra', 'sha'])
+def test_resume_reference_optional_bytes_requires_exact_real_file_binding(tmp_path, bad):
+    path = tmp_path / 'producer_plan.json'; path.write_text('{"producer":"resume003"}\n')
+    binding = {**m.ref(path), 'bytes': path.stat().st_size}
+    if bad == 'size': binding['bytes'] += 1
+    elif bad == 'bool_size': binding['bytes'] = True
+    elif bad == 'extra': binding['unexpected'] = 'must-not-be-ignored'
+    elif bad == 'sha': binding['sha256'] = '0' * 64
+    if bad:
+        with pytest.raises(ValueError): m.resume_reference(binding, path)
+    else: assert m.resume_reference(binding, path) == path
+
+
+@pytest.mark.parametrize('wrong_bytes', [False, True])
+def test_3328_stop_review_execution_plan_accepts_only_verified_optional_size(monkeypatch, wrong_bytes):
+    _, _, _, _, _, values, live = _resume3328_fixture(monkeypatch)
+    review = values[m.RESUME_INPUTS['previous_stop_review']['path']]
+    review['execution_plan'] = {**review['execution_plan'], 'bytes': 1955378 + int(wrong_bytes)}
+    previous_reference = m.resume_reference
+    seen = []
+    def reference(binding, expected_path=None):
+        if 'bytes' in binding:
+            seen.append(binding)
+            assert expected_path == Path(m.RESUME_INPUTS['previous_execution_plan']['path'])
+            m.need(type(binding['bytes']) is int and binding['bytes'] == 1955378, 'RESUME_REFERENCE_BYTES')
+            return previous_reference({key: binding[key] for key in ('path', 'sha256')}, expected_path)
+        return previous_reference(binding, expected_path)
+    monkeypatch.setattr(m, 'resume_reference', reference)
+    if wrong_bytes:
+        with pytest.raises(ValueError, match='RESUME_REFERENCE_BYTES'): m.build_resume_plan(live)
+    else:
+        plan = m.build_resume_plan(live)
+        assert plan['starting_cursor'] == 3328 and seen == [review['execution_plan']]

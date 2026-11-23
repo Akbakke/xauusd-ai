@@ -11,7 +11,7 @@ from gx1.contracts import gx1_capped_execution_v1 as g
 RAW = b'{"synthetic_guard_fixture":true}\n'
 SHA = hashlib.sha256(RAW).hexdigest()
 MODULE = 'gx1.audit.native_provider_hlc_learning_v1'
-BASENAME = 'NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_003'
+BASENAME = 'NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004'
 PARENT = 'aa6f23bb6ad0d867fc23f3604b8399e89b633ed6'
 GUARDS = {
     'gx1/contracts/gx1_capped_execution_v1.py': '2a26866baba68182d460a38f556004b043d8aef1aaaa8d21e4eaecc77c534f8c',

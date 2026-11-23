@@ -360,14 +360,14 @@ def quality_panels(context, outputs):
     }
 
 # Cursor512 resume authority: additive orchestration only.
-RESUME_NAME='NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_003'
+RESUME_NAME='NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004'
 RESUME_STAGE=RESUME_NAME.lower();RESUME_PLAN=REPO/'configs/research'/(RESUME_NAME+'.json');RESUME_ROOT=ROOT.parent/RESUME_NAME
 RESUME_ANCHOR='aa6f23bb6ad0d867fc23f3604b8399e89b633ed6'
 RESUME_PRODUCER='3bd2cde102afedf81f047e9804e90765b09aad02'
 RESUME_TEST='tests/test_native_provider_hlc_learning_resume_v1.py'
 RESUME_GUARD_TEST='tests/test_native_provider_hlc_learning_resume_guard_v1.py'
-RESUME_CURSOR=2048
-RESUME_LIMITS={'model_constructions':1,'optimizer_constructions':1,'feature_cache_payload_loads':1,'target_archive_loads':1,'model_forwards':3031,'backbone_forwards':3031,'readout_forwards':3031,'optimizer_steps':1646,'backward_calls':1646,'autograd_calls':0,'skipped_batches':0,'checkpoint_writes':7,'checkpoint_readbacks':7,'checkpoint_receipt_writes':7,'checkpoint_loads':1,'model_restores':1}
+RESUME_CURSOR=3328
+RESUME_LIMITS={'model_constructions':1,'optimizer_constructions':1,'feature_cache_payload_loads':1,'target_archive_loads':1,'model_forwards':1751,'backbone_forwards':1751,'readout_forwards':1751,'optimizer_steps':366,'backward_calls':366,'autograd_calls':0,'skipped_batches':0,'checkpoint_writes':2,'checkpoint_readbacks':2,'checkpoint_receipt_writes':2,'checkpoint_loads':1,'model_restores':1}
 RESUME_INPUTS={'original_plan': {'path': '/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PROVIDER_HLC_ONE_EPOCH_20261123_001.json',
                    'sha256': '68dd2bf33283ed72109e835228f964d54ebf075eb37297aba8a21d2b7826860c'},
  'original_claim': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_20261123_001/CLAIM.json',
@@ -384,34 +384,42 @@ RESUME_INPUTS={'original_plan': {'path': '/home/andre2/src/GX1_CURRENT/configs/r
                                   'sha256': '24ccf435e4c6d93ebb13a97e5ce613a5254d0aa58c61607f2bb27a290fd9693f'},
  'ancestral_checkpoint': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_20261123_001/UPDATE000512.pt',
                           'sha256': '0b2d66011cb364da73d104be43d83951c9ff2945f836edae8f570886519563b1'},
- 'checkpoint_receipt': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_002/UPDATE002048.json',
-                        'sha256': '2813df069dc4f186e004e6dc41a53e229e921ddf8d12e8b3dd03075bdd63e474'},
- 'original_checkpoint': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_002/UPDATE002048.pt',
-                         'sha256': 'cd9616fdac44e1bec311bc2ac2a6ef880b9b28ab83105376faba618d5809240e'},
- 'previous_execution_plan': {'path': '/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_002.json',
-                             'sha256': 'b16ba193e96d2d6365ab86a04a1183e5caf8b308644d9aa24e91b2cbd2529fb9'},
- 'previous_claim': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_002/CLAIM.json',
-                    'sha256': 'be70884108f7e0fce6939dc7c3094229e6724815c6470dea3bb74ae4aad4d57d'},
- 'previous_terminal': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_002/TERMINAL.json',
-                       'sha256': '4ada7d290af261bce5c30a4a90eae94789e4d8c7478aa4b2e6a51a3ea8ead8e1'},
- 'previous_admitted_policy': {'path': '/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/POLICY_PROVIDER_HLC_RESUME1792_ADMITTED001.json',
-                              'sha256': '4c93831124b97043bb1925a7fed6b77f62acb20d7f7c431d378636c819574159'},
- 'previous_stop_review': {'path': '/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME1792_STOP_REVIEW001.json',
-                          'sha256': 'd64d186149e7766920b1e204f102e80798ff94e34f9148dcbb6da8ecffd020f5'},
- 'previous_backup': {'path': '/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME1792_STOP_BACKUP001.json',
-                     'sha256': '5072b44746196669f0c8263101c95d67cc2ca38d8253541f7a9ecef456d7f378'},
- 'previous_restore_proof': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_002/RESTORE1792_PROOF.json',
-                            'sha256': '513e2d8da5dd1bbf68aa08efb402bad33d9536933c6fdf02a75eccfc28c28ace'},
- 'previous_initial_receipt': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_001/UPDATE001792.json',
-                              'sha256': 'c7bb0d30d80ef5b27542b5cb9ab743d28aa6ce6e3c872b12d932a4e4f466b552'},
- 'previous_initial_checkpoint': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_001/UPDATE001792.pt',
-                                 'sha256': 'e3eeb6853e2dfe18215d1b1817d90236ca08396a63d9b241f0faf70fa8994d78'},
- 'earlier_execution_plan': {'path': '/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_001.json',
-                            'sha256': '3dcb7d46e936f9d3b11d7166705ec7d38772d133b042d4c2cec9085d95a1bc55'},
  'ancestral_restore_proof': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_001/RESTORE512_PROOF.json',
                              'sha256': 'e47e67b774ff46747cfe36274a67e53f39fea4c7784475a93e73517eab72e14f'},
- 'resume_scope': {'path': '/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME2048_SCOPE001.json',
-                  'sha256': '84cca6fe7ff49e46a6bb723c58c267b3d1aa21746cd300557ec661cd1eb50ad5'}}
+ 'checkpoint_receipt': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_003/UPDATE003328.json',
+                        'sha256': 'eb514ac50afb53506f086a8c2dfc7d13e0ee644c2602818239af27f108d526d1'},
+ 'original_checkpoint': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_003/UPDATE003328.pt',
+                         'sha256': '9c46a0f88f1ef8f695d1319400b37c462c691e9cb150896a15bb9e8bf89a2f10'},
+ 'previous_execution_plan': {'path': '/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_003.json',
+                             'sha256': '06a24c3d4d06e343a2cd8c2428258764a8794e68f2f71748b6c2c4cfdf0fd7f0'},
+ 'previous_claim': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_003/CLAIM.json',
+                    'sha256': '38384970d27c549d663aaa7b2f80c8628c230f4641df2d523cae1e2d454070ac'},
+ 'previous_terminal': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_003/TERMINAL.json',
+                       'sha256': '41b5955cfa7a62f52b828949eb13b65c49e908bb33738a68d2c545319a57e65c'},
+ 'previous_admitted_policy': {'path': '/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/POLICY_PROVIDER_HLC_RESUME2048_ADMITTED001.json',
+                              'sha256': '24c33aefc56870ad00132e7400b7c35ab3f636ff7337c4f8ea53c56dd94cff75'},
+ 'previous_stop_review': {'path': '/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME2048_STOP_REVIEW001.json',
+                          'sha256': '792b804bea5c0d3ddc5e977d67ee3c99650c46356a7205492f42f0bc370be384'},
+ 'previous_backup': {'path': '/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME2048_STOP_BACKUP001.json',
+                     'sha256': '355551c64a0e0b4c017cb03fd3be123333e45287b4115c341720ad37b608cb90'},
+ 'previous_restore_proof': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_003/RESTORE2048_PROOF.json',
+                            'sha256': '4875cb0c1e803ae48f148b7a79e1fe3467c57e546e1f501d11818639beefd619'},
+ 'previous_initial_receipt': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_002/UPDATE002048.json',
+                              'sha256': '2813df069dc4f186e004e6dc41a53e229e921ddf8d12e8b3dd03075bdd63e474'},
+ 'previous_initial_checkpoint': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_002/UPDATE002048.pt',
+                                 'sha256': 'cd9616fdac44e1bec311bc2ac2a6ef880b9b28ab83105376faba618d5809240e'},
+ 'earlier_execution_plan': {'path': '/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_002.json',
+                            'sha256': 'b16ba193e96d2d6365ab86a04a1183e5caf8b308644d9aa24e91b2cbd2529fb9'},
+ 'original_resume_execution_plan': {'path': '/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_001.json',
+                                    'sha256': '3dcb7d46e936f9d3b11d7166705ec7d38772d133b042d4c2cec9085d95a1bc55'},
+ 'intervening_checkpoint_receipt': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_001/UPDATE001792.json',
+                                    'sha256': 'c7bb0d30d80ef5b27542b5cb9ab743d28aa6ce6e3c872b12d932a4e4f466b552'},
+ 'intervening_checkpoint': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_001/UPDATE001792.pt',
+                            'sha256': 'e3eeb6853e2dfe18215d1b1817d90236ca08396a63d9b241f0faf70fa8994d78'},
+ 'intervening_restore_proof': {'path': '/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_002/RESTORE1792_PROOF.json',
+                               'sha256': '513e2d8da5dd1bbf68aa08efb402bad33d9536933c6fdf02a75eccfc28c28ace'},
+ 'resume_scope': {'path': '/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME3328_SCOPE001.json',
+                  'sha256': '74d5c741b597c25b8aeee0977380f87a4a27e6b16a7c99f46778cf9ffc203b1b'}}
 
 
 def resume_gate(binding,admitted=False,*,cursor=None):
@@ -419,8 +427,11 @@ def resume_gate(binding,admitted=False,*,cursor=None):
 
 
 def resume_reference(binding,expected_path=None):
- path=train.require_recovery_ref(binding,expected_path=expected_path,suffix=Path(binding['path']).suffix)
- need(path.is_file()and not path.is_symlink()and path.resolve()==path and ref(path)==binding,'RESUME_CANONICAL_REFERENCE')
+ need(type(binding)is dict and set(binding)in ({'path','sha256'},{'path','sha256','bytes'}),'RESUME_REFERENCE_FIELDS')
+ canonical={key:binding[key]for key in ('path','sha256')}
+ path=train.require_recovery_ref(canonical,expected_path=expected_path,suffix=Path(binding['path']).suffix)
+ need(path.is_file()and not path.is_symlink()and path.resolve()==path and ref(path)==canonical,'RESUME_CANONICAL_REFERENCE')
+ if 'bytes'in binding:need(type(binding['bytes'])is int and binding['bytes']==path.stat().st_size,'RESUME_REFERENCE_BYTES')
  return path
 
 
@@ -455,6 +466,8 @@ def resume_original_metadata(original,inputs):
  keys={'schema_version','checkpoint','original_plan','execution_plan','producer_lane','producer_runtime','logical_cursor','optimizer_updates','trajectory_sha256','proof'}
  checkpoints=[(ancestor,512,original_ref,inputs.get('ancestral_checkpoint',inputs['original_checkpoint'])),(receipt,RESUME_CURSOR,execution_ref,inputs['original_checkpoint'])]
  if initial is not ancestor:checkpoints.append((initial,previous['starting_cursor'],inputs['earlier_execution_plan'],inputs['previous_initial_checkpoint']))
+ if 'intervening_checkpoint_receipt'in inputs:
+  intervening=read(inputs['intervening_checkpoint_receipt']);checkpoints.append((intervening,1792,inputs['original_resume_execution_plan'],inputs['intervening_checkpoint']))
  for item,cursor,execution,checkpoint_ref in checkpoints:
   need(type(item)is dict and set(item)==keys,'RESUME_RECEIPT_SCHEMA');proof=train.require_recovery_checkpoint_proof(item['proof'])
   need(item['schema_version']=='gx1_native_future_state_training_checkpoint_receipt_v1'
@@ -495,19 +508,21 @@ def resume_original_metadata(original,inputs):
        and proof_event['position']==train.position(schedule,previous['starting_cursor'])
        and proof_event['expected_state_proof']==initial['proof']and proof_event['uninterrupted_next_step_parity']=='NOT_MEASURED','RESUME_ANCESTRAL_RESTORE_PROOF')
   if 'ancestral_restore_proof'in inputs:
-   preserved=read(inputs['ancestral_restore_proof']);need(preserved['canonical_strict_restore_completed']is True and preserved['new_model_forwards']==0 and preserved['original_plan']==original_ref and preserved['execution_plan']==inputs['earlier_execution_plan']and preserved['checkpoint']==ancestor['checkpoint']and preserved['checkpoint_receipt']==inputs['ancestral_checkpoint_receipt']and preserved['position']==train.position(schedule,ancestor['logical_cursor'])and preserved['expected_state_proof']==ancestor['proof'],'RESUME_PRESERVED_ORIGINAL_RESTORE_PROOF')
+   preserved=read(inputs['ancestral_restore_proof']);need(preserved['canonical_strict_restore_completed']is True and preserved['new_model_forwards']==0 and preserved['original_plan']==original_ref and preserved['execution_plan']==inputs.get('original_resume_execution_plan',inputs['earlier_execution_plan'])and preserved['checkpoint']==ancestor['checkpoint']and preserved['checkpoint_receipt']==inputs['ancestral_checkpoint_receipt']and preserved['position']==train.position(schedule,ancestor['logical_cursor'])and preserved['expected_state_proof']==ancestor['proof'],'RESUME_PRESERVED_ORIGINAL_RESTORE_PROOF')
+  if 'intervening_checkpoint_receipt'in inputs:
+   need(previous['inputs']['previous_initial_receipt']==inputs['intervening_checkpoint_receipt']and previous['inputs']['previous_initial_checkpoint']==inputs['intervening_checkpoint']and previous['inputs']['earlier_execution_plan']==inputs['original_resume_execution_plan']and previous['inputs']['previous_restore_proof']==inputs['intervening_restore_proof']and previous['inputs']['ancestral_restore_proof']==inputs['ancestral_restore_proof'],'RESUME_INTERVENING_ANCESTRY_REFS')
+   restored=read(inputs['intervening_restore_proof']);need(restored['canonical_strict_restore_completed']is True and restored['new_model_forwards']==0 and restored['original_plan']==original_ref and restored['execution_plan']==inputs['earlier_execution_plan']and restored['checkpoint']==intervening['checkpoint']and restored['checkpoint_receipt']==inputs['intervening_checkpoint_receipt']and restored['position']==train.position(schedule,1792)and restored['expected_state_proof']==intervening['proof'],'RESUME_INTERVENING_RESTORE_PROOF')
   review=read(inputs['previous_stop_review']);backup=read(inputs['previous_backup'])
-  need(review['execution_plan']==execution_ref and review['original_plan']==original_ref and review['process_stopped']is True
+  resume_reference(review['execution_plan'],Path(execution_ref['path']))
+  need({key:review['execution_plan'][key]for key in ('path','sha256')}==execution_ref and review['original_plan']==original_ref and review['process_stopped']is True
        and review['completed_epoch']is False and review['last_durable_cursor']==RESUME_CURSOR
        and review['last_durable_rows']==RESUME_CURSOR*recipe['train_batch_rows']
        and {k:review['last_durable_checkpoint'][k]for k in ('path','sha256')}==inputs['original_checkpoint']
        and {k:review['last_durable_receipt'][k]for k in ('path','sha256')}==inputs['checkpoint_receipt']
        and {k:review['restore%d_proof'%previous['starting_cursor']][k]for k in ('path','sha256')}==inputs['previous_restore_proof']
        and review['actual_cursor%d_tensor_restore_qualified'%previous['starting_cursor']]is True and review['guard_stop_reason']=='host_maintenance_active','RESUME_PREVIOUS_STOP_REVIEW')
-  need(backup['schema_version']=='gx1_bound_separate_disk_backup_ack_v1'
-       and backup['status']==('PASS_FIVE_SUFFIX_CHECKPOINTS_THROUGH1792_AND_ORIGINAL_RECEIPTS'if initial is ancestor else'PASS_ONE_SUFFIX_CHECKPOINT_THROUGH2048_AND_ORIGINAL_RECEIPTS')
-       and backup['Mac_F_FULLFSYNC_and_disk_SHA_readback']is True and backup['checkpoint_files']==(5 if initial is ancestor else 1)
-       and backup['files']==(43 if initial is ancestor else 41)and backup['total_bytes']==(499529425 if initial is ancestor else 114414747),'RESUME_PREVIOUS_SEPARATELY_SECURED')
+  expected_backup={512:('PASS_FIVE_SUFFIX_CHECKPOINTS_THROUGH1792_AND_ORIGINAL_RECEIPTS',5,43,499529425),1792:('PASS_ONE_SUFFIX_CHECKPOINT_THROUGH2048_AND_ORIGINAL_RECEIPTS',1,41,114414747),2048:('PASS_FIVE_SUFFIX_CHECKPOINTS_THROUGH3328_AND_ORIGINAL_RECEIPTS',5,40,502681793)}[previous['starting_cursor']]
+  need(backup['schema_version']=='gx1_bound_separate_disk_backup_ack_v1'and backup['Mac_F_FULLFSYNC_and_disk_SHA_readback']is True and tuple(backup[key]for key in ('status','checkpoint_files','files','total_bytes'))==expected_backup,'RESUME_PREVIOUS_SEPARATELY_SECURED')
  for execution,binding,item,claim_key,terminal_key,policy_key,expected_gate in chains:
   core.future_cuda_runtime_matches(execution['metadata']['runtime'],item['producer_runtime'])
   claim=read(inputs[claim_key]);terminal=read(inputs[terminal_key]);policy=read(inputs[policy_key])
@@ -570,7 +585,7 @@ def inspect_resume(sha,admitted):
  need(plan==build_resume_plan(plan['metadata']['runtime'],plan['source_commit']),'RESUME_EXACT_PLAN');check_resume_sources_inputs(plan)
  pref=ref(POLICY);policy=read(pref);validate_flags(policy,admitted);need(policy[RESUME_STAGE]==resume_gate(binding,admitted),'RESUME_ONE_USE_GATE')
  ancestors=[(STAGE,plan['metadata']['original_plan'])]
- for role in ('earlier_execution_plan','previous_execution_plan'):
+ for role in ('original_resume_execution_plan','earlier_execution_plan','previous_execution_plan'):
   if role in plan['inputs']:ancestors.append((Path(plan['inputs'][role]['path']).stem.lower(),plan['inputs'][role]))
  for stage,ancestor in ancestors:
   old=policy[stage];need(old['plan']==ancestor and old['remaining_invocations']==0 and all(old[key]is False for key in ('execution_authorized','full_epoch_training_allowed','additional_epochs_allowed','test_authorized','relaunch_allowed')),'RESUME_CONSUMED_ANCESTOR_GATE_CLOSED')
@@ -639,7 +654,7 @@ def run_resume(sha):
  except BaseException:
   signal.setitimer(signal.ITIMER_REAL,0);raise
  try:
-  allowed={plan['inputs'][key]['path']for key in ('feature_archive','target_arrays','original_checkpoint','ancestral_checkpoint','previous_initial_checkpoint')if key in plan['inputs']};allowed|={str(RESUME_ROOT/name)for name in ['FINAL.pt','FINAL_LOGITS.npz']+['UPDATE%06d.pt'%j for j in plan['checkpoint_global_cursors']if j<plan['schedule']['logical_batches']]}
+  allowed={plan['inputs'][key]['path']for key in ('feature_archive','target_arrays','original_checkpoint','ancestral_checkpoint','previous_initial_checkpoint','intervening_checkpoint')if key in plan['inputs']};allowed|={str(RESUME_ROOT/name)for name in ['FINAL.pt','FINAL_LOGITS.npz']+['UPDATE%06d.pt'%j for j in plan['checkpoint_global_cursors']if j<plan['schedule']['logical_batches']]}
   def audit(event,args):
    if event in ('socket.connect','socket.getaddrinfo','urllib.Request'):raise RuntimeError('RESUME_NETWORK_FORBIDDEN')
    if event=='open'and isinstance(args[0],(str,bytes,os.PathLike)):
