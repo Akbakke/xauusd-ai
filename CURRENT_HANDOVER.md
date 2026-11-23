@@ -363,7 +363,32 @@ REVIEW_CHECKPOINT014:historisk13PASS/3FAIL/4UNKNOWNbeholdes;v2fullINITIAL
 ogcoldoptimizerreplaynåQUALIFIED,menv2læring/generalisering/edgeUNKNOWN.
 REVIEW014 retter kun foreldet UNKNOWN-tekst i steg16; original013 beholdes.
 Mainfitikkestartet,måletACTIVE,alle20fortsattikkeoppnådd.
-Neste:klargjør/reviewénnyfullcoveragev2TRAIN-læringsplan(ferskINITIAL002,
-354550issues/alleindis/5TF,fastoppskrift,én epoke,matchetprior ogfryste
-perTF/år/støtte/skjevhetskriterier). Ingenautomatiskfit/ekstraepoker.
-Kalender/firstvintage/representativitet/svaklæring/TEST-grenserbestår.
+V2-læringsruten er nå KILDEKVALIFISERT, ikke innrømmet eller kjørt.
+Minste målte blokkering var gammel v1 packet/score sin arraybehandling av
+sertifikatmetadata og initialscorerens krav om priorlikhet etter trening.
+Ny separat engangsautoritet gjenbruker gammel training_step/checkpoint og
+hele TRAIN-klokken. score_final er append-only i eksisterende HLC-adapter;
+alle gamle11739bytes/19AST-noder,modell/input/targetmatematikk er bevart.
+Ny guard er additiv: gamle Python-AST/shellbytes eksakt bevart.
+
+PROVIDER_HLC_LEARNING_SOURCE_QUALIFICATION001:190fokuserte cases PASS;
+faktisk metadatabuilder PASS med arrays/modell/optimizer/CUDA blokkert,
+76kildeeiere. B96:3694batcher/siste22; FINAL-B256:1385/siste246.
+5079FW/3694updates/16CP planlagt, ikke utført. Kildebevis16filer/1077578B
+er sikret på separat Macdisk, manifest5bd180fb...583e4ec.
+Første private /tmp-builderinvokasjon manglet importrot; samme builder
+bestod fra canonical cwd via -c. Ingen worker/CLAIM eller payload fra feilen.
+
+Ny plan låser TRAIN-sidekvalitet mot samme v2-prior: pooled hverTF og
+årlig/old-newD1-støtte rapporteres, AUC/NLL/Brier og begge argmaxretninger
+holdes atskilt. Ingen klassekvote, terskelsøk eller skjult priortilpasning.
+250W/75C-GPU,80C-minne,20G/512M og CPU/minne/hostvakter beholdes.
+V1referanse5664s gjelder annen driver/300W; ingen matchet ny ETA er målt.
+
+Neste:fersk committet kilde/runtime, eksakt engangsplan og canonical
+readonlypreflight, deretter fersk signert host og separat hashbundet
+admisjon før én full TRAIN-diagnoseepoke. Forhåndsvisningen i /tmp er
+ikke kjøreautoritet. Alle fem globale porter og ny stage er stengt.
+Mainfit ikke startet. Resultatet gjennomgås før flere epoker vurderes.
+Kalender/firstvintage/representativitet/læring/generalisering/edge og
+TEST-grenser består; historisk13PASS/3FAIL/4UNKNOWN er uendret.
