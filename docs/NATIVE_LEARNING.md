@@ -109,6 +109,24 @@ Ved komplett aktivt vindu er C−L og H−C de to endpointbevegelsene. Nøyaktig
 Ved nullskala kreves strengt positiv bevegelse. Dette påstår ingen observert
 high/low-rekkefølge eller universell latent regimefasit. Råfakta beholdes.
 
+En separat, eksplisitt `v2_provider_hlc`-kontrakt kan bruke hashbundet OANDA
+practice-D1 ved fast22UTC som provider-relativ H/L/C-fasit. Den krever eksakt
+samsvar mot lagret mål-H/L/C, modne framtidsvinduer, kausal ATR og bundet
+TRAIN-/kildeidentitet. `provider_hlc_observed` og `state_hlc_observed` er bare
+fasitmetadata; de føres aldri inn i modellen. Fravær av attest gir gammel
+standardoppførsel; feil attest avvises.
+
+Denne ruten omskriver ikke `nominal_complete`, `state_window_complete`,
+hulltellere, siste observerte endpoint-tid eller kalenderen. Den gamle
+`partial_range_active` beholdes som M5-klokkefaktum og kan derfor være sann
+samtidig med et nytt HLC-sidebevis. FLAT/side bruker kvalifisert HLC, samme
+0,5ATR/materialitetsgrenser og samme XOR-regel; begge/ingen side er ukjent.
+Providerclose er siste rapporterte close i baren, ingen bevist pris på det
+nominelle sluttsekundet. Alle andre TF-er og input-/normaliseringsfakta
+beholdes. Dette beviser ikke alle quotes, historisk kalender eller inputenes
+førstevintage. Ny mål-/prior-/loss-/score-identitet krever egen kandidat-
+kvalifisering og fersk initialbaseline før en ny, separat innrømmet fit.
+
 ACTIVE og UP|ACTIVE gir DOWN=a(1−s), FLAT=1−a, UP=as. Kjent aktivitets-BCE og
 sertifisert side-BCE deles på kjente aktivitetsceller. Ukjent side gir null
 direkte sidehodegradient med bevart aktivitetsgradient; helt ukjent celle er

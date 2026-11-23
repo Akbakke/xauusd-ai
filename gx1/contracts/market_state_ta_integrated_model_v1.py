@@ -515,12 +515,12 @@ def build_native_bar_direction_model(*, input_normalization, input_binding, arch
 
 def native_future_state_readout_contract(*, d_model, target_contract, train_prior):
     """Bind a hidden-only component; no backbone, label recipe or fit authority."""
-    from gx1.contracts.market_state_native_m5_targets_v1 import require_fully_future_state_contract
+    from gx1.contracts.native_future_state_provider_hlc_v1 import require_future_state_observation_contract
     from gx1.contracts.market_state_ta_integrated_objective_v1 import (
         native_future_state_objective_contract, require_native_future_state_train_prior,
     )
     _need(type(d_model) is int and d_model > 0, 'FUTURE_READOUT_WIDTH')
-    target = require_fully_future_state_contract(target_contract)
+    target = require_future_state_observation_contract(target_contract)
     prior = require_native_future_state_train_prior(train_prior, target_contract=target)
     value = {
         'schema_version': 'gx1_native_future_state_readout_component_v1',
@@ -655,11 +655,11 @@ def native_future_state_model_contract(input_binding, *, architecture, train_pri
                                        backbone_gradient_policy=None):
     """Full native forward identity; fit admission remains separate."""
     from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import CtxModelConfig
-    from gx1.contracts.market_state_native_m5_targets_v1 import require_fully_future_state_contract
+    from gx1.contracts.native_future_state_provider_hlc_v1 import require_future_state_observation_contract
     from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_future_state_train_prior
     binding = require_native_bar_input_binding(input_binding)
     _need(len(_native_bar_feature_keys(binding)) == 9, 'FUTURE_MODEL_TA_ONLY')
-    target = require_fully_future_state_contract(target_contract)
+    target = require_future_state_observation_contract(target_contract)
     prior = require_native_future_state_train_prior(train_prior, target_contract=target)
     keys = {'dropout', 'multi_tf_num_layers', 'multi_tf_scale',
             'specialist_num_layers', 'specialist_fusion_scale', 'cross_family_fusion_scale'}
@@ -706,13 +706,13 @@ class NativeFutureStateModel(nn.Module):
     def __init__(self, backbone, *, input_binding, architecture, train_prior, target_contract,
                  backbone_gradient_policy=None):
         super().__init__()
-        from gx1.contracts.market_state_native_m5_targets_v1 import require_fully_future_state_contract
+        from gx1.contracts.native_future_state_provider_hlc_v1 import require_future_state_observation_contract
         from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_future_state_train_prior
         _need(type(backbone) is EntryV10CtxHybridTransformer, 'FUTURE_MODEL_BACKBONE_TYPE')
         self.input_binding = require_native_bar_input_binding(input_binding)
         self._architecture = json.loads(json.dumps(architecture))
         self._backbone_gradient_policy = backbone_gradient_policy
-        self._target_contract = require_fully_future_state_contract(target_contract)
+        self._target_contract = require_future_state_observation_contract(target_contract)
         self._train_prior = require_native_future_state_train_prior(train_prior,
             target_contract=self._target_contract)
         self.backbone = backbone

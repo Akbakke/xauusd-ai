@@ -192,3 +192,19 @@ ståuendret; ingenautomatiskforcing avknown ellerfit. Egeneksaktkvalifisering
 krevesførmålkontraktendring.03/07/09/19UNKNOWN og11/12/15FAILbestår.
 Tidligereeksternblokkeringsauditbeskriverførnybrukerautorisert kilderute;
 nybevisrute er nååpen fordennevurderingen. Alle20erfortsattikkegodkjent.
+
+## Aktiv D1-HLC-kvalifisering
+
+Etter atbrukeren fjernetgammeltmål, ernyttmål opprettetACTIVE i sammechat,
+uten tokenbudsjett. Hele20steg/hovedmålbeholdes; lokaltekniskPASS erikkeedge.
+D1_PROVIDER_HLC_DESIGN001 er vedtatt:egeneksplisitt v2-observasjonsrute,
+ingenforcing avkalender/complete elleravtvetydigside. Nyrenkontrakteier
+autentiserer nøyaktigeleverandørbytes ogpunktvisgammelmål-HLC.
+Sourcequalification001:40uniketilfellerbestått(18nye/22legacy); énfanget
+modellkontraktssperre rettetmed3import/3valideringslinjer førviderekjøring.
+Gamle55treningsfunksjonerASTuendret; gammeltargeteierhelfiluendret.
+Nyev2loader/slicer ogprior/loss/score/truth-identitetererbareopt-in; gamle
+checkpointsogengangsplanerkanikkegjenbrukesfornyeetiketter. Ingenv2fit/
+initialbaselineerutført. NesteerénnøyaktigcappedTRAINtargetgenerering,
+støtte-/klasse-/årsfordeling ogmatchetstatistiskprior,0modell/input/CP-
+loads/FW/optimizerupdate. Alletrenings-/VAL-/TESTporterforblirfalse.
