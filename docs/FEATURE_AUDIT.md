@@ -69,7 +69,7 @@ Feltvis kildeavstemming dekker 19 produsentgrupper, 388 selvstendige regler og
 formler, enheter, parametre, warmup og known/undefined-policy. Alle 388 reglers deklarerte kildekontrakt er avstemt. FIELD_UNIT_AUTHORITY002
 lukker det tidligere enhetsspørsmålet for seks realrate-/breakeven-regler ved
 å binde den deklarerte Treasury-serien til Federal Reserves eksplisitte
-prosentenhet. Nivå er prosent per år; differanser og breakeven er prosentpoeng.
+[prosentenhet i H.15](https://www.federalreserve.gov/releases/h15/). Nivå er prosent per år; differanser og breakeven er prosentpoeng.
 Det tidligere UNKNOWN-supplementet bevares. Dette verifiserer ikke at reléleverte
 CSV-bytes er autentiske historiske førstevintager; makrokilden er fortsatt åpen.
 Numerisk finitthet er fortsatt ikke bevis for en kjent indikatorverdi eller
@@ -88,6 +88,24 @@ FIELD_COMMENT_CORRECTIONS_REVERTED001 binder eksakte symboler/linjer og
 originale fil-/AST-hasher. Inlinekommentarene står igjen fordi de komplette
 filene inngår i den fryste kildeidentiteten. Denne dokumentasjonen korrigerer
 fortolkningen; snapshot, normalisering, beregninger og vekter er uendret.
+
+## Fysisk input- og råkilderegnskap
+
+INPUT_OBSERVATION_ACCEPTANCE001 måler alle 1731 feltforekomster på eksakte
+wholeTRAIN-konsumunioner og 86 navngitte verdi-/predikatrelasjoner. Ingen
+kontraktbrudd ble målt. 76 fraværsbetingelser er utøvd og 10 er ikke utøvd;
+kildeobserverbarhet for uklassifiserte forhold er fortsatt ukjent. Micro-range
+har 98 udefinerte nuller og 10719 gyldige presente nuller i kontekstflaten.
+Normaliseringsmasken bevarer de foreskrevne hardnullene. Dette endrer ikke
+providerens finitthetsmaske til en uavhengig source-known-maske.
+
+FULL_SOURCE_INTEGRITY_ACCEPTANCE001 binder full gjenbruk av eksisterende
+rå-MBA-validator: 416 svar, 18 årparts, 13 tallkolonner og tid. Den rekonstruerer
+1215514 canonicalrader og det deklarerte ukesfilterets 1410 eksklusjoner.
+En siste grensecandle forblir utenfor de 1215513 aktive før-cutoff-radene.
+Historisk markedsstenging er ikke bevist av denne reproduksjonen.
+TF_CLOCK_SCOPE_REVIEW001 bevarer D1s faste UTC22- og H4s UTC02-fase som
+uttrykkelig deklarert klokke; det er ingen historisk NY/DST-markedsdagsgaranti.
 
 ## Faktisk kjøring og ubeviste grenser
 

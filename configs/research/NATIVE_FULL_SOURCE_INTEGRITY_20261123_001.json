@@ -1,0 +1,3633 @@
+{
+  "execution": {
+    "class": "audit",
+    "internal_seconds": 870,
+    "memory": "4G",
+    "numerical_threads": 1,
+    "outer_seconds": 900,
+    "swap": "512M"
+  },
+  "input_file_stat_bookend": {
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json": {
+      "st_ctime_ns": 1790525241783667768,
+      "st_dev": 2096,
+      "st_ino": 357841,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241783667768,
+      "st_size": 275534
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/producer_source/gx1/contracts/entry_model_native_bundle_commit_v1.py": {
+      "st_ctime_ns": 1790524976451286254,
+      "st_dev": 2096,
+      "st_ino": 349576,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524976451286254,
+      "st_size": 9354
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/producer_source/gx1/contracts/xau_tape_provenance_v1.py": {
+      "st_ctime_ns": 1790524976455368325,
+      "st_dev": 2096,
+      "st_ino": 349577,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524976455368325,
+      "st_size": 92414
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/producer_source/gx1/execution/oanda_client.py": {
+      "st_ctime_ns": 1790524976455368325,
+      "st_dev": 2096,
+      "st_ino": 349579,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524976455368325,
+      "st_size": 37556
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/producer_source/gx1/execution/oanda_credentials.py": {
+      "st_ctime_ns": 1790524976457534709,
+      "st_dev": 2096,
+      "st_ino": 349580,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524976457534709,
+      "st_size": 6385
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/producer_source/gx1/scripts/backfill_xauusd_m5_from_oanda.py": {
+      "st_ctime_ns": 1790524976461534681,
+      "st_dev": 2096,
+      "st_ino": 349582,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524976461534681,
+      "st_size": 58093
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/producer_source/gx1/utils/env_loader.py": {
+      "st_ctime_ns": 1790524976465534653,
+      "st_dev": 2096,
+      "st_ino": 349584,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524976465534653,
+      "st_size": 1906
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/producer_source/gx1_guards/gates.py": {
+      "st_ctime_ns": 1790524976469534625,
+      "st_dev": 2096,
+      "st_ino": 349586,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524976469534625,
+      "st_size": 3691
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000000.json.gz": {
+      "st_ctime_ns": 1790524977673526123,
+      "st_dev": 2096,
+      "st_ino": 349587,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524977673526123,
+      "st_size": 110973
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000001.json.gz": {
+      "st_ctime_ns": 1790524978733518643,
+      "st_dev": 2096,
+      "st_ino": 349590,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524978733518643,
+      "st_size": 109212
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000002.json.gz": {
+      "st_ctime_ns": 1790524979293514694,
+      "st_dev": 2096,
+      "st_ino": 349591,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524979293514694,
+      "st_size": 109001
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000003.json.gz": {
+      "st_ctime_ns": 1790524979809511056,
+      "st_dev": 2096,
+      "st_ino": 349592,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524979809511056,
+      "st_size": 106359
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000004.json.gz": {
+      "st_ctime_ns": 1790524980465506433,
+      "st_dev": 2096,
+      "st_ino": 349593,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524980465506433,
+      "st_size": 108291
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000005.json.gz": {
+      "st_ctime_ns": 1790524981437499587,
+      "st_dev": 2096,
+      "st_ino": 349594,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524981437499587,
+      "st_size": 96528
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000006.json.gz": {
+      "st_ctime_ns": 1790524981957495926,
+      "st_dev": 2096,
+      "st_ino": 349595,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524981957495926,
+      "st_size": 100681
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000007.json.gz": {
+      "st_ctime_ns": 1790524982913489199,
+      "st_dev": 2096,
+      "st_ino": 349596,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524982913489199,
+      "st_size": 112350
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000008.json.gz": {
+      "st_ctime_ns": 1790524983657483901,
+      "st_dev": 2096,
+      "st_ino": 349597,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524983657483901,
+      "st_size": 111808
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000009.json.gz": {
+      "st_ctime_ns": 1790524984137480469,
+      "st_dev": 2096,
+      "st_ino": 349598,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524984137480469,
+      "st_size": 113083
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000010.json.gz": {
+      "st_ctime_ns": 1790524984713476352,
+      "st_dev": 2096,
+      "st_ino": 349599,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524984713476352,
+      "st_size": 114324
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000011.json.gz": {
+      "st_ctime_ns": 1790524985265472408,
+      "st_dev": 2096,
+      "st_ino": 349600,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524985265472408,
+      "st_size": 116330
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000012.json.gz": {
+      "st_ctime_ns": 1790524985745468980,
+      "st_dev": 2096,
+      "st_ino": 349601,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524985745468980,
+      "st_size": 114631
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000013.json.gz": {
+      "st_ctime_ns": 1790524986289465096,
+      "st_dev": 2096,
+      "st_ino": 349602,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524986289465096,
+      "st_size": 98771
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000014.json.gz": {
+      "st_ctime_ns": 1790524986981460157,
+      "st_dev": 2096,
+      "st_ino": 349603,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524986981460157,
+      "st_size": 106994
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000015.json.gz": {
+      "st_ctime_ns": 1790524987465456704,
+      "st_dev": 2096,
+      "st_ino": 349606,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524987465456704,
+      "st_size": 118026
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000016.json.gz": {
+      "st_ctime_ns": 1790524987989452966,
+      "st_dev": 2096,
+      "st_ino": 349607,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524987989452966,
+      "st_size": 120603
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000017.json.gz": {
+      "st_ctime_ns": 1790524988785447292,
+      "st_dev": 2096,
+      "st_ino": 349608,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524988785447292,
+      "st_size": 115627
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000018.json.gz": {
+      "st_ctime_ns": 1790524989437442645,
+      "st_dev": 2096,
+      "st_ino": 349609,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524989437442645,
+      "st_size": 110221
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000019.json.gz": {
+      "st_ctime_ns": 1790524989865439596,
+      "st_dev": 2096,
+      "st_ino": 349610,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524989865439596,
+      "st_size": 100737
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000020.json.gz": {
+      "st_ctime_ns": 1790524990361436064,
+      "st_dev": 2096,
+      "st_ino": 349611,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524990361436064,
+      "st_size": 95420
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000021.json.gz": {
+      "st_ctime_ns": 1790524990901432219,
+      "st_dev": 2096,
+      "st_ino": 349612,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524990901432219,
+      "st_size": 110755
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000022.json.gz": {
+      "st_ctime_ns": 1790524991577425736,
+      "st_dev": 2096,
+      "st_ino": 349613,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524991577425736,
+      "st_size": 114065
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000023.json.gz": {
+      "st_ctime_ns": 1790524992073420391,
+      "st_dev": 2096,
+      "st_ino": 349614,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524992073420391,
+      "st_size": 118006
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000024.json.gz": {
+      "st_ctime_ns": 1790524992769412894,
+      "st_dev": 2096,
+      "st_ino": 349615,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524992769412894,
+      "st_size": 110268
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000025.json.gz": {
+      "st_ctime_ns": 1790524993745402385,
+      "st_dev": 2096,
+      "st_ino": 349616,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524993745402385,
+      "st_size": 109297
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000026.json.gz": {
+      "st_ctime_ns": 1790524995169387058,
+      "st_dev": 2096,
+      "st_ino": 349617,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524995169387058,
+      "st_size": 97398
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000027.json.gz": {
+      "st_ctime_ns": 1790524996321378845,
+      "st_dev": 2096,
+      "st_ino": 349618,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524996321378845,
+      "st_size": 96987
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000028.json.gz": {
+      "st_ctime_ns": 1790524996841375179,
+      "st_dev": 2096,
+      "st_ino": 349619,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524996841375179,
+      "st_size": 106302
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000029.json.gz": {
+      "st_ctime_ns": 1790524997405371206,
+      "st_dev": 2096,
+      "st_ino": 349620,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524997405371206,
+      "st_size": 105551
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000030.json.gz": {
+      "st_ctime_ns": 1790524997937367458,
+      "st_dev": 2096,
+      "st_ino": 349621,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524997937367458,
+      "st_size": 101449
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000031.json.gz": {
+      "st_ctime_ns": 1790524998841361094,
+      "st_dev": 2096,
+      "st_ino": 349622,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524998841361094,
+      "st_size": 111053
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000032.json.gz": {
+      "st_ctime_ns": 1790524999469356516,
+      "st_dev": 2096,
+      "st_ino": 349623,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790524999469356516,
+      "st_size": 112517
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000033.json.gz": {
+      "st_ctime_ns": 1790525000377349699,
+      "st_dev": 2096,
+      "st_ino": 349624,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525000377349699,
+      "st_size": 110430
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000034.json.gz": {
+      "st_ctime_ns": 1790525000849346158,
+      "st_dev": 2096,
+      "st_ino": 349625,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525000849346158,
+      "st_size": 109326
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000035.json.gz": {
+      "st_ctime_ns": 1790525001765339287,
+      "st_dev": 2096,
+      "st_ino": 349626,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525001765339287,
+      "st_size": 125316
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000036.json.gz": {
+      "st_ctime_ns": 1790525002261335568,
+      "st_dev": 2096,
+      "st_ino": 349627,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525002261335568,
+      "st_size": 117634
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000037.json.gz": {
+      "st_ctime_ns": 1790525002805331491,
+      "st_dev": 2096,
+      "st_ino": 349628,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525002805331491,
+      "st_size": 119626
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000038.json.gz": {
+      "st_ctime_ns": 1790525003429326816,
+      "st_dev": 2096,
+      "st_ino": 349629,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525003429326816,
+      "st_size": 110313
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000039.json.gz": {
+      "st_ctime_ns": 1790525003909323220,
+      "st_dev": 2096,
+      "st_ino": 349632,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525003909323220,
+      "st_size": 116349
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000040.json.gz": {
+      "st_ctime_ns": 1790525004453319147,
+      "st_dev": 2096,
+      "st_ino": 349633,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525004453319147,
+      "st_size": 111017
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000041.json.gz": {
+      "st_ctime_ns": 1790525004881315942,
+      "st_dev": 2096,
+      "st_ino": 349634,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525004881315942,
+      "st_size": 103375
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000042.json.gz": {
+      "st_ctime_ns": 1790525005449311692,
+      "st_dev": 2096,
+      "st_ino": 349635,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525005449311692,
+      "st_size": 118375
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000043.json.gz": {
+      "st_ctime_ns": 1790525006489303912,
+      "st_dev": 2096,
+      "st_ino": 349636,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525006489303912,
+      "st_size": 121633
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000044.json.gz": {
+      "st_ctime_ns": 1790525007081299486,
+      "st_dev": 2096,
+      "st_ino": 349637,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525007081299486,
+      "st_size": 122453
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000045.json.gz": {
+      "st_ctime_ns": 1790525007613295729,
+      "st_dev": 2096,
+      "st_ino": 349638,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525007613295729,
+      "st_size": 136019
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000046.json.gz": {
+      "st_ctime_ns": 1790525008197291639,
+      "st_dev": 2096,
+      "st_ino": 349639,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525008197291639,
+      "st_size": 130938
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000047.json.gz": {
+      "st_ctime_ns": 1790525008945286402,
+      "st_dev": 2096,
+      "st_ino": 349640,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525008945286402,
+      "st_size": 126525
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000048.json.gz": {
+      "st_ctime_ns": 1790525009405283184,
+      "st_dev": 2096,
+      "st_ino": 349641,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525009405283184,
+      "st_size": 120342
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000049.json.gz": {
+      "st_ctime_ns": 1790525009853280049,
+      "st_dev": 2096,
+      "st_ino": 349642,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525009853280049,
+      "st_size": 134760
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000050.json.gz": {
+      "st_ctime_ns": 1790525010757273728,
+      "st_dev": 2096,
+      "st_ino": 349643,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525010757273728,
+      "st_size": 135127
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000051.json.gz": {
+      "st_ctime_ns": 1790525011257270233,
+      "st_dev": 2096,
+      "st_ino": 349644,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525011257270233,
+      "st_size": 138350
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000052.json.gz": {
+      "st_ctime_ns": 1790525011765266683,
+      "st_dev": 2096,
+      "st_ino": 349645,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525011765266683,
+      "st_size": 139376
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000053.json.gz": {
+      "st_ctime_ns": 1790525013065257603,
+      "st_dev": 2096,
+      "st_ino": 349646,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525013065257603,
+      "st_size": 148743
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000054.json.gz": {
+      "st_ctime_ns": 1790525014005251043,
+      "st_dev": 2096,
+      "st_ino": 349647,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525014005251043,
+      "st_size": 139400
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000055.json.gz": {
+      "st_ctime_ns": 1790525014421248141,
+      "st_dev": 2096,
+      "st_ino": 349648,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525014421248141,
+      "st_size": 138469
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000056.json.gz": {
+      "st_ctime_ns": 1790525014893244849,
+      "st_dev": 2096,
+      "st_ino": 349649,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525014893244849,
+      "st_size": 153595
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000057.json.gz": {
+      "st_ctime_ns": 1790525015721239025,
+      "st_dev": 2096,
+      "st_ino": 349650,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525015721239025,
+      "st_size": 149181
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000058.json.gz": {
+      "st_ctime_ns": 1790525016213235552,
+      "st_dev": 2096,
+      "st_ino": 349651,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525016213235552,
+      "st_size": 148599
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000059.json.gz": {
+      "st_ctime_ns": 1790525016897230725,
+      "st_dev": 2096,
+      "st_ino": 349652,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525016897230725,
+      "st_size": 145041
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000060.json.gz": {
+      "st_ctime_ns": 1790525017365227423,
+      "st_dev": 2096,
+      "st_ino": 349653,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525017365227423,
+      "st_size": 138596
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000061.json.gz": {
+      "st_ctime_ns": 1790525017957223248,
+      "st_dev": 2096,
+      "st_ino": 349654,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525017957223248,
+      "st_size": 132689
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000062.json.gz": {
+      "st_ctime_ns": 1790525018489219498,
+      "st_dev": 2096,
+      "st_ino": 349655,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525018489219498,
+      "st_size": 117446
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000063.json.gz": {
+      "st_ctime_ns": 1790525018917216481,
+      "st_dev": 2096,
+      "st_ino": 349656,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525018917216481,
+      "st_size": 126739
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000064.json.gz": {
+      "st_ctime_ns": 1790525019353213409,
+      "st_dev": 2096,
+      "st_ino": 349659,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525019353213409,
+      "st_size": 141011
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000065.json.gz": {
+      "st_ctime_ns": 1790525019889209633,
+      "st_dev": 2096,
+      "st_ino": 349660,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525019889209633,
+      "st_size": 141823
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000066.json.gz": {
+      "st_ctime_ns": 1790525020545205014,
+      "st_dev": 2096,
+      "st_ino": 349661,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525020545205014,
+      "st_size": 140117
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000067.json.gz": {
+      "st_ctime_ns": 1790525021013201719,
+      "st_dev": 2096,
+      "st_ino": 349662,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525021013201719,
+      "st_size": 141612
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000068.json.gz": {
+      "st_ctime_ns": 1790525021525198116,
+      "st_dev": 2096,
+      "st_ino": 349663,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525021525198116,
+      "st_size": 126518
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000069.json.gz": {
+      "st_ctime_ns": 1790525022129193867,
+      "st_dev": 2096,
+      "st_ino": 349664,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525022129193867,
+      "st_size": 117775
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000070.json.gz": {
+      "st_ctime_ns": 1790525022689189929,
+      "st_dev": 2096,
+      "st_ino": 349665,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525022689189929,
+      "st_size": 136337
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000071.json.gz": {
+      "st_ctime_ns": 1790525023429184827,
+      "st_dev": 2096,
+      "st_ino": 349666,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525023429184827,
+      "st_size": 139308
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000072.json.gz": {
+      "st_ctime_ns": 1790525023901181693,
+      "st_dev": 2096,
+      "st_ino": 349667,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525023901181693,
+      "st_size": 143738
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000073.json.gz": {
+      "st_ctime_ns": 1790525024493177765,
+      "st_dev": 2096,
+      "st_ino": 349668,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525024493177765,
+      "st_size": 143847
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000074.json.gz": {
+      "st_ctime_ns": 1790525025285172511,
+      "st_dev": 2096,
+      "st_ino": 349669,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525025285172511,
+      "st_size": 140123
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000075.json.gz": {
+      "st_ctime_ns": 1790525025793169142,
+      "st_dev": 2096,
+      "st_ino": 349670,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525025793169142,
+      "st_size": 125443
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000076.json.gz": {
+      "st_ctime_ns": 1790525026441164847,
+      "st_dev": 2096,
+      "st_ino": 349671,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525026441164847,
+      "st_size": 128011
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000077.json.gz": {
+      "st_ctime_ns": 1790525026941161533,
+      "st_dev": 2096,
+      "st_ino": 349672,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525026941161533,
+      "st_size": 135946
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000078.json.gz": {
+      "st_ctime_ns": 1790525027501157824,
+      "st_dev": 2096,
+      "st_ino": 349673,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525027501157824,
+      "st_size": 135250
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000079.json.gz": {
+      "st_ctime_ns": 1790525029357145539,
+      "st_dev": 2096,
+      "st_ino": 349674,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525029357145539,
+      "st_size": 134626
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000080.json.gz": {
+      "st_ctime_ns": 1790525030001141279,
+      "st_dev": 2096,
+      "st_ino": 349675,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525030001141279,
+      "st_size": 137489
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000081.json.gz": {
+      "st_ctime_ns": 1790525031225133159,
+      "st_dev": 2096,
+      "st_ino": 349676,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525031225133159,
+      "st_size": 134376
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000082.json.gz": {
+      "st_ctime_ns": 1790525032501123860,
+      "st_dev": 2096,
+      "st_ino": 349677,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525032501123860,
+      "st_size": 123567
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000083.json.gz": {
+      "st_ctime_ns": 1790525033325117857,
+      "st_dev": 2096,
+      "st_ino": 349678,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525033325117857,
+      "st_size": 124468
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000084.json.gz": {
+      "st_ctime_ns": 1790525033845114071,
+      "st_dev": 2096,
+      "st_ino": 349679,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525033845114071,
+      "st_size": 129469
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000085.json.gz": {
+      "st_ctime_ns": 1790525034985105774,
+      "st_dev": 2096,
+      "st_ino": 349680,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525034985105774,
+      "st_size": 135818
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000086.json.gz": {
+      "st_ctime_ns": 1790525035889099198,
+      "st_dev": 2096,
+      "st_ino": 349681,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525035889099198,
+      "st_size": 115447
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000087.json.gz": {
+      "st_ctime_ns": 1790525036369095708,
+      "st_dev": 2096,
+      "st_ino": 349682,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525036369095708,
+      "st_size": 123577
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000088.json.gz": {
+      "st_ctime_ns": 1790525036897091870,
+      "st_dev": 2096,
+      "st_ino": 349685,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525036897091870,
+      "st_size": 134370
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000089.json.gz": {
+      "st_ctime_ns": 1790525037413088121,
+      "st_dev": 2096,
+      "st_ino": 349686,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525037413088121,
+      "st_size": 123210
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000090.json.gz": {
+      "st_ctime_ns": 1790525038069083355,
+      "st_dev": 2096,
+      "st_ino": 349687,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525038069083355,
+      "st_size": 125604
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000091.json.gz": {
+      "st_ctime_ns": 1790525038569079724,
+      "st_dev": 2096,
+      "st_ino": 349688,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525038569079724,
+      "st_size": 139806
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000092.json.gz": {
+      "st_ctime_ns": 1790525039061076152,
+      "st_dev": 2096,
+      "st_ino": 349689,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525039061076152,
+      "st_size": 135481
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000093.json.gz": {
+      "st_ctime_ns": 1790525040193068062,
+      "st_dev": 2096,
+      "st_ino": 349690,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525040193068062,
+      "st_size": 127372
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000094.json.gz": {
+      "st_ctime_ns": 1790525041109061532,
+      "st_dev": 2096,
+      "st_ino": 349691,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525041109061532,
+      "st_size": 151848
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000095.json.gz": {
+      "st_ctime_ns": 1790525041869056118,
+      "st_dev": 2096,
+      "st_ino": 349692,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525041869056118,
+      "st_size": 144591
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000096.json.gz": {
+      "st_ctime_ns": 1790525042793049538,
+      "st_dev": 2096,
+      "st_ino": 349693,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525042793049538,
+      "st_size": 135225
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000097.json.gz": {
+      "st_ctime_ns": 1790525043381045353,
+      "st_dev": 2096,
+      "st_ino": 349694,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525043381045353,
+      "st_size": 129021
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000098.json.gz": {
+      "st_ctime_ns": 1790525043845042051,
+      "st_dev": 2096,
+      "st_ino": 349695,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525043845042051,
+      "st_size": 143784
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000099.json.gz": {
+      "st_ctime_ns": 1790525044441037811,
+      "st_dev": 2096,
+      "st_ino": 349696,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525044441037811,
+      "st_size": 145158
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000100.json.gz": {
+      "st_ctime_ns": 1790525045049033487,
+      "st_dev": 2096,
+      "st_ino": 349697,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525045049033487,
+      "st_size": 142994
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000101.json.gz": {
+      "st_ctime_ns": 1790525045969026947,
+      "st_dev": 2096,
+      "st_ino": 349698,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525045969026947,
+      "st_size": 144287
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000102.json.gz": {
+      "st_ctime_ns": 1790525046477023338,
+      "st_dev": 2096,
+      "st_ino": 349699,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525046477023338,
+      "st_size": 143000
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000103.json.gz": {
+      "st_ctime_ns": 1790525046965019871,
+      "st_dev": 2096,
+      "st_ino": 349700,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525046965019871,
+      "st_size": 127863
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000104.json.gz": {
+      "st_ctime_ns": 1790525047761014133,
+      "st_dev": 2096,
+      "st_ino": 349701,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525047761014133,
+      "st_size": 132756
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000105.json.gz": {
+      "st_ctime_ns": 1790525048637007779,
+      "st_dev": 2096,
+      "st_ino": 349702,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525048637007779,
+      "st_size": 142162
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000106.json.gz": {
+      "st_ctime_ns": 1790525049117004299,
+      "st_dev": 2096,
+      "st_ino": 349703,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525049117004299,
+      "st_size": 143724
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000107.json.gz": {
+      "st_ctime_ns": 1790525049657000385,
+      "st_dev": 2096,
+      "st_ino": 349704,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525049657000385,
+      "st_size": 140285
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000108.json.gz": {
+      "st_ctime_ns": 1790525050140996878,
+      "st_dev": 2096,
+      "st_ino": 349705,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525050140996878,
+      "st_size": 139884
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000109.json.gz": {
+      "st_ctime_ns": 1790525050860991662,
+      "st_dev": 2096,
+      "st_ino": 349706,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525050860991662,
+      "st_size": 136850
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000110.json.gz": {
+      "st_ctime_ns": 1790525051532986797,
+      "st_dev": 2096,
+      "st_ino": 349707,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525051532986797,
+      "st_size": 129519
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000111.json.gz": {
+      "st_ctime_ns": 1790525052592979125,
+      "st_dev": 2096,
+      "st_ino": 349708,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525052592979125,
+      "st_size": 97675
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000112.json.gz": {
+      "st_ctime_ns": 1790525053548972209,
+      "st_dev": 2096,
+      "st_ino": 349711,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525053548972209,
+      "st_size": 136243
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000113.json.gz": {
+      "st_ctime_ns": 1790525054096968247,
+      "st_dev": 2096,
+      "st_ino": 349712,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525054096968247,
+      "st_size": 141467
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000114.json.gz": {
+      "st_ctime_ns": 1790525054668964112,
+      "st_dev": 2096,
+      "st_ino": 349713,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525054668964112,
+      "st_size": 137633
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000115.json.gz": {
+      "st_ctime_ns": 1790525055164960528,
+      "st_dev": 2096,
+      "st_ino": 349714,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525055164960528,
+      "st_size": 138575
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000116.json.gz": {
+      "st_ctime_ns": 1790525055876955453,
+      "st_dev": 2096,
+      "st_ino": 349715,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525055876955453,
+      "st_size": 141660
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000117.json.gz": {
+      "st_ctime_ns": 1790525056572950500,
+      "st_dev": 2096,
+      "st_ino": 349716,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525056572950500,
+      "st_size": 126572
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000118.json.gz": {
+      "st_ctime_ns": 1790525057052947084,
+      "st_dev": 2096,
+      "st_ino": 349717,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525057052947084,
+      "st_size": 114518
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000119.json.gz": {
+      "st_ctime_ns": 1790525057560943471,
+      "st_dev": 2096,
+      "st_ino": 349718,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525057560943471,
+      "st_size": 138179
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000120.json.gz": {
+      "st_ctime_ns": 1790525058076939801,
+      "st_dev": 2096,
+      "st_ino": 349719,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525058076939801,
+      "st_size": 137395
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000121.json.gz": {
+      "st_ctime_ns": 1790525058576936247,
+      "st_dev": 2096,
+      "st_ino": 349720,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525058576936247,
+      "st_size": 133124
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000122.json.gz": {
+      "st_ctime_ns": 1790525059112932438,
+      "st_dev": 2096,
+      "st_ino": 349721,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525059112932438,
+      "st_size": 134903
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000123.json.gz": {
+      "st_ctime_ns": 1790525059740927976,
+      "st_dev": 2096,
+      "st_ino": 349722,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525059740927976,
+      "st_size": 133148
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000124.json.gz": {
+      "st_ctime_ns": 1790525060356923601,
+      "st_dev": 2096,
+      "st_ino": 349723,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525060356923601,
+      "st_size": 125646
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000125.json.gz": {
+      "st_ctime_ns": 1790525060844920136,
+      "st_dev": 2096,
+      "st_ino": 349724,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525060844920136,
+      "st_size": 123985
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000126.json.gz": {
+      "st_ctime_ns": 1790525061268917127,
+      "st_dev": 2096,
+      "st_ino": 349725,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525061268917127,
+      "st_size": 135653
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000127.json.gz": {
+      "st_ctime_ns": 1790525061996911960,
+      "st_dev": 2096,
+      "st_ino": 349726,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525061996911960,
+      "st_size": 131436
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000128.json.gz": {
+      "st_ctime_ns": 1790525062672907166,
+      "st_dev": 2096,
+      "st_ino": 349727,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525062672907166,
+      "st_size": 136636
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000129.json.gz": {
+      "st_ctime_ns": 1790525063552900905,
+      "st_dev": 2096,
+      "st_ino": 349728,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525063552900905,
+      "st_size": 138315
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000130.json.gz": {
+      "st_ctime_ns": 1790525064300895552,
+      "st_dev": 2096,
+      "st_ino": 349729,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525064300895552,
+      "st_size": 138471
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000131.json.gz": {
+      "st_ctime_ns": 1790525064784892090,
+      "st_dev": 2096,
+      "st_ino": 349730,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525064784892090,
+      "st_size": 124718
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000132.json.gz": {
+      "st_ctime_ns": 1790525065324848908,
+      "st_dev": 2096,
+      "st_ino": 349731,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525065324848908,
+      "st_size": 130411
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000133.json.gz": {
+      "st_ctime_ns": 1790525065800787696,
+      "st_dev": 2096,
+      "st_ino": 349732,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525065800787696,
+      "st_size": 137763
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000134.json.gz": {
+      "st_ctime_ns": 1790525066304722957,
+      "st_dev": 2096,
+      "st_ino": 349733,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525066304722957,
+      "st_size": 142017
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000135.json.gz": {
+      "st_ctime_ns": 1790525066792660319,
+      "st_dev": 2096,
+      "st_ino": 349734,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525066792660319,
+      "st_size": 123244
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000136.json.gz": {
+      "st_ctime_ns": 1790525067428578788,
+      "st_dev": 2096,
+      "st_ino": 349735,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525067428578788,
+      "st_size": 130999
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000137.json.gz": {
+      "st_ctime_ns": 1790525067940513193,
+      "st_dev": 2096,
+      "st_ino": 349738,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525067940513193,
+      "st_size": 140514
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000138.json.gz": {
+      "st_ctime_ns": 1790525068616426735,
+      "st_dev": 2096,
+      "st_ino": 349739,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525068616426735,
+      "st_size": 128320
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000139.json.gz": {
+      "st_ctime_ns": 1790525069188353635,
+      "st_dev": 2096,
+      "st_ino": 349740,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525069188353635,
+      "st_size": 125603
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000140.json.gz": {
+      "st_ctime_ns": 1790525069636296454,
+      "st_dev": 2096,
+      "st_ino": 349741,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525069636296454,
+      "st_size": 140852
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000141.json.gz": {
+      "st_ctime_ns": 1790525070120234707,
+      "st_dev": 2096,
+      "st_ino": 349742,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525070120234707,
+      "st_size": 139457
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000142.json.gz": {
+      "st_ctime_ns": 1790525070984124637,
+      "st_dev": 2096,
+      "st_ino": 349743,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525070984124637,
+      "st_size": 125750
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000143.json.gz": {
+      "st_ctime_ns": 1790525071592047364,
+      "st_dev": 2096,
+      "st_ino": 349744,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525071592047364,
+      "st_size": 137719
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000144.json.gz": {
+      "st_ctime_ns": 1790525072203969667,
+      "st_dev": 2096,
+      "st_ino": 349745,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525072203969667,
+      "st_size": 135333
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000145.json.gz": {
+      "st_ctime_ns": 1790525072663911341,
+      "st_dev": 2096,
+      "st_ino": 349746,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525072663911341,
+      "st_size": 119786
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000146.json.gz": {
+      "st_ctime_ns": 1790525073107855068,
+      "st_dev": 2096,
+      "st_ino": 349747,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525073107855068,
+      "st_size": 124882
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000147.json.gz": {
+      "st_ctime_ns": 1790525073747774071,
+      "st_dev": 2096,
+      "st_ino": 349748,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525073747774071,
+      "st_size": 135553
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000148.json.gz": {
+      "st_ctime_ns": 1790525074219714387,
+      "st_dev": 2096,
+      "st_ino": 349749,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525074219714387,
+      "st_size": 132312
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000149.json.gz": {
+      "st_ctime_ns": 1790525074775644153,
+      "st_dev": 2096,
+      "st_ino": 349750,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525074775644153,
+      "st_size": 137837
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000150.json.gz": {
+      "st_ctime_ns": 1790525075667531633,
+      "st_dev": 2096,
+      "st_ino": 349751,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525075667531633,
+      "st_size": 137792
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000151.json.gz": {
+      "st_ctime_ns": 1790525076411437923,
+      "st_dev": 2096,
+      "st_ino": 349752,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525076411437923,
+      "st_size": 139172
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000152.json.gz": {
+      "st_ctime_ns": 1790525077027360406,
+      "st_dev": 2096,
+      "st_ino": 349753,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525077027360406,
+      "st_size": 120950
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000153.json.gz": {
+      "st_ctime_ns": 1790525077491302123,
+      "st_dev": 2096,
+      "st_ino": 349754,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525077491302123,
+      "st_size": 123540
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000154.json.gz": {
+      "st_ctime_ns": 1790525078007237308,
+      "st_dev": 2096,
+      "st_ino": 349755,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525078007237308,
+      "st_size": 135617
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000155.json.gz": {
+      "st_ctime_ns": 1790525078619160578,
+      "st_dev": 2096,
+      "st_ino": 349756,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525078619160578,
+      "st_size": 135584
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000156.json.gz": {
+      "st_ctime_ns": 1790525079123097417,
+      "st_dev": 2096,
+      "st_ino": 349757,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525079123097417,
+      "st_size": 135278
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000157.json.gz": {
+      "st_ctime_ns": 1790525079635072550,
+      "st_dev": 2096,
+      "st_ino": 349758,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525079635072550,
+      "st_size": 133452
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000158.json.gz": {
+      "st_ctime_ns": 1790525080167061027,
+      "st_dev": 2096,
+      "st_ino": 349759,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525080167061027,
+      "st_size": 134976
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000159.json.gz": {
+      "st_ctime_ns": 1790525080843046495,
+      "st_dev": 2096,
+      "st_ino": 349760,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525080843046495,
+      "st_size": 109659
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000160.json.gz": {
+      "st_ctime_ns": 1790525081551031402,
+      "st_dev": 2096,
+      "st_ino": 349761,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525081551031402,
+      "st_size": 110516
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000161.json.gz": {
+      "st_ctime_ns": 1790525082499011360,
+      "st_dev": 2096,
+      "st_ino": 349764,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525082499011360,
+      "st_size": 136050
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000162.json.gz": {
+      "st_ctime_ns": 1790525083003000761,
+      "st_dev": 2096,
+      "st_ino": 349765,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525083003000761,
+      "st_size": 138674
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000163.json.gz": {
+      "st_ctime_ns": 1790525083514990113,
+      "st_dev": 2096,
+      "st_ino": 349766,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525083514990113,
+      "st_size": 144311
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000164.json.gz": {
+      "st_ctime_ns": 1790525083974980546,
+      "st_dev": 2096,
+      "st_ino": 349767,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525083974980546,
+      "st_size": 144063
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000165.json.gz": {
+      "st_ctime_ns": 1790525084426971245,
+      "st_dev": 2096,
+      "st_ino": 349768,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525084426971245,
+      "st_size": 128750
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000166.json.gz": {
+      "st_ctime_ns": 1790525085046958505,
+      "st_dev": 2096,
+      "st_ino": 349769,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525085046958505,
+      "st_size": 127506
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000167.json.gz": {
+      "st_ctime_ns": 1790525085534914162,
+      "st_dev": 2096,
+      "st_ino": 349770,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525085534914162,
+      "st_size": 129558
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000168.json.gz": {
+      "st_ctime_ns": 1790525086046850818,
+      "st_dev": 2096,
+      "st_ino": 349771,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525086046850818,
+      "st_size": 141436
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000169.json.gz": {
+      "st_ctime_ns": 1790525086758762881,
+      "st_dev": 2096,
+      "st_ino": 345625,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525086758762881,
+      "st_size": 141078
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000170.json.gz": {
+      "st_ctime_ns": 1790525087458730649,
+      "st_dev": 2096,
+      "st_ino": 349773,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525087458730649,
+      "st_size": 136622
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000171.json.gz": {
+      "st_ctime_ns": 1790525088042824194,
+      "st_dev": 2096,
+      "st_ino": 349774,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525088042824194,
+      "st_size": 141435
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000172.json.gz": {
+      "st_ctime_ns": 1790525088474893485,
+      "st_dev": 2096,
+      "st_ino": 349775,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525088474893485,
+      "st_size": 141395
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000173.json.gz": {
+      "st_ctime_ns": 1790525088966972399,
+      "st_dev": 2096,
+      "st_ino": 349776,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525088966972399,
+      "st_size": 128669
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000174.json.gz": {
+      "st_ctime_ns": 1790525089855115026,
+      "st_dev": 2096,
+      "st_ino": 349777,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525089855115026,
+      "st_size": 127374
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000175.json.gz": {
+      "st_ctime_ns": 1790525090379199280,
+      "st_dev": 2096,
+      "st_ino": 349778,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525090379199280,
+      "st_size": 138503
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000176.json.gz": {
+      "st_ctime_ns": 1790525090903283569,
+      "st_dev": 2096,
+      "st_ino": 349779,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525090903283569,
+      "st_size": 134512
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000177.json.gz": {
+      "st_ctime_ns": 1790525091503359935,
+      "st_dev": 2096,
+      "st_ino": 349780,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525091503359935,
+      "st_size": 135900
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000178.json.gz": {
+      "st_ctime_ns": 1790525092103286547,
+      "st_dev": 2096,
+      "st_ino": 349781,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525092103286547,
+      "st_size": 136754
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000179.json.gz": {
+      "st_ctime_ns": 1790525092603225486,
+      "st_dev": 2096,
+      "st_ino": 349782,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525092603225486,
+      "st_size": 133844
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000180.json.gz": {
+      "st_ctime_ns": 1790525093091165910,
+      "st_dev": 2096,
+      "st_ino": 349783,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525093091165910,
+      "st_size": 124484
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000181.json.gz": {
+      "st_ctime_ns": 1790525093707090824,
+      "st_dev": 2096,
+      "st_ino": 349784,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525093707090824,
+      "st_size": 132695
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000182.json.gz": {
+      "st_ctime_ns": 1790525094219028464,
+      "st_dev": 2096,
+      "st_ino": 349785,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525094219028464,
+      "st_size": 137647
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000183.json.gz": {
+      "st_ctime_ns": 1790525094906944758,
+      "st_dev": 2096,
+      "st_ino": 349786,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525094906944758,
+      "st_size": 137976
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000184.json.gz": {
+      "st_ctime_ns": 1790525095514998184,
+      "st_dev": 2096,
+      "st_ino": 349787,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525095514998184,
+      "st_size": 111542
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000185.json.gz": {
+      "st_ctime_ns": 1790525096067230800,
+      "st_dev": 2096,
+      "st_ino": 349790,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525096067230800,
+      "st_size": 136951
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000186.json.gz": {
+      "st_ctime_ns": 1790525096631468587,
+      "st_dev": 2096,
+      "st_ino": 349791,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525096631468587,
+      "st_size": 138909
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000187.json.gz": {
+      "st_ctime_ns": 1790525097127677732,
+      "st_dev": 2096,
+      "st_ino": 349792,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525097127677732,
+      "st_size": 124512
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000188.json.gz": {
+      "st_ctime_ns": 1790525097731932520,
+      "st_dev": 2096,
+      "st_ino": 349793,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525097731932520,
+      "st_size": 122728
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000189.json.gz": {
+      "st_ctime_ns": 1790525098151886956,
+      "st_dev": 2096,
+      "st_ino": 349794,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525098151886956,
+      "st_size": 136677
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000190.json.gz": {
+      "st_ctime_ns": 1790525098611831424,
+      "st_dev": 2096,
+      "st_ino": 349795,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525098611831424,
+      "st_size": 135862
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000191.json.gz": {
+      "st_ctime_ns": 1790525099183762413,
+      "st_dev": 2096,
+      "st_ino": 349796,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525099183762413,
+      "st_size": 124846
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000192.json.gz": {
+      "st_ctime_ns": 1790525099803687707,
+      "st_dev": 2096,
+      "st_ino": 349797,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525099803687707,
+      "st_size": 135387
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000193.json.gz": {
+      "st_ctime_ns": 1790525100403615500,
+      "st_dev": 2096,
+      "st_ino": 349798,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525100403615500,
+      "st_size": 135248
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000194.json.gz": {
+      "st_ctime_ns": 1790525101171523171,
+      "st_dev": 2096,
+      "st_ino": 349799,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525101171523171,
+      "st_size": 120659
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000195.json.gz": {
+      "st_ctime_ns": 1790525101671463149,
+      "st_dev": 2096,
+      "st_ino": 349800,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525101671463149,
+      "st_size": 124467
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000196.json.gz": {
+      "st_ctime_ns": 1790525102375378722,
+      "st_dev": 2096,
+      "st_ino": 349801,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525102375378722,
+      "st_size": 135348
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000197.json.gz": {
+      "st_ctime_ns": 1790525102819325522,
+      "st_dev": 2096,
+      "st_ino": 349802,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525102819325522,
+      "st_size": 133056
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000198.json.gz": {
+      "st_ctime_ns": 1790525103307274519,
+      "st_dev": 2096,
+      "st_ino": 349803,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525103307274519,
+      "st_size": 134951
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000199.json.gz": {
+      "st_ctime_ns": 1790525103907507533,
+      "st_dev": 2096,
+      "st_ino": 349804,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525103907507533,
+      "st_size": 135848
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000200.json.gz": {
+      "st_ctime_ns": 1790525104383692475,
+      "st_dev": 2096,
+      "st_ino": 349805,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525104383692475,
+      "st_size": 136521
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000201.json.gz": {
+      "st_ctime_ns": 1790525105392014832,
+      "st_dev": 2096,
+      "st_ino": 349806,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525105392014832,
+      "st_size": 124252
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000202.json.gz": {
+      "st_ctime_ns": 1790525105899954808,
+      "st_dev": 2096,
+      "st_ino": 349807,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525105899954808,
+      "st_size": 126562
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000203.json.gz": {
+      "st_ctime_ns": 1790525106379898175,
+      "st_dev": 2096,
+      "st_ino": 349808,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525106379898175,
+      "st_size": 136023
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000204.json.gz": {
+      "st_ctime_ns": 1790525106911835433,
+      "st_dev": 2096,
+      "st_ino": 349809,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525106911835433,
+      "st_size": 136821
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000205.json.gz": {
+      "st_ctime_ns": 1790525107423775143,
+      "st_dev": 2096,
+      "st_ino": 349810,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525107423775143,
+      "st_size": 134627
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000206.json.gz": {
+      "st_ctime_ns": 1790525107903718641,
+      "st_dev": 2096,
+      "st_ino": 349811,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525107903718641,
+      "st_size": 131624
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000207.json.gz": {
+      "st_ctime_ns": 1790525110275440270,
+      "st_dev": 2096,
+      "st_ino": 349812,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525110275440270,
+      "st_size": 135098
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000208.json.gz": {
+      "st_ctime_ns": 1790525110703390173,
+      "st_dev": 2096,
+      "st_ino": 349813,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525110703390173,
+      "st_size": 108393
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000209.json.gz": {
+      "st_ctime_ns": 1790525111295320945,
+      "st_dev": 2096,
+      "st_ino": 349814,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525111295320945,
+      "st_size": 113581
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000210.json.gz": {
+      "st_ctime_ns": 1790525111940113541,
+      "st_dev": 2096,
+      "st_ino": 349817,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525111940113541,
+      "st_size": 136531
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000211.json.gz": {
+      "st_ctime_ns": 1790525112384572906,
+      "st_dev": 2096,
+      "st_ino": 349818,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525112384572906,
+      "st_size": 141292
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000212.json.gz": {
+      "st_ctime_ns": 1790525114152555361,
+      "st_dev": 2096,
+      "st_ino": 349819,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525114152555361,
+      "st_size": 136220
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000213.json.gz": {
+      "st_ctime_ns": 1790525114780549303,
+      "st_dev": 2096,
+      "st_ino": 349820,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525114780549303,
+      "st_size": 138670
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000214.json.gz": {
+      "st_ctime_ns": 1790525115268544654,
+      "st_dev": 2096,
+      "st_ino": 349821,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525115268544654,
+      "st_size": 125621
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000215.json.gz": {
+      "st_ctime_ns": 1790525115956538168,
+      "st_dev": 2096,
+      "st_ino": 349822,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525115956538168,
+      "st_size": 127556
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000216.json.gz": {
+      "st_ctime_ns": 1790525116456533554,
+      "st_dev": 2096,
+      "st_ino": 349823,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525116456533554,
+      "st_size": 126045
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000217.json.gz": {
+      "st_ctime_ns": 1790525116924529244,
+      "st_dev": 2096,
+      "st_ino": 349824,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525116924529244,
+      "st_size": 137224
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000218.json.gz": {
+      "st_ctime_ns": 1790525118596514325,
+      "st_dev": 2096,
+      "st_ino": 349825,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525118596514325,
+      "st_size": 134205
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000219.json.gz": {
+      "st_ctime_ns": 1790525119036510473,
+      "st_dev": 2096,
+      "st_ino": 349826,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525119036510473,
+      "st_size": 133155
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000220.json.gz": {
+      "st_ctime_ns": 1790525119852507949,
+      "st_dev": 2096,
+      "st_ino": 349827,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525119852507949,
+      "st_size": 135298
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000221.json.gz": {
+      "st_ctime_ns": 1790525120320507928,
+      "st_dev": 2096,
+      "st_ino": 349828,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525120320507928,
+      "st_size": 132578
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000222.json.gz": {
+      "st_ctime_ns": 1790525120776507939,
+      "st_dev": 2096,
+      "st_ino": 349829,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525120776507939,
+      "st_size": 124751
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000223.json.gz": {
+      "st_ctime_ns": 1790525121236508000,
+      "st_dev": 2096,
+      "st_ino": 349830,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525121236508000,
+      "st_size": 124558
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000224.json.gz": {
+      "st_ctime_ns": 1790525122696508501,
+      "st_dev": 2096,
+      "st_ino": 349831,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525122696508501,
+      "st_size": 137935
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000225.json.gz": {
+      "st_ctime_ns": 1790525123184508762,
+      "st_dev": 2096,
+      "st_ino": 349832,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525123184508762,
+      "st_size": 133159
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000226.json.gz": {
+      "st_ctime_ns": 1790525123672509090,
+      "st_dev": 2096,
+      "st_ino": 349833,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525123672509090,
+      "st_size": 134257
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000227.json.gz": {
+      "st_ctime_ns": 1790525124184509473,
+      "st_dev": 2096,
+      "st_ino": 349834,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525124184509473,
+      "st_size": 136438
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000228.json.gz": {
+      "st_ctime_ns": 1790525124884510094,
+      "st_dev": 2096,
+      "st_ino": 349835,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525124884510094,
+      "st_size": 135150
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000229.json.gz": {
+      "st_ctime_ns": 1790525125632510892,
+      "st_dev": 2096,
+      "st_ino": 349836,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525125632510892,
+      "st_size": 124136
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000230.json.gz": {
+      "st_ctime_ns": 1790525126288511677,
+      "st_dev": 2096,
+      "st_ino": 349837,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525126288511677,
+      "st_size": 118709
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000231.json.gz": {
+      "st_ctime_ns": 1790525126788512335,
+      "st_dev": 2096,
+      "st_ino": 349838,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525126788512335,
+      "st_size": 134777
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000232.json.gz": {
+      "st_ctime_ns": 1790525127296513066,
+      "st_dev": 2096,
+      "st_ino": 349839,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525127296513066,
+      "st_size": 121206
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000233.json.gz": {
+      "st_ctime_ns": 1790525128856482589,
+      "st_dev": 2096,
+      "st_ino": 349840,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525128856482589,
+      "st_size": 125107
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000234.json.gz": {
+      "st_ctime_ns": 1790525129448470883,
+      "st_dev": 2096,
+      "st_ino": 349843,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525129448470883,
+      "st_size": 131646
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000235.json.gz": {
+      "st_ctime_ns": 1790525129928461417,
+      "st_dev": 2096,
+      "st_ino": 349844,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525129928461417,
+      "st_size": 130903
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000236.json.gz": {
+      "st_ctime_ns": 1790525130332453609,
+      "st_dev": 2096,
+      "st_ino": 349845,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525130332453609,
+      "st_size": 118123
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000237.json.gz": {
+      "st_ctime_ns": 1790525131124452714,
+      "st_dev": 2096,
+      "st_ino": 349846,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525131124452714,
+      "st_size": 119693
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000238.json.gz": {
+      "st_ctime_ns": 1790525132044451848,
+      "st_dev": 2096,
+      "st_ino": 349847,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525132044451848,
+      "st_size": 131344
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000239.json.gz": {
+      "st_ctime_ns": 1790525133296450985,
+      "st_dev": 2096,
+      "st_ino": 349848,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525133296450985,
+      "st_size": 130922
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000240.json.gz": {
+      "st_ctime_ns": 1790525133888450672,
+      "st_dev": 2096,
+      "st_ino": 349849,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525133888450672,
+      "st_size": 118172
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000241.json.gz": {
+      "st_ctime_ns": 1790525134324450510,
+      "st_dev": 2096,
+      "st_ino": 349850,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525134324450510,
+      "st_size": 130175
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000242.json.gz": {
+      "st_ctime_ns": 1790525134744450377,
+      "st_dev": 2096,
+      "st_ino": 349851,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525134744450377,
+      "st_size": 127529
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000243.json.gz": {
+      "st_ctime_ns": 1790525135464448197,
+      "st_dev": 2096,
+      "st_ino": 349852,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525135464448197,
+      "st_size": 119200
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000244.json.gz": {
+      "st_ctime_ns": 1790525135916440447,
+      "st_dev": 2096,
+      "st_ino": 349853,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525135916440447,
+      "st_size": 125597
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000245.json.gz": {
+      "st_ctime_ns": 1790525136448431418,
+      "st_dev": 2096,
+      "st_ino": 349854,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525136448431418,
+      "st_size": 139547
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000246.json.gz": {
+      "st_ctime_ns": 1790525137004422001,
+      "st_dev": 2096,
+      "st_ino": 349855,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525137004422001,
+      "st_size": 139045
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000247.json.gz": {
+      "st_ctime_ns": 1790525137536413102,
+      "st_dev": 2096,
+      "st_ino": 349856,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525137536413102,
+      "st_size": 140010
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000248.json.gz": {
+      "st_ctime_ns": 1790525138052404481,
+      "st_dev": 2096,
+      "st_ino": 349857,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525138052404481,
+      "st_size": 140517
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000249.json.gz": {
+      "st_ctime_ns": 1790525138568400392,
+      "st_dev": 2096,
+      "st_ino": 349858,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525138568400392,
+      "st_size": 138982
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000250.json.gz": {
+      "st_ctime_ns": 1790525139028399970,
+      "st_dev": 2096,
+      "st_ino": 349859,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525139028399970,
+      "st_size": 126903
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000251.json.gz": {
+      "st_ctime_ns": 1790525139516399618,
+      "st_dev": 2096,
+      "st_ino": 349860,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525139516399618,
+      "st_size": 128690
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000252.json.gz": {
+      "st_ctime_ns": 1790525140496399014,
+      "st_dev": 2096,
+      "st_ino": 349861,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525140496399014,
+      "st_size": 136269
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000253.json.gz": {
+      "st_ctime_ns": 1790525141096398726,
+      "st_dev": 2096,
+      "st_ino": 349862,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525141096398726,
+      "st_size": 133490
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000254.json.gz": {
+      "st_ctime_ns": 1790525141564398583,
+      "st_dev": 2096,
+      "st_ino": 349863,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525141564398583,
+      "st_size": 136135
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000255.json.gz": {
+      "st_ctime_ns": 1790525142156398435,
+      "st_dev": 2096,
+      "st_ino": 349864,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525142156398435,
+      "st_size": 129315
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000256.json.gz": {
+      "st_ctime_ns": 1790525142804398372,
+      "st_dev": 2096,
+      "st_ino": 349865,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525142804398372,
+      "st_size": 129539
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000257.json.gz": {
+      "st_ctime_ns": 1790525143256398381,
+      "st_dev": 2096,
+      "st_ino": 349866,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525143256398381,
+      "st_size": 95690
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000258.json.gz": {
+      "st_ctime_ns": 1790525143688385990,
+      "st_dev": 2096,
+      "st_ino": 349869,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525143688385990,
+      "st_size": 125262
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000259.json.gz": {
+      "st_ctime_ns": 1790525144868342079,
+      "st_dev": 2096,
+      "st_ino": 349870,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525144868342079,
+      "st_size": 135488
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000260.json.gz": {
+      "st_ctime_ns": 1790525145356331351,
+      "st_dev": 2096,
+      "st_ino": 349871,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525145356331351,
+      "st_size": 133320
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000261.json.gz": {
+      "st_ctime_ns": 1790525146100329838,
+      "st_dev": 2096,
+      "st_ino": 349872,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525146100329838,
+      "st_size": 147949
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000262.json.gz": {
+      "st_ctime_ns": 1790525146832328480,
+      "st_dev": 2096,
+      "st_ino": 349873,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525146832328480,
+      "st_size": 156457
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000263.json.gz": {
+      "st_ctime_ns": 1790525147356327582,
+      "st_dev": 2096,
+      "st_ino": 349874,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525147356327582,
+      "st_size": 148249
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000264.json.gz": {
+      "st_ctime_ns": 1790525147928326638,
+      "st_dev": 2096,
+      "st_ino": 349875,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525147928326638,
+      "st_size": 123034
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000265.json.gz": {
+      "st_ctime_ns": 1790525148392325954,
+      "st_dev": 2096,
+      "st_ino": 349876,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525148392325954,
+      "st_size": 137010
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000266.json.gz": {
+      "st_ctime_ns": 1790525149116324932,
+      "st_dev": 2096,
+      "st_ino": 349877,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525149116324932,
+      "st_size": 143963
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000267.json.gz": {
+      "st_ctime_ns": 1790525149640324283,
+      "st_dev": 2096,
+      "st_ino": 349878,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525149640324283,
+      "st_size": 140989
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000268.json.gz": {
+      "st_ctime_ns": 1790525150216323614,
+      "st_dev": 2096,
+      "st_ino": 349879,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525150216323614,
+      "st_size": 145302
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000269.json.gz": {
+      "st_ctime_ns": 1790525151528319954,
+      "st_dev": 2096,
+      "st_ino": 349880,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525151528319954,
+      "st_size": 141337
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000270.json.gz": {
+      "st_ctime_ns": 1790525152708301280,
+      "st_dev": 2096,
+      "st_ino": 349881,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525152708301280,
+      "st_size": 135092
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000271.json.gz": {
+      "st_ctime_ns": 1790525153740285182,
+      "st_dev": 2096,
+      "st_ino": 349882,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525153740285182,
+      "st_size": 134781
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000272.json.gz": {
+      "st_ctime_ns": 1790525154324276172,
+      "st_dev": 2096,
+      "st_ino": 349883,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525154324276172,
+      "st_size": 139743
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000273.json.gz": {
+      "st_ctime_ns": 1790525154776272102,
+      "st_dev": 2096,
+      "st_ino": 349884,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525154776272102,
+      "st_size": 151437
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000274.json.gz": {
+      "st_ctime_ns": 1790525155272271192,
+      "st_dev": 2096,
+      "st_ino": 349885,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525155272271192,
+      "st_size": 144128
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000275.json.gz": {
+      "st_ctime_ns": 1790525155932270042,
+      "st_dev": 2096,
+      "st_ino": 349886,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525155932270042,
+      "st_size": 147176
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000276.json.gz": {
+      "st_ctime_ns": 1790525156584269024,
+      "st_dev": 2096,
+      "st_ino": 349887,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525156584269024,
+      "st_size": 144638
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000277.json.gz": {
+      "st_ctime_ns": 1790525157076268282,
+      "st_dev": 2096,
+      "st_ino": 349888,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525157076268282,
+      "st_size": 141159
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000278.json.gz": {
+      "st_ctime_ns": 1790525157524267682,
+      "st_dev": 2096,
+      "st_ino": 349889,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525157524267682,
+      "st_size": 133546
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000279.json.gz": {
+      "st_ctime_ns": 1790525158072266963,
+      "st_dev": 2096,
+      "st_ino": 349890,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525158072266963,
+      "st_size": 125725
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000280.json.gz": {
+      "st_ctime_ns": 1790525158548266422,
+      "st_dev": 2096,
+      "st_ino": 349891,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525158548266422,
+      "st_size": 144304
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000281.json.gz": {
+      "st_ctime_ns": 1790525159020265889,
+      "st_dev": 2096,
+      "st_ino": 349892,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525159020265889,
+      "st_size": 129003
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000282.json.gz": {
+      "st_ctime_ns": 1790525159672261496,
+      "st_dev": 2096,
+      "st_ino": 349893,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525159672261496,
+      "st_size": 133680
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000283.json.gz": {
+      "st_ctime_ns": 1790525160176254508,
+      "st_dev": 2096,
+      "st_ino": 349896,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525160176254508,
+      "st_size": 140614
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000284.json.gz": {
+      "st_ctime_ns": 1790525160796245992,
+      "st_dev": 2096,
+      "st_ino": 349897,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525160796245992,
+      "st_size": 143102
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000285.json.gz": {
+      "st_ctime_ns": 1790525161224240159,
+      "st_dev": 2096,
+      "st_ino": 349898,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525161224240159,
+      "st_size": 130257
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000286.json.gz": {
+      "st_ctime_ns": 1790525161808232254,
+      "st_dev": 2096,
+      "st_ino": 349899,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525161808232254,
+      "st_size": 135010
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000287.json.gz": {
+      "st_ctime_ns": 1790525162512222827,
+      "st_dev": 2096,
+      "st_ino": 349900,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525162512222827,
+      "st_size": 140494
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000288.json.gz": {
+      "st_ctime_ns": 1790525163028216870,
+      "st_dev": 2096,
+      "st_ino": 349901,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525163028216870,
+      "st_size": 128155
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000289.json.gz": {
+      "st_ctime_ns": 1790525163520216014,
+      "st_dev": 2096,
+      "st_ino": 349902,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525163520216014,
+      "st_size": 140007
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000290.json.gz": {
+      "st_ctime_ns": 1790525164112215006,
+      "st_dev": 2096,
+      "st_ino": 349903,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525164112215006,
+      "st_size": 141341
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000291.json.gz": {
+      "st_ctime_ns": 1790525164600214255,
+      "st_dev": 2096,
+      "st_ino": 349904,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525164600214255,
+      "st_size": 139932
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000292.json.gz": {
+      "st_ctime_ns": 1790525165096213510,
+      "st_dev": 2096,
+      "st_ino": 349905,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525165096213510,
+      "st_size": 124421
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000293.json.gz": {
+      "st_ctime_ns": 1790525165808212554,
+      "st_dev": 2096,
+      "st_ino": 349906,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525165808212554,
+      "st_size": 129853
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000294.json.gz": {
+      "st_ctime_ns": 1790525166360211885,
+      "st_dev": 2096,
+      "st_ino": 349907,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525166360211885,
+      "st_size": 136383
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000295.json.gz": {
+      "st_ctime_ns": 1790525167132211028,
+      "st_dev": 2096,
+      "st_ino": 349908,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525167132211028,
+      "st_size": 137236
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000296.json.gz": {
+      "st_ctime_ns": 1790525167732204742,
+      "st_dev": 2096,
+      "st_ino": 349909,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525167732204742,
+      "st_size": 136671
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000297.json.gz": {
+      "st_ctime_ns": 1790525168448192058,
+      "st_dev": 2096,
+      "st_ino": 349910,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525168448192058,
+      "st_size": 136217
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000298.json.gz": {
+      "st_ctime_ns": 1790525169460174296,
+      "st_dev": 2096,
+      "st_ino": 349911,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525169460174296,
+      "st_size": 131631
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000299.json.gz": {
+      "st_ctime_ns": 1790525170256160460,
+      "st_dev": 2096,
+      "st_ino": 349912,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525170256160460,
+      "st_size": 122153
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000300.json.gz": {
+      "st_ctime_ns": 1790525170844156306,
+      "st_dev": 2096,
+      "st_ino": 349913,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525170844156306,
+      "st_size": 126864
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000301.json.gz": {
+      "st_ctime_ns": 1790525171308155448,
+      "st_dev": 2096,
+      "st_ino": 349914,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525171308155448,
+      "st_size": 134983
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000302.json.gz": {
+      "st_ctime_ns": 1790525172328153693,
+      "st_dev": 2096,
+      "st_ino": 349915,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525172328153693,
+      "st_size": 136609
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000303.json.gz": {
+      "st_ctime_ns": 1790525173092152499,
+      "st_dev": 2096,
+      "st_ino": 349916,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525173092152499,
+      "st_size": 137950
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000304.json.gz": {
+      "st_ctime_ns": 1790525173812151497,
+      "st_dev": 2096,
+      "st_ino": 349917,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525173812151497,
+      "st_size": 132280
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000305.json.gz": {
+      "st_ctime_ns": 1790525174896150163,
+      "st_dev": 2096,
+      "st_ino": 352883,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525174896150163,
+      "st_size": 118399
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000306.json.gz": {
+      "st_ctime_ns": 1790525175448148862,
+      "st_dev": 2096,
+      "st_ino": 352885,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525175448148862,
+      "st_size": 120091
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000307.json.gz": {
+      "st_ctime_ns": 1790525176468130306,
+      "st_dev": 2096,
+      "st_ino": 357545,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525176468130306,
+      "st_size": 116953
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000308.json.gz": {
+      "st_ctime_ns": 1790525177304115245,
+      "st_dev": 2096,
+      "st_ino": 357548,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525177304115245,
+      "st_size": 130616
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000309.json.gz": {
+      "st_ctime_ns": 1790525178088101234,
+      "st_dev": 2096,
+      "st_ino": 357726,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525178088101234,
+      "st_size": 133630
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000310.json.gz": {
+      "st_ctime_ns": 1790525178556095324,
+      "st_dev": 2096,
+      "st_ino": 357727,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525178556095324,
+      "st_size": 150412
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000311.json.gz": {
+      "st_ctime_ns": 1790525179256093852,
+      "st_dev": 2096,
+      "st_ino": 357728,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525179256093852,
+      "st_size": 146980
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000312.json.gz": {
+      "st_ctime_ns": 1790525179704092964,
+      "st_dev": 2096,
+      "st_ino": 357729,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525179704092964,
+      "st_size": 141477
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000313.json.gz": {
+      "st_ctime_ns": 1790525180152092106,
+      "st_dev": 2096,
+      "st_ino": 357730,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525180152092106,
+      "st_size": 117274
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000314.json.gz": {
+      "st_ctime_ns": 1790525180680091162,
+      "st_dev": 2096,
+      "st_ino": 357731,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525180680091162,
+      "st_size": 130158
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000315.json.gz": {
+      "st_ctime_ns": 1790525181120090398,
+      "st_dev": 2096,
+      "st_ino": 357732,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525181120090398,
+      "st_size": 142042
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000316.json.gz": {
+      "st_ctime_ns": 1790525181588089652,
+      "st_dev": 2096,
+      "st_ino": 357733,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525181588089652,
+      "st_size": 138337
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000317.json.gz": {
+      "st_ctime_ns": 1790525182536088242,
+      "st_dev": 2096,
+      "st_ino": 357734,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525182536088242,
+      "st_size": 139751
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000318.json.gz": {
+      "st_ctime_ns": 1790525183096087475,
+      "st_dev": 2096,
+      "st_ino": 357735,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525183096087475,
+      "st_size": 136753
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000319.json.gz": {
+      "st_ctime_ns": 1790525184104077513,
+      "st_dev": 2096,
+      "st_ino": 357736,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525184104077513,
+      "st_size": 136965
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000320.json.gz": {
+      "st_ctime_ns": 1790525184652069953,
+      "st_dev": 2096,
+      "st_ino": 357737,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525184652069953,
+      "st_size": 126780
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000321.json.gz": {
+      "st_ctime_ns": 1790525185140063248,
+      "st_dev": 2096,
+      "st_ino": 357738,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525185140063248,
+      "st_size": 124798
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000322.json.gz": {
+      "st_ctime_ns": 1790525185676055956,
+      "st_dev": 2096,
+      "st_ino": 357739,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525185676055956,
+      "st_size": 134098
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000323.json.gz": {
+      "st_ctime_ns": 1790525186172049241,
+      "st_dev": 2096,
+      "st_ino": 357740,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525186172049241,
+      "st_size": 137098
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000324.json.gz": {
+      "st_ctime_ns": 1790525186840040280,
+      "st_dev": 2096,
+      "st_ino": 357741,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525186840040280,
+      "st_size": 141687
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000325.json.gz": {
+      "st_ctime_ns": 1790525187304039126,
+      "st_dev": 2096,
+      "st_ino": 357742,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525187304039126,
+      "st_size": 139803
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000326.json.gz": {
+      "st_ctime_ns": 1790525187836038066,
+      "st_dev": 2096,
+      "st_ino": 357743,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525187836038066,
+      "st_size": 135697
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000327.json.gz": {
+      "st_ctime_ns": 1790525188316037169,
+      "st_dev": 2096,
+      "st_ino": 357744,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525188316037169,
+      "st_size": 122148
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000328.json.gz": {
+      "st_ctime_ns": 1790525188816036267,
+      "st_dev": 2096,
+      "st_ino": 357745,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525188816036267,
+      "st_size": 116998
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000329.json.gz": {
+      "st_ctime_ns": 1790525189288035471,
+      "st_dev": 2096,
+      "st_ino": 357746,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525189288035471,
+      "st_size": 130743
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000330.json.gz": {
+      "st_ctime_ns": 1790525189820034612,
+      "st_dev": 2096,
+      "st_ino": 357747,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525189820034612,
+      "st_size": 109175
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000331.json.gz": {
+      "st_ctime_ns": 1790525190504033604,
+      "st_dev": 2096,
+      "st_ino": 357750,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525190504033604,
+      "st_size": 132314
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000332.json.gz": {
+      "st_ctime_ns": 1790525191652028750,
+      "st_dev": 2096,
+      "st_ino": 357751,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525191652028750,
+      "st_size": 133491
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000333.json.gz": {
+      "st_ctime_ns": 1790525192256018936,
+      "st_dev": 2096,
+      "st_ino": 357752,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525192256018936,
+      "st_size": 133448
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000334.json.gz": {
+      "st_ctime_ns": 1790525192684012029,
+      "st_dev": 2096,
+      "st_ino": 357753,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525192684012029,
+      "st_size": 115464
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000335.json.gz": {
+      "st_ctime_ns": 1790525193148004568,
+      "st_dev": 2096,
+      "st_ino": 357754,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525193148004568,
+      "st_size": 122493
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000336.json.gz": {
+      "st_ctime_ns": 1790525193643996656,
+      "st_dev": 2096,
+      "st_ino": 357755,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525193643996656,
+      "st_size": 136312
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000337.json.gz": {
+      "st_ctime_ns": 1790525194167988329,
+      "st_dev": 2096,
+      "st_ino": 357756,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525194167988329,
+      "st_size": 121026
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000338.json.gz": {
+      "st_ctime_ns": 1790525194783980825,
+      "st_dev": 2096,
+      "st_ino": 357757,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525194783980825,
+      "st_size": 135307
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000339.json.gz": {
+      "st_ctime_ns": 1790525195311979734,
+      "st_dev": 2096,
+      "st_ino": 357758,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525195311979734,
+      "st_size": 136284
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000340.json.gz": {
+      "st_ctime_ns": 1790525195851978661,
+      "st_dev": 2096,
+      "st_ino": 357759,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525195851978661,
+      "st_size": 131956
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000341.json.gz": {
+      "st_ctime_ns": 1790525196279977861,
+      "st_dev": 2096,
+      "st_ino": 357760,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525196279977861,
+      "st_size": 119445
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000342.json.gz": {
+      "st_ctime_ns": 1790525196735977040,
+      "st_dev": 2096,
+      "st_ino": 357761,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525196735977040,
+      "st_size": 119035
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000343.json.gz": {
+      "st_ctime_ns": 1790525197175976279,
+      "st_dev": 2096,
+      "st_ino": 357762,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525197175976279,
+      "st_size": 128314
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000344.json.gz": {
+      "st_ctime_ns": 1790525197667975485,
+      "st_dev": 2096,
+      "st_ino": 357763,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525197667975485,
+      "st_size": 122348
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000345.json.gz": {
+      "st_ctime_ns": 1790525198243974600,
+      "st_dev": 2096,
+      "st_ino": 357764,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525198243974600,
+      "st_size": 118368
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000346.json.gz": {
+      "st_ctime_ns": 1790525198755973869,
+      "st_dev": 2096,
+      "st_ino": 357765,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525198755973869,
+      "st_size": 118007
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000347.json.gz": {
+      "st_ctime_ns": 1790525199275973177,
+      "st_dev": 2096,
+      "st_ino": 357766,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525199275973177,
+      "st_size": 114532
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000348.json.gz": {
+      "st_ctime_ns": 1790525199719968974,
+      "st_dev": 2096,
+      "st_ino": 357767,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525199719968974,
+      "st_size": 108158
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000349.json.gz": {
+      "st_ctime_ns": 1790525200403959190,
+      "st_dev": 2096,
+      "st_ino": 357768,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525200403959190,
+      "st_size": 112561
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000350.json.gz": {
+      "st_ctime_ns": 1790525200983950938,
+      "st_dev": 2096,
+      "st_ino": 357769,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525200983950938,
+      "st_size": 124735
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000351.json.gz": {
+      "st_ctime_ns": 1790525203311924285,
+      "st_dev": 2096,
+      "st_ino": 357770,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525203311924285,
+      "st_size": 121185
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000352.json.gz": {
+      "st_ctime_ns": 1790525203791923293,
+      "st_dev": 2096,
+      "st_ino": 357771,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525203791923293,
+      "st_size": 119192
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000353.json.gz": {
+      "st_ctime_ns": 1790525204319922260,
+      "st_dev": 2096,
+      "st_ino": 357772,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525204319922260,
+      "st_size": 126456
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000354.json.gz": {
+      "st_ctime_ns": 1790525204795921364,
+      "st_dev": 2096,
+      "st_ino": 357773,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525204795921364,
+      "st_size": 110984
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000355.json.gz": {
+      "st_ctime_ns": 1790525205331920415,
+      "st_dev": 2096,
+      "st_ino": 357774,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525205331920415,
+      "st_size": 102808
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000356.json.gz": {
+      "st_ctime_ns": 1790525206551918442,
+      "st_dev": 2096,
+      "st_ino": 357777,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525206551918442,
+      "st_size": 110305
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000357.json.gz": {
+      "st_ctime_ns": 1790525207571915915,
+      "st_dev": 2096,
+      "st_ino": 357778,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525207571915915,
+      "st_size": 121067
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000358.json.gz": {
+      "st_ctime_ns": 1790525208139909884,
+      "st_dev": 2096,
+      "st_ino": 357779,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525208139909884,
+      "st_size": 118143
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000359.json.gz": {
+      "st_ctime_ns": 1790525208623904812,
+      "st_dev": 2096,
+      "st_ino": 357780,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525208623904812,
+      "st_size": 124504
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000360.json.gz": {
+      "st_ctime_ns": 1790525209143899388,
+      "st_dev": 2096,
+      "st_ino": 357781,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525209143899388,
+      "st_size": 124132
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000361.json.gz": {
+      "st_ctime_ns": 1790525210123889319,
+      "st_dev": 2096,
+      "st_ino": 357782,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525210123889319,
+      "st_size": 121274
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000362.json.gz": {
+      "st_ctime_ns": 1790525210687883615,
+      "st_dev": 2096,
+      "st_ino": 357783,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525210687883615,
+      "st_size": 120760
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000363.json.gz": {
+      "st_ctime_ns": 1790525211211878352,
+      "st_dev": 2096,
+      "st_ino": 357784,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525211211878352,
+      "st_size": 118842
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000364.json.gz": {
+      "st_ctime_ns": 1790525212171870742,
+      "st_dev": 2096,
+      "st_ino": 357785,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525212171870742,
+      "st_size": 128388
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000365.json.gz": {
+      "st_ctime_ns": 1790525212687869960,
+      "st_dev": 2096,
+      "st_ino": 357786,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525212687869960,
+      "st_size": 128537
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000366.json.gz": {
+      "st_ctime_ns": 1790525213179869247,
+      "st_dev": 2096,
+      "st_ino": 357787,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525213179869247,
+      "st_size": 124958
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000367.json.gz": {
+      "st_ctime_ns": 1790525214071868070,
+      "st_dev": 2096,
+      "st_ino": 357788,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525214071868070,
+      "st_size": 124312
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000368.json.gz": {
+      "st_ctime_ns": 1790525214519867553,
+      "st_dev": 2096,
+      "st_ino": 357789,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525214519867553,
+      "st_size": 129163
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000369.json.gz": {
+      "st_ctime_ns": 1790525215563865946,
+      "st_dev": 2096,
+      "st_ino": 357790,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525215563865946,
+      "st_size": 119463
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000370.json.gz": {
+      "st_ctime_ns": 1790525216115862522,
+      "st_dev": 2096,
+      "st_ino": 357791,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525216115862522,
+      "st_size": 118250
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000371.json.gz": {
+      "st_ctime_ns": 1790525216723858839,
+      "st_dev": 2096,
+      "st_ino": 357792,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525216723858839,
+      "st_size": 125823
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000372.json.gz": {
+      "st_ctime_ns": 1790525217199855990,
+      "st_dev": 2096,
+      "st_ino": 357793,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525217199855990,
+      "st_size": 128193
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000373.json.gz": {
+      "st_ctime_ns": 1790525217751852745,
+      "st_dev": 2096,
+      "st_ino": 357794,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525217751852745,
+      "st_size": 129100
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000374.json.gz": {
+      "st_ctime_ns": 1790525218355849257,
+      "st_dev": 2096,
+      "st_ino": 357795,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525218355849257,
+      "st_size": 129350
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000375.json.gz": {
+      "st_ctime_ns": 1790525218883846248,
+      "st_dev": 2096,
+      "st_ino": 357796,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525218883846248,
+      "st_size": 129539
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000376.json.gz": {
+      "st_ctime_ns": 1790525219451843090,
+      "st_dev": 2096,
+      "st_ino": 357797,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525219451843090,
+      "st_size": 120324
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000377.json.gz": {
+      "st_ctime_ns": 1790525219959840285,
+      "st_dev": 2096,
+      "st_ino": 357798,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525219959840285,
+      "st_size": 117165
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000378.json.gz": {
+      "st_ctime_ns": 1790525220427837777,
+      "st_dev": 2096,
+      "st_ino": 357799,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525220427837777,
+      "st_size": 131014
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000379.json.gz": {
+      "st_ctime_ns": 1790525220819835683,
+      "st_dev": 2096,
+      "st_ino": 357800,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525220819835683,
+      "st_size": 103030
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000380.json.gz": {
+      "st_ctime_ns": 1790525221371832799,
+      "st_dev": 2096,
+      "st_ino": 357803,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525221371832799,
+      "st_size": 127080
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000381.json.gz": {
+      "st_ctime_ns": 1790525221867830454,
+      "st_dev": 2096,
+      "st_ino": 357804,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525221867830454,
+      "st_size": 130354
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000382.json.gz": {
+      "st_ctime_ns": 1790525222747829706,
+      "st_dev": 2096,
+      "st_ino": 357805,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525222747829706,
+      "st_size": 130255
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000383.json.gz": {
+      "st_ctime_ns": 1790525223671823423,
+      "st_dev": 2096,
+      "st_ino": 357806,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525223671823423,
+      "st_size": 121001
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000384.json.gz": {
+      "st_ctime_ns": 1790525224411801250,
+      "st_dev": 2096,
+      "st_ino": 357807,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525224411801250,
+      "st_size": 119932
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000385.json.gz": {
+      "st_ctime_ns": 1790525224911786308,
+      "st_dev": 2096,
+      "st_ino": 357808,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525224911786308,
+      "st_size": 135518
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000386.json.gz": {
+      "st_ctime_ns": 1790525225387772151,
+      "st_dev": 2096,
+      "st_ino": 357809,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525225387772151,
+      "st_size": 129031
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000387.json.gz": {
+      "st_ctime_ns": 1790525226323753560,
+      "st_dev": 2096,
+      "st_ino": 357810,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525226323753560,
+      "st_size": 141586
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000388.json.gz": {
+      "st_ctime_ns": 1790525227023752137,
+      "st_dev": 2096,
+      "st_ino": 357811,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525227023752137,
+      "st_size": 140247
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000389.json.gz": {
+      "st_ctime_ns": 1790525227523751207,
+      "st_dev": 2096,
+      "st_ino": 357812,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525227523751207,
+      "st_size": 134494
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000390.json.gz": {
+      "st_ctime_ns": 1790525228511749457,
+      "st_dev": 2096,
+      "st_ino": 357813,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525228511749457,
+      "st_size": 122071
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000391.json.gz": {
+      "st_ctime_ns": 1790525228991748647,
+      "st_dev": 2096,
+      "st_ino": 357814,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525228991748647,
+      "st_size": 121605
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000392.json.gz": {
+      "st_ctime_ns": 1790525229511747859,
+      "st_dev": 2096,
+      "st_ino": 357815,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525229511747859,
+      "st_size": 133058
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000393.json.gz": {
+      "st_ctime_ns": 1790525229983747146,
+      "st_dev": 2096,
+      "st_ino": 357816,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525229983747146,
+      "st_size": 132567
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000394.json.gz": {
+      "st_ctime_ns": 1790525230487746470,
+      "st_dev": 2096,
+      "st_ino": 357817,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525230487746470,
+      "st_size": 131258
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000395.json.gz": {
+      "st_ctime_ns": 1790525230999745786,
+      "st_dev": 2096,
+      "st_ino": 357818,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525230999745786,
+      "st_size": 131003
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000396.json.gz": {
+      "st_ctime_ns": 1790525231475745232,
+      "st_dev": 2096,
+      "st_ino": 357819,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525231475745232,
+      "st_size": 133290
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000397.json.gz": {
+      "st_ctime_ns": 1790525231935738728,
+      "st_dev": 2096,
+      "st_ino": 357820,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525231935738728,
+      "st_size": 125437
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000398.json.gz": {
+      "st_ctime_ns": 1790525232487730741,
+      "st_dev": 2096,
+      "st_ino": 357821,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525232487730741,
+      "st_size": 132761
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000399.json.gz": {
+      "st_ctime_ns": 1790525232987723518,
+      "st_dev": 2096,
+      "st_ino": 357822,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525232987723518,
+      "st_size": 147064
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000400.json.gz": {
+      "st_ctime_ns": 1790525233611714609,
+      "st_dev": 2096,
+      "st_ino": 357823,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525233611714609,
+      "st_size": 142613
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000401.json.gz": {
+      "st_ctime_ns": 1790525234067708112,
+      "st_dev": 2096,
+      "st_ino": 357824,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525234067708112,
+      "st_size": 139230
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000402.json.gz": {
+      "st_ctime_ns": 1790525234643699991,
+      "st_dev": 2096,
+      "st_ino": 357825,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525234643699991,
+      "st_size": 138659
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000403.json.gz": {
+      "st_ctime_ns": 1790525235079693857,
+      "st_dev": 2096,
+      "st_ino": 357826,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525235079693857,
+      "st_size": 115419
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000404.json.gz": {
+      "st_ctime_ns": 1790525235535690402,
+      "st_dev": 2096,
+      "st_ino": 357829,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525235535690402,
+      "st_size": 129274
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000405.json.gz": {
+      "st_ctime_ns": 1790525235947689603,
+      "st_dev": 2096,
+      "st_ino": 357830,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525235947689603,
+      "st_size": 136004
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000406.json.gz": {
+      "st_ctime_ns": 1790525236675688307,
+      "st_dev": 2096,
+      "st_ino": 357831,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525236675688307,
+      "st_size": 150536
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000407.json.gz": {
+      "st_ctime_ns": 1790525237155687485,
+      "st_dev": 2096,
+      "st_ino": 357832,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525237155687485,
+      "st_size": 147247
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000408.json.gz": {
+      "st_ctime_ns": 1790525237939686235,
+      "st_dev": 2096,
+      "st_ino": 357833,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525237939686235,
+      "st_size": 147637
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000409.json.gz": {
+      "st_ctime_ns": 1790525238383685592,
+      "st_dev": 2096,
+      "st_ino": 357834,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525238383685592,
+      "st_size": 152239
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000410.json.gz": {
+      "st_ctime_ns": 1790525238863684910,
+      "st_dev": 2096,
+      "st_ino": 357835,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525238863684910,
+      "st_size": 131995
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000411.json.gz": {
+      "st_ctime_ns": 1790525239347684281,
+      "st_dev": 2096,
+      "st_ino": 357836,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525239347684281,
+      "st_size": 131124
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000412.json.gz": {
+      "st_ctime_ns": 1790525239907681122,
+      "st_dev": 2096,
+      "st_ino": 357837,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525239907681122,
+      "st_size": 132097
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000413.json.gz": {
+      "st_ctime_ns": 1790525240395677601,
+      "st_dev": 2096,
+      "st_ino": 357838,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525240395677601,
+      "st_size": 141896
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000414.json.gz": {
+      "st_ctime_ns": 1790525240907673925,
+      "st_dev": 2096,
+      "st_ino": 357839,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525240907673925,
+      "st_size": 144715
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/source_chunks/chunk-000415.json.gz": {
+      "st_ctime_ns": 1790525241487669843,
+      "st_dev": 2096,
+      "st_ino": 357840,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241487669843,
+      "st_size": 130027
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2009/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349589,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 1667359
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2010/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349605,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 2819570
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2011/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349631,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3542355
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2012/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349658,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3684557
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2013/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349684,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3657674
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2014/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349710,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3629745
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2015/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349737,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3621036
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2016/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349763,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3630928
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2017/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349789,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3615959
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2018/part-000.parquet": {
+      "st_ctime_ns": 1790525241580275294,
+      "st_dev": 2096,
+      "st_ino": 349816,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241580275294,
+      "st_size": 3609720
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2019/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 349842,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3596954
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2020/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 349868,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3664392
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2021/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 349895,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3569072
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2022/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 357542,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3512938
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2023/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 357749,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3204888
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2024/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 357776,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3196738
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2025/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 357802,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 3288559
+    },
+    "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2026/part-000.parquet": {
+      "st_ctime_ns": 1790525241583669170,
+      "st_dev": 2096,
+      "st_ino": 357828,
+      "st_mode": 33188,
+      "st_mtime_ns": 1790525241583669170,
+      "st_size": 1690398
+    }
+  },
+  "manifest": {
+    "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+    "sha256": "ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca"
+  },
+  "operation": "Unchanged validate_canonical_native_source_bundle(DATA,timeframe=M5,expected_declared_root=DATA); one complete MBA/raw/canonical integrity validation.",
+  "runner": {
+    "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/FULL_SOURCE_RUNNER001.py",
+    "sha256": "7c4a3c667bf88ae16277c06b26b5f5fcf1369cb897819cef49b473ce35dc87d0"
+  },
+  "schema_version": "gx1_full_source_integrity_plan_v1",
+  "scope": {
+    "HTTP_calls": 0,
+    "active_input_rows_before_strict_availability_cutoff": 1215513,
+    "boundary_role": "Entire archived source container is integrity-compared; lastpreTESTbarstart candle becomesavailable atcutoff and remains excluded from activeinputs/targets. No nativeTESTsplit file or barstart>=2026-07-01 objects exist in this source. No predictive scores, fit, selection or trading.",
+    "canonical_rows": 1215514,
+    "fits": 0,
+    "forwards": 0,
+    "gzip_bytes": 53940454,
+    "inactive_last_row_available_exactly_at_seal": 1,
+    "last_bar_start_utc": "2026-06-30T23:55:00+00:00",
+    "models": 0,
+    "native_TEST_split_files_opened": 0,
+    "new_caches": 0,
+    "raw_responses": 416,
+    "response_candles": 1216924,
+    "targets": 0
+  },
+  "source_base_commit": "4746bfadc4d9682c741e6adad6237d47fc872b77",
+  "source_owners": {
+    "gx1/audit/audit_native_future_window_coverage_v1.py": "b25c5a9c9d18bb0c789c68e25d3f9d9859874eee1ead42bc4add9135af055be9",
+    "gx1/audit/audit_native_input_observation_v1.py": "dff60935540a2bac8cf2d7a306ba2f267b3f2034a7722d50d56303e603e8d260",
+    "gx1/audit/audit_native_selective_moves_v1.py": "0206cd33be3dabf00a3211e1d8fca74c0e5664fe83d68225fa4aeb70533c5b19",
+    "gx1/audit/build_native_m5_direction_targets_v1.py": "161f9751f8648d01ff620a71c071f1ac3062a4ee99d2420b65d0c933c7306f42",
+    "gx1/audit/build_native_m5_ta_feature_cache_v1.py": "2ef80e0580040f5adda2f3afbb07f752a28293a47d883ac86504c7f219323bab",
+    "gx1/audit/qualify_market_state_native_m5_pipeline_v1.py": "65f520c8cc9c6e3cb57dc2e6db030fc8b4dc6568b0a94a8616f60b01fcb104bd",
+    "gx1/contracts/entry_exit_production_architecture_v1.py": "cdb2d2e08e52de0597cb011bd6350b78f905e0a0a2514db75fc43f81fb9086b2",
+    "gx1/contracts/entry_gc_mtf_history_v1.py": "7e44f6d16c065366a26867e5fb67aff9bbfc47fea4d975db4f4706611244f29b",
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": "1d830c7cb767db699879c6c315f5696854dc1f3bf9fa2021a4020bb76c7c0fa4",
+    "gx1/contracts/entry_model_native_signal_v1.py": "69a819484762dad28194942fd98319be060297dd262c30711e2795515d2f4598",
+    "gx1/contracts/gx1_capped_execution_v1.py": "3a785511650592f990e644759f13d54da615313272bc1b6a4d6be89434b35563",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_native_m5_feature_inputs_v1.py": "6e062cb5c11ded0dab50f082e7d40e37d505593cdae53874b2398607086930dc",
+    "gx1/contracts/market_state_native_m5_targets_v1.py": "1d83e4c04a1e14f067b72a6c4ac2a81af245c77dcb82c3e6320fcbee113c9d4e",
+    "gx1/contracts/market_state_ta_integrated_model_v1.py": "69f8b1f659db1985f3e6691f5dcf3d3b203e746c340e1e73769cb660ab13a67b",
+    "gx1/contracts/market_state_ta_integrated_objective_v1.py": "bf2cf5625b7c84075a1c24ac2448defb43dca71809b9dc9962b38a428d5ba495",
+    "gx1/contracts/model_state_digest_v1.py": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4",
+    "gx1/contracts/native_m5_direction_io_firewall_v1.py": "4ebe5d7a49a8fd719e82f62a5d04ca45489af1dfdc1022475e6044723c170739",
+    "gx1/contracts/registry_hyperparameter_fit_v1.py": "214fa54194e42fe43c94fa022dc87ec0ea1eb16558b092dda0e0cb37b815b197",
+    "gx1/contracts/xau_tape_provenance_v1.py": "402ccad76c08ae27f21d5bdbe315a8d087ba76bea706f0f058b886393183292d",
+    "gx1/features/basic_v1.py": "30ef4e4e6dc5a0011b13eeb7e11227dbeaa3a44b78c35405e64f7ca655bad220",
+    "gx1/features/d1_macro_context_v1.py": "1d61f70381a912a275115a35bb97b103919bc23515d79faed7016f0985ae3d56",
+    "gx1/features/entry_candle_primitives_v1.py": "3f5a5e4fa3f12233aa5f9e5cc43d00d5cd5d5069fb7625a6690ce606eec4b0d0",
+    "gx1/features/entry_foundation_structure_v1.py": "c3c91476051b2e6552fc3089ca50980a38a5a20060af74b802435c786325e558",
+    "gx1/features/entry_model_native_feature_layers_v1.py": "db85c4c365cac9bf7d89b5f36cd7ea6112f020b7eb26d2ae4d0462659b3c3a1b",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "cf5a6da5374e25627c42b9ab3dde93770a92efd85411e6b8e8431b577c2a9153",
+    "gx1/features/event_age_v1.py": "7c20d98c26f5c94885d9defdfc070eb19df81d6344f0457acdf903b4f6712ef5",
+    "gx1/features/gc_native_context_v1.py": "072819223bb13d970cc349650f608367858500ea1a8989e2833a0bbb7ed464ff",
+    "gx1/features/gc_native_field_catalog_v1.py": "c24d1ce880d55dbff6fe346eac4a21529d9dd906fa56a6e55c417edde5a80b8a",
+    "gx1/features/htf_features.py": "3d13c1705c95ddd0e57d93e5c902ef33ed2e6cd24c59cafb24852023e0d0377b",
+    "gx1/features/level_registry_v1.py": "e7304de96c211678f9c6d4a7513d267b1f974c7718fe3a33b8103c71f3a39e02",
+    "gx1/features/micro_structure_v1.py": "761533b9ae31fd268dbe4c075bb7e73f1436076af8372a8efc08fa2d8c1800dd",
+    "gx1/features/model_native_market_context_v1.py": "69f61a52c79711ea58a4c7b2d0e743c01cff6dd3af1e1f1e5f2b4864a12826c2",
+    "gx1/features/smc_v1.py": "56b9fe479e1cdb7dc524179b65e585d890cdd2fef128d47a6cada00692b94d9a",
+    "gx1/features/swing_structure_v1.py": "c46ab4413e5bd5dd7114625fa3539e21ab39f9100341092b73d17e6efdd101e0",
+    "gx1/features/technical_indicators_v1.py": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad",
+    "gx1/features/trendline_registry_v1.py": "24c12e8d4c6f597a331dacecbdc5e9a9ed8fdf6c0b6798ee7c543884d04aee58",
+    "gx1/features/volatility_squeeze_state_v1.py": "652b999a4b058026568b72018be2cf5cf0820d30b12e4f557830986ddeed05dc",
+    "gx1/features/volume_features.py": "31433e540ada7808142805aca353c36fa8de566c88724e7f046aed8f03aef493",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "236ea6d7d9dad3801c2ee06a2115c878c0d773c0630038ef0815d407d18ff1c4",
+    "gx1/scripts/augment_forward_outcome_v2.py": "347e0d7b6235302c4afd8fabd10f9075e25a142a7b49fd5f18c3ed41f730a2c6",
+    "gx1/scripts/fit_volatility_squeeze_artifacts_v1.py": "3b67e8454ef39542dd8a2775e6b7677b1f727335d5474587c08a8f0753831e08",
+    "gx1/scripts/materialize_build_canonical_features_v1.py": "b84ce141598294d2449f9f40b49b7ef8c2563ff8ad832e80664a2f1eb15a1a75",
+    "gx1/scripts/materialize_canonical_v3_augment.py": "f09ec727cac68e8a1a033362fe87276a254b249275fed993ba092afa9be53bae",
+    "gx1/scripts/research_ta_campaign_v1.py": "146d58e5242501827d671341cf5b99ec97b747c56d5e8e1e013b42f3ca03b7e2",
+    "gx1/time/session_detector.py": "ed0189b74ec72a80c9667c470e59c37719e59e549d683cc4b50759855c8e03d8",
+    "scripts/gx1_capped_run.sh": "0c97154564fdc6cbb9759b989e825ed0776033ba357de22b01ff13bfdf93d1e4",
+    "tests/test_audit_native_future_window_coverage_v1.py": "9eb2dc952ea964b7d5c2f99d8ff655768252e7b4904fddd44cbcd1ccbebbb57f",
+    "tests/test_audit_native_input_observation_v1.py": "8cc9a905c4debb50c54ce30c4edd30d5d00dbb8376869d501bb24be482314ee3",
+    "tests/test_audit_native_selective_moves_v1.py": "03b7bd8a6615f7232879ac2fc3707fd99e8de7580e9247f30378bbe30e8367cf",
+    "tests/test_build_native_m5_ta_feature_cache_v1.py": "82d218ea64fe1bb8bdc28131213e8140633e11b8c6bf1db7fd3b24adabc56bd0",
+    "tests/test_qualify_market_state_native_m5_pipeline_v1.py": "95f24b5fbb09531dc19c36a42a533a43d6651b838f7f23ac7a46c410835966e8"
+  },
+  "stage": "native_full_source_integrity_20261123_001",
+  "test_authorized": false,
+  "training_authorized": false
+}
