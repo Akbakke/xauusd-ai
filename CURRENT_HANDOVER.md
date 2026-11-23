@@ -12,10 +12,9 @@ Goalen i chat01a20035-2836-7f62-bb88-9e24603a51a5 er ACTIVE, uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status/evidens persteg: native_twenty_step_qualification_20261123_001 i policy.
 Steg05 er nå PASS mot uendret kriterium; tidligere ekstra NY-brokerdagskrav
-var ikke nødvendig for den deklarerte UTC-fasen. REVIEW_CHECKPOINT005 binder
-kriterieavstemmingen.13krav er faglig/teknisk kvalifisert inkl forrige bølges
-administrative20; denne nye kode-/metadatabølgens administrative20 kontrolleres
-på nytt og står midlertidig REVIEWING i policy. Samlet godkjenning er false.
+var ikke nødvendig for den deklarerte UTC-fasen. REVIEW_CHECKPOINT006 binder
+alle20krav:13PASS/3FAIL/4UNKNOWN. Administrative20 er PASS etter denne bølgens
+kontroller, sikring og kildepublisering; samlet godkjenning er fortsatt false.
 Kildeclean vises separat fra20stegsstatus og gir ingen prognosegodkjenning.
 
 Hovedmålet i docs/ORIGINAL_PROJECT_GOAL.md består: nyttige framtidige prognoser
@@ -191,6 +190,7 @@ sikrede bølger og alle originale checkpoints beholdes uendret.
 Tidligere107cases gjenbrukes; ny batchrisktest13cases, momentCPUport15og
 namespace/direct2er bestått. Ingen gjentatt fullsuite eller ONLINE-endring.
 Nåværende bølges syntaks/stale-path/diff/handover og autorisert cleanpush
-kontrolleres før administrative20 igjen får PASS. IngenDATA/RUNS-rydding.
+er verifisert i ADMINISTRATIVE_FINAL_READINESS002. REVIEW_CHECKPOINT006
+og avsluttende policy/overlevering sikres i samme bølge. IngenDATA/RUNS-rydding.
 Root eier policy/launch/samlet kontroll. Alle20er undersøkt, hovedmålet og
 samlet kvalifikasjon forblir åpne ved3FAIL/4UNKNOWN. Ingen nye epoker startes.
