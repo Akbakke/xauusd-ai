@@ -329,3 +329,12 @@ oppskrift/klokke/batcher/state/RNG/vakter; faktiskeoppdateringer trenger
 egen eksplisitt kompatibelengangspolicy. Ingenautomatiskmainfit/epoker,
 001/002relansering,gammelv1CPresume ellerTESTtilpasning. Hovedmålet/all20
 ogkildekalender/firstvintage/representativitet/svaklæring forbliråpne.
+
+V2replay SOURCE_QUALIFICATION001:112syntetiskevakt/metadata/reportcases
+PASS;faktisk builder72source medpayload/model/optimizer/CUDAblokkertPASS.
+Nywarm3×B96 ogcold3fraCP2(kunettsteg)=4tekniskeupdatesplanlagt.
+Backbone/readoutmomenter måværenonzero iCP2;CP3fullproof eksaktmatch.
+Sammefrystpolicy,CP2/CP3skjema/trajectory/cursor/fixedpathførcoldCLAIM.
+Ingenoppdateringelleradmisjonennå;alle5porterfalse,20REVIEWING.
+NykvalifisertlokaladmisjontillattavRULES237–267;kunegeneksaktteknisk
+policykanåpnetraining/native_training,full_epoch/launch/VALforblirfalse.

@@ -102,6 +102,12 @@ NATIVE_FUTURE_STATE_BIAS_CONTINUE_MODULE=gx1.audit.continue_native_future_state_
 NATIVE_FUTURE_STATE_BIAS_CONTINUE=false
 NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256=
 # END GX1 BIAS CONTINUE ROUTE 20261122 004 STATE
+# BEGIN GX1 PROVIDER HLC REPLAY ROUTE 20261123 001 STATE
+NATIVE_PROVIDER_HLC_REPLAY_MODULE=gx1.audit.native_provider_hlc_replay_v1
+NATIVE_PROVIDER_HLC_REPLAY=false
+NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256=
+NATIVE_PROVIDER_HLC_REPLAY_LANE=
+# END GX1 PROVIDER HLC REPLAY ROUTE 20261123 001 STATE
 # BEGIN GX1 PROVIDER HLC INITIAL ROUTE 20261123 001 STATE
 NATIVE_PROVIDER_HLC_INITIAL_MODULE=gx1.audit.native_future_state_provider_hlc_initial_v1
 NATIVE_PROVIDER_HLC_INITIAL=false
@@ -1141,7 +1147,77 @@ configure_native_provider_hlc_initial() {
 }
 # END GX1 PROVIDER HLC INITIAL ROUTE 20261123 001 MATCHERS
 
+# BEGIN GX1 PROVIDER HLC REPLAY ROUTE 20261123 001 MATCHERS
+matches_bound_native_provider_hlc_replay() {
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_COLD_REPLAY_20261123_001.json"
+  if [[ $# -eq 8 ]]; then
+    [[ "$8" == --preflight ]] || return 1
+    set -- "${@:1:7}"
+  fi
+  [[ $# -eq 7 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$NATIVE_PROVIDER_HLC_REPLAY_MODULE" \
+    && "$4" == --plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ \
+    && "$6" == --lane && ( "$7" == warm || "$7" == cold ) ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]
+}
+
+configure_native_provider_hlc_replay() {
+  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \
+    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \
+    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {
+    echo "FATAL: provider HLC replay requires exact canonical trainer containment" >&2
+    exit 75
+  }
+  matches_bound_native_provider_hlc_replay "$@" || {
+    echo "FATAL: provider HLC replay CLI/plan is not exactly bound" >&2
+    exit 75
+  }
+  local replay_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_COLD_REPLAY_20261123_001_$7"
+  [[ ! -e "$replay_output" && ! -L "$replay_output" \
+    && -d "${replay_output%/*}" && ! -L "${replay_output%/*}" \
+    && "$(readlink -f "${replay_output%/*}")" == "${replay_output%/*}" ]] || {
+    echo "FATAL: provider HLC replay output is not fresh canonical scope" >&2
+    exit 75
+  }
+  NATIVE_PROVIDER_HLC_REPLAY=true
+  NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256="$5"
+  NATIVE_PROVIDER_HLC_REPLAY_LANE="$7"
+  TRAINER_DEVICE=cuda
+  TRAINER_EXECUTION_MODE=canonical
+  TRAINER_OUT_BUNDLE_DIR="$replay_output"
+  TRAINER_MAX_WALL_SECONDS=1800
+  TRAINER_MODEL_MAX_WALL_SECONDS=1770
+  TRAINER_GPU_INDEX=0
+  TRAINER_GPU_MAX_POWER_LIMIT_W=250
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_MEMORY_TEMP_C=80
+  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+  TRAINER_CPU_MAX_TEMP_C=80
+  TRAINER_CPU_MAX_PACKAGE_POWER_W=125
+  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592
+  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592
+}
+# END GX1 PROVIDER HLC REPLAY ROUTE 20261123 001 MATCHERS
+
 validate_target_command() {
+# BEGIN GX1 PROVIDER HLC REPLAY ROUTE 20261123 001 DISPATCH
+  local provider_replay_arg provider_replay_reference=false
+  for provider_replay_arg in "$@"; do
+    case "$provider_replay_arg" in
+      "$NATIVE_PROVIDER_HLC_REPLAY_MODULE"|*/gx1/audit/native_provider_hlc_replay_v1.py|gx1/audit/native_provider_hlc_replay_v1.py)
+        provider_replay_reference=true ;;
+    esac
+  done
+  if [[ "$provider_replay_reference" == true ]]; then
+    configure_native_provider_hlc_replay "$@"
+    return
+  fi
+# END GX1 PROVIDER HLC REPLAY ROUTE 20261123 001 DISPATCH
 # BEGIN GX1 PROVIDER HLC INITIAL ROUTE 20261123 001 DISPATCH
   local provider_initial_arg provider_initial_reference=false
   for provider_initial_arg in "$@"; do
@@ -2190,6 +2266,55 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
     }
   fi
 # END GX1 BIAS CONTINUE ROUTE 20261122 004 NESTED
+# BEGIN GX1 PROVIDER HLC REPLAY ROUTE 20261123 001 NESTED
+  [[ "${GX1_NATIVE_PROVIDER_HLC_REPLAY:-false}" == "$NATIVE_PROVIDER_HLC_REPLAY" ]] || {
+    echo "FATAL: nested provider HLC replay mode differs from protected parent" >&2
+    exit 75
+  }
+  if [[ "$NATIVE_PROVIDER_HLC_REPLAY" == true ]]; then
+    [[ "${GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256" \
+      && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE:-}" == "$NATIVE_PROVIDER_HLC_REPLAY_LANE" \
+      && ( "$NATIVE_PROVIDER_HLC_REPLAY_LANE" == warm || "$NATIVE_PROVIDER_HLC_REPLAY_LANE" == cold ) \
+      && "${GX1_NATIVE_PROVIDER_HLC_INITIAL:-false}" == false \
+      && -z "${GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256:-}" \
+      && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE:-false}" == false \
+      && -z "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256:-}" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE:-false}" == false \
+      && -z "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256:-}" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-false}" == false \
+      && -z "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-false}" == false \
+      && -z "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" \
+      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == false \
+      && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == false \
+      && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-false}" == false \
+      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-false}" == false \
+      && -z "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256:-}" \
+      && -z "${GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256:-}" \
+      && -z "${GX1_NATIVE_FUTURE_STATE_TRAINING_LANE:-}" \
+      && -z "${GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256:-}" \
+      && -z "${GX1_NATIVE_FUTURE_STATE_CUDA_LANE:-}" \
+      && -z "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256:-}" \
+      && -z "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE:-}" \
+      && "${GX1_TRAINER_EXECUTION_MODE:-}" == canonical \
+      && "${GX1_TRAINER_MAX_WALL_SECONDS:-}" == 1800 \
+      && "${GX1_TRAINER_MODEL_MAX_WALL_SECONDS:-}" == 1770 \
+      && "${GX1_TRAINER_GPU_INDEX:-}" == 0 \
+      && "${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W:-}" == 250 \
+      && "${GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS:-}" == 1 \
+      && "${GX1_TRAINER_GPU_MAX_POWER_DRAW_W:-}" == 250 \
+      && "${GX1_TRAINER_GPU_MAX_CORE_TEMP_C:-}" == 75 \
+      && "${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C:-}" == 80 \
+      && "${GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB:-}" == 12288 \
+      && "${GX1_TRAINER_CPU_MAX_TEMP_C:-}" == 80 \
+      && "${GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W:-}" == 125 \
+      && "${GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES:-}" == 8589934592 \
+      && "${GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES:-}" == 8589934592 ]] || {
+      echo "FATAL: nested provider HLC replay plan/deadline/hardware differs from protected parent" >&2
+      exit 75
+    }
+  fi
+# END GX1 PROVIDER HLC REPLAY ROUTE 20261123 001 NESTED
 # BEGIN GX1 PROVIDER HLC INITIAL ROUTE 20261123 001 NESTED
   [[ "${GX1_NATIVE_PROVIDER_HLC_INITIAL:-false}" == "$NATIVE_PROVIDER_HLC_INITIAL" ]] || {
     echo "FATAL: nested provider HLC INITIAL mode differs from protected parent" >&2
@@ -2516,6 +2641,9 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256" \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE="$NATIVE_FUTURE_STATE_BIAS_CONTINUE" \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_PROVIDER_HLC_REPLAY="$NATIVE_PROVIDER_HLC_REPLAY" \
+  --setenv=GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256="$NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE="$NATIVE_PROVIDER_HLC_REPLAY_LANE" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_INITIAL="$NATIVE_PROVIDER_HLC_INITIAL" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256="$NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256" \
   --setenv=GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE="$NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE" \
