@@ -10,7 +10,7 @@ from gx1.audit import qualify_native_m5_full_gc_direction_v1 as core
 from gx1.contracts import native_future_state_provider_hlc_v1 as hlc
 from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
 REPO=Path('/home/andre2/src/GX1_CURRENT');POLICY=REPO/'NEXT_RUN_POLICY.json'
-NAME='NATIVE_PROVIDER_HLC_WHOLE_TRAIN_INITIAL_20261123_001';STAGE='native_provider_hlc_whole_train_initial_20261123_001'
+NAME='NATIVE_PROVIDER_HLC_WHOLE_TRAIN_INITIAL_20261123_002';STAGE='native_provider_hlc_whole_train_initial_20261123_002'
 PLAN=REPO/'configs/research'/(NAME+'.json');ROOT=Path('/home/andre2/GX1_RUNS')/NAME
 SELF='gx1/audit/native_future_state_provider_hlc_initial_v1.py'
 HELPER='gx1/audit/native_future_state_provider_hlc_baseline_v1.py';HELPER_TEST='tests/test_native_future_state_provider_hlc_baseline_v1.py';GUARD_TEST='tests/test_native_future_state_provider_hlc_baseline_guard_v1.py'

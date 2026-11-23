@@ -297,3 +297,13 @@ kilderollover og ferskpreflight/runtime/admisjon, faktiskfullTRAINforward.
 Gamle001 ellerCP skal ikke gjenopptas; ingenautomatiskfit, vaktendring
 ellerWindowsvedlikeholdsinngrep. Alle20/hovedmål og uavklarte03/07/09/19
 beholdes; nyheter om aktuellmåltilstand er iNEXT_RUN_POLICY.
+
+INITIAL002 klargjøres etter fersk signert maintenance/CBS/WUfalse.
+Kun eksakte scope-litteraler001→002 endres i CLI/guard/shell/guardtest;
+reversert bytes er eksakt like09e84e9ae. Gamle001/INITIAL/plan urørt og
+stengt. Samme fullTRAINB256/1385,alle genuineinputs/5TF,vakter,0fit.
+Administrative20 REVIEWING til nykildefrys/kvittering/backup; alle5porterfalse.
+
+INITIAL002_SOURCE_QUALIFICATION001:34berørteguardcases/metadatabuilder
+PASS;uendrede11helpercases og eksisterende fullscope-regler gjenbrukt.
+Uavhengig read-onlykontroll bekrefter kunscope-litteraler endret.0ANN/fit.

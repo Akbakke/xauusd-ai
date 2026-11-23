@@ -1088,7 +1088,7 @@ configure_native_future_state_full_train_capture() {
 
 # BEGIN GX1 PROVIDER HLC INITIAL ROUTE 20261123 001 MATCHERS
 matches_bound_native_provider_hlc_initial() {
-  local expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_WHOLE_TRAIN_INITIAL_20261123_001.json"
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_WHOLE_TRAIN_INITIAL_20261123_002.json"
   if [[ $# -eq 6 ]]; then
     [[ "$6" == --preflight ]] || return 1
     set -- "${@:1:5}"
@@ -1113,7 +1113,7 @@ configure_native_provider_hlc_initial() {
     echo "FATAL: provider HLC INITIAL CLI/plan is not exactly bound" >&2
     exit 75
   }
-  local initial_output=/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_WHOLE_TRAIN_INITIAL_20261123_001
+  local initial_output=/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_WHOLE_TRAIN_INITIAL_20261123_002
   [[ ! -e "$initial_output" && ! -L "$initial_output" \
     && -d "${initial_output%/*}" && ! -L "${initial_output%/*}" \
     && "$(readlink -f "${initial_output%/*}")" == "${initial_output%/*}" ]] || {
