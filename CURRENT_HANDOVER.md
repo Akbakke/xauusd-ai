@@ -92,8 +92,13 @@ velger fullservingaksens nominalend<cutoff; siste observerte2009quote skal
 ikke feilaktig definere en annen servinghale. ATR-NaN-prefix/carry beholdes.
 Ny auditor/test:16syntetiske cases PASS; faktisk metadatabuilder medNPZ/
 råleser/publisering/Torch-import blokkert PASS,56kildeeiere,0payload/CLAIM.
-OBSERVATION_PREFIX_SOURCE_QUALIFICATION001 binder dette; faktisk jobb er
-ennå ikke innrømmet/kjørt.
+OBSERVATION_PREFIX_SOURCE_QUALIFICATION001 binder dette. Faktisk001jobb
+er nå COMPLETE_CONSUMED og stengt:16,991s. ACCEPTANCE001 gir4TFPASS og
+ekte squeeze-release alle5TF:10recurrence+6squeeze-ageforekomster utelukket.
+D1førstelow-ID1 er fortsatt broken/pending ved2009slutt, så2D1recurrencefelt
+forblir uavklarte. EksaktD1konsumhistorikk starter2020-01-12T22UTC. Ingen
+TRAIN-feil er dermed påvist; separat2010D1-probe må fånyeksaktplan,001
+relanseres ikke og ingen global07PASS følger.
 
 09referansesti: ALFRED_DOWNLOAD_FORM_INVENTORY003 binder faktiske offentlige
 DGS2/DGS10/DFII10-former og option4 InitialReleaseOnly. Tilbudte vintagedatoer

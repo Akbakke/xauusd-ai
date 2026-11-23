@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-23T11:09:42.396008+00:00",
+  "observed_utc": "2026-11-23T11:46:16.362120+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "OBSERVATION_PREFIX_PREPARATION_ALL_TRAINING_CLOSED",
+  "status": "OBSERVATION_PREFIX_CLOSE_ALL_TRAINING_CLOSED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -4797,7 +4797,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Prefixsource16tests+actualmetadataPASS; Treasuryphysicalreference sourcepreparation, no payload/nativejob admitted or running.",
+    "current_activity": "Actual2009prefix completeclosed:4TFPASS/all5squeezereleases, D1recurrencepending. NextseparateTreasuryphysicalsource, thenreviewfreshboundedD1-onlyplan; no training.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -99174,7 +99174,7 @@
     }
   },
   "native_twenty_step_qualification_20261123_001": {
-    "status": "PREFIX_AND_TREASURY_REFERENCE_SOURCES_QUALIFIED_PLANS_PENDING",
+    "status": "PREFIX_PARTIAL_EXCLUSION_ACCEPTED_TREASURY_REFERENCE_PENDING",
     "goal_thread_id": "01a20035-2836-7f62-bb88-9e24603a51a5",
     "requirements": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_QUALIFICATION_20_STEPS.json",
@@ -99315,9 +99315,13 @@
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OBSERVATION_SEMANTIC_PARTITION001.json",
             "sha256": "eed5672d436a8494d5949d7b9a461e6f8390a1a63cfdaf301cc4638a8662c32d"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OBSERVATION_PREFIX_ACCEPTANCE001.json",
+            "sha256": "f9a64e51128859ed8ef55eab65ca308fe34347386b2c3ca41812f1dcabfc7680"
           }
         ],
-        "scope": "UNKNOWN actualsource/undefined/censor-domain classification, not demandforownvendorfeed foreachderivedindicator. Numericobserved==isfinite is declarednumericmask;86relations0violations retained.12levelrecurrence firstanchor/reanchor and6squeeze leftcensor cases have scopedsource semantics but actualconsumed ambiguity/exclusion unmeasured.03calendar/09vintage separate."
+        "scope": "UNKNOWN underlyingsource/asof plus2D1recurrence-domain exclusions. Actual2009prefix excludes10recurrence+6squeeze-ageinstances fromfullconsumedhistory (4TFfullyPASS,all5truefirstrelease); D1firstlowanchor stillbroken/pending atprefixbound, so no global07PASS or observedTRAINbugclaim."
       },
       "08": {
         "status": "PASS",
@@ -99858,6 +99862,27 @@
     "treasury_initial_release_source_qualification": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_INITIAL_RELEASE_SOURCE_QUALIFICATION001.json",
       "sha256": "81d6adc05db08d27385ca8ccae8ff27922c6eb6a24fd6b31ab86a2200ac06148"
+    },
+    "observation_prefix_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_OBSERVATION_PREFIX_WITNESS_20261123_001.json",
+      "sha256": "8670463fde64a6cbd9ed9422a1ef18e7cecad012d133ae1269bd64c1dc563505"
+    },
+    "observation_prefix_frozen_source_commit": "579020176e43caeefd5832dbd5934b929de45e60",
+    "observation_prefix_preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OBSERVATION_PREFIX_PREFLIGHT_RESULT001.json",
+      "sha256": "c75144a92df659afbe938f09b02129867641dfaf88b5728463515a86fab29b55"
+    },
+    "observation_prefix_host_admission": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OBSERVATION_PREFIX_HOST_ADMISSION002.json",
+      "sha256": "5eb322c3dcd63e9018264a25933677d1d931d6a14e951843d3a2cda51108743e"
+    },
+    "observation_prefix_launch_exit": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OBSERVATION_PREFIX_LAUNCH_EXIT001.json",
+      "sha256": "28c3f34d73a654bc40fd7c14f549a4c0996cf9f0a1bfc83bb2acea0735c0cd5a"
+    },
+    "observation_prefix_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OBSERVATION_PREFIX_ACCEPTANCE001.json",
+      "sha256": "f9a64e51128859ed8ef55eab65ca308fe34347386b2c3ca41812f1dcabfc7680"
     }
   },
   "native_raw_feed_clock_qualification_20261123_001": {
@@ -100018,6 +100043,30 @@
     "terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_MACRO_SOURCE_KEYS_20261123_001/TERMINAL.json",
       "sha256": "621647f9a8d8aec3b57311685c5b435630b6be36029679f99dde7db2d18ef831"
+    }
+  },
+  "native_observation_prefix_witness_20261123_001": {
+    "status": "COMPLETE_CONSUMED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_OBSERVATION_PREFIX_WITNESS_20261123_001.json",
+      "sha256": "8670463fde64a6cbd9ed9422a1ef18e7cecad012d133ae1269bd64c1dc563505"
+    },
+    "execution_authorized": false,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_OBSERVATION_PREFIX_WITNESS_20261123_001/CLAIM.json",
+      "sha256": "640c36d2919947e22a29f15ed0da14cae8f856861677b05f4500fe9afeeffbb4"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_OBSERVATION_PREFIX_WITNESS_20261123_001/RESULT.json",
+      "sha256": "50c606d44511de7853b9bb79577f80f6de9ea839e055e2f421d130446effb89d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_OBSERVATION_PREFIX_WITNESS_20261123_001/TERMINAL.json",
+      "sha256": "94b2e619ad8de042e8ef53165f2f084220742f368da2fe0868e454ba0cbbb357"
     }
   }
 }
