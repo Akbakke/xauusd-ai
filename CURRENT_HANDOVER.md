@@ -99,23 +99,49 @@ Alignmentresultater, kilde, plan og alle reviews er Mac-diskverifisert i
 CURRENT_FUTURE_STATE_ALIGNMENT_COMPLETE_20261123_001, manifest
  e20efd8a...6ddfe6 (21filer/15866853bytes). Alleoriginalecheckpointsbeholdes.
 
-Aktivt steg er nå native_future_window_coverage_preparation_20261123_001:
-Én CPU-clockaudit av captureissue_ns−300s og8lagrede targetfelt skal reprodusere
-canonical expected/missing/complete på modne vinduer innen TRAINgrid. Alle5TF,
-issuecounts og unike start/end-vinduer, UTC/NY start-/sluttukedag/time og
-gaplengdefordeling. Ingen nye logits/priser/features/model/fit/TEST.
-DESIGN001 i /home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_WINDOW_COVERAGE_PREPARATION_20261123_001
-SHAe37aefa0...46abfe. Ingen daglig/helligdagskalender gjettes fra fravær.
-Dagens OANDA-handelsplan kvalifiserer ikke automatisk2021–25practice-candle-
-kalender; bare ukestenging er bundet i dagens manifest. Public source limits
-SHA d179d363...46aeb0. Ingen tidsforskyvning/labelomskriving for å få grønt.
+## Klokke-audit fullført: dekningshullet er bekreftet
 
-Clockaudit:14nye fokuserte tester PASS,11kildeeiere/aktuelle headers
-metadataverifisert utenpayload. Neste handling er sourcecommit, eksakt ny
-plan/CLI-preflight og én cappedlesejobb. Deretter
-reproduser de faktiske manglene og velg minste kilde-/kalenderkvalifisering.
-Alle fem globale treningsporter er false. Ingen automatisk ny trening/epoke.
-Hovedmålet ståråpent; gjeldende0,5ATR/high-low-fasit ommerkes ikke til1ATR-testen.
+Clock/window001 COMPLETE3,57s, kilde5b8776c4d, plan d21aebfc...42affa,
+RESULT4858d8a7...b0043f/TERMINALce1e2ea8...8a39f. Alle modne vinduer på alle5TF
+ligger innen TRAINclock og alle lagrede expected/missing/complete-verdier er
+nøyaktig gjenskapt, uten tolerance.1captureclock+8targetfelt, ingen pris/logit/
+feature/modell/CP/FW/fit/TEST.14fokuserte cases og faktisk CLI-preflight PASS.
+Begge nye engangsporter er konsumert/lukket; ingen leafprosesser igjen.
+
+Weekly-onlykalenderen har372420forventedeåpne M5-slots2021–25;354550observerte
+og17870manglende (4,798%). Dette er avvik mot den bundne kalenderen, ikke
+bevis for17870tapte markedspriser.12516slots (70,04%) er iNYkl17.1081gap,
+995varer60min;994avdisse er nøyaktig17–18NY. Altgapmateriale er rapportert.
+D1 har234/1289modne unikevinduerkomplette:73medsluttmandag,161sluttfredag,
+0slutttirsdag/onsdag/torsdag. Dette viser et konkret representativitetshull
+for D1-læring. Det er IKKE bevist eneste årsak til den samlede UP-skjevheten.
+
+Hverken daglig pause eller helligdagsstenging innføres ved å gjette frafravær.
+Offentlig kildesjekk fant dagensplaner og daterteTMS-endringsmeldinger, men
+ingen kvalifisert effektivdatert kalender for sammev20-practice/XAU_USD-feed
+2021–25. Dagens18:05reopen er hellerikke den eksisterende18:00ukemasken.
+CALENDAR_SOURCE_LIMITS001 (d179d363...46aeb0) skiller funnfrafortolkning.
+Ingen masker, priser, indikatorer, lærerlabels eller0,5ATR-semantikk er endret.
+
+COVERAGE_AND_DIRECTION_ASSESSMENT001 SHA97f68b9c...0fe9ca binder fullmatrisen:
+PASSbareforaktive ruter/354550utstedteprognoser. Kildetidsdekning, komplett
+framtidsvindu og sidefasit har GAP; ekteobservabilitet/formelcensus/nytte/
+generalisering er UNKNOWN/ubevist. En sterkere100%markedsdekningstolkning av
+tidligere rad-/rutingbevis trekkes tilbake. Originaltall/kvitteringer beholdes.
+
+Neste nødvendige evidens er historisk, versjonert quote-/candlekalender for
+sammefeed/instrument (NY/DST/helligdager/virkningsdatoer), før en begrunnet
+rettelse av observasjons-/kalenderkontrakten. Revider deretter framtidsmasker
+og sidestøtte på ALLEukedager. Egenfasit-rangering/kalibrering må også forbedres;
+kalenderrettelse alene er ingen bevist løsning påbias. Ingen ny fit/epoke er
+innrømmet. Hovedmålet er uttrykkelig ONGOING_NOT_MET.
+
+Clockresultat, matrise, kode, plan og logger er nå Mac-diskverifisert i
+CURRENT_FUTURE_WINDOW_COVERAGE_COMPLETE_20261123_001,
+manifest5336062d...658418 (22filer/21520022bytes). Tidligerealignment er ogsåsikret.
+36fokuserte nye tester totalt(22+14), syntaks/scopedstale-path/diffkontroll PASS;
+ingen gamlefullsuiter/modellrunder gjentatt. Ren kildeidentitet ogpushbookendes
+etterdenne metadatacommitten. Hovedmålet er fortsatt pågående, ikke fullført.
 
 ## Kapasitet og ubeviste grenser
 

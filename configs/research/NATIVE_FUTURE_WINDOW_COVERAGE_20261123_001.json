@@ -1,0 +1,270 @@
+{
+  "TRAIN_issue_ns_sha256": "c0805f39affb9bd80e679e0b41f69a558ea975d0e479ddeee815c7dd370997ea",
+  "budget": {
+    "VAL_TEST_rows": 0,
+    "capture_archives": 1,
+    "capture_fields_decoded": 1,
+    "checkpoint_payloads": 0,
+    "features": 0,
+    "fits": 0,
+    "forwards": 0,
+    "logits": 0,
+    "models": 0,
+    "prices": 0,
+    "target_archives": 1,
+    "target_fields_decoded": 8
+  },
+  "capture_array_headers": {
+    "activity_logits": {
+      "dtype": "<f4",
+      "sha256": "0d0f3dd4c91c4cd1fb5f27e93f09fd826c8ababefab0bfb9887177993c850ee7",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "issue_ns": {
+      "dtype": "<i8",
+      "sha256": "c0805f39affb9bd80e679e0b41f69a558ea975d0e479ddeee815c7dd370997ea",
+      "shape": [
+        354550
+      ]
+    },
+    "selected_positions": {
+      "dtype": "<i8",
+      "sha256": "9fa3aabd86cc726c0dca3e1ac9b6629bc549f3f2524626d69075fa255f382cae",
+      "shape": [
+        354550
+      ]
+    },
+    "side_logits": {
+      "dtype": "<f4",
+      "sha256": "08c0a3c3e5f19aed67a7107f1929ee1dbced1b9fc0cbda6337b363435abc8da6",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "source_rows": {
+      "dtype": "<i8",
+      "sha256": "9fa3aabd86cc726c0dca3e1ac9b6629bc549f3f2524626d69075fa255f382cae",
+      "shape": [
+        354550
+      ]
+    }
+  },
+  "execution": {
+    "class": "audit",
+    "internal_seconds": 570,
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "numerical_threads": 1,
+    "outer_seconds": 600,
+    "swap": "512M"
+  },
+  "inputs": {
+    "alignment_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_ALIGNMENT_20261123_001/RESULT.json",
+      "sha256": "7c16642690a43d41f793b692e0523b6f0f210dec7a17762700ac4ce3ae3cd127"
+    },
+    "calendar_source_limits": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_WINDOW_COVERAGE_PREPARATION_20261123_001/CALENDAR_SOURCE_LIMITS001.json",
+      "sha256": "d179d36365c9915305b3d4249ee5764a1202e8ba5f4048bc600d9883b046aeb0"
+    },
+    "capture": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001/CAPTURE.npz",
+      "sha256": "5349c1d6af1696541e5cef2bb201e539155e4ae476c5d9197825fff6909bc98b"
+    },
+    "capture_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001/RESULT.json",
+      "sha256": "ce287ed654746281e679ba847a3f01c1a0df0244e8684d950caeacfa5f68e89a"
+    },
+    "clock_join_authority": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_SELECTIVE_MOVE_AUDIT_20261122_001/RESULT.json",
+      "sha256": "1b1e30e1bdf2a7b7cfa023205da72c6b568d486ccd366bc4c7f06f96b8bff6a6"
+    },
+    "clock_join_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_SELECTIVE_MOVE_AUDIT_20261122_001.json",
+      "sha256": "3c4509d572a9d28ee4d9fbdf9ca6dc48c5ade8538fefdc0c0cbe70af983b8144"
+    },
+    "coverage_requirements": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_ALIGNMENT_PREPARATION_20261123_001/COVERAGE_REQUIREMENTS001.json",
+      "sha256": "226d82dd109c297f3af127af3d5afee83900ade6430849349e68cc8a2e26a363"
+    },
+    "dataset": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/FUTURE_STATE_DATASET001.json",
+      "sha256": "109a2738abf020a528765bac95b7cf73e145a88644dda58a0bc8f95c252ffe30"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_WINDOW_COVERAGE_PREPARATION_20261123_001/DESIGN001.json",
+      "sha256": "e37aefa0be7190b455510b2872015365c5d2492df0b08d14eaea7c6fe846abfe"
+    },
+    "native_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca"
+    },
+    "observability_correction": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_ALIGNMENT_PREPARATION_20261123_001/OBSERVABILITY_SEMANTICS_CORRECTION001.json",
+      "sha256": "7a2ca0b13d85ad115c366f1684dcebd055be9695cd30ea8ec7dc31283206d3fd"
+    },
+    "original_goal": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/ORIGINAL_PROJECT_GOAL.md",
+      "sha256": "4f6014796974d854d37d166a20afe49ccee2c6d3d0cb652e5b0f0a44a6c4bcc3"
+    },
+    "source_coverage_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_ALIGNMENT_PREPARATION_20261123_001/SOURCE_COVERAGE_REVIEW001.json",
+      "sha256": "f1121704397a85071649efdf1b3d89ce7719f1519804f69a64ebfb3a392f91c1"
+    },
+    "target_arrays": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/FUTURE_STATE_TARGETS001.npz",
+      "sha256": "d21b7edd8fbce2afcaecbc7d16ea764d259cf4ed1db219ebb661857acb32f851"
+    }
+  },
+  "output_root": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_WINDOW_COVERAGE_20261123_001",
+  "plan_path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_FUTURE_WINDOW_COVERAGE_20261123_001.json",
+  "question": "Why do only234of1290unique D1target windows have complete state coverage under the bound weekly-closure contract? Reconcile all stored expected/missing/complete counts against the exact previously verified native TRAIN clock, then describe missing-clock timing without inferring closures.",
+  "runtime_versions": {
+    "numpy": "2.2.6",
+    "pandas": "2.3.3"
+  },
+  "schema_version": "gx1_native_future_window_coverage_plan_v1",
+  "source_base_commit": "5b8776c4d13ad15641084c1098c3c6d00e9a192d",
+  "source_owners": {
+    "gx1/audit/audit_native_future_window_coverage_v1.py": "3d217a2b76ea3c6b9f73cc7061bf800ca1b30692d3738836e4e539c621ed48d6",
+    "gx1/audit/audit_native_selective_moves_v1.py": "0206cd33be3dabf00a3211e1d8fca74c0e5664fe83d68225fa4aeb70533c5b19",
+    "gx1/audit/build_native_m5_direction_targets_v1.py": "161f9751f8648d01ff620a71c071f1ac3062a4ee99d2420b65d0c933c7306f42",
+    "gx1/contracts/gx1_capped_execution_v1.py": "3a785511650592f990e644759f13d54da615313272bc1b6a4d6be89434b35563",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_native_m5_targets_v1.py": "1d83e4c04a1e14f067b72a6c4ac2a81af245c77dcb82c3e6320fcbee113c9d4e",
+    "gx1/contracts/native_m5_direction_io_firewall_v1.py": "4ebe5d7a49a8fd719e82f62a5d04ca45489af1dfdc1022475e6044723c170739",
+    "gx1/contracts/xau_tape_provenance_v1.py": "402ccad76c08ae27f21d5bdbe315a8d087ba76bea706f0f058b886393183292d",
+    "scripts/gx1_capped_run.sh": "0c97154564fdc6cbb9759b989e825ed0776033ba357de22b01ff13bfdf93d1e4",
+    "tests/test_audit_native_future_window_coverage_v1.py": "cc96119a9e863583793cda568829e72663d7dbf6b523c93b361492c11719c31d",
+    "tests/test_audit_native_selective_moves_v1.py": "03b7bd8a6615f7232879ac2fc3707fd99e8de7580e9247f30378bbe30e8367cf"
+  },
+  "stage": "native_future_window_coverage_20261123_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "target_array_headers": {
+    "issue_ns": {
+      "dtype": "<i8",
+      "sha256": "c0805f39affb9bd80e679e0b41f69a558ea975d0e479ddeee815c7dd370997ea",
+      "shape": [
+        354550
+      ]
+    },
+    "mature": {
+      "dtype": "|b1",
+      "sha256": "957a71d6f5fc112d6d15c20a53b4fd28e62f13653e4e71e3c8407df116074208",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "state_expected_m5_count": {
+      "dtype": "<i8",
+      "sha256": "944b359cfa821964f3ddea3beffa953753719d8a5fe1583be621a3f2a15c178e",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "state_missing_open_m5_count": {
+      "dtype": "<i8",
+      "sha256": "ccbce949daab22f322f5f7891412f85bc57126b6b8ec38d191e2f7b734a8f9fa",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "state_window_complete": {
+      "dtype": "|b1",
+      "sha256": "fac8953ba8a30b59f615b7533b815cb8575d11ebc8af07370dc13ca3ac5f42c6",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "target_present": {
+      "dtype": "|b1",
+      "sha256": "1aa90a1205caa72e623238c442eb18234ac4d5ee89cc99e6c8d9f1fbd1e9895d",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "target_start_ns": {
+      "dtype": "<i8",
+      "sha256": "dfdda3166914c0b9b9c38add5b52365e408a3f414822cb6944568b373126f5a2",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "validity_ns": {
+      "dtype": "<i8",
+      "sha256": "054ad8da866c6e5a9db61c14d3d1f759ca304587bc7683cb94ec35783abb6b1d",
+      "shape": [
+        354550,
+        5
+      ]
+    }
+  },
+  "target_contract": {
+    "activity_known": "mature_and_complete_or_explicit_partial_positive_range_certificate",
+    "activity_rule": "positive_observed_range_ge_scale_proves_ACTIVE_complete_range_below_scale_or_exact_zero_proves_FLAT",
+    "activity_scale": "0.5_times_TF_Wilder_ATR14_last_closed_at_issue_no_future_scale",
+    "ambiguous_side": "both_or_neither_material_endpoint_excursions_remain_unknown_no_extrema_order_assumed",
+    "class_order": [
+      "DOWN",
+      "FLAT",
+      "UP"
+    ],
+    "contract_sha256": "f680c6972ebb9b920770cfc68db7ae717b1ea48149fddf061f17f29f193dad5f",
+    "coverage_owner": "gx1.contracts.xau_tape_provenance_v1.scheduled_weekly_closure_mask",
+    "future_bar_contract_sha256": "104cb5991b2f3ec65835e6d3e029c1e51164ed63d157e3b07f1b9852afd926d9",
+    "local_window": "high_low_of_next_entirely_future_TF_bar_operator_choice_20261121",
+    "missing_ATR": "nonzero_range_unknown_no_guessed_scale",
+    "nominal_complete": "retained_strict_calendar_clock_fact_never_overwritten",
+    "observation_fields": [
+      "activity_known",
+      "activity",
+      "side_known",
+      "side_up"
+    ],
+    "partial_range_active": "positive_observed_range_is_lower_bound_only_ACTIVE_can_be_certified_without_complete_window",
+    "probability_limits": "proper_scores_on_observed_support_do_not_establish_unconditional_calibration_or_utility",
+    "production_training_admitted": false,
+    "qualification": "defined_candidate_requires_genuine_coverage_qualification_no_fit_admission",
+    "schema_version": "gx1_native_m5_fully_future_state_dataset_v1",
+    "side_boundary": "positive_scale_ge_is_material_zero_scale_requires_strict_positive_excursion",
+    "side_certificate": "complete_window_unique_material_endpoint_excursion_C_minus_L_vs_H_minus_C_same_scale",
+    "side_known": "requires_known_ACTIVE_complete_window_and_exclusive_endpoint_excursion_certificate",
+    "source_closure_contract": "oanda_complete_true_scheduled_weekly_closure_excluded_v2",
+    "state_endpoint": "complete_window_last_expected_open_M5_close_incomplete_window_last_observed_close_only_no_invented_nominal_end_price",
+    "state_window_complete": "every_expected_M5_start_outside_declared_weekly_closure_present_no_other_missing_bar_excused",
+    "target_arrays_and_metadata_as_model_input": false,
+    "tf_duration_ns": {
+      "D1": 86400000000000,
+      "H1": 3600000000000,
+      "H4": 14400000000000,
+      "M15": 900000000000,
+      "M5": 300000000000
+    },
+    "tf_origin_ns": {
+      "D1": 79200000000000,
+      "H1": 0,
+      "H4": 7200000000000,
+      "M15": 0,
+      "M5": 0
+    },
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "unknown_storage": "false_boolean_payload_is_not_an_observed_class",
+    "zero_range": "complete_exact_zero_is_FLAT_even_zero_or_missing_ATR_no_epsilon"
+  }
+}
