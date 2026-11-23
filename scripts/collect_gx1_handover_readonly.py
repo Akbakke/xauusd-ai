@@ -428,6 +428,61 @@ def _current_processes(source: Path) -> list[dict[str, str]]:
     return found
 
 
+def qualification_observation(repo: Path, policy: dict) -> dict | None:
+    """Validate the explicit 20-step record; never infer run authority."""
+    key = "native_twenty_step_qualification_20261123_001"
+    if key not in policy:
+        return None
+    review = policy[key]
+    if not isinstance(review, dict) or type(review.get("qualification_complete")) is not bool:
+        raise ValueError("QUALIFICATION_RECORD_REQUIRED")
+    binding = review.get("requirements")
+    if (not isinstance(binding, dict) or set(binding) != {"path", "sha256"}
+            or binding["path"] != str(repo / "docs/NATIVE_QUALIFICATION_20_STEPS.json")):
+        raise ValueError("QUALIFICATION_REQUIREMENTS_BINDING")
+    path = _regular_file(binding["path"], label="qualification_requirements")
+    if _sha256(path) != binding["sha256"]:
+        raise ValueError("QUALIFICATION_REQUIREMENTS_SHA")
+    definition = json.loads(path.read_text())
+    required = [f"{i:02d}" for i in range(1, 21)]
+    entries = definition.get("requirements")
+    if (definition.get("schema_version") != "gx1_twenty_step_qualification_requirements_v1"
+            or not isinstance(entries, list) or any(not isinstance(row, dict) for row in entries)
+            or [row.get("id") for row in entries] != required
+            or any(not row.get("title") or not row.get("acceptance") for row in entries)):
+        raise ValueError("QUALIFICATION_EXACT_TWENTY_REQUIREMENTS")
+    steps = review.get("steps")
+    if not isinstance(steps, dict) or set(steps) != set(required):
+        raise ValueError("QUALIFICATION_EXACT_TWENTY_STATES")
+    allowed = ("NOT_REVIEWED", "REVIEWING", "PASS", "FAIL", "UNKNOWN")
+    counts = {state: 0 for state in allowed}
+    for ident in required:
+        row = steps[ident]
+        if (not isinstance(row, dict) or row.get("status") not in allowed
+                or not isinstance(row.get("evidence"), list)):
+            raise ValueError("QUALIFICATION_STEP_STATE_" + ident)
+        counts[row["status"]] += 1
+        if row["status"] == "PASS":
+            if not row["evidence"]:
+                raise ValueError("QUALIFICATION_PASS_EVIDENCE_REQUIRED_" + ident)
+            for evidence in row["evidence"]:
+                if (not isinstance(evidence, dict) or set(evidence) != {"path", "sha256"}
+                        or not isinstance(evidence["path"], str)
+                        or Path(evidence["path"]).suffix.lower() != ".json"):
+                    raise ValueError("QUALIFICATION_METADATA_RECEIPT_REQUIRED_" + ident)
+                receipt = _regular_file(evidence["path"], label="qualification_receipt")
+                if _sha256(receipt) != evidence["sha256"]:
+                    raise ValueError("QUALIFICATION_EVIDENCE_SHA_" + ident)
+    open_steps = [ident for ident in required if steps[ident]["status"] != "PASS"]
+    completion_claim = review.get("status") in ("COMPLETE", "QUALIFIED", "ALL_20_APPROVED")
+    if (review["qualification_complete"] or completion_claim) and open_steps:
+        raise ValueError("QUALIFICATION_FALSE_COMPLETION_WITH_OPEN_STEPS")
+    return {"decision": "RECORDED_20_STEP_APPROVAL" if review["qualification_complete"] else "OPEN_QUALIFICATION_REQUIREMENTS",
+            "requirements": binding, "counts": counts, "open_steps": open_steps,
+            "qualification_complete": review["qualification_complete"], "run_authority": False,
+            "evidence_scope": "Recorded metadata receipts are hash-checked; scientific claims require their scoped evidence. This observation admits no run."}
+
+
 def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object]:
     """Read the sole current policy; never choose a historical run/checkpoint."""
     repo = _repo(str(repo))
@@ -466,6 +521,9 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
         "test_accessed": False, "state_payload_rehashed": False,
         "current_work": work,
     }
+    qualification = qualification_observation(repo, policy)
+    if qualification is not None:
+        out["qualification_review"] = qualification
     if source_only:
         return out
     binding = work.get("latest_terminal")
@@ -649,6 +707,8 @@ def main() -> int:
     print(json.dumps(handover_view(status), indent=2))
     for key in SOURCE_IDENTITY_KEYS:
         print(f"{key}: {identity[key]}")
+    if "qualification_review" in status:
+        print("qualification_gate: " + status["qualification_review"]["decision"])
     if identity["unexpected_ignored_paths"]:
         print("unexpected_ignored_paths: " + json.dumps(identity["unexpected_ignored_paths"]))
     if args.source_only and str(identity["source_identity_gate"]).startswith("BLOCK"):

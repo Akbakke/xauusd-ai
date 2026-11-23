@@ -29,16 +29,23 @@ bevart separat og inngår ikke i gjeldende TA-profil.
 
 ## Uavhengige tall og klokker
 
+I den historiske worker-kvitteringen betyr taggen `LOCAL_GENUINE_OBSERVED` at
+den lagrede signalmatrisen er finite. Providerens `observed` beregnes som
+`isfinite(signal)` og er ingen uavhengig kilde-/known-maske. Taggen og
+originalkvitteringen bevares. Ekte struktur-/undefined-sertifikater og
+historisk førstevintage må vurderes separat.
+
 Bevisrot: `/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001`.
 
 - `FULL_NATIVE_NUMERIC001`: alle 256 felt på alle fem tidsrammer, samt lokale
   ikke-makrofelt; 1609 råfeltposter. Hele beholdte rader: M5 389579, M15 129916,
-  H1 32575, H4 8590, D1 1669. Finite-/ukjentmasker, diskrete domener, kausale
-  koblinger, alle 27 arrayheaders/bytebindinger og faktisk normaliseringsaritmetikk
+  H1 32575, H4 8590, D1 1669. Finite-/NaN-masker, eksplisitte struktur-/undefined-representasjoner,
+  diskrete domener og kausale koblinger, alle 27 arrayheaders/bytebindinger og faktisk normaliseringsaritmetikk
   er kontrollert. Fullført exit0 på 5078,675 sekunder.
 - `FULL_MACRO_NUMERIC001`: 61 uavhengig beregnede makroformler og erklært
   tilgjengelighet, 122 feltposter/47528638 celler over 389579 lokale rader.
-  Samlet er alle 1731 råfeltposter kvalifisert. Hele de eksplisitt bundne
+  Samlet er numerikken og de kontrollerte representasjonsreglene for alle
+  1731 råfeltposter kvalifisert; dette beviser ikke full kildeobserverbarhet. Hele de eksplisitt bundne
   offentlige kildecontainerne ble hashet, også bytes etter forseglingen;
   etterforseglede observasjoner/tilgjengelighet inngikk ikke i feltberegningen.
   Ingen native TEST-fil ble lest. En komplett historisk vendor-/revisjonsledger

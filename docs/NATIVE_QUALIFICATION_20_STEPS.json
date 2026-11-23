@@ -1,0 +1,122 @@
+{
+  "evidence_classes": [
+    "SOURCE_ALGEBRA",
+    "SYNTHETIC_MECHANICS",
+    "REAL_DATA_MEASURED",
+    "UNPROVEN"
+  ],
+  "requirements": [
+    {
+      "acceptance": "Originalbestilling og senere presiseringer er hashbundet; riktig CURRENT/branch/HEAD, entydig aktiv status, gamle planer stengt og ingen teknisk PASS ommerket til hovedmålsuksess.",
+      "id": "01",
+      "title": "Hovedmål, aktiv fase og kildeidentitet"
+    },
+    {
+      "acceptance": "XAU_USD/nativeM5/sourcefeed og alle brukte rå-/manifestbytes verifisert; ingen M1/GC/TEST eller annen instrument-/miljøforveksling i aktiv profil; faktisk rårespons til canonical utdata kan gjenskapes uten uforklarte dropp.",
+      "id": "02",
+      "title": "Rådatakilde, instrument og integritet"
+    },
+    {
+      "acceptance": "Forventet åpen/stengt/ukjent tid har kvalifisert historisk autoritet for samme feed og gyldighetsdomene; daglige/helligdagsgap gis ikke stengtstatus ved gjetning fra fravær.",
+      "id": "03",
+      "title": "Historisk kalender og kildeobservasjon"
+    },
+    {
+      "acceptance": "Tidsakse, duplikater, manglende intervaller, ufullstendige bars og cutoffs er fysisk regnet og avstemt mot råkilden; observerte rader skilles fra forventede markedstidspunkter.",
+      "id": "04",
+      "title": "Native M5-klokke og rådekning"
+    },
+    {
+      "acceptance": "M5/M15/H1/H4/D1 bruker riktig varighet/fase/tidssone/DST og konservativ tilgjengelighet; OHLC/radjoin/forhistorie/aliaser og hull samsvarer med faktisk kilde.",
+      "id": "05",
+      "title": "TF-resampling og kausal tilgjengelighet"
+    },
+    {
+      "acceptance": "Alle aktive genuine indikatorformler har navngitt eier, riktige enheter, warmup/domener og gyldig tallkontroll på alle aktuelle TF; aliaser skilles fra selvstendige formler.",
+      "id": "06",
+      "title": "Indikatorformler, enheter og warmup"
+    },
+    {
+      "acceptance": "Kildeekte tilgjengelighet, numerisk finitthet, ingen hendelse og ukjent/nullkodet verdi er entydig atskilt; historiske/current/TF-masker gir ingen falsk full-dekningspåstand.",
+      "id": "07",
+      "title": "Observasjonsmasker og nullkoding"
+    },
+    {
+      "acceptance": "Alle aktive felt når riktig faktisk modellrute, åtte familier og D1/makro beholdes, alle fem TF konsumeres; ingen bevist død/feilkoplet kode eller tapte genuine felt; ruting oppgraderes ikke til lært nytte.",
+      "id": "08",
+      "title": "Felt-, familie- og TF-konsum"
+    },
+    {
+      "acceptance": "Kilde, utgivelsesdato/lag/asof og nødvendig revisjonsvintage er kvalifisert for alle aktive makrofelt; framtidig revidert eller upublisert informasjon brukes ikke som tidligere kjent input.",
+      "id": "09",
+      "title": "Makropublisering og revisjonsvintage"
+    },
+    {
+      "acceptance": "Eksakte felt/domener/rowunion/statistikker har riktig uendret TRAIN-fitpopulasjon; prefixstatistikk brukes når kronologisk OOF kreves; VAL/TEST refittes aldri.",
+      "id": "10",
+      "title": "Normalisering og fit-populasjon"
+    },
+    {
+      "acceptance": "Neste helt framtidige TF-bar, targetstart/end/maturity/cutoff, kausal ATR og kilde-/kalendermasker er riktig bundet; framtidige mål/masker mates ikke til modellen.",
+      "id": "11",
+      "title": "Framtidsmål og tidskausalitet"
+    },
+    {
+      "acceptance": "Aktivitet, sertifisert side, FLAT, tvetydighet og manglende observasjon regnes sant; gjentatte M5-labels og unike TF-mål skilles; læringsgrunnlagets tids-/klasse-/ukedagsrepresentativitet er kvalifisert for den påståtte funksjonen.",
+      "id": "12",
+      "title": "OPP/NED/FLAT og lærerens dekning"
+    },
+    {
+      "acceptance": "Samme mål/masker/sannsynlighetsfaktorisering/denominator og full korrekt klasse-/tie-/unknownsemantikk brukes i output, loss, prior og evaluering.",
+      "id": "13",
+      "title": "Output, tap, prior og score"
+    },
+    {
+      "acceptance": "Faktisk native parameter-/gradientruting, null direkte sidegradient ved ukjent side, ekte optimizerstep/skip/regularisering og state er kvalifisert; manglende gradient og parametermomentum forveksles ikke.",
+      "id": "14",
+      "title": "Gradienter og optimizeroppdateringer"
+    },
+    {
+      "acceptance": "På samme kvalifiserte rader måles OPP/NED/FLAT, rangering, kalibrering og proper scores mot frossen matchet prior; vedvarende skjevhet og valgt læringsrettelse må være forklart/kvalifisert uten klassekvoter, terskelutvalg eller automatisk epokeserie.",
+      "id": "15",
+      "title": "Retningslæring, skjevhet og stabilitet"
+    },
+    {
+      "acceptance": "Funksjons-/input-/norm-/target-/prior-/modellidentitet er eksakt; fersk initial når funksjonen endres; strict-load og kald gjenopptakelse av modell/optimizer/scheduler/RNG/ordre er faktisk kvalifisert.",
+      "id": "16",
+      "title": "Initialbaseline og checkpointresume"
+    },
+    {
+      "acceptance": "Én tung CURRENT-jobb gjennom canonical capped/lås; rette minne-/swap-/CPU-/tråd-/GPU-/effekt-/temperatur-/hostvakter, timeout/stop/reboot/checkpoint-policy og verifisert prosessobservasjon.",
+      "id": "17",
+      "title": "Kapasitet, vakter og trygg stopp"
+    },
+    {
+      "acceptance": "Alle prognoser/valgte/avståtte og åpne/ukjente utfall rapporteres, begge retninger og relevante TF, falske/sene varsler og missed; tidsmessig før-varsling skilles fra gjenkjenning og midtprismarkout fra økonomi.",
+      "id": "18",
+      "title": "Varsling, feil og oversette bevegelser"
+    },
+    {
+      "acceptance": "Frosset modell/evaluering må ha riktig tidligere TRAIN og senere gyldig utviklingspopulasjon med riktige masker/statistikker; ingen labelutvalg/refit/TEST-tilpasning; faktisk senere prognosekvalitet kvalifiseres, TRAIN-årstabeller er ikke OOF.",
+      "id": "19",
+      "title": "Senere kronologisk validering"
+    },
+    {
+      "acceptance": "Alle20krav har eksplisitt kvalifisert evidens eller sannferdig åpen blokkering; minimale rettelser testes med direkte opp-/nedstrømskontroll, syntaks/stale-path/diff/handover, originalbevis og separat diskverifisert sikring samt ren autorisert push. Ingen samlet godkjenning mens relevante krav er FAIL/UNKNOWN.",
+      "id": "20",
+      "title": "Samlet godkjenning og etterkontroll"
+    }
+  ],
+  "schema_version": "gx1_twenty_step_qualification_requirements_v1",
+  "scope": "Current nonGC nativeM5/MTF forecast qualification before Entry/Exit/trading; all genuine families and5TF retained. Wider original goal is not redefined or claimed achieved.",
+  "status_owner": "NEXT_RUN_POLICY.json/native_twenty_step_qualification_20261123_001; this file defines criteria, not execution authority.",
+  "statuses": [
+    "NOT_REVIEWED",
+    "REVIEWING",
+    "PASS",
+    "FAIL",
+    "UNKNOWN"
+  ],
+  "success_rule": "No failed or unproven requirement is made PASS by renaming its scope or by a technical test unrelated to the claim.",
+  "training_or_TEST_or_trade_admission": false
+}

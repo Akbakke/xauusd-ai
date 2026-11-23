@@ -1,4 +1,4 @@
-"""One-use native TRAIN clock/window audit; no prices or inferred closures."""
+"""One-use TRAIN clock/window and saved-response timestamp audits; no inferred closures."""
 from __future__ import annotations
 import argparse,json,signal,subprocess,time
 from pathlib import Path
@@ -206,9 +206,226 @@ def run(plan_sha):
     finally:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old)
 
 
+# Separate read-only raw-response qualification; the consumed clock001 path stays unchanged.
+RAW_STAGE='native_raw_feed_clock_qualification_20261123_001'
+RAW_BASENAME='NATIVE_RAW_FEED_CLOCK_QUALIFICATION_20261123_001'
+RAW_PLAN=REPO/'configs/research'/(RAW_BASENAME+'.json');RAW_ROOT=Path('/home/andre2/GX1_RUNS')/RAW_BASENAME
+RAW_DESIGN={'path':'/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RAW_FEED_CLOCK_DESIGN001.json','sha256':'896205aafbeca80264ea37af039407bbb80beaff9d4e988adfdf8fce7fc64006'}
+RAW_FIRST=282;RAW_LAST=403;RAW_CHUNKS=122;RAW_BYTES=15680098;RAW_CANDLES=355366
+RAW_BEGIN='2020-12-30T00:00:00Z';RAW_END='2026-01-03T00:00:00Z';RAW_TEST='2026-07-01T00:00:00Z'
+
+
+def raw_time(value,label):
+    from gx1.contracts.xau_tape_provenance_v1 import _utc_native_bar
+    need(type(value)is str and (value.endswith('Z')or value.endswith('+00:00')),'RAW_EXPLICIT_UTC:'+label)
+    return int(_utc_native_bar(value,timeframe='M5',label=label).value)
+
+
+def raw_file(path,size):
+    path=Path(path)
+    need(path.is_absolute() and not path.is_symlink() and path.resolve()==path and path.is_file()
+         and type(size)is int and size>0 and path.stat().st_size==size,'RAW_FILE_PATH_SIZE')
+    return path
+
+
+def raw_manifest_inputs(manifest,binding):
+    from gx1.contracts.xau_tape_provenance_v1 import canonical_json_sha256,require_native_producer_source_inventory_metadata
+    need(manifest['instrument']=='XAU_USD' and manifest['timeframe']==manifest['source_granularity']=='M5'
+         and manifest['source_environment']=='practice' and manifest['source_base_url']=='https://api-fxpractice.oanda.com/v3'
+         and manifest['source_endpoint']=='/instruments/XAU_USD/candles' and manifest['prices']=='MBA'
+         and manifest['timestamp_semantics']=='bar_start_utc' and manifest['bar_duration_seconds']==300
+         and manifest['decision_available_offset_seconds']==300 and manifest['completion_field']=='complete'
+         and manifest['completion_value']is True and manifest['market_closure_contract']==CLOSURE,'RAW_MANIFEST_IDENTITY')
+    root=Path(binding['path']).parent;need(str(root)==manifest['out_root'] and root.resolve()==root,'RAW_MANIFEST_ROOT')
+    chunks=manifest['source_chunks'];need(canonical_json_sha256(chunks)==manifest['source_chunks_sha256'],'RAW_CHUNK_INVENTORY_SHA')
+    selected=chunks[RAW_FIRST:RAW_LAST+1];need(len(selected)==RAW_CHUNKS,'RAW_CHUNK_COUNT');descriptors=[]
+    previous=None
+    for seq,item in enumerate(selected,RAW_FIRST):
+        begin,end=(raw_time(item[k],k)for k in ('request_from_utc','request_to_utc_exclusive'))
+        need(item['sequence']==seq and begin<end and (previous is None or begin==previous),'RAW_REQUEST_CONTINUITY')
+        need(end<=raw_time(RAW_TEST,'TEST_BOUNDARY') and item['incomplete_candles']==0
+             and type(item['response_candles'])is int and item['response_candles']==item['complete_candles']>0,'RAW_REQUEST_DOMAIN_COMPLETE')
+        relative=f'source_chunks/chunk-{seq:06d}.json.gz';need(item['relative_path']==relative,'RAW_CHUNK_PATH')
+        path=raw_file(root/relative,item['size_bytes']);descriptors.append({'file':{'path':str(path),'sha256':item['sha256']},'metadata':item})
+        previous=end
+    need(raw_time(selected[0]['request_from_utc'],'FIRST')==raw_time(RAW_BEGIN,'FIRST')
+         and previous==raw_time(RAW_END,'LAST') and sum(x['size_bytes']for x in selected)==RAW_BYTES
+         and sum(x['response_candles']for x in selected)==RAW_CANDLES,'RAW_REQUEST_LOCKED_POPULATION')
+    producer=[]
+    for item in require_native_producer_source_inventory_metadata(manifest):
+        path=raw_file(root/item['snapshot_relative_path'],item['size_bytes']);proof=ref(path)
+        need(proof['sha256']==item['sha256'],'RAW_PRODUCER_SNAPSHOT_SHA');producer.append(proof)
+        if item['repo_relative_path']=='gx1/contracts/xau_tape_provenance_v1.py':
+            need(saved.native.sha(REPO/item['repo_relative_path'])==item['sha256'],'RAW_CURRENT_CANONICAL_DECODER_IDENTITY')
+    return descriptors,producer
+
+
+def raw_build_plan(*,source_base_commit=None):
+    d=read(RAW_DESIGN);scope=d['source_scope'];budget=d['budget']
+    need(d['schema_version']=='gx1_native_raw_feed_clock_qualification_design_v1' and d['execution_authorized']is False
+         and d['execution']=={**EXECUTION,'all5_training_flags_false':True,'invocations':1}
+         and scope['TRAIN_issue_start_ns']==START and scope['TRAIN_issue_end_exclusive_ns']==UPPER
+         and scope['capture_fields']==['issue_ns'] and scope['first_sequence']==RAW_FIRST and scope['last_sequence']==RAW_LAST
+         and scope['saved_raw_responses']==budget['saved_gzip_responses']==RAW_CHUNKS
+         and scope['compressed_bytes']==RAW_BYTES and scope['response_candles_from_metadata']==RAW_CANDLES
+         and scope['incomplete_from_metadata']==0 and scope['instrument']=='XAU_USD' and scope['granularity']=='M5'
+         and scope['price']=='MBA' and scope['source_environment']=='practice'
+         and scope['request_start_utc']==RAW_BEGIN and scope['request_end_utc_exclusive']==RAW_END
+         and scope['sealed_TEST_start_utc']==RAW_TEST and scope['capture_archive_loads']==budget['capture_archive_loads']==1
+         and budget['capture_fields_decoded']==1 and budget['full_raw_JSON_candle_objects_decoded']is True
+         and budget['boundary_nonTRAIN_objects_decoded']is True
+         and all(budget[k]==0 for k in ('HTTP_calls','price_computations','models','fits','forwards','backward','features','checkpoint_loads','VAL_TEST_prediction_or_score_rows')),'RAW_LOCKED_DESIGN')
+    manifest=read(d['native_manifest']);descriptors,producer=raw_manifest_inputs(manifest,d['native_manifest'])
+    capture_result=read(d['capture_result']);clock=read(d['clock_result'])
+    need(capture_result['status']=='COMPLETE_NATIVE_FULL_TRAIN_CAPTURE' and capture_result['source_unchanged']is True
+         and capture_result['test_data_used']is False and capture_result['report']['rows']==ROWS
+         and clock['status']=='COMPLETE_NATIVE_FUTURE_WINDOW_COVERAGE' and clock['source_unchanged']is True
+         and clock['test_data_used']is False and clock['report']['TRAIN_issue_rows']==ROWS
+         and clock['report']['grid_counts']['missing_expected_open']==17870,'RAW_AUTHENTIC_CAPTURE_CLOCK')
+    clock_plan=read(clock['plan']);capture=capture_result['report']['capture'];headers=capture_result['report']['capture_array_headers']
+    need(clock_plan['inputs']['capture_result']==d['capture_result'] and clock_plan['inputs']['capture']==capture
+         and clock_plan['inputs']['native_manifest']==d['native_manifest']
+         and headers['issue_ns']==clock_plan['capture_array_headers']['issue_ns']
+         and headers['issue_ns']['dtype']=='<i8' and headers['issue_ns']['shape']==[ROWS],'RAW_PRIOR_CLOCK_CHAIN')
+    read(d['qualification_requirements'])
+    inputs={'design':RAW_DESIGN,**{k:d[k]for k in ('native_manifest','capture_result','clock_result','qualification_requirements')},'clock_plan':clock['plan'],'capture':capture}
+    return {'schema_version':'gx1_native_raw_feed_clock_qualification_plan_v1','stage':RAW_STAGE,'status':'PREPARED_NOT_ADMITTED',
+        'plan_path':str(RAW_PLAN),'output_root':str(RAW_ROOT),'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),
+        'source_owners':{n:saved.native.sha(REPO/n)for n in OWNERS},'inputs':inputs,'raw_chunks':descriptors,'producer_source_snapshots':producer,
+        'capture_array_headers':headers,'TRAIN_issue_ns_sha256':headers['issue_ns']['sha256'],'execution':EXECUTION,'budget':budget,
+        'question':d['question'],'runtime_versions':{'numpy':np.__version__,'pandas':pd.__version__}}
+
+
+def raw_gate_expected(binding,admitted):
+    return {'status':'ADMITTED_EXACT_CPU_ONLY_RAW_FEED_CLOCK_QUALIFICATION'if admitted else'PREPARED_NOT_ADMITTED','plan':binding,
+        'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':False,'test_authorized':False}
+
+
+def raw_inspect(plan_sha,*,admitted):
+    need(Path.cwd().resolve()==REPO,'RAW_CWD');need(type(plan_sha)is str and len(plan_sha)==64 and all(x in '0123456789abcdef'for x in plan_sha),'RAW_PLAN_SHA')
+    binding={'path':str(RAW_PLAN),'sha256':plan_sha};plan=read(binding)
+    need(plan==raw_build_plan(source_base_commit=plan['source_base_commit']) and source_clean(plan),'RAW_EXACT_PLAN_SOURCE')
+    pref=ref(POLICY);policy=read(pref)
+    need(all(policy.get(k)is False for k in saved.FLAGS) and policy[RAW_STAGE]==raw_gate_expected(binding,admitted),'RAW_EXACT_ONE_USE_ALL_TRAINING_CLOSED')
+    need(not RAW_ROOT.exists() and not RAW_ROOT.is_symlink(),'RAW_FRESH_ROOT');return plan,binding,pref
+
+
+def raw_checked_inputs(plan,*,payload_hashes=False):
+    for binding in plan['inputs'].values():need(ref(binding['path'])==binding,'RAW_INPUT_SHA')
+    for binding in plan['producer_source_snapshots']:need(ref(binding['path'])==binding,'RAW_PRODUCER_SNAPSHOT_BOOKEND')
+    for item in plan['raw_chunks']:
+        path=raw_file(item['file']['path'],item['metadata']['size_bytes'])
+        if payload_hashes:need(ref(path)==item['file'],'RAW_GZIP_BOOKEND_SHA')
+    saved.archive_headers(plan['inputs']['capture'],{'issue_ns':plan['capture_array_headers']['issue_ns']},exact_inventory=saved.CAPTURE_KEYS)
+
+
+def raw_parse_chunk(payload,metadata):
+    need(type(payload)is dict and set(payload)=={'schema_version','request','response'}
+         and payload['schema_version']=='xau_oanda_native_source_chunk_v2','RAW_CHUNK_SCHEMA')
+    request,response=payload['request'],payload['response'];seq=metadata['sequence']
+    need(type(request)is dict and set(request)=={'instrument','from','to','granularity','price'}
+         and request['instrument']=='XAU_USD' and request['granularity']=='M5' and request['price']=='MBA','RAW_REQUEST_IDENTITY')
+    begin,end=(raw_time(metadata[k],k)for k in ('request_from_utc','request_to_utc_exclusive'))
+    need(raw_time(request['from'],'REQUEST_FROM')==begin and raw_time(request['to'],'REQUEST_TO')==end,'RAW_REQUEST_WINDOW')
+    need(type(response)is dict and response.get('instrument')=='XAU_USD' and response.get('granularity')=='M5'
+         and type(response.get('candles'))is list,'RAW_RESPONSE_IDENTITY')
+    candles=response['candles'];need(len(candles)==metadata['response_candles']==metadata['complete_candles'] and metadata['incomplete_candles']==0,'RAW_RESPONSE_COUNT')
+    times=[]
+    for i,candle in enumerate(candles):
+        need(type(candle)is dict and type(candle.get('complete'))is bool and candle['complete']is True,f'RAW_COMPLETE:chunk={seq},row={i}')
+        tick=raw_time(candle.get('time'),f'CHUNK_{seq}_ROW_{i}')
+        need(begin<=tick<end,f'RAW_CANDLE_REQUEST_DOMAIN:chunk={seq},row={i}');times.append(tick)
+    times=np.asarray(times,dtype=np.int64);diff=np.diff(times)
+    need(not np.any(diff<=0),f'RAW_CHUNK_ORDER:chunk={seq},duplicates={int((diff==0).sum())},backwards={int((diff<0).sum())}')
+    need(len(times)>0 and times[0]==raw_time(metadata['first_complete_utc'],'FIRST_COMPLETE')
+         and times[-1]==raw_time(metadata['last_complete_utc'],'LAST_COMPLETE'),'RAW_RESPONSE_BOUNDARIES')
+    return times
+
+
+def raw_compare_clocks(train,issue,missing):
+    need(issue.dtype==np.dtype('int64') and issue.shape==(ROWS,) and np.all(np.diff(issue)>0)
+         and np.all((issue>=START)&(issue<UPPER)),'RAW_CAPTURE_CLOCK')
+    starts=issue-TICK;closed=np.asarray(scheduled_weekly_closure_mask(pd.to_datetime(train,utc=True)),np.bool_);canonical=train[~closed]
+    missing_native=np.setdiff1d(starts,canonical);extra=np.setdiff1d(canonical,starts)
+    need(np.array_equal(canonical,starts),f'RAW_CANONICAL_PARITY:missing={len(missing_native)},extra={len(extra)}')
+    need(not np.isin(missing,starts).any() and not np.asarray(scheduled_weekly_closure_mask(pd.to_datetime(missing,utc=True))).any(),'RAW_PRIOR_MISSING_SCOPE')
+    in_raw=np.isin(missing,train);in_canonical=np.isin(missing,canonical)
+    return {'raw_TRAIN_rows':len(train),'weekly_filter_removed_rows':int(closed.sum()),'canonical_TRAIN_rows':len(canonical),
+        'canonical_equals_capture_bar_starts':True,'canonical_bar_start_sha256':saved.array_sha(canonical),'capture_issue_sha256':saved.array_sha(issue),
+        'missing_from_canonical':len(missing_native),'extra_in_canonical':len(extra),'previous_missing_expected_open_slots':len(missing),
+        'previous_missing_slots_present_in_raw':int(in_raw.sum()),'previous_missing_slots_absent_in_raw':int((~in_raw).sum()),
+        'previous_missing_slots_present_after_weekly_filter':int(in_canonical.sum()),'previous_missing_slots_removed_by_weekly_filter':int((in_raw&~in_canonical).sum())}
+
+
+def raw_calculate(plan):
+    import hashlib
+    from gx1.contracts.xau_tape_provenance_v1 import _decode_source_chunk
+    issue=saved.load_fields(plan['inputs']['capture'],('issue_ns',),plan['capture_array_headers'])['issue_ns']
+    need(saved.array_sha(issue)==plan['TRAIN_issue_ns_sha256'],'RAW_CAPTURE_CLOCK_SHA');all_times=[];reports=[];previous=None;decoded_bytes=0
+    for item in plan['raw_chunks']:
+        binding,metadata=item['file'],item['metadata'];path=raw_file(binding['path'],metadata['size_bytes']);raw=path.read_bytes()
+        need(hashlib.sha256(raw).hexdigest()==binding['sha256'],'RAW_GZIP_SHA')
+        payload=_decode_source_chunk(raw,timeframe='M5',path=path);times=raw_parse_chunk(payload,metadata)
+        need(previous is None or times[0]>previous,f'RAW_CROSS_CHUNK_ORDER:sequence={metadata["sequence"]},previous={previous},first={int(times[0])}')
+        previous=int(times[-1]);all_times.append(times);decoded_bytes+=len(raw)
+        reports.append({'sequence':metadata['sequence'],'candle_objects':len(times),'before_TRAIN':int((times<START).sum()),'after_TRAIN':int((times>=UPPER).sum()),'duplicates':0,'backwards':0})
+        del payload,raw
+    times=np.concatenate(all_times);need(len(times)==RAW_CANDLES and decoded_bytes==RAW_BYTES and np.all(times<raw_time(RAW_TEST,'SEALED_TEST')),'RAW_DECODE_BUDGET_TEST')
+    train=times[(times>=START)&(times<UPPER)];clock=read(plan['inputs']['clock_result'])['report'];old=clock['missing_clock_patterns']
+    missing=pd.DatetimeIndex(pd.to_datetime(old['all_missing_clocks_utc'],utc=True)).asi8
+    comparison=raw_compare_clocks(train,issue,missing);groups={'Mon_Thu_17_18_NY':[],'Sunday_2021_11_21_18_19_NY':[],'other':[]}
+    for gap in old['gaps']:
+        start=pd.Timestamp(gap['start_New_York']);end=pd.Timestamp(gap['end_New_York_exclusive'])
+        key=('Mon_Thu_17_18_NY'if gap['duration_minutes']==60 and start.dayofweek<4 and (start.hour,start.minute,end.hour,end.minute)==(17,0,18,0)
+             else'Sunday_2021_11_21_18_19_NY'if gap['start_utc']=='2021-11-21T23:00:00+00:00'and gap['duration_minutes']==60 else'other')
+        ticks=np.arange(pd.Timestamp(gap['start_utc']).value,pd.Timestamp(gap['end_utc_exclusive']).value,TICK,dtype=np.int64)
+        positions=np.searchsorted(train,ticks);inside=positions<len(train);inside[inside]&=train[positions[inside]]==ticks[inside]
+        groups[key].append({'slots':len(ticks),'present_in_raw':int(inside.sum())})
+    group_summary={k:{'gaps':len(v),'missing_slots':sum(x['slots']for x in v),'slots_present_in_saved_raw':sum(x['present_in_raw']for x in v)}for k,v in groups.items()}
+    need(len(missing)==17870 and group_summary['Mon_Thu_17_18_NY']['gaps']==994 and group_summary['Sunday_2021_11_21_18_19_NY']['gaps']==1,'RAW_PRIOR_GAP_POPULATION')
+    return {'comparison':comparison,'gap_groups':group_summary,'raw_chunks':reports,'raw_response_request_windows_contiguous':True,'cross_chunk_duplicates':0,'cross_chunk_overlaps':0,
+        'payload_counts':{'saved_gzip_responses_decoded':len(reports),'compressed_gzip_bytes_decoded':decoded_bytes,'full_raw_JSON_candle_objects_decoded':len(times),
+            'raw_OHLC_objects_deserialized':True,'before_TRAIN_boundary_objects':int((times<START).sum()),'after_TRAIN_boundary_objects':int((times>=UPPER).sum()),
+            'sealed_TEST_objects':0,'capture_archives':1,'capture_fields':['issue_ns'],'price_computations':0,'VAL_TEST_prediction_or_score_rows':0},
+        'limits':['This proves the content of the archived successful practice responses, not historical quote availability or market closure.',
+            'Full gzip/JSON decoding reads OHLC objects including admitted2020/2026 boundary objects; price fields are not used for computation.',
+            'Only the existing manifest-bound weekly filter is applied; no daily closure is inferred and no original data or masks are changed.']}
+
+
+def raw_publish(name,value):
+    path=RAW_ROOT/name;saved._publish_bytes(path,(json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n').encode());return ref(path)
+
+
+def raw_run(plan_sha):
+    began=time.monotonic();cap=require_capped_cpu_audit_execution();lock=require_capped_lock_ancestry()
+    need(cap['memory_max']==cap['memory_high']==4*1024**3 and cap['swap']==512*1024**2 and cap['numerical_threads']==1 and lock['scope']==cap['cgroup_path'][len('/sys/fs/cgroup'):],'RAW_CAP_LIMITS')
+    plan,binding,pref=raw_inspect(plan_sha,admitted=True);raw_checked_inputs(plan);RAW_ROOT.mkdir(parents=True,exist_ok=False)
+    claim=raw_publish('CLAIM.json',{'stage':RAW_STAGE,'plan':binding,'policy_at_claim':pref,'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False});old=signal.getsignal(signal.SIGALRM);result=None
+    try:
+        def expired(*_):raise TimeoutError('RAW_FEED_CLOCK_WALL')
+        signal.signal(signal.SIGALRM,expired);remaining=EXECUTION['internal_seconds']-(time.monotonic()-began);need(remaining>0,'RAW_TIME_BEFORE_CALCULATE');signal.setitimer(signal.ITIMER_REAL,remaining)
+        report=raw_calculate(plan);raw_checked_inputs(plan,payload_hashes=True)
+        need(source_clean(plan) and ref(POLICY)==pref and ref(RAW_PLAN)==binding,'RAW_SOURCE_INPUT_PLAN_POLICY_BOOKEND')
+        result=raw_publish('RESULT.json',{'status':'COMPLETE_NATIVE_RAW_FEED_CLOCK_QUALIFICATION','stage':RAW_STAGE,'plan':binding,'claim':claim,'policy_at_claim':pref,'design':RAW_DESIGN,
+            'report':report,'source_unchanged':True,'test_data_used':False,'models':0,'fits':0,'forwards':0,'price_computations':0,'HTTP_calls':0,'elapsed_seconds':time.monotonic()-began})
+        terminal=raw_publish('TERMINAL.json',{'status':'COMPLETE','exit_code':0,'stage':RAW_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'source_unchanged':True,'test_data_used':False});return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        signal.setitimer(signal.ITIMER_REAL,0);raw_publish('TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'stage':RAW_STAGE,'plan':binding,'claim':claim,'result':result,
+            'remaining_invocations':0,'relaunch_allowed':False,'error':type(error).__name__+':'+str(error)[:2000],'test_data_used':False});raise
+    finally:signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old)
+
+
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--plan-sha256',required=True);parser.add_argument('--preflight',action='store_true');args=parser.parse_args()
-    if args.preflight:
+    parser=argparse.ArgumentParser(description=__doc__);mode=parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--plan-sha256');mode.add_argument('--raw-feed-plan-sha256');parser.add_argument('--preflight',action='store_true');args=parser.parse_args()
+    if args.raw_feed_plan_sha256 is not None:
+        import sys
+        need(sys.argv[1:]==['--raw-feed-plan-sha256',args.raw_feed_plan_sha256]+(['--preflight']if args.preflight else[]),'RAW_EXACT_CLI')
+        if args.preflight:
+            plan,binding,pref=raw_inspect(args.raw_feed_plan_sha256,admitted=False);raw_checked_inputs(plan)
+            print(json.dumps({'status':'PREFLIGHT_RAW_FEED_PASS','plan':binding,'policy':pref,'claim_created':False,'raw_gzip_bytes_decoded':0,'raw_JSON_objects_decoded':0,'capture_arrays_decoded':0,'models':0,'price_computations':0}))
+        else:print(json.dumps(raw_run(args.raw_feed_plan_sha256)))
+    elif args.preflight:
         plan,binding,pref=inspect(args.plan_sha256,admitted=False);checked_inputs(plan);print(json.dumps({'status':'PREFLIGHT_PASS','plan':binding,'policy':pref,'claim_created':False,'arrays_decoded':0,'models':0,'prices':0,'logits':0}))
     else:print(json.dumps(run(args.plan_sha256)))
 

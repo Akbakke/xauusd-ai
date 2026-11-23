@@ -26,6 +26,8 @@ def fixture(tmp_path):
 def _policy(repo):
     source=Path(__file__).resolve().parents[1]
     p=json.loads((source/'NEXT_RUN_POLICY.json').read_text())
+    # Historical fixtures do not inherit the live 20-step review or its paths.
+    p.pop('native_twenty_step_qualification_20261123_001', None)
     p['canonical_source_repo']=str(repo)
     original=repo/'docs/ORIGINAL_PROJECT_GOAL.md'
     original.parent.mkdir(parents=True, exist_ok=True)
@@ -1393,3 +1395,89 @@ def test_later_five_year_state_never_inherits_prepared_or_legacy_ready(fixture):
     assert result['decision'] == 'BLOCKED'
     assert result['run_authority'] is False
     assert result['recorded_status'] == 'ADMITTED_ONE_USE'
+
+
+def _twenty_review(repo, *, state='REVIEWING', complete=False):
+    from scripts.collect_gx1_handover_readonly import qualification_observation
+    definition = repo/'docs/NATIVE_QUALIFICATION_20_STEPS.json'
+    definition.parent.mkdir(exist_ok=True)
+    definition.write_text(json.dumps({'schema_version':'gx1_twenty_step_qualification_requirements_v1',
+        'requirements':[{'id':f'{i:02d}','title':f'Gate {i}','acceptance':'Scoped evidence required'} for i in range(1,21)]}))
+    receipt = repo/'receipt.json'; receipt.write_text('{"fixture_evidence_only":true}\n')
+    binding = {'path':str(receipt),'sha256':hashlib.sha256(receipt.read_bytes()).hexdigest()}
+    review = {'status':'ACTIVE_20_STEP_REVIEW_AND_REPAIR','qualification_complete':complete,
+        'requirements':{'path':str(definition),'sha256':hashlib.sha256(definition.read_bytes()).hexdigest()},
+        'steps':{f'{i:02d}':{'status':state,'evidence':[binding] if state=='PASS' else []} for i in range(1,21)}}
+    return qualification_observation, {'native_twenty_step_qualification_20261123_001':review}, review
+
+
+def test_qualification_review_absent_has_no_legacy_fallback(fixture):
+    from scripts.collect_gx1_handover_readonly import qualification_observation
+    assert qualification_observation(fixture,{}) is None
+
+
+def test_qualification_review_reports_open_fail_unknown_and_no_run_authority(fixture):
+    call,policy,review=_twenty_review(fixture)
+    review['steps']['03']['status']='UNKNOWN';review['steps']['15']['status']='FAIL'
+    result=call(fixture,policy)
+    assert result['counts']=={'NOT_REVIEWED':0,'REVIEWING':18,'PASS':0,'FAIL':1,'UNKNOWN':1}
+    assert len(result['open_steps'])==20 and result['decision']=='OPEN_QUALIFICATION_REQUIREMENTS'
+    assert result['qualification_complete'] is False and result['run_authority'] is False
+
+
+@pytest.mark.parametrize('complete,status',[(True,'ACTIVE_20_STEP_REVIEW_AND_REPAIR'),(False,'ALL_20_APPROVED')])
+def test_qualification_review_cannot_approve_with_open_requirements(fixture,complete,status):
+    call,policy,review=_twenty_review(fixture,complete=complete)
+    review['status']=status
+    with pytest.raises(ValueError,match='FALSE_COMPLETION_WITH_OPEN_STEPS'):call(fixture,policy)
+
+
+@pytest.mark.parametrize('mutation',['missing_step','extra_step','invalid_state','definition_sha'])
+def test_qualification_review_rejects_incomplete_or_tampered_record(fixture,mutation):
+    call,policy,review=_twenty_review(fixture)
+    if mutation=='missing_step':review['steps'].pop('20')
+    elif mutation=='extra_step':review['steps']['21']={'status':'PASS','evidence':[]}
+    elif mutation=='invalid_state':review['steps']['01']['status']='READY_CLEAN_WORKTREE'
+    else:review['requirements']['sha256']='0'*64
+    with pytest.raises(ValueError,match='QUALIFICATION_'):call(fixture,policy)
+
+
+def test_qualification_review_pass_needs_bound_receipt(fixture):
+    call,policy,review=_twenty_review(fixture)
+    review['steps']['01']={'status':'PASS','evidence':[]}
+    with pytest.raises(ValueError,match='PASS_EVIDENCE_REQUIRED_01'):call(fixture,policy)
+
+
+def test_qualification_review_rejects_changed_pass_evidence(fixture):
+    call,policy,review=_twenty_review(fixture,state='PASS',complete=True)
+    (fixture/'receipt.json').write_text('{"changed":true}')
+    with pytest.raises(ValueError,match='EVIDENCE_SHA_01'):call(fixture,policy)
+
+
+def test_qualification_review_does_not_open_weight_payload(fixture,monkeypatch):
+    from scripts import collect_gx1_handover_readonly as owner
+    call,policy,review=_twenty_review(fixture)
+    review['steps']['01']={'status':'PASS','evidence':[{'path':str(fixture/'weights.pt'),'sha256':'0'*64}]}
+    opened=[];original=owner._regular_file
+    def checked(path,*,label):
+        opened.append(path);return original(path,label=label)
+    monkeypatch.setattr(owner,'_regular_file',checked)
+    with pytest.raises(ValueError,match='METADATA_RECEIPT_REQUIRED_01'):call(fixture,policy)
+    assert str(fixture/'weights.pt') not in opened
+
+
+def test_qualification_review_all_recorded_pass_still_grants_no_run(fixture):
+    call,policy,review=_twenty_review(fixture,state='PASS',complete=True)
+    result=call(fixture,policy)
+    assert result['counts']['PASS']==20 and result['open_steps']==[]
+    assert result['decision']=='RECORDED_20_STEP_APPROVAL' and result['run_authority'] is False
+
+
+def test_qualification_review_is_retained_in_source_only_handover(fixture):
+    from scripts.collect_gx1_handover_readonly import handover_view
+    path,policy=_policy(fixture)
+    _,addition,_=_twenty_review(fixture)
+    policy.update(addition);path.write_text(json.dumps(policy))
+    observed=handover_view(current_status(fixture,source_only=True))
+    assert observed['qualification_review']['decision']=='OPEN_QUALIFICATION_REQUIREMENTS'
+    assert observed['decision']=='OBSERVATION_ONLY_NOT_RUN_AUTHORITY'
