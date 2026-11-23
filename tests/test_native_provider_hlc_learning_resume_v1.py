@@ -10,6 +10,21 @@ import pytest
 
 from gx1.audit import native_provider_hlc_learning_v1 as m
 
+_ACTIVE_INPUTS = copy.deepcopy(m.RESUME_INPUTS)
+_ACTIVE_LIMITS = copy.deepcopy(m.RESUME_LIMITS)
+
+
+def _suffix_limits(cursor):
+    limits = copy.deepcopy(_ACTIVE_LIMITS)
+    updates = 3694 - cursor
+    checkpoints = len(range((cursor // 256 + 1) * 256, 3694, 256)) + 1
+    limits.update(model_forwards=updates + 1385, backbone_forwards=updates + 1385,
+                  readout_forwards=updates + 1385, optimizer_steps=updates,
+                  backward_calls=updates, checkpoint_writes=checkpoints,
+                  checkpoint_readbacks=checkpoints, checkpoint_receipt_writes=checkpoints)
+    return limits
+
+
 
 def _binding(name):
     return {'path': '/synthetic/' + name + '.json', 'sha256': 'a' * 64}
@@ -18,6 +33,14 @@ def _binding(name):
 def _metadata_fixture(monkeypatch):
     from gx1.contracts import gx1_capped_execution_v1 as guard
     from gx1.contracts import market_state_ta_integrated_model_v1 as model_owner
+    inputs = {key: copy.deepcopy(_ACTIVE_INPUTS[key]) for key in
+              ('original_plan', 'original_claim', 'original_terminal',
+               'original_admitted_policy', 'original_stop_review', 'original_backup')}
+    inputs.update(checkpoint_receipt=copy.deepcopy(_ACTIVE_INPUTS['ancestral_checkpoint_receipt']),
+                  original_checkpoint=copy.deepcopy(_ACTIVE_INPUTS['ancestral_checkpoint']))
+    monkeypatch.setattr(m, 'RESUME_INPUTS', inputs)
+    monkeypatch.setattr(m, 'RESUME_CURSOR', 512)
+    monkeypatch.setattr(m, 'RESUME_LIMITS', _suffix_limits(512))
     source_bytes = b'synthetic-source'
     digest = hashlib.sha256(source_bytes).hexdigest()
     runtime = {'source_commit': m.RESUME_PRODUCER, 'gpu': {'synthetic': True},
@@ -47,6 +70,12 @@ def _metadata_fixture(monkeypatch):
                 'backbone_gradient_policy': 'M5_primary', 'recipe': recipe,
                 'schedule': schedule, 'metadata': metadata, 'model_contract': contract,
                 'initial_reference': initial,
+                'limits': {**_ACTIVE_LIMITS, 'model_forwards': 5079,
+                           'backbone_forwards': 5079, 'readout_forwards': 5079,
+                           'optimizer_steps': 3694, 'backward_calls': 3694,
+                           'checkpoint_writes': 16, 'checkpoint_readbacks': 16,
+                           'checkpoint_receipt_writes': 16, 'checkpoint_loads': 0,
+                           'model_restores': 0},
                 'inputs': {'baseline_result': _binding('baseline_result'),
                            'baseline_initial_receipt': _binding('baseline_initial_receipt')},
                 'source_owners': {key: digest for key in ('numeric_owner.py', m.SELF, *m.GUARDS)},
@@ -249,7 +278,9 @@ def _run_fixture(monkeypatch, tmp_path):
     monkeypatch.setattr(m, 'RESUME_PLAN', planfile); monkeypatch.setattr(m, 'POLICY', policyfile)
     monkeypatch.setattr(m, 'RESUME_ROOT', tmp_path / 'resume_output')
     binding, pref = m.ref(planfile), m.ref(policyfile)
-    plan = {'metadata': {'original_plan': _binding('original')},
+    plan = {'starting_cursor': 512, 'schedule': {'logical_batches': 3694},
+            'checkpoint_global_cursors': list(range(768, 3694, 256)) + [3694],
+            'metadata': {'original_plan': _binding('original')},
             'inputs': {key: {'path': str(tmp_path / name)} for key, name in
                        (('feature_archive', 'features.npz'), ('target_arrays', 'targets.npz'),
                         ('original_checkpoint', 'UPDATE000512.pt'), ('checkpoint_receipt', 'UPDATE000512.json'))}}
@@ -326,7 +357,7 @@ def test_physical_resume_has_one_load_restore_and_no_initial_checkpoint_authorit
     assert len(loads) == len(restores) == 1
     assert {kw.arg: ast.literal_eval(kw.value) for kw in loads[0].keywords} == {'map_location': 'cpu', 'weights_only': True}
     kwargs = {kw.arg: kw.value for kw in restores[0].keywords}
-    assert ast.literal_eval(kwargs['expected_cursor']) == 512
+    assert ast.unparse(kwargs['expected_cursor']) == 'start'
     assert ast.unparse(kwargs['original_plan_ref']) == "meta['original_plan']"
     assert ast.unparse(kwargs['expected_state_proof']) == "receipt['proof']"
     assert ast.unparse(kwargs['trajectory']) == 'traj'
@@ -334,25 +365,33 @@ def test_physical_resume_has_one_load_restore_and_no_initial_checkpoint_authorit
     assert ast.unparse(next(call for call in calls if named(call, 'train', 'training_step')).args[-1]) == 'j'
 
 
+@pytest.mark.parametrize('start', [512, 1792])
 @pytest.mark.parametrize('restore_failure', [False, True])
-def test_physical_resume_synthetic_full_suffix_preserves_history_and_exact_counts(monkeypatch, restore_failure):
+def test_physical_resume_synthetic_full_suffix_preserves_history_and_exact_counts(monkeypatch, restore_failure, start):
     """Exercise orchestration with fake construction/load/step/score, never native data/model."""
     import numpy as np
     import torch
     from gx1.contracts import market_state_ta_integrated_model_v1 as model_owner
     from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
     original, receipt, _, _, _, _, _, _, live, _, _ = _metadata_fixture(monkeypatch)
+    if start == 1792:
+        receipt = copy.deepcopy(receipt)
+        receipt.update(logical_cursor=start, optimizer_updates=start, checkpoint=_ACTIVE_INPUTS['original_checkpoint'])
+    monkeypatch.setattr(m, 'RESUME_CURSOR', start)
+    monkeypatch.setattr(m, 'RESUME_LIMITS', _suffix_limits(start))
     original['schedule'].update(batch_source_rows_sha256=['batch'] * 3694,
                                 batch_issue_ns_sha256=['batch'] * 3694)
     original['recipe']['optimizer'] = {'synthetic': True}
-    plan = {'metadata': {'original': original, 'original_plan': m.RESUME_INPUTS['original_plan'],
+    plan = {'starting_cursor': start, 'remaining_TRAIN_rows': 354550 - start * 96,
+            'metadata': {'original': original, 'original_plan': m.RESUME_INPUTS['original_plan'],
                          'receipt': receipt, 'trajectory': m.trajectory(original)},
-            'inputs': {'checkpoint_receipt': m.RESUME_INPUTS['checkpoint_receipt']},
+            'inputs': {'checkpoint_receipt': m.RESUME_INPUTS['checkpoint_receipt'],
+                       'original_checkpoint': receipt['checkpoint']},
             'limits': copy.deepcopy(m.RESUME_LIMITS)}
     context = {'source_rows': np.arange(354550, dtype=np.int64),
                'truth': {'issue_ns': np.arange(354550, dtype=np.int64)},
                'normalization': {}, 'input_binding': {}, 'target_contract': {}, 'prior': {}}
-    before_steps = [{'logical_step': j + 1} for j in range(512)]
+    before_steps = [{'logical_step': j + 1} for j in range(start)]
     before_scores = {'INITIAL': {'synthetic_reused_initial': True}}
     cp = {'producer': {'original_plan': plan['metadata']['original_plan'],
                        'lane': 'main', 'runtime': receipt['producer_runtime']},
@@ -392,11 +431,11 @@ def test_physical_resume_synthetic_full_suffix_preserves_history_and_exact_count
     def restore(actual_model, actual_optimizer, actual_checkpoint, **kwargs):
         assert actual_model is model and actual_optimizer is optimizer and actual_checkpoint is cp
         assert kwargs['original_plan_ref'] == m.RESUME_INPUTS['original_plan']
-        assert kwargs['expected_cursor'] == 512 and kwargs['expected_state_proof'] == receipt['proof']
+        assert kwargs['expected_cursor'] == start and kwargs['expected_state_proof'] == receipt['proof']
         assert kwargs['trajectory'] is plan['metadata']['trajectory']
         restores.append(kwargs)
         if restore_failure: raise ValueError('synthetic_restore_failure')
-        return m.train.position(original['schedule'], 512)
+        return m.train.position(original['schedule'], start)
     monkeypatch.setattr(m.train, 'strict_restore', restore)
     monkeypatch.setattr(objective, '_native_future_state_truth',
                         lambda *a, **k: {'activity': np.ones(1, dtype=np.bool_)})
@@ -422,7 +461,7 @@ def test_physical_resume_synthetic_full_suffix_preserves_history_and_exact_count
         assert kwargs['trajectory'] is plan['metadata']['trajectory']
         assert kwargs['original_plan_ref'] == m.RESUME_INPUTS['original_plan']
         assert kwargs['lane'] == 'main'
-        assert kwargs['steps'][:512] == before_steps
+        assert kwargs['steps'][:start] == before_steps
         assert len(kwargs['steps']) == kwargs['cursor']
         assert kwargs['scores']['INITIAL'] == before_scores['INITIAL']
         return kwargs
@@ -448,21 +487,161 @@ def test_physical_resume_synthetic_full_suffix_preserves_history_and_exact_count
         assert events == [] and indices == [] and checkpoints == []
         return
     report = m.physical_resume(plan, new_binding, _binding('policy'), live)
-    assert events[0][0] == 'RESTORE512_PROOF.json'
+    assert events[0][0] == 'RESTORE%d_PROOF.json' % start
     proof = events[0][1]
     assert proof['canonical_strict_restore_completed'] is True and proof['new_model_forwards'] == 0
     assert proof['checkpoint'] == receipt['checkpoint'] and proof['expected_state_proof'] == receipt['proof']
-    assert proof['position'] == m.train.position(original['schedule'], 512)
+    assert proof['position'] == m.train.position(original['schedule'], start)
     assert proof['original_plan'] == m.RESUME_INPUTS['original_plan'] and proof['execution_plan'] == new_binding
     assert proof['uninterrupted_next_step_parity'] == 'NOT_MEASURED'
     assert len(constructions) == len(loads) == len(restores) == 1
     assert loads[0] == ((receipt['checkpoint']['path'],), {'map_location': 'cpu', 'weights_only': True})
-    assert indices == list(range(512, 3694))
-    assert [cursor for _, cursor in checkpoints] == list(range(768, 3694, 256)) + [3694]
+    assert indices == list(range(start, 3694))
+    assert [cursor for _, cursor in checkpoints] == list(range((start // 256 + 1) * 256, 3694, 256)) + [3694]
     assert all(path.parent == m.RESUME_ROOT and path.name != 'INITIAL.pt' for path, _ in checkpoints)
     assert cp['steps'] == before_steps and cp['scores'] == before_scores
     assert report['counts'] == m.RESUME_LIMITS
-    assert report['new_optimizer_updates'] == 3182 and report['actual_optimizer_updates'] == 3694
+    assert report['new_optimizer_updates'] == 3694 - start and report['actual_optimizer_updates'] == 3694
     assert report['trajectory'] is plan['metadata']['trajectory']
     assert report['original_plan'] == m.RESUME_INPUTS['original_plan']
     assert report['execution_plan'] == new_binding and report['later_generalization'] == 'UNKNOWN'
+
+
+def _resume1792_fixture(monkeypatch):
+    original, ancestor, _, _, _, _, _, values, live, refs, stopped = _metadata_fixture(monkeypatch)
+    base_inputs = copy.deepcopy(m.RESUME_INPUTS)
+    monkeypatch.setattr(m, 'RESUME_INPUTS', copy.deepcopy(_ACTIVE_INPUTS))
+    monkeypatch.setattr(m, 'RESUME_CURSOR', 1792)
+    monkeypatch.setattr(m, 'RESUME_LIMITS', _suffix_limits(1792))
+    inputs = m.RESUME_INPUTS
+    previous_ref = inputs['previous_execution_plan']
+    original_ref = inputs['original_plan']
+    prepared = copy.deepcopy(original['metadata']['runtime'])
+    prepared.update(source_commit='233929b8be7fbb39c2955768a3efa14787abb98b',
+                    observed_utc='2026-11-23T20:40:00+00:00')
+    producer = copy.deepcopy(prepared); producer['observed_utc'] = '2026-11-23T20:41:00+00:00'
+    traj = m.trajectory(original)
+    previous = {'schema_version': 'gx1_native_provider_hlc_remaining_epoch_plan_v1',
+                'source_commit': prepared['source_commit'],
+                'stage': Path(previous_ref['path']).stem.lower(),
+                'output_root': str(Path(inputs['original_checkpoint']['path']).parent),
+                'starting_cursor': 512, 'recipe': copy.deepcopy(original['recipe']),
+                'schedule': copy.deepcopy(original['schedule']), 'execution': copy.deepcopy(m.EXECUTION),
+                'model_contract': copy.deepcopy(original['model_contract']),
+                'initial_reference': copy.deepcopy(original['initial_reference']),
+                'inputs': {**original['inputs'], **base_inputs},
+                'metadata': {'runtime': prepared, 'original_plan': original_ref,
+                             'original': copy.deepcopy(original), 'trajectory': traj,
+                             'receipt': copy.deepcopy(ancestor)}}
+    receipt = copy.deepcopy(ancestor)
+    receipt.update(checkpoint=inputs['original_checkpoint'], execution_plan=previous_ref,
+                   producer_runtime=producer, logical_cursor=1792, optimizer_updates=1792)
+    receipt['proof']['position'] = m.core.state_sha(m.train.position(original['schedule'], 1792))
+    claim = {'plan': previous_ref, 'original_plan': original_ref, 'runtime': copy.deepcopy(producer),
+             'policy_at_claim': {'path': str(m.POLICY),
+                                 'sha256': inputs['previous_admitted_policy']['sha256']},
+             'remaining_invocations': 0, 'TRAIN_diagnostic_only': True,
+             'starting_cursor': 512, 'restored_checkpoint_receipt': inputs['ancestral_checkpoint_receipt'],
+             'process_identity': {'synthetic_previous': True}}
+    policy = dict.fromkeys(m.FLAGS, True); policy['full_val_allowed'] = False
+    policy[previous['stage']] = m.resume_gate(previous_ref, True, cursor=512)
+    terminal = {'status': 'FAILED_CONSUMED', 'exit_code': 1, 'plan': previous_ref,
+                'claim': inputs['previous_claim'], 'remaining_invocations': 0, 'relaunch_allowed': False}
+    restore = {'status': 'PASS_CANONICAL_CURSOR512_MODEL_ADAMW_RNG_RESTORE',
+               'canonical_strict_restore_completed': True, 'new_model_forwards': 0,
+               'original_plan': original_ref, 'execution_plan': previous_ref,
+               'checkpoint': inputs['ancestral_checkpoint'],
+               'checkpoint_receipt': inputs['ancestral_checkpoint_receipt'],
+               'position': m.train.position(original['schedule'], 512),
+               'expected_state_proof': copy.deepcopy(ancestor['proof']),
+               'uninterrupted_next_step_parity': 'NOT_MEASURED'}
+    review = {'execution_plan': previous_ref, 'original_plan': original_ref, 'process_stopped': True,
+              'completed_epoch': False, 'last_durable_cursor': 1792, 'last_durable_rows': 172032,
+              'last_durable_checkpoint': inputs['original_checkpoint'],
+              'last_durable_receipt': inputs['checkpoint_receipt'],
+              'restore512_proof': inputs['previous_restore_proof'],
+              'actual_cursor512_tensor_restore_qualified': True, 'guard_stop_reason': 'host_maintenance_active'}
+    backup = {'schema_version': 'gx1_bound_separate_disk_backup_ack_v1',
+              'status': 'PASS_FIVE_SUFFIX_CHECKPOINTS_THROUGH1792_AND_ORIGINAL_RECEIPTS',
+              'Mac_F_FULLFSYNC_and_disk_SHA_readback': True, 'checkpoint_files': 5,
+              'files': 43, 'total_bytes': 499529425}
+    scope = {'original_plan': original_ref, 'previous_checkpoint_receipt': inputs['checkpoint_receipt'],
+             'previous_checkpoint': inputs['original_checkpoint'], 'previous_execution_plan': previous_ref,
+             'previous_claim': inputs['previous_claim'], 'previous_terminal': inputs['previous_terminal'],
+             'previous_admitted_policy': inputs['previous_admitted_policy'],
+             'previous_stop_review': inputs['previous_stop_review'], 'previous_stop_backup': inputs['previous_backup'],
+             'previous_source_commit': prepared['source_commit'], 'starting_cursor': 1792,
+             'new_plan_path': str(m.RESUME_PLAN), 'new_output_root': str(m.RESUME_ROOT)}
+    values.update({inputs[key]['path']: value for key, value in
+                   (('previous_execution_plan', previous), ('checkpoint_receipt', receipt),
+                    ('previous_claim', claim), ('previous_admitted_policy', policy),
+                    ('previous_terminal', terminal), ('previous_restore_proof', restore),
+                    ('previous_stop_review', review), ('previous_backup', backup), ('resume_scope', scope))})
+    return original, receipt, previous, claim, policy, terminal, restore, review, backup, scope, values, live, stopped
+
+
+def test_1792_plan_authenticates_previous_producer_and_derives_remaining_epoch(monkeypatch):
+    original, receipt, previous, claim, _, _, _, _, _, _, _, live, stopped = _resume1792_fixture(monkeypatch)
+    plan = m.build_resume_plan(live)
+    assert receipt['original_plan'] == m.RESUME_INPUTS['original_plan']
+    assert receipt['execution_plan'] == m.RESUME_INPUTS['previous_execution_plan']
+    assert receipt['producer_runtime'] == claim['runtime']
+    assert receipt['producer_runtime']['source_commit'] == previous['source_commit']
+    assert previous['source_commit'] != original['source_commit']
+    assert plan['metadata']['trajectory'] == m.trajectory(original)
+    assert plan['starting_cursor'] == 1792 and plan['remaining_TRAIN_rows'] == 182518
+    assert plan['remaining_FINAL_rows'] == 354550
+    assert plan['limits'] == _ACTIVE_LIMITS == _suffix_limits(1792)
+    assert plan['limits']['optimizer_steps'] == 1902
+    assert plan['limits']['model_forwards'] == 1902 + 1385 == 3287
+    assert plan['checkpoint_global_cursors'] == [2048, 2304, 2560, 2816, 3072, 3328, 3584, 3694]
+    assert plan['limits']['checkpoint_writes'] == 8
+    assert plan['new_INITIAL_writes'] == 0
+    assert stopped == [{'synthetic': True}, {'synthetic_previous': True}]
+
+
+@pytest.mark.parametrize('bad', ['active_original', 'active_execution', 'active_position', 'active_cursor',
+    'producer_original_source', 'previous_source', 'previous_original', 'previous_trajectory',
+    'previous_receipt', 'claim_plan', 'claim_runtime', 'claim_original', 'claim_cursor',
+    'claim_policy', 'admission', 'terminal', 'restore_original', 'restore_execution', 'restore_proof',
+    'restore_position', 'review_cursor', 'backup', 'scope_ref', 'scope_cursor'])
+def test_1792_rejects_wrong_previous_execution_ancestry_or_checkpoint_roles(monkeypatch, bad):
+    original, receipt, previous, claim, policy, terminal, restore, review, backup, scope, _, live, _ = _resume1792_fixture(monkeypatch)
+    if bad == 'active_original': receipt['original_plan'] = m.RESUME_INPUTS['previous_execution_plan']
+    elif bad == 'active_execution': receipt['execution_plan'] = m.RESUME_INPUTS['original_plan']
+    elif bad == 'active_position': receipt['proof']['position'] = '0' * 64
+    elif bad == 'active_cursor': receipt['logical_cursor'] = receipt['optimizer_updates'] = 512
+    elif bad == 'producer_original_source': receipt['producer_runtime']['source_commit'] = original['source_commit']
+    elif bad == 'previous_source': previous['source_commit'] = original['source_commit']
+    elif bad == 'previous_original': previous['metadata']['original']['source_commit'] = '0' * 40
+    elif bad == 'previous_trajectory': previous['metadata']['trajectory'] = {}
+    elif bad == 'previous_receipt': previous['metadata']['receipt']['proof']['steps'] = '0' * 64
+    elif bad == 'claim_plan': claim['plan'] = m.RESUME_INPUTS['original_plan']
+    elif bad == 'claim_runtime': claim['runtime']['observed_utc'] = '2026-11-23T20:41:01+00:00'
+    elif bad == 'claim_original': claim['original_plan'] = m.RESUME_INPUTS['previous_execution_plan']
+    elif bad == 'claim_cursor': claim['starting_cursor'] = 1792
+    elif bad == 'claim_policy': claim['policy_at_claim']['sha256'] = '0' * 64
+    elif bad == 'admission': policy[previous['stage']]['remaining_invocations'] = 0
+    elif bad == 'terminal': terminal['plan'] = m.RESUME_INPUTS['original_plan']
+    elif bad == 'restore_original': restore['original_plan'] = m.RESUME_INPUTS['previous_execution_plan']
+    elif bad == 'restore_execution': restore['execution_plan'] = m.RESUME_INPUTS['original_plan']
+    elif bad == 'restore_proof': restore['expected_state_proof']['steps'] = '0' * 64
+    elif bad == 'restore_position': restore['position']['logical_cursor'] = 1792
+    elif bad == 'review_cursor': review['last_durable_cursor'] = 1793
+    elif bad == 'backup': backup['Mac_F_FULLFSYNC_and_disk_SHA_readback'] = False
+    elif bad == 'scope_ref': scope['previous_execution_plan'] = _binding('foreign')
+    else: scope['starting_cursor'] = 512
+    with pytest.raises(ValueError): m.build_resume_plan(live)
+
+
+def test_resume_bookend_hashing_allows_exact_ancestral_checkpoint_without_load(monkeypatch, tmp_path):
+    plan, binding, _, hooks, _ = _run_fixture(monkeypatch, tmp_path)
+    plan['inputs']['ancestral_checkpoint'] = {'path': str(tmp_path / 'ancestral512.pt')}
+    hashes = []
+    def bookend(checked):
+        for key in ('original_checkpoint', 'ancestral_checkpoint'):
+            hooks[0]('open', (checked['inputs'][key]['path'],))
+            hashes.append(checked['inputs'][key]['path'])
+    monkeypatch.setattr(m, 'check_resume_sources_inputs', bookend)
+    m.run_resume(binding['sha256'])
+    assert hashes == [plan['inputs'][key]['path'] for key in ('original_checkpoint', 'ancestral_checkpoint')]
