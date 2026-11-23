@@ -158,8 +158,9 @@ manifestfadf4541...605a80. Publisert kildebølgeHEAD3c96174e9 er ren;
 Nybackup010:33artefakter/31136881bytes,manifest5124f113...26a6f9;
 Mac002inputs5filer/5213805bytes ogsåseparatverifisert.
 ADMINISTRATIVE_FINAL_READINESS005 og REVIEW_CHECKPOINT009 binder20steg.
-OriginalMAIN59/62helfilhasher likeCURRENT;3historiske vakt-/eksaktgjen-
-opptakelsesutvidelser er eksplisitt avstemt, ikke endret i denne bølgen.
+OriginalMAIN57/62helfilhasher likeCURRENT;3historiske vakt-/runtimefiler
+og2nyeversjonsbevisste model/objective-eiere avviker. Gammel targeteier
+og55gamletreningsfunksjoners AST er uendret; ingen gammelplanrelanseres.
 Root eier policy/launch/samlet kontroll. Brukeren23.11 autoriserte eksplisitt
 ny OANDAdemo-henting fra lagretAPI. Prosjektets CURRENT/.env fungerer;
 sekundær ~/.config/gx1/oanda_practice.env harannen nøkkel ogga401. Ingen
@@ -195,16 +196,35 @@ nybevisrute er nååpen fordennevurderingen. Alle20erfortsattikkegodkjent.
 
 ## Aktiv D1-HLC-kvalifisering
 
-Etter atbrukeren fjernetgammeltmål, ernyttmål opprettetACTIVE i sammechat,
-uten tokenbudsjett. Hele20steg/hovedmålbeholdes; lokaltekniskPASS erikkeedge.
-D1_PROVIDER_HLC_DESIGN001 er vedtatt:egeneksplisitt v2-observasjonsrute,
-ingenforcing avkalender/complete elleravtvetydigside. Nyrenkontrakteier
-autentiserer nøyaktigeleverandørbytes ogpunktvisgammelmål-HLC.
-Sourcequalification001:40uniketilfellerbestått(18nye/22legacy); énfanget
-modellkontraktssperre rettetmed3import/3valideringslinjer førviderekjøring.
-Gamle55treningsfunksjonerASTuendret; gammeltargeteierhelfiluendret.
-Nyev2loader/slicer ogprior/loss/score/truth-identitetererbareopt-in; gamle
-checkpointsogengangsplanerkanikkegjenbrukesfornyeetiketter. Ingenv2fit/
-initialbaselineerutført. NesteerénnøyaktigcappedTRAINtargetgenerering,
-støtte-/klasse-/årsfordeling ogmatchetstatistiskprior,0modell/input/CP-
-loads/FW/optimizerupdate. Alletrenings-/VAL-/TESTporterforblirfalse.
+Nyttmål eropprettetACTIVE etteratbrukeren fjernetforrigemål. Hele20steg/
+hovedmåletbeholdes; lokaltekniskPASS erikkeedge. D1_PROVIDER_HLC_DESIGN001
+er vedtatt. SOURCE_QUALIFICATION001:40uniketilfellerbestått(18nye/22legacy);
+modellkontraktsperre korrigertmed3import/3valideringslinjer. Obligatoriske
+precommitkontraktstesterbestått i eksisterende4G-vakt.
+
+TARGET_QUALIFICATION001 er COMPLETE_CONSUMED_CLOSED,0/false. 12,618sCPU,
+4G/512M/éntråd;0nativefeature-/CP-load/FW/update, énstatistiskTRAIN-prior.
+Førstesignertevertsjekk fikk2stimeout føradmisjon; fersksample002PASS,
+ingenressursvaktendres. SOURCE/INPUT/POLICY/BOOT bookendsPASS.
+NyttDATASETb7727cdd...bfc3/NPZ2d1280e8...3b6e/certificate2e50b961...dbd1
+liggeriNATIVE_D1_PROVIDER_HLC_TARGET_QUALIFICATION_20261123_001.
+
+MåltD1endring:activity_known338036→354274 (allemodne;276umodnetailrader
+forblirukjente), side_known44566→238858 issuerader, unikesidemål162→875
+av1289. DOWN108699/UP130159; FLAT17617. XOR/ATR-kravbeholdes;875betyr
+ikkeatallereferansedagerhar entydigside. BareD1activity_known/side_known/
+side_upendres; alleandreoriginale felt ogandreTFbytesbevart. Deøvrige
+4TFenesmatchedepriorparametre er ogsåeksaktlikegammelfrossenprior.
+Kalender/nominal-/state_window_complete/tellere/endpoint/ATR/inputNorm/
+prisfaktaeruforandret. Originalmål/vekter/checkpointsaldrioverskrevet.
+
+TARGET_ACCEPTANCE001 kvalifisererproviderrelativHLC-fasit/nydatakandidat
+ogmatchetreferanseprior. InitialNNbaseline,kaldoptimizerresumekontroll,
+læring,generaliseringogøkonomiskedge erv2UNKNOWN; ingenfitinnrømmet.
+Gamle20-stegsverdictsgjelderv1; global11/12blirikkePASSavD1alene.
+
+Neste:brukeventueltalleredelagrede v1FINAL-TRAINlogitsmotv2fasit som
+eksplisittgenerasjonskryssetdiagnostikk,0nyeNNforwards/refit. Detteerikke
+v2initialbaseline/OOF. Deretteregeneksaktv2baseline-/workerkvalifisering
+førnoennyfit. Makrofirstvintage/kalenderogTEST-grenser består; allefem
+trenings-/VALporterfalse, allgenuinefeatures/5TFbeholdes.
