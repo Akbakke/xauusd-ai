@@ -25,8 +25,9 @@ liten MAE før MFE, kvalitet før antall. Hovedmålstatus er ONGOING_NOT_MET.
 GC/orderbok er utsatt, ikke fjernet. M30 trenger egen verdikvalifisering.
 M1 brukes aldri til retning/fasit/normalisering/utvalg.
 
-Alle fem globale treningsporter er false. Alle tre nye lesende CPU-planer
-RAW001/inputobservasjon001/fullsource001 er COMPLETE_CONSUMED og stengt.
+Alle fem globale treningsporter er false. RAW001/inputobservasjon001/
+fullsource001/batchrisk001/projectionmoment002 er COMPLETE_CONSUMED og stengt.
+Projectionmoment001 ble aldri claimed og er UNCLAIMED_PREFLIGHT_REFUSED_CLOSED.
 Ingen automatisk epokeserie, fit, fullVAL, TEST, broker/API-kall, spending,
 handel eller promotion følger av20stegsrevisjonen. Én tung CURRENT-jobb
 via scripts/gx1_capped_run.sh, eksisterende låser og maskinvarevakter.
@@ -137,21 +138,31 @@ D1har2025knownUP70,968prosent mot meanq63,886, altså7,082pp UNDER-UP, mens
 Dette er ikke OOF eller bevis på at hvertfelt ignoreres; ikke korriger globalt
 intercept eller tving klassekvoter som om det ga stabil framtidig kalibrering.
 
-Neste avgrensede falsifisering er PROJECTION_MOMENT_DESIGN001:
-originalFINAL98MB weights_onlyCPUlesing med komplett10komponentproof før/etter
-småkopier av de faktiske sidehead-parametrene/Adam-momentene. Samme lagrede
-20727TRAIN-kohorthidden/side-logits og4targetmembers,54,118,197ndarraybytes.
-Alle5TF: analytisk g=0-steg med originalt mot nullstilt første moment, samme
-v/step/recordedlr/betas/eps/decay og fixedh. Terminal faktisknextLR er UNDEFINED;
-ingen nytrening følger av en hypotetisk beregning. Bare hashes/aggregater ut.
-0model/readoutFW/optimizerkonstruksjon/optimizerstep/appliedupdate/fit/pris/
-features/nye labels/VAL/TEST.4G/512M/1tråd/300souter270sintern.
-14nyefokuserte cases PASS; alle12gamlefunksjoner unntattCLI oggamle testbytes
-bevart. Metadata-builder PASS67kildeeiere,0CP-/arraydeserialisering.
-Egen nøyaktig plan/preflight/signert hostadmisjon/engangskjøring gjenstår.
-Samme gamle kjente kohort er tilstrekkelig for disse smale tap-/mekanikkspørsmål;
-kalender/vintage kvalifiseres separat. Ingen nyCP er produsert eller eksisterende
-parametere endret. Tidligereengangsplaner forblir stengt.
+Projectionmoment002 er COMPLETE_CONSUMED; PROJECTION_MOMENT_ACCEPTANCE002
+binder én faktisk lesende CPU-jobb på4,102s. OriginalFINAL weights_onlyCPU og
+10komponentproof før/etter, samme20727TRAIN-kohorthidden/side-logits og
+4targetmembers;54,118,197ndarraybytes. Native separate side_heads perTF var
+allerede implementert. Analytisk hypotetiskg=0-steg3695 bruker faktisk lagret
+lr0,0001/m/v/step/betas/eps/decay og fixedh. Faktisk neste trenings-LR er
+UNDEFINED; ingen optimizer/model/readout-FW, konstruksjon, updates eller fit.
+Originalt mot nullstilt første moment reduserer D1conditionalUP med0,036713pp,
+H4med0,010882pp og H1med0,014223pp; M5/M15øker0,018664/0,033143pp.
+D1/H4/H1NLLbedres i dette smale kontrafaktiske. Ingen universell OPP-momentum
+eller grunnlag for generell momentreset/frys; full historisk treningsårsak
+og sharedbackboneeffekter er ikke identifisert.
+
+Plan001 ble aldri claimed: gammel FrozenGPU-entrypoint ble korrekt nektet
+av eksisterende vakt. Frozenowner/test er gjenopprettet eksakt; cappedvakt
+uendret. Ny separat plan002 brukte eksisterende CPUalignmentowner og69eiere.
+CPUport15cases og deretter2namespace/directcases PASS; faktisk metadata-
+preflight med deserialisering/publisering blokkert PASS,0CP-/arrayloads.
+Første hostprobe føradmisjon timetut; ny signertprøve passerte uten vaktendring.
+Closehelperens gamle prosessfilter pekte fortsatt på coveragemodulen, ikke
+alignmentowner. Originalkvittering bevares; PROCESS_OBSERVER_ERRATUM002
+korrigerer bevisgrensen med fersk faktisk /proc-argv-kontroll,0CURRENTjobber.
+Wrapper/TERMINALexit0 er bevart. Ingen historisk prosessobservasjon oppdiktes.
+Samme kjente kohort er tilstrekkelig for smale taps-/mekanikkspørsmål;
+kalender/vintage kvalifiseres separat. Ingen nyCP eller parametere er skrevet.
 
 Makrovintage før ny innhenting: ingen komplett consumed-source-keymanifest
 finnes i undersøkte metadata. COTtrenger lag4 observerte rapporter, panelet
@@ -162,8 +173,8 @@ ffill-kilder; egen date/presence-kvalifikasjon trengs. Ikke lastned hele
 
 19UNKNOWN: ingen senere evaluering av nåværende FINAL-funksjon er kvalifisert.
 TRAIN-årstabeller er in-sample; wholeTRAIN-stats er ikke prefix-OOF.
-Historisk kalender/vintage og erklært klokke må avklares før mål-/funksjons-
-rettelser. Endret ONLINE-funksjon krever fersk initialbaseline og egen admisjon.
+Historisk kalender/vintage må kvalifiseres før de relevante mål-/input-
+funksjonene kan godkjennes. Den deklarerte klokken er kvalifisert i05. Endret ONLINE-funksjon krever fersk initialbaseline og egen admisjon.
 TEST forblir forseglet; ingen nedjustering av krav for å få20grønne bokser.
 
 ## Sikring og sluttkontroll
@@ -174,16 +185,12 @@ alignmente20efd8a...6ddfe6; clock/matrise5336062d...658418.
 Første nye20stegskopi:21artefakter/26,432,089bytes, manifest5d793ed5...d5ae4.
 MAC_EVIDENCE_BACKUP001 binder kopien. MAC_EVIDENCE_BACKUP002 binder også
 35nye artefakter/41,837,412bytes, separatdiskmanifest e6cec6e7...1cba8.
-Alle107utvalgte tester gjenbrukes. Syntaks/scopedstale-path/diff/handover er PASS.
-Kildebølgeb7a27b916...dc4aa er pushet og remoteverifisert ren. Administrative
-sluttkvitteringer og metadataavslutning sikres/publiseres i samme bølge.
-Ingen DATA/RUNS-rydding eller omskriving av originalbevis.
-
-Root eier samlet policy, launch og kontroll. Agentenes to nye inputcensusfiler
-og RAW-submode er integrert og testet; ingen numerisk ONLINE-endring.
-Administrative20 er kvalifisert med ADMINISTRATIVE_FINAL_READINESS001.
-REVIEW_CHECKPOINT004 er forrige sikrede bølge; REVIEW_CHECKPOINT005 og
-aktuell policy inneholder nye avklaringer. Ny13-casetest er bestått uten
-gjentakelse av de tidligere107casene.
-Samlet kvalifikasjon og hovedmål forblir åpne
-så lenge de røde/ukjente kravene over ikke er avklart.
+MAC_EVIDENCE_BACKUP004 binder53nye artefakter/50,204,455bytes og faktisk
+MacdiskSHA/F_FULLFSYNC/readback; manifestf7bf54eb...60b5d. Tidligere tre
+sikrede bølger og alle originale checkpoints beholdes uendret.
+Tidligere107cases gjenbrukes; ny batchrisktest13cases, momentCPUport15og
+namespace/direct2er bestått. Ingen gjentatt fullsuite eller ONLINE-endring.
+Nåværende bølges syntaks/stale-path/diff/handover og autorisert cleanpush
+kontrolleres før administrative20 igjen får PASS. IngenDATA/RUNS-rydding.
+Root eier policy/launch/samlet kontroll. Alle20er undersøkt, hovedmålet og
+samlet kvalifikasjon forblir åpne ved3FAIL/4UNKNOWN. Ingen nye epoker startes.
