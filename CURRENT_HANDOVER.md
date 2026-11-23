@@ -262,3 +262,17 @@ adapter medmetadatautenforNNinput; gamleworkersuendret,0v1CP/resume.
 Bind seed,inputs/norm/prior,scope/batches/ressursvakterførANNforward; ingen
 automatiskfit. V2læring/generalisering/edgeUNKNOWN;20-stegs13PASS/3FAIL/
 4UNKNOWNbeholdes. Målet erACTIVE, alle5globaleporterfalse.
+
+V2 INITIAL-kildebølge pågår: administrative20 REVIEWING; historisk13/3/4
+består som tidligere kvittering. Ny context/packet/score-adapter og eksakt
+GPU-engangsrute klargjøres for faktisk helTRAIN354550/B256/1385forwards,
+ikke analytisk erstatning. Fersk model/prior/target/state/RNG-identitet,
+0gammelCP/restores/optimizer/fit; énnyINITIALCP/readback. Gamleworkers og
+modellmatematikk urørt. Ny additiv guardbro mot914e29a51; historiske
+kildebroer åpner ingen gammel kjøring. Alle5globaleporterfortsattfalse;
+ny plan/preflight/hostadmisjon og fokuserte tester kreves førANNforward.
+
+PROVIDER_HLC_INITIAL_SOURCE_QUALIFICATION001:45fokuserte casesPASS;
+faktisk metadatabuilder medNPZ/Torchload/save/model/CUDAblokkertPASS,
+0payload/model/ROOT. Ny guardbro bekrefter alle gamlePythonAST/shellbytes
+uendret etter kun navngitte tillegg. Ingen faktiskv2NNstartmåling kjørt.

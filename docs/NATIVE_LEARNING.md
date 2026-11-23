@@ -135,6 +135,11 @@ autentiserte sertifikatreferansen føres separat og aldri inn i NN-forward.
 Modell/input/normalisering/prior,seed og eksakte maskinvare-/scopegrenser
 bindes før nye forwards. Gamle workers og v1-checkpoints gjenbrukes ikke
 som v2-kjøringsautoritet; ingen automatisk fit eller epokeserie følger.
+En faktisk v2-INITIAL skal omfatte hele den ufiltrerte TRAIN-klokken og
+alle fem TF med uendrede genuine inputs. En analytisk priorreferanse eller
+en liten forward-probe erstatter ikke denne fullstendige NN-startmålingen.
+En ny INITIAL-state og RNG sikres separat; ingen gammel v1-state tilpasses
+for å få identitetene til å passe. Ingen optimizer eller oppdatering følger.
 
 ACTIVE og UP|ACTIVE gir DOWN=a(1−s), FLAT=1−a, UP=as. Kjent aktivitets-BCE og
 sertifisert side-BCE deles på kjente aktivitetsceller. Ukjent side gir null
