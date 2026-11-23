@@ -13,8 +13,9 @@ Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status/evidens persteg: native_twenty_step_qualification_20261123_001 i policy.
 Steg05 er nå PASS mot uendret kriterium; tidligere ekstra NY-brokerdagskrav
 var ikke nødvendig for den deklarerte UTC-fasen. REVIEW_CHECKPOINT006 binder
-alle20krav:13PASS/3FAIL/4UNKNOWN. Administrative20 er PASS etter denne bølgens
-kontroller, sikring og kildepublisering; samlet godkjenning er fortsatt false.
+forrige sikrede bølges alle20krav:13PASS/3FAIL/4UNKNOWN. Ny kilde-/
+metadatabølge for makronøkler er under kvalifisering; administrative20 er
+midlertidig REVIEWING i aktuell policy. Samlet godkjenning er fortsatt false.
 Kildeclean vises separat fra20stegsstatus og gir ingen prognosegodkjenning.
 
 Hovedmålet i docs/ORIGINAL_PROJECT_GOAL.md består: nyttige framtidige prognoser
@@ -82,6 +83,10 @@ selvstendige indikatorformler, og ruting er ikke per-felt lært nytte.
 03UNKNOWN: ukesfilter og råfravær beviser ikke historisk samme-feed
 åpning/stenging/helligdager. Nåværende nettside er ikke kalenderen2021–25.
 Daglig lukking skal ikke gjettes fra hull eller fylles med oppdiktede priser.
+HISTORICAL_CALENDAR_EXTERNAL_EVIDENCE_REQUEST001 spesifiserer nødvendig
+gyldighetsdatert practice-feed-autoritet.11928slots i994daglige gap,12slots
+i søndagsgapet og5930slots i86andre gap holdes atskilt. Forespørselen er
+klargjort som beviskrav, ikke sendt; ingen nye broker/API-kall følger av den.
 
 05PASS: fastUTC22 for D1 ogUTC02/06/10/14/18/22 for H4 er eksplisitt
 analytisk klokke, ikke en NY-brokerdags-påstand. Uavhengig heltallsfase-/OHLC-
@@ -90,8 +95,16 @@ TRAIN-rader kvalifiserer uendret05kriterium. TF_CLOCK_CRITERION_RECONCILIATION00
 binder beviset;03kalender/07observerbarhet/09vintage/15læring er ikke oppgradert.
 
 07UNKNOWN: source-known, finitthet, strukturelt fravær og udefinert verdi er
-forskjellige.86par er nå målt, men provider observed==isfinite(signal) er
-fortsatt ingen uavhengig vendorobservasjon. Uklassifiserte forhold er ukjente.
+forskjellige.86par er målt; observed==isfinite(signal) er korrekt deklarert
+numerisk maske, ikke alene en påvist beregningsfeil. OBSERVATION_ENCODING_
+SCOPE_REVIEW002 retter det for brede kravet om egen vendorobservasjon for
+hver avledet indikator.12level-recurrencefelt og6squeeze-release-agefelt
+har konkrete førsteanker-/venstresensurgrenser. Faktisk konsum eller
+eksklusjon er ennå ikke målt; ingen ny modellbit eller numerisk endring
+er begrunnet. OBSERVATION_SEMANTIC_PARTITION001 kryssjekker28blokker,
+388/388regler eksaktén gang og1731/1731felt. Et autentisert tidligprefix-
+vitne kan utelukke de førsteankrene og squeeze-sensur uten fullTRAINreplay;
+dette vitnet er ennå ikke kjørt. Kalender03 og vintage09 er separate beviskrav.
 
 09UNKNOWN: makro-asof/utgivelseslag er eksplisitt, historisk førstevintage og
 full release-/revisjonsdekning er ikke bevist. MACRO_ORIGIN_VINTAGE_PATH_REVIEW001
@@ -163,8 +176,19 @@ Wrapper/TERMINALexit0 er bevart. Ingen historisk prosessobservasjon oppdiktes.
 Samme kjente kohort er tilstrekkelig for smale taps-/mekanikkspørsmål;
 kalender/vintage kvalifiseres separat. Ingen nyCP eller parametere er skrevet.
 
-Makrovintage før ny innhenting: ingen komplett consumed-source-keymanifest
-finnes i undersøkte metadata. COTtrenger lag4 observerte rapporter, panelet
+MACRO_SOURCE_KEY_DESIGN001 binder konkret intern blokkering før vintages:
+ingen komplett consumed-source-keymanifest finnes i undersøkte metadata.
+Ny isolert CPU-auditor/testeier er kildekvalifisert:18syntetiske cases PASS
+og faktisk metadatabuilder med deserialisering/publisering blokkert PASS,
+54kildeeiere. Ingen payloadkjøring er admittert.
+Planbudsjettet skal navngi67eksisterende råcontainere/116879913filbytes og
+bare2capture-/2featureklokke-arraymembers,18513536ndarraybytes. Ingen
+signal/ctx/TF-featureverdier, CP, modeller, forwards, fits eller API-kall.
+Drivers krever ærlig tilgang til5primitive kolonner med tilgjengelighet
+før2026 for presence;
+datoaksen alene holder ikke. notna/ffill beholdes, ogsåallmissingdaterader.
+Dette er kildenøkkelregnskap, ikke kvalifisert historisk førstevintage.
+ COTtrenger lag4 observerte rapporter, panelet
 21observerteD1-closekeys, drivers lag1/5/21 påoutermergeddategrid oghver
 series sistefaktiske gyldigeforgjenger. Datokolonne alene identifiserer ikke
 ffill-kilder; egen date/presence-kvalifikasjon trengs. Ikke lastned hele
@@ -191,6 +215,8 @@ Tidligere107cases gjenbrukes; ny batchrisktest13cases, momentCPUport15og
 namespace/direct2er bestått. Ingen gjentatt fullsuite eller ONLINE-endring.
 Nåværende bølges syntaks/stale-path/diff/handover og autorisert cleanpush
 er verifisert i ADMINISTRATIVE_FINAL_READINESS002. REVIEW_CHECKPOINT006
-og avsluttende policy/overlevering sikres i samme bølge. IngenDATA/RUNS-rydding.
+og avsluttende policy/overlevering er separatdiskverifisert i
+MAC_EVIDENCE_BACKUP005:14artefakter/10529954bytes, manifest1896f87e...7b0f5.
+Ny makronøkkelbølge må sikres/publiseres før nyadministrativPASS. IngenDATA/RUNS-rydding.
 Root eier policy/launch/samlet kontroll. Alle20er undersøkt, hovedmålet og
 samlet kvalifikasjon forblir åpne ved3FAIL/4UNKNOWN. Ingen nye epoker startes.

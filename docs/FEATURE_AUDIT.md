@@ -110,6 +110,18 @@ UTC22-/H4UTC02-fasen med uavhengig heltallsfase-/OHLC-orakel og faktisk kausalt
 TRAIN-konsum. Kriteriet krever ingen NY-brokerdag. Historisk markedskalender
 er fortsatt åpen separat; ingen fase eller numerisk funksjon er endret.
 
+OBSERVATION_ENCODING_SCOPE_REVIEW002 presiserer krav07: en avledet indikator
+trenger ingen egen vendorfeed. `observed=isfinite(signal)` er en deklarert
+numerisk maske; denne definisjonen alene påviser ingen beregningsfeil.
+Kildeekte tilgjengelighet og faktisk udefinert/sensurert semantikk må fortsatt
+klassifiseres. Tolv level-recurrencefelt kan ha0 både ved manglende tidligere
+anker og reell re-anchor på samme pris. Seks squeeze-release-agefelt er
+venstresensurerte før første faktiske release; eksisterende autentisert
+nabohistorie/carry kan skille dette. Inlinekommentarens `release_event==age0`
+krever gyldig tidligere tilstand; første varme rad er ikke en release.
+Faktisk konsum av disse tvetydige tilfellene er ikke målt i denne kilde-
+gjennomgangen. Ingen ny inputbit eller numerisk rettelse er begrunnet ennå.
+
 ## Faktisk kjøring og ubeviste grenser
 
 Den gjenbrukte ferske initialbaselinen kjørte én modell og 6086 forwards over
@@ -118,7 +130,10 @@ prior. Dette beviser kjøring gjennom profilen; nullstilte sluttvekter gjør det
 uegnet som per-felt sensitivitetsbevis. Den kvalifiserte mekanikkprøven beviser
 kald bitlik gjenopptakelse, forventet auxiliary detach og positiv samlet M5-
 backbone-gradient etter første head-oppdatering. Den beviser ikke nytte eller
-gradient fra hvert felt. Alle 53 bundne aktive kildehashene er uendret.
+gradient fra hvert felt. Originalkvitteringen beholder sin fryste kildeidentitet.
+CURRENT har senere avgrensede vakt-/gjenopptakelsesutvidelser; helfilhashene
+er derfor ikke generelt identiske med originalMAIN. Makronøkkelkvalifikasjonen
+endrer ingen eksisterende modell-, taps-, input- eller vaktkode.
 
 Det opprinnelige konsumkartet finnes i `CURRENT_FEATURE_CONSUMPTION_CLAIMS001.json`;
 dets tidligere auditstatus er historisk. De tre COMPLETE-kvitteringene ovenfor
