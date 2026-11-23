@@ -8,7 +8,7 @@ terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 ## Aktivt mål og grenser
 
 Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
-01a20035-2836-7f62-bb88-9e24603a51a5 er ACTIVE uten tokenbudsjett.
+01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
 Sikret REVIEW_CHECKPOINT008:13PASS/3FAIL/4UNKNOWN; samlet false.
@@ -156,18 +156,29 @@ manifestfadf4541...605a80. Publisert kildebølgeHEAD3c96174e9 er ren;
 ADMINISTRATIVE_FINAL_READINESS004 og REVIEW_CHECKPOINT008 binder20steg.
 OriginalMAIN59/62helfilhasher likeCURRENT;3historiske vakt-/eksaktgjen-
 opptakelsesutvidelser er eksplisitt avstemt, ikke endret i denne bølgen.
-Root eier policy/launch/samlet kontroll. Alle nye kildetester/metadatasmoke/prefix/D1jobber er ferdige og stengt;
-Treasury001 feilet trygt utenHTTPrespons. Sikre/push/opphavskontroll og
-oppdater20stegsstatus uten å oppgradere åpne lærings-/datakrav. Neste
-makrorute002 er nå særskilt manifestert: TREASURY_INITIAL_RELEASE_MAC_RELAY_
-MANIFEST002 SHAef52c186...0cda5e. SHA-identisk liten stdlib-adapter fra
-CURRENT tilMac; max3POST/20s wall/1MiB,90s globalalarm før oppsett/CLAIM,
-positiv resttid før hver POST. Ingen proxy/redirect/retry/auth/cookie.
-Macnett er ikkeWSLcgroup; senereWSLbytekontroll capped4G/512M/éntråd.
-001 ble lukket førMacfiler/ROOT/HTTP: ufullstendigglobalvakt fanget i
-uavhengigreview. Originalplan/kvalifisering/ERRATUM001 beholdes,0kall.
-002kildekvalifisering:11fokusertecasesPASS inkl4fristtilfeller; faktisk
-blokkertmetadatabuilderPASS/0HTTP/payload/ROOT/CLAIM/heavyimports.
-ProduksjonensTorch/TLS/byte/ZIP-vakter oggammelHTTPeier uendret.
-Ingen fysiskMacinnhenting/002plan/admisjon ennå. Proxyvariabler/getproxies
-varfraværende/tomme påbeggeverter; ruteblokkering erikke bevist.
+Root eier policy/launch/samlet kontroll. NyeMac-ruter er avsluttet:
+001 PRELAUNCH_DEFECT_UNCLAIMED_CLOSED:globalvaktglippe førsetup blefanget
+førMacfiler/ROOT/HTTP; originalplan/kvalifisering/ERRATUM001 beholdes.
+002 FAILED_CONSUMED_CLOSED:rettetglobal90 førsetup,20swall/POST,1MiB,
+11fokusertecases ogblokkert metadatabuilderPASS. EttDGS2POST-forsøk fikk
+RemoteDisconnected utenHTTPstatus/body; DGS10/DFII10ikkeforsøkt. Alle
+kilde-/plan-/policybookends true;0obs/modell/FW/fit/nativeinputendring.
+Mac erikke WSLcgroup. Åtteoriginale feilkvitteringer/logger bleoverført
+oghashverifisert i canonicalWSL capped4G/512M/éntråd; RELAY_RECEIPT.json
+ogTREASURY_MAC_RELAY_FAILURE_REVIEW002 binder faktiskfravær avnyedata.
+
+Eksternblokkeringsaudit001 er oppfylt: samme03kalenderkrav stårUNKNOWN
+over minst3påfølgende målfortsettelser, avstemt motREVIEW006/007/008 og
+faktiske målmeldingstider. Forrige/nåværende bølge gaekteframgang; nå er
+ikke flere påviste interne feil eller kvalifiserte tilgjengelige kilderuter
+igjen somkanlukke kravene. API-GET output_type4 kreverregistrertnøkkel;
+ingen nøkkel erkonfigurert i kontrollerte miljø-/standardprosjektfiler.
+Ingen konto/APIbruk/gjetting avGET/adgangskrav ellernyePOSTer innrømmes.
+
+Foråkommevidere trengs datertoffisiell kalender/quoteavailability forsamme
+practice-feed2021–2025 ogautentiskmacroførstevintage/publisering, eller
+en tilgjengelig kvalifisertinnhentingsrute.07deler03/09-avhengigheten;
+11/12målrepresentativitet og15læring/19senerevalidering kanikkegodkjennes
+ved å gjette bortdisse. Ingen nyepoke/fit/fullVAL/TEST/trading; alleporterfalse.
+Sikre/publiserdenne bølgen ogsluttkontroller, deretter settchatmåletBLOCKED
+på dokumentert eksternavhengighet. Samletkvalifikasjon ogedge erikkeoppnådd.
