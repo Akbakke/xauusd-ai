@@ -1,0 +1,263 @@
+{
+  "budget": {
+    "ZIP_uncompressed_bytes_per_response_max": 16777216,
+    "actual_invocations_max": 1,
+    "feature_or_target_reconstructions": 0,
+    "fits": 0,
+    "forwards": 0,
+    "header_bytes_per_member_max": 65536,
+    "model_constructions": 0,
+    "native_TEST_split_files": 0,
+    "native_source_arrays_or_CP_loads": 0,
+    "observation_rows_parsed": 0,
+    "observation_values_converted": 0,
+    "optimizer_updates": 0,
+    "overflow_probe_bytes_total_max": 3,
+    "response_body_bytes_max": 3145728,
+    "series_POST_attempts_max": 3
+  },
+  "container_limits": {
+    "CSV_firstline_only": "Headercandidate only; no datarows parsed/numericobservationvalues converted. Unsupported/preamble/unknownheaders remainUNKNOWN, notvintagePASS.",
+    "format": "ZIP_ONLY",
+    "max_header_bytes": 65536,
+    "max_members": 16,
+    "max_uncompressed_total_bytes": 16777216,
+    "no_disk_extraction": true,
+    "no_encryption": true,
+    "no_path_traversal_or_absolute_members": true
+  },
+  "execution": {
+    "class": "audit",
+    "internal_seconds": 570,
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "numerical_threads": 1,
+    "outer_seconds": 600,
+    "swap": "512M"
+  },
+  "inputs": {
+    "HTML_DFII10": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_DFII10_DOWNLOAD_FORM_METADATA001.html",
+      "sha256": "65a7e066fe2df95fc15bd53954c3d075938ba00f30896998bd248f2fb164f7c1"
+    },
+    "HTML_DGS10": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_DGS10_DOWNLOAD_FORM_METADATA001.html",
+      "sha256": "1071a466d1def945d6792129b0ffe7f41c4f75aebb284cf7b33f26c9229e95e1"
+    },
+    "HTML_DGS2": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_DGS2_DOWNLOAD_FORM_METADATA001.html",
+      "sha256": "f001fe73dfee20eaafe6d600dc0c4b878201368634774e3cdeacb747e193f3ea"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_INITIAL_RELEASE_SOURCE_DESIGN001.json",
+      "sha256": "f69d9292f5d0e3f724be69b8d150a399ec3bf69c1d1d36bef27f0ad1443bbc70"
+    },
+    "form_inventory": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_DOWNLOAD_FORM_INVENTORY003.json",
+      "sha256": "a58593113ea9603aba1338f135c16a2e112aa84f2c95e6b309e5b928baede993"
+    },
+    "manifest": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_INITIAL_RELEASE_REFERENCE_MANIFEST001.json",
+      "sha256": "bec6075acba9c62c2c3ef2f6c70935493b3c94d1cdf97e75439796a987dc4413"
+    },
+    "source_key_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/MACRO_SOURCE_KEY_ACCEPTANCE001.json",
+      "sha256": "3f953eba5ea22200a5523134a99f0a6b5c923f47aa73840fb5b9446a14642a69"
+    }
+  },
+  "output_root": "/home/andre2/GX1_RUNS/NATIVE_TREASURY_INITIAL_RELEASE_SOURCE_20261123_001",
+  "plan_path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_TREASURY_INITIAL_RELEASE_SOURCE_20261123_001.json",
+  "qualification_scope": "Physical quarantine/inventory only; no observation decode, nativeinput change or firstvintage PASS.",
+  "request_limits": {
+    "TLS_certificate_and_hostname_verification_required": true,
+    "credentials_cookies_APIkeys_supplied": false,
+    "max_body_bytes": 1048576,
+    "max_requests_per_series": 1,
+    "max_stored_oversize_prefix_bytes": 1048576,
+    "overflow_probe_bytes": 1,
+    "proxies_allowed": false,
+    "redirects_allowed": 0,
+    "request_timeout_seconds": 20,
+    "retries_allowed": 0,
+    "series_requests_max": 3
+  },
+  "requests": [
+    {
+      "id": "DGS2",
+      "method": "POST",
+      "post_body_sha256": "94fc94452b8e1d87b72b7e497d36ce162b0db0c7cf4afff9492c8ca78cc2e1c9",
+      "post_fields": [
+        [
+          "form[units]",
+          "lin"
+        ],
+        [
+          "form[obs_start_date]",
+          "2020-11-30"
+        ],
+        [
+          "form[obs_end_date]",
+          "2025-12-29"
+        ],
+        [
+          "form[file_type]",
+          "4"
+        ],
+        [
+          "form[file_format]",
+          "csv"
+        ],
+        [
+          "form[download_data]",
+          ""
+        ]
+      ],
+      "primitive": "nominal2y",
+      "source_HTML": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_DGS2_DOWNLOAD_FORM_METADATA001.html",
+        "sha256": "f001fe73dfee20eaafe6d600dc0c4b878201368634774e3cdeacb747e193f3ea"
+      },
+      "url": "https://alfred.stlouisfed.org/series/downloaddata?seid=DGS2"
+    },
+    {
+      "id": "DGS10",
+      "method": "POST",
+      "post_body_sha256": "94fc94452b8e1d87b72b7e497d36ce162b0db0c7cf4afff9492c8ca78cc2e1c9",
+      "post_fields": [
+        [
+          "form[units]",
+          "lin"
+        ],
+        [
+          "form[obs_start_date]",
+          "2020-11-30"
+        ],
+        [
+          "form[obs_end_date]",
+          "2025-12-29"
+        ],
+        [
+          "form[file_type]",
+          "4"
+        ],
+        [
+          "form[file_format]",
+          "csv"
+        ],
+        [
+          "form[download_data]",
+          ""
+        ]
+      ],
+      "primitive": "nominal10y",
+      "source_HTML": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_DGS10_DOWNLOAD_FORM_METADATA001.html",
+        "sha256": "1071a466d1def945d6792129b0ffe7f41c4f75aebb284cf7b33f26c9229e95e1"
+      },
+      "url": "https://alfred.stlouisfed.org/series/downloaddata?seid=DGS10"
+    },
+    {
+      "id": "DFII10",
+      "method": "POST",
+      "post_body_sha256": "94fc94452b8e1d87b72b7e497d36ce162b0db0c7cf4afff9492c8ca78cc2e1c9",
+      "post_fields": [
+        [
+          "form[units]",
+          "lin"
+        ],
+        [
+          "form[obs_start_date]",
+          "2020-11-30"
+        ],
+        [
+          "form[obs_end_date]",
+          "2025-12-29"
+        ],
+        [
+          "form[file_type]",
+          "4"
+        ],
+        [
+          "form[file_format]",
+          "csv"
+        ],
+        [
+          "form[download_data]",
+          ""
+        ]
+      ],
+      "primitive": "real10y",
+      "source_HTML": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_DFII10_DOWNLOAD_FORM_METADATA001.html",
+        "sha256": "65a7e066fe2df95fc15bd53954c3d075938ba00f30896998bd248f2fb164f7c1"
+      },
+      "url": "https://alfred.stlouisfed.org/series/downloaddata?seid=DFII10"
+    }
+  ],
+  "runtime": {
+    "OpenSSL": "OpenSSL 3.0.2 15 Mar 2022",
+    "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]"
+  },
+  "schema_version": "gx1_treasury_initial_release_source_plan_v1",
+  "source_base_commit": "9802a25515fc352bd2166e656e312116971971e5",
+  "source_owners": {
+    "gx1/audit/audit_native_future_window_coverage_v1.py": "b25c5a9c9d18bb0c789c68e25d3f9d9859874eee1ead42bc4add9135af055be9",
+    "gx1/audit/audit_native_input_observation_v1.py": "dff60935540a2bac8cf2d7a306ba2f267b3f2034a7722d50d56303e603e8d260",
+    "gx1/audit/audit_native_macro_source_keys_v1.py": "42d28b32002ded5a93e8a5a80a9dc736d8aa3b2382e881895af3d484529dfe4f",
+    "gx1/audit/audit_native_selective_moves_v1.py": "0206cd33be3dabf00a3211e1d8fca74c0e5664fe83d68225fa4aeb70533c5b19",
+    "gx1/audit/audit_native_treasury_vintage_source_v1.py": "7fe77d7f1e630ba291f8240181457e6b9a773d93053620639605a1be4adf7324",
+    "gx1/audit/build_native_m5_direction_targets_v1.py": "161f9751f8648d01ff620a71c071f1ac3062a4ee99d2420b65d0c933c7306f42",
+    "gx1/audit/build_native_m5_ta_feature_cache_v1.py": "2ef80e0580040f5adda2f3afbb07f752a28293a47d883ac86504c7f219323bab",
+    "gx1/audit/qualify_market_state_native_m5_pipeline_v1.py": "65f520c8cc9c6e3cb57dc2e6db030fc8b4dc6568b0a94a8616f60b01fcb104bd",
+    "gx1/contracts/entry_exit_production_architecture_v1.py": "cdb2d2e08e52de0597cb011bd6350b78f905e0a0a2514db75fc43f81fb9086b2",
+    "gx1/contracts/entry_gc_mtf_history_v1.py": "7e44f6d16c065366a26867e5fb67aff9bbfc47fea4d975db4f4706611244f29b",
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": "1d830c7cb767db699879c6c315f5696854dc1f3bf9fa2021a4020bb76c7c0fa4",
+    "gx1/contracts/entry_model_native_signal_v1.py": "69a819484762dad28194942fd98319be060297dd262c30711e2795515d2f4598",
+    "gx1/contracts/gx1_capped_execution_v1.py": "3a785511650592f990e644759f13d54da615313272bc1b6a4d6be89434b35563",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_native_m5_feature_inputs_v1.py": "6e062cb5c11ded0dab50f082e7d40e37d505593cdae53874b2398607086930dc",
+    "gx1/contracts/market_state_native_m5_targets_v1.py": "1d83e4c04a1e14f067b72a6c4ac2a81af245c77dcb82c3e6320fcbee113c9d4e",
+    "gx1/contracts/market_state_ta_integrated_model_v1.py": "69f8b1f659db1985f3e6691f5dcf3d3b203e746c340e1e73769cb660ab13a67b",
+    "gx1/contracts/market_state_ta_integrated_objective_v1.py": "bf2cf5625b7c84075a1c24ac2448defb43dca71809b9dc9962b38a428d5ba495",
+    "gx1/contracts/model_state_digest_v1.py": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4",
+    "gx1/contracts/native_m5_direction_io_firewall_v1.py": "4ebe5d7a49a8fd719e82f62a5d04ca45489af1dfdc1022475e6044723c170739",
+    "gx1/contracts/registry_hyperparameter_fit_v1.py": "214fa54194e42fe43c94fa022dc87ec0ea1eb16558b092dda0e0cb37b815b197",
+    "gx1/contracts/xau_tape_provenance_v1.py": "402ccad76c08ae27f21d5bdbe315a8d087ba76bea706f0f058b886393183292d",
+    "gx1/features/basic_v1.py": "30ef4e4e6dc5a0011b13eeb7e11227dbeaa3a44b78c35405e64f7ca655bad220",
+    "gx1/features/d1_macro_context_v1.py": "1d61f70381a912a275115a35bb97b103919bc23515d79faed7016f0985ae3d56",
+    "gx1/features/entry_candle_primitives_v1.py": "3f5a5e4fa3f12233aa5f9e5cc43d00d5cd5d5069fb7625a6690ce606eec4b0d0",
+    "gx1/features/entry_foundation_structure_v1.py": "c3c91476051b2e6552fc3089ca50980a38a5a20060af74b802435c786325e558",
+    "gx1/features/entry_model_native_feature_layers_v1.py": "db85c4c365cac9bf7d89b5f36cd7ea6112f020b7eb26d2ae4d0462659b3c3a1b",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "cf5a6da5374e25627c42b9ab3dde93770a92efd85411e6b8e8431b577c2a9153",
+    "gx1/features/event_age_v1.py": "7c20d98c26f5c94885d9defdfc070eb19df81d6344f0457acdf903b4f6712ef5",
+    "gx1/features/gc_native_context_v1.py": "072819223bb13d970cc349650f608367858500ea1a8989e2833a0bbb7ed464ff",
+    "gx1/features/gc_native_field_catalog_v1.py": "c24d1ce880d55dbff6fe346eac4a21529d9dd906fa56a6e55c417edde5a80b8a",
+    "gx1/features/htf_features.py": "3d13c1705c95ddd0e57d93e5c902ef33ed2e6cd24c59cafb24852023e0d0377b",
+    "gx1/features/level_registry_v1.py": "e7304de96c211678f9c6d4a7513d267b1f974c7718fe3a33b8103c71f3a39e02",
+    "gx1/features/micro_structure_v1.py": "761533b9ae31fd268dbe4c075bb7e73f1436076af8372a8efc08fa2d8c1800dd",
+    "gx1/features/model_native_market_context_v1.py": "69f61a52c79711ea58a4c7b2d0e743c01cff6dd3af1e1f1e5f2b4864a12826c2",
+    "gx1/features/smc_v1.py": "56b9fe479e1cdb7dc524179b65e585d890cdd2fef128d47a6cada00692b94d9a",
+    "gx1/features/swing_structure_v1.py": "c46ab4413e5bd5dd7114625fa3539e21ab39f9100341092b73d17e6efdd101e0",
+    "gx1/features/technical_indicators_v1.py": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad",
+    "gx1/features/trendline_registry_v1.py": "24c12e8d4c6f597a331dacecbdc5e9a9ed8fdf6c0b6798ee7c543884d04aee58",
+    "gx1/features/volatility_squeeze_state_v1.py": "652b999a4b058026568b72018be2cf5cf0820d30b12e4f557830986ddeed05dc",
+    "gx1/features/volume_features.py": "31433e540ada7808142805aca353c36fa8de566c88724e7f046aed8f03aef493",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "236ea6d7d9dad3801c2ee06a2115c878c0d773c0630038ef0815d407d18ff1c4",
+    "gx1/scripts/augment_forward_outcome_v2.py": "347e0d7b6235302c4afd8fabd10f9075e25a142a7b49fd5f18c3ed41f730a2c6",
+    "gx1/scripts/fit_volatility_squeeze_artifacts_v1.py": "3b67e8454ef39542dd8a2775e6b7677b1f727335d5474587c08a8f0753831e08",
+    "gx1/scripts/materialize_build_canonical_features_v1.py": "b84ce141598294d2449f9f40b49b7ef8c2563ff8ad832e80664a2f1eb15a1a75",
+    "gx1/scripts/materialize_canonical_v3_augment.py": "f09ec727cac68e8a1a033362fe87276a254b249275fed993ba092afa9be53bae",
+    "gx1/scripts/research_ta_campaign_v1.py": "146d58e5242501827d671341cf5b99ec97b747c56d5e8e1e013b42f3ca03b7e2",
+    "gx1/time/session_detector.py": "ed0189b74ec72a80c9667c470e59c37719e59e549d683cc4b50759855c8e03d8",
+    "scripts/gx1_capped_run.sh": "0c97154564fdc6cbb9759b989e825ed0776033ba357de22b01ff13bfdf93d1e4",
+    "tests/test_audit_native_future_window_coverage_v1.py": "9eb2dc952ea964b7d5c2f99d8ff655768252e7b4904fddd44cbcd1ccbebbb57f",
+    "tests/test_audit_native_input_observation_v1.py": "8cc9a905c4debb50c54ce30c4edd30d5d00dbb8376869d501bb24be482314ee3",
+    "tests/test_audit_native_macro_source_keys_v1.py": "ee46f361e817a94a58e3ec338326d36b030c1b1b1661eb406d65fe92f314b248",
+    "tests/test_audit_native_selective_moves_v1.py": "03b7bd8a6615f7232879ac2fc3707fd99e8de7580e9247f30378bbe30e8367cf",
+    "tests/test_audit_native_treasury_vintage_source_v1.py": "3216ac6aea86362bf0cc9bf46631445de3e5e5649059e68e6347c5dd9d4fb8e0",
+    "tests/test_build_native_m5_ta_feature_cache_v1.py": "82d218ea64fe1bb8bdc28131213e8140633e11b8c6bf1db7fd3b24adabc56bd0",
+    "tests/test_qualify_market_state_native_m5_pipeline_v1.py": "95f24b5fbb09531dc19c36a42a533a43d6651b838f7f23ac7a46c410835966e8"
+  },
+  "stage": "native_treasury_initial_release_source_20261123_001",
+  "status": "PREPARED_NOT_ADMITTED"
+}

@@ -238,10 +238,173 @@ def run(plan_sha):
 
 
 def main():
+    if '--d1-followup-plan-sha256' in sys.argv[1:]:return d1_main()
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--plan-sha256',required=True);parser.add_argument('--preflight',action='store_true');args=parser.parse_args()
     need(sys.argv[1:]==['--plan-sha256',args.plan_sha256]+(['--preflight']if args.preflight else[]),'EXACT_CLI')
     if args.preflight:
         plan,binding,pref=inspect(args.plan_sha256,admitted=False);checked_inputs(plan);print(json.dumps({'status':'PREFLIGHT_OBSERVATION_PREFIX_PASS','plan':binding,'policy':pref,'claim_created':False,'payloads_decoded':0,'models':0}))
     else:print(json.dumps(run(args.plan_sha256)))
+
+# Explicitly separate one-use D1 follow-up; original prefix authority stays sealed.
+D1_STAGE='native_observation_d1_followup_20261123_001';D1_BASENAME='NATIVE_OBSERVATION_D1_FOLLOWUP_20261123_001'
+D1_PLAN=REPO/'configs/research'/(D1_BASENAME+'.json');D1_ROOT=Path('/home/andre2/GX1_RUNS')/D1_BASENAME
+D1_DESIGN={'path':str(keys_owner.prior.EROOT/'OBSERVATION_D1_FOLLOWUP_DESIGN001.json'),'sha256':'4a54a73883c70d0437fbef98f334b893abceb679bd514f80e833c468d647c457'}
+D1_FIELDS=('bar_start_ns','tf_D1_ts_int64','tf_D1_owner_row_indices');D1_CUTOFF=1293840000000000000;D1_RAW_ROWS=114696;D1_HISTORY=1578866400000000000
+
+
+def d1_validate_parent(result,terminal,parent_plan,claim):
+    need(result['status']=='COMPLETE_NATIVE_OBSERVATION_PREFIX_WITNESS'and result['stage']==STAGE and result['source_unchanged']is True and result['test_data_used']is False
+        and terminal['stage']==STAGE and terminal['status']=='COMPLETE'and terminal['exit_code']==0 and terminal['source_unchanged']is True and terminal['test_data_used']is False
+        and terminal['plan']==result['plan']==claim['plan']and terminal['claim']==result['claim']and claim['stage']==STAGE
+        and parent_plan['schema_version']=='gx1_native_observation_prefix_witness_plan_v1'and parent_plan['stage']==STAGE and parent_plan['output_root']==str(ROOT)
+        and terminal['remaining_invocations']==claim['remaining_invocations']==0 and terminal['relaunch_allowed']is claim['relaunch_allowed']is False,'D1_AUTHENTIC_COMPLETE_PARENT')
+    frames=result['report']['timeframes'];old=frames['D1'];first=old['first_anchors']['first_create_by_birth_side']
+    need(set(frames)==set(TF)and all(frames[t]['status']=='PASS'for t in TF if t!='D1')and all(frames[t]['actual_squeeze_release']is True and frames[t]['actual_release_duration']>0 for t in TF)
+        and old['status']=='UNKNOWN'and old['processed_rows']==old['available_prefix_rows']==153 and old['history_start_ns']==D1_HISTORY
+        and old['reasons']==['FIRST_ANCHOR_NOT_TERMINAL:low_pivot']and old['serving_apply_selected_eligibility']is True
+        and first['high_pivot']['terminal']is True and first['low_pivot']['level_id']==1 and first['low_pivot']['status']=='broken'and first['low_pivot']['retest_state']=='pending'
+        and result['report']['clock_and_history']['earliest_history_bar_start_ns']['D1']==D1_HISTORY,'D1_EXACT_UNRESOLVED_PARENT')
+    return old
+
+
+def d1_source_bridge(parent_plan):
+    import ast
+    base=parent_plan['source_base_commit'];owners=parent_plan['source_owners'];need(set(owners)==set(OWNERS),'D1_PARENT_SOURCE_INVENTORY')
+    dispatch=ast.parse("if '--d1-followup-plan-sha256' in sys.argv[1:]:return d1_main()").body[0]
+    for name in (SELF,TEST):
+        original=subprocess.check_output(['git','show',base+':'+name],cwd=REPO);need(hashlib.sha256(original).hexdigest()==owners[name],'D1_AUTHENTIC_PARENT_SOURCE')
+        old=ast.parse(original);current=ast.parse((REPO/name).read_bytes());kept=[]
+        for node in current.body:
+            names=[n.id for n in node.targets if isinstance(n,ast.Name)]if isinstance(node,ast.Assign)else[]
+            if isinstance(node,(ast.FunctionDef,ast.ClassDef))and node.name.startswith(('d1_','test_d1_')):continue
+            if names and all(n.startswith('D1_')for n in names):continue
+            if name==SELF and isinstance(node,ast.FunctionDef)and node.name=='main':
+                need(ast.dump(node.body[0],include_attributes=False)==ast.dump(dispatch,include_attributes=False),'D1_EXACT_NEW_DISPATCH');node.body=node.body[1:]
+            kept.append(node)
+        current.body=kept;need(ast.dump(current,include_attributes=False)==ast.dump(old,include_attributes=False),'D1_ORIGINAL_AST_UNCHANGED:'+name)
+    other={n:v for n,v in owners.items()if n not in (SELF,TEST)};need(all(keys_owner.prior.raw.saved.native.sha(REPO/n)==v for n,v in other.items()),'D1_OTHER_PARENT_OWNERS_UNCHANGED')
+    return {'parent_producer_commit':base,'other_parent_owners_unchanged':len(other),'original_owner_and_test_AST_preserved':True,'allowed_delta':'D1_/d1_ additions and exact new CLI dispatch only'}
+
+
+def d1_replay_registry(frame,registry_params,parent_d1,*,history_start_ns,parameter_available_ns,progress=None):
+    progress={}if progress is None else progress;n=parent_d1['processed_rows'];shift=int(htf.MULTI_TF_SHIFT['D1'].value)
+    need(n==153 and len(frame)>n and array_sha(frame.index.asi8[:n])==parent_d1['processed_bar_axis_sha256'],'D1_PARENT_AXIS_BEFORE_REPLAY')
+    need(parameter_available_ns<history_start_ns and int(frame.index[-1].value)+shift<history_start_ns,'D1_PARAMETER_AND_PREFIX_DEADLINE')
+    source=frame[['high','low','close']].copy();source['atr']=ema50_200_spread_atr_block(source['high'],source['low'],source['close'])['atr14'];state=None;lifecycle=[]
+    for start,stop in ((0,128),(128,n)):
+        _,_,state=levels.compute_level_registry_mtf_block_v1(source.iloc[start:stop],tf='d1',recurrence_threshold_atr=registry_params['level_recurrence_threshold_atr']['D1'],
+            max_evidence_age_bars=int(registry_params['level_expiry_bars']['D1']),registry_state=state,return_registry_state=True,runtime_lifecycle_log=lifecycle)
+    proof={'processed_bar_axis_sha256':array_sha(frame.index.asi8[:n]),'registry_final_state_sha256':keys_owner.json_sha(state),'lifecycle_log_sha256':keys_owner.json_sha(lifecycle)}
+    need(all(v==parent_d1[k]for k,v in proof.items()),'D1_PARENT_REPLAY_THREE_SHA_EXACT');need(first_anchor_witness(state,lifecycle)==parent_d1['first_anchors'],'D1_PARENT_ANCHORS_EXACT')
+    progress.update(phase='D1_PARENT153_QUALIFIED',parent_replay_proof=proof);processed=n;anchors=first_anchor_witness(state,lifecycle)
+    for row in range(n,len(source)):
+        _,_,state=levels.compute_level_registry_mtf_block_v1(source.iloc[row:row+1],tf='d1',recurrence_threshold_atr=registry_params['level_recurrence_threshold_atr']['D1'],
+            max_evidence_age_bars=int(registry_params['level_expiry_bars']['D1']),registry_state=state,return_registry_state=True,runtime_lifecycle_log=lifecycle)
+        processed=row+1;anchors=first_anchor_witness(state,lifecycle);progress.update(phase='D1_ONE_BAR_CONTINUATION',processed_D1_rows=processed)
+        if anchors['both_terminal']:break
+    reasons=[]if anchors['both_terminal']else['FIRST_ANCHOR_NOT_TERMINAL:'+s for s,v in anchors['first_create_by_birth_side'].items()if not v['terminal']]
+    reasons.extend('FIRST_BIRTH_MISSING:'+s for s in anchors['missing_birth_sides']);status='PASS'if not reasons else'UNKNOWN'
+    return {'status':status,'reasons':reasons,'timeframe':'D1','first_anchors':anchors,'parent153_replay_exact':True,'parent_replay_proof':proof,'parent_replay_chunk_rows':[128,25],
+        'processed_rows':processed,'continuation_rows':processed-n,'available_prefix_rows':len(frame),'stopped_at_first_terminal_pair':status=='PASS','continuation_chunk_rows':1,
+        'prefix_end_ns':int(frame.index[processed-1].value)+shift,'history_start_ns':history_start_ns,'parameter_available_ns':parameter_available_ns,
+        'processed_bar_axis_sha256':array_sha(frame.index.asi8[:processed]),'registry_final_state_sha256':keys_owner.json_sha(state),'lifecycle_log_sha256':keys_owner.json_sha(lifecycle),
+        'serving_apply_selected_eligibility':True,'new_squeeze_computations':0,'actual_squeeze_release_reused_from_parent':True,'parameters_not_claimed_known_in2009':True}
+
+
+def d1_build_plan(design_ref,*,source_base_commit=None):
+    d=read(design_ref);need(design_ref==D1_DESIGN and d['execution_authorized']is False and d['execution']==EXECUTION,'D1_EXACT_DESIGN')
+    inputs=dict(d['inputs']);inputs['design']=design_ref;result=read(inputs['parent_result']);terminal=read(inputs['parent_terminal']);parent=read(inputs['parent_plan']);claim=read(inputs['parent_claim']);qualification=read(inputs['parent_source_qualification'])
+    need(terminal['result']==inputs['parent_result']and result['plan']==inputs['parent_plan']and result['claim']==inputs['parent_claim'],'D1_PARENT_RECEIPT_BINDINGS');d1_validate_parent(result,terminal,parent,claim)
+    need(qualification['status']=='SOURCE_SYNTHETIC_AND_ACTUAL_METADATA_QUALIFIED_NOT_ADMITTED'and qualification['source']['sha256']==parent['source_owners'][SELF]and qualification['test']['sha256']==parent['source_owners'][TEST]and qualification['design']==parent['inputs']['design'],'D1_PARENT_SOURCE_QUALIFICATION')
+    bridge=d1_source_bridge(parent);cache=read(inputs['source_cache_plan']);parts=cache['metadata']['feature_source_spec']['parts'][:2];headers=cache['metadata']['feature_source_metadata']
+    need(inputs['source_cache_plan']==parent['inputs']['source_cache_plan']and len(parts)==2 and parts[0]['sha256']==parent['inputs']['raw_part']['sha256']and parts[1]['sha256']=='20a4b0f2e7d6005dbf4652b65d89744b94eed293eaa908c36b3f0af835474ee8'
+        and parts[0]['row_groups']==list(range(15))and parts[1]['row_groups']==list(range(25))and sum(headers[p['path']]['total_rows']for p in parts)==D1_RAW_ROWS
+        and sum(headers[p['path']]['stat']['size']for p in parts)==4486929,'D1_EXACT_TWO_SOURCE_PARTS')
+    for name in ('native_manifest','feature_archive','snapshot','normalization','registry','squeeze_manifest',*('squeeze_params_'+t for t in TF)):
+        need(inputs[name]==parent['inputs'][name],'D1_INHERITED_INPUT:'+name);read(inputs[name])if name!='feature_archive'else None
+    registry=htf.require_native_m5_registry_constants(read(inputs['registry']));snapshot=read(inputs['snapshot']);need(registry['contract_sha256']==snapshot['surfaces_metadata']['registry_contract_sha256'],'D1_SAME_REGISTRY')
+    for i,p in enumerate(parts):inputs['raw_part_'+str(i)]={k:p[k]for k in ('path','sha256')};need(pipeline.stamp(p['path'])==headers[p['path']]['stat'],'D1_SOURCE_STAT')
+    array_headers={k:parent['feature_array_headers'][k]for k in D1_FIELDS};nbytes=sum(int(np.prod(h['shape']))*np.dtype(h['dtype']).itemsize for h in array_headers.values());need(nbytes==9750808,'D1_THREE_CLOCK_BUDGET')
+    return {'schema_version':'gx1_native_observation_d1_followup_plan_v1','stage':D1_STAGE,'status':'PREPARED_NOT_ADMITTED','plan_path':str(D1_PLAN),'output_root':str(D1_ROOT),
+        'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),'source_owners':{n:keys_owner.prior.raw.saved.native.sha(REPO/n)for n in OWNERS},'source_bridge':bridge,
+        'inputs':inputs,'execution':EXECUTION,'budget':d['budget'],'feature_array_headers':parent['feature_array_headers'],'clock_fields':list(D1_FIELDS),'clock_ndarray_bytes':nbytes,
+        'raw_read_plan':{'feature_source_spec':{'manifest':inputs['native_manifest'],'parts':parts,'cutoff_ns':D1_CUTOFF},'feature_source_metadata':{p['path']:headers[p['path']]for p in parts}},
+        'history_start_ns':D1_HISTORY,'parameter_available_ns':parent['parameter_available_ns'],'parent_clock_proof':result['report']['clock_and_history'],'parent_D1':result['report']['timeframes']['D1'],
+        'reuse':'Four TF PASS and allfive actual squeeze-release witnesses reused unchanged. D1 registry-only cold replay then completecarry, no HMM.'}
+
+
+def d1_checked_inputs(plan):
+    for b in plan['inputs'].values():need(ref(b['path'])==b,'D1_INPUT_SHA')
+    for p in plan['raw_read_plan']['feature_source_spec']['parts']:need(pipeline.stamp(p['path'])==plan['raw_read_plan']['feature_source_metadata'][p['path']]['stat'],'D1_RAW_STAT_BOOKEND')
+    keys_owner.prior.raw.saved.archive_headers(plan['inputs']['feature_archive'],{k:plan['feature_array_headers'][k]for k in D1_FIELDS},exact_inventory=plan['feature_array_headers'])
+
+
+def d1_gate_expected(binding,admitted):
+    return {'status':'ADMITTED_EXACT_CPU_ONLY_D1_FOLLOWUP'if admitted else'PREPARED_NOT_ADMITTED','plan':binding,'execution_authorized':admitted,
+        'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':False,'test_authorized':False}
+
+
+def d1_inspect(plan_sha,*,admitted):
+    need(Path.cwd().resolve()==REPO and type(plan_sha)is str and len(plan_sha)==64 and all(c in '0123456789abcdef'for c in plan_sha),'D1_CWD_SHA')
+    binding={'path':str(D1_PLAN),'sha256':plan_sha};plan=read(binding);need(plan==d1_build_plan(plan['inputs']['design'],source_base_commit=plan['source_base_commit'])and source_clean(plan),'D1_EXACT_PLAN_SOURCE')
+    pref=ref(POLICY);policy=read(pref);need(all(policy.get(k)is False for k in keys_owner.prior.raw.saved.FLAGS)and policy[D1_STAGE]==d1_gate_expected(binding,admitted),'D1_ALL_TRAINING_CLOSED_GATE')
+    need(not D1_ROOT.exists()and not D1_ROOT.is_symlink(),'D1_FRESH_ROOT');return plan,binding,pref
+
+
+def d1_require_timeout_ancestry(plan_sha,scope):
+    pid=os.getpid();runner=REPO/'scripts/gx1_capped_run.sh';seen=set()
+    while pid and pid not in seen and len(seen)<64:
+        seen.add(pid);p=Path('/proc')/str(pid);identity=guard._lock_process(pid,runner);args=os.fsdecode(guard._read_lock_proc(p/'cmdline')).rstrip('\0').split('\0')
+        if Path(os.readlink(p/'exe'))==Path('/usr/bin/timeout').resolve():
+            operand=Path(args[4])if len(args)>4 else Path('/invalid');operand=operand if operand.is_absolute()else Path(os.readlink(p/'cwd'))/operand
+            need(args[1:4]==['--signal=TERM','--kill-after=10s','600s']and operand==REPO/'.venv/bin/python'and args[5:]==['-m','gx1.audit.audit_native_observation_prefix_v1','--d1-followup-plan-sha256',plan_sha]
+                and identity.cgroup==scope and guard._lock_process(pid,runner)==identity,'D1_CANONICAL_OUTER_TIMEOUT');return {'pid':pid,'start_ticks':identity.start_ticks,'seconds':600,'scope':scope,'exact_cli':True}
+        pid=identity.parent_pid
+    need(False,'D1_MISSING_CANONICAL_OUTER_TIMEOUT')
+
+
+def d1_calculate(plan,*,progress=None):
+    progress={}if progress is None else progress;progress['phase']='D1_THREE_CLOCK_AXES';axes=keys_owner.prior.raw.saved.load_fields(plan['inputs']['feature_archive'],D1_FIELDS,plan['feature_array_headers']);starts=axes['bar_start_ns']
+    full=htf.build_multi_tf_v4_closed_timestamp_indices(pd.to_datetime(starts,utc=True))['D1'];axis_proof=verify_owner_axis(full.asi8,axes['tf_D1_ts_int64'],axes['tf_D1_owner_row_indices'])
+    need(axis_proof==plan['parent_clock_proof']['full_serving_owner_axes']['D1']and np.array_equal(np.flatnonzero(starts<D1_CUTOFF),np.arange(D1_RAW_ROWS))and starts[D1_RAW_ROWS-1]<D1_CUTOFF-keys_owner.M5,'D1_ORIGINAL_FULL_AXIS_AND_RAW_PREFIX')
+    progress['phase']='D1_TWO_RAW_PARTS';raw=pipeline.read_feature_source(plan['raw_read_plan']);need(len(raw)==D1_RAW_ROWS and np.array_equal(raw.index.asi8,starts[:D1_RAW_ROWS]),'D1_EXACT_COMBINED_RAW_PREFIX')
+    frame=resample_prefix(raw,'D1',full,D1_CUTOFF);registry=htf.require_native_m5_registry_constants(read(plan['inputs']['registry']));report=d1_replay_registry(frame,registry,plan['parent_D1'],history_start_ns=plan['history_start_ns'],parameter_available_ns=plan['parameter_available_ns'],progress=progress)
+    return {'D1':report,'full_D1_owner_axis':axis_proof,'allfive_internal_encoding_exclusion_status':report['status'],'reused_parent_result':plan['inputs']['parent_result'],
+        'reused_four_TF_PASS':['M5','M15','H1','H4'],'reused_allfive_squeeze_releases':True,'payload_counts':{'axis_arrays':3,'axis_ndarray_bytes':9750808,'raw_parts':2,'raw_row_groups':40,'raw_rows':len(raw),'raw_logical_bytes':12845952,'D1_registry_streams':1,'HMM_computations':0,'models':0,'forwards':0,'fits':0,'checkpoint_loads':0,'network_calls':0},
+        'limits':['Internalfirst-anchor/pre-release domain exclusion only; no global07/sourcecalendar/vintage/learning/OOS/profit claim.','Parent2009 replay must match exactly before any newcarry; fixed2010bound, no automatic2011 or newobservability bits.','Frozenparameters not claimed known in2009; availability precedes actual consumedTRAINhistory.']}
+
+
+def d1_publish(name,value):
+    path=D1_ROOT/name;keys_owner.prior.raw.saved._publish_bytes(path,(json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n').encode());return ref(path)
+
+
+def d1_run(plan_sha):
+    began=time.monotonic();cap=guard.require_capped_cpu_audit_execution();lock=guard.require_capped_lock_ancestry()
+    need(cap['memory_max']==cap['memory_high']==4*1024**3 and cap['swap']==512*1024**2 and cap['numerical_threads']==1 and lock['scope']==cap['cgroup_path'][len('/sys/fs/cgroup'):],'D1_CAP_LIMITS')
+    timeout=d1_require_timeout_ancestry(plan_sha,lock['scope']);plan,binding,pref=d1_inspect(plan_sha,admitted=True);d1_checked_inputs(plan);boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip();D1_ROOT.mkdir(parents=True,exist_ok=False)
+    handlers={s:signal.getsignal(s)for s in (signal.SIGALRM,signal.SIGTERM,signal.SIGINT)};claim=result=None;progress={'phase':'D1_CLAIM'}
+    try:
+        def expired(*_):raise TimeoutError('D1_FOLLOWUP_WALL')
+        def stopped(s,*_):raise InterruptedError('D1_FOLLOWUP_EXTERNAL_SIGNAL_'+str(s))
+        signal.signal(signal.SIGALRM,expired);signal.signal(signal.SIGTERM,stopped);signal.signal(signal.SIGINT,stopped)
+        claim=d1_publish('CLAIM.json',{'stage':D1_STAGE,'plan':binding,'policy_at_claim':pref,'boot_id':boot,'outer_timeout':timeout,'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
+        remaining=EXECUTION['internal_seconds']-(time.monotonic()-began);need(remaining>0,'D1_TIME_BEFORE_READS');signal.setitimer(signal.ITIMER_REAL,remaining)
+        report=d1_calculate(plan,progress=progress);d1_checked_inputs(plan)
+        need(source_clean(plan)and ref(POLICY)==pref and ref(D1_PLAN)==binding and Path('/proc/sys/kernel/random/boot_id').read_text().strip()==boot,'D1_SOURCE_INPUT_PLAN_POLICY_BOOT_BOOKEND')
+        result=d1_publish('RESULT.json',{'status':'COMPLETE_NATIVE_OBSERVATION_D1_FOLLOWUP','stage':D1_STAGE,'plan':binding,'claim':claim,'report':report,'source_unchanged':True,'test_data_used':False,'elapsed_seconds':time.monotonic()-began})
+        terminal=d1_publish('TERMINAL.json',{'status':'COMPLETE','exit_code':0,'stage':D1_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'source_unchanged':True,'test_data_used':False});return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        signal.setitimer(signal.ITIMER_REAL,0);d1_publish('TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'stage':D1_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'progress':progress,'error':type(error).__name__+':'+str(error)[:2000],'test_data_used':False});raise
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0)
+        for s,h in handlers.items():signal.signal(s,h)
+
+
+def d1_main():
+    parser=argparse.ArgumentParser(description='Distinct bounded D1registry follow-up; originaloneuseprefixsealed.');parser.add_argument('--d1-followup-plan-sha256',required=True);parser.add_argument('--preflight',action='store_true');args=parser.parse_args()
+    need(sys.argv[1:]==['--d1-followup-plan-sha256',args.d1_followup_plan_sha256]+(['--preflight']if args.preflight else[]),'D1_EXACT_CLI')
+    if args.preflight:
+        plan,binding,pref=d1_inspect(args.d1_followup_plan_sha256,admitted=False);d1_checked_inputs(plan);print(json.dumps({'status':'PREFLIGHT_OBSERVATION_D1_FOLLOWUP_PASS','plan':binding,'policy':pref,'claim_created':False,'payloads_decoded':0,'models':0}))
+    else:print(json.dumps(d1_run(args.d1_followup_plan_sha256)))
 
 if __name__=='__main__':main()

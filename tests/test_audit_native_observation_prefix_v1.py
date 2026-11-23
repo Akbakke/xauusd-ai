@@ -188,3 +188,164 @@ def test_prefix_real_builder_rejects_unbound_design_before_payload_or_input_refs
     monkeypatch.setattr(audit.pipeline,'read_feature_source',forbidden)
     with pytest.raises(ValueError,match='ACTIVE_DESIGN002'):audit.build_plan(bad)
     assert seen==[bad]
+
+
+def d1_parent_fixture():
+    plan_ref={'path':'/synthetic/parent-plan.json','sha256':'a'*64};claim_ref={'path':'/synthetic/parent-claim.json','sha256':'b'*64}
+    old={'status':'UNKNOWN','processed_rows':153,'available_prefix_rows':153,'history_start_ns':audit.D1_HISTORY,
+        'reasons':['FIRST_ANCHOR_NOT_TERMINAL:low_pivot'],'serving_apply_selected_eligibility':True,
+        'actual_squeeze_release':True,'actual_release_duration':7,'first_anchors':{'first_create_by_birth_side':{
+            'high_pivot':{'level_id':9,'terminal':True},'low_pivot':{'level_id':1,'status':'broken','retest_state':'pending','terminal':False}}}}
+    frames={tf:{'status':'PASS','actual_squeeze_release':True,'actual_release_duration':7}for tf in audit.TF};frames['D1']=old
+    result={'status':'COMPLETE_NATIVE_OBSERVATION_PREFIX_WITNESS','stage':audit.STAGE,'source_unchanged':True,'test_data_used':False,
+        'plan':plan_ref,'claim':claim_ref,'report':{'timeframes':frames,'clock_and_history':{'earliest_history_bar_start_ns':{'D1':audit.D1_HISTORY}}}}
+    terminal={'stage':audit.STAGE,'status':'COMPLETE','exit_code':0,'source_unchanged':True,'test_data_used':False,
+        'plan':plan_ref,'claim':claim_ref,'remaining_invocations':0,'relaunch_allowed':False}
+    parent={'schema_version':'gx1_native_observation_prefix_witness_plan_v1','stage':audit.STAGE,'output_root':str(audit.ROOT)}
+    claim={'stage':audit.STAGE,'plan':plan_ref,'remaining_invocations':0,'relaunch_allowed':False}
+    return result,terminal,parent,claim
+
+
+def test_d1_authentic_parent_is_required_before_reusing_four_passes_and_releases():
+    values=d1_parent_fixture();assert audit.d1_validate_parent(*values)is values[0]['report']['timeframes']['D1']
+    for mode in ('terminal_plan','claim_plan','parent_root','relaunch','four_tf','release'):
+        r,t,p,c=copy.deepcopy(d1_parent_fixture())
+        if mode=='terminal_plan':t['plan']={'path':'foreign','sha256':'0'*64}
+        elif mode=='claim_plan':c['plan']={'path':'foreign','sha256':'0'*64}
+        elif mode=='parent_root':p['output_root']='/foreign'
+        elif mode=='relaunch':c['relaunch_allowed']=True
+        elif mode=='four_tf':r['report']['timeframes']['H4']['status']='UNKNOWN'
+        else:r['report']['timeframes']['D1']['actual_squeeze_release']=False
+        with pytest.raises(ValueError,match='D1_'):audit.d1_validate_parent(r,t,p,c)
+
+
+def d1_replay_fixture(monkeypatch,*,rows=158,terminal_after=154):
+    index=pd.date_range('2009-01-01T22:00:00Z',periods=rows,freq='D').as_unit('ns')
+    frame=pd.DataFrame({'high':np.full(rows,101.),'low':np.full(rows,99.),'close':np.full(rows,100.)},index=index)
+    events=[('create',3,1,'high_pivot',9,101.),('create',4,2,'low_pivot',1,99.)]
+    def state_at(processed):
+        terminal=terminal_after is not None and processed>=terminal_after
+        return {'processed':processed,'levels':[{'level_id':9,'birth_side':'high_pivot','status':'expired','retest_state':'expired'},
+            {'level_id':1,'birth_side':'low_pivot','status':'expired'if terminal else'broken','retest_state':'expired'if terminal else'pending'}]}
+    old_state=state_at(153)
+    parent={'processed_rows':153,'processed_bar_axis_sha256':audit.array_sha(index.asi8[:153]),
+        'registry_final_state_sha256':audit.keys_owner.json_sha(old_state),'lifecycle_log_sha256':audit.keys_owner.json_sha(events),
+        'first_anchors':audit.first_anchor_witness(old_state,events),'actual_squeeze_release':True,'actual_release_duration':7}
+    calls=[];last=[None]
+    def registry(part,**kwargs):
+        carry=kwargs['registry_state'];assert carry is last[0]
+        assert kwargs['tf']=='d1'and kwargs['return_registry_state']is True
+        begin=0 if carry is None else carry['processed'];calls.append((len(part),begin))
+        assert part.index.equals(index[begin:begin+len(part)])
+        if carry is None:kwargs['runtime_lifecycle_log'].extend(events)
+        state=state_at(begin+len(part));last[0]=state
+        return np.zeros((len(part),1)),['synthetic'],state
+    monkeypatch.setattr(audit.levels,'compute_level_registry_mtf_block_v1',registry)
+    monkeypatch.setattr(audit.squeeze,'compute_volatility_squeeze_state',lambda *args,**kwargs:pytest.fail('D1 followup must not compute squeeze'))
+    params={'level_recurrence_threshold_atr':{'D1':1.},'level_expiry_bars':{'D1':5}}
+    history=int(index[-1].value)+3*int(audit.htf.MULTI_TF_SHIFT['D1'].value)
+    return frame,params,parent,calls,history
+
+
+def test_d1_old_axis_state_log_or_anchor_mismatch_fails_before_new_carry(monkeypatch):
+    for mode in ('axis','state','log','anchors'):
+        frame,params,parent,calls,history=d1_replay_fixture(monkeypatch);progress={}
+        if mode=='axis':parent['processed_bar_axis_sha256']='0'*64
+        elif mode=='state':parent['registry_final_state_sha256']='0'*64
+        elif mode=='log':parent['lifecycle_log_sha256']='0'*64
+        else:parent['first_anchors']['first_create_by_birth_side']['low_pivot']['create_bar']+=1
+        with pytest.raises(ValueError,match='D1_PARENT_'):
+            audit.d1_replay_registry(frame,params,parent,history_start_ns=history,parameter_available_ns=1,progress=progress)
+        assert calls==([]if mode=='axis'else[(128,0),(25,128)])
+        assert 'parent_replay_proof'not in progress
+
+
+def test_d1_exact_128_plus_25_replay_then_one_bar_carry_stops_at_first_terminal_pair(monkeypatch):
+    frame,params,parent,calls,history=d1_replay_fixture(monkeypatch);progress={}
+    result=audit.d1_replay_registry(frame,params,parent,history_start_ns=history,parameter_available_ns=1,progress=progress)
+    assert calls==[(128,0),(25,128),(1,153)]
+    assert result['status']=='PASS'and result['parent153_replay_exact']is True
+    assert result['parent_replay_chunk_rows']==[128,25]and result['continuation_chunk_rows']==1
+    assert result['processed_rows']==154 and result['continuation_rows']==1 and result['available_prefix_rows']==158
+    assert result['stopped_at_first_terminal_pair']is True and result['new_squeeze_computations']==0
+    assert progress['processed_D1_rows']==154
+
+
+def test_d1_bound_exhaustion_stays_unknown_without_squeeze_and_deadline_cannot_be_relaxed(monkeypatch):
+    frame,params,parent,calls,history=d1_replay_fixture(monkeypatch,rows=155,terminal_after=None)
+    result=audit.d1_replay_registry(frame,params,parent,history_start_ns=history,parameter_available_ns=1)
+    assert calls==[(128,0),(25,128),(1,153),(1,154)]
+    assert result['status']=='UNKNOWN'and result['reasons']==['FIRST_ANCHOR_NOT_TERMINAL:low_pivot']
+    assert result['processed_rows']==155 and result['new_squeeze_computations']==0
+    frame,params,parent,calls,history=d1_replay_fixture(monkeypatch)
+    with pytest.raises(ValueError,match='D1_PARAMETER_AND_PREFIX_DEADLINE'):
+        audit.d1_replay_registry(frame,params,parent,history_start_ns=history,parameter_available_ns=history)
+    assert calls==[]
+
+
+def test_d1_source_bridge_accepts_only_named_additions_and_rejects_old_math_or_other_owner_changes(monkeypatch,tmp_path):
+    import hashlib
+    old_self=b'import sys\ndef original_core():\n return 1\ndef main():\n return original_core()\n'
+    old_test=b'def test_original():\n assert True\n'
+    current_self=b"import sys\ndef original_core():\n return 1\ndef main():\n if '--d1-followup-plan-sha256' in sys.argv[1:]:return d1_main()\n return original_core()\nD1_ADDITION=1\ndef d1_main():\n return None\n"
+    current_test=old_test+b'\ndef d1_helper():\n return None\ndef test_d1_new():\n assert True\n'
+    numeric='gx1/synthetic_numeric.py';math_bytes=b'def unchanged_math():\n return 3\n'
+    for name,raw in ((audit.SELF,current_self),(audit.TEST,current_test),(numeric,math_bytes)):
+        path=tmp_path/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
+    originals={audit.SELF:old_self,audit.TEST:old_test};owners={name:hashlib.sha256(raw).hexdigest()for name,raw in (*originals.items(),(numeric,math_bytes))}
+    monkeypatch.setattr(audit,'REPO',tmp_path);monkeypatch.setattr(audit,'OWNERS',tuple(owners))
+    def git_show(args,**kwargs):return originals[args[-1].split(':',1)[1]]
+    monkeypatch.setattr(audit.subprocess,'check_output',git_show)
+    parent={'source_base_commit':'synthetic','source_owners':owners};proof=audit.d1_source_bridge(parent)
+    assert proof['original_owner_and_test_AST_preserved']is True and proof['other_parent_owners_unchanged']==1
+    (tmp_path/audit.SELF).write_bytes(current_self.replace(b'return 1',b'return 2'))
+    with pytest.raises(ValueError,match='D1_ORIGINAL_AST_UNCHANGED'):audit.d1_source_bridge(parent)
+    (tmp_path/audit.SELF).write_bytes(current_self);(tmp_path/numeric).write_bytes(math_bytes.replace(b'return 3',b'return 4'))
+    with pytest.raises(ValueError,match='D1_OTHER_PARENT_OWNERS_UNCHANGED'):audit.d1_source_bridge(parent)
+
+
+def d1_lifecycle(monkeypatch,tmp_path):
+    monkeypatch.setattr(audit,'D1_ROOT',tmp_path/'OUT');binding={'path':str(tmp_path/'PLAN.json'),'sha256':'1'*64};pref={'path':str(tmp_path/'POLICY.json'),'sha256':'2'*64}
+    monkeypatch.setattr(audit.guard,'require_capped_cpu_audit_execution',lambda:{'memory_max':4*1024**3,'memory_high':4*1024**3,'swap':512*1024**2,'numerical_threads':1,'cgroup_path':'/sys/fs/cgroup/synthetic'})
+    monkeypatch.setattr(audit.guard,'require_capped_lock_ancestry',lambda:{'scope':'/synthetic'})
+    monkeypatch.setattr(audit,'d1_require_timeout_ancestry',lambda *args:{'seconds':600,'scope':'/synthetic','exact_cli':True})
+    monkeypatch.setattr(audit,'d1_inspect',lambda *args,**kwargs:({},binding,pref));monkeypatch.setattr(audit,'d1_checked_inputs',lambda plan:None)
+    monkeypatch.setattr(audit,'source_clean',lambda plan:True);original=audit.ref
+    monkeypatch.setattr(audit,'ref',lambda path:pref if path==audit.POLICY else binding if path==audit.D1_PLAN else original(path))
+    return binding,pref
+
+
+def test_d1_distinct_cli_preflight_never_reads_raw_axes_or_creates_claim(monkeypatch,tmp_path,capsys):
+    d1_lifecycle(monkeypatch,tmp_path);seen=[]
+    monkeypatch.setattr(audit,'d1_checked_inputs',lambda plan:seen.append('metadata'))
+    def forbidden(*args,**kwargs):raise AssertionError('D1 preflight raw/axes/claim')
+    monkeypatch.setattr(audit.np,'load',forbidden);monkeypatch.setattr(audit.pipeline,'read_feature_source',forbidden)
+    monkeypatch.setattr(audit.keys_owner.prior.raw.saved,'load_fields',forbidden)
+    monkeypatch.setattr(audit,'d1_calculate',forbidden);monkeypatch.setattr(audit,'d1_publish',forbidden)
+    monkeypatch.setattr(sys,'argv',['audit','--d1-followup-plan-sha256','1'*64,'--preflight']);audit.main()
+    result=json.loads(capsys.readouterr().out)
+    assert result['status']=='PREFLIGHT_OBSERVATION_D1_FOLLOWUP_PASS'and result['claim_created']is False
+    assert result['payloads_decoded']==result['models']==0 and seen==['metadata']and not audit.D1_ROOT.exists()
+    assert audit.d1_gate_expected({'path':'synthetic','sha256':'1'*64},True)['training_authorized']is False
+
+
+def test_d1_failure_consumes_separate_claim_and_retains_progress(monkeypatch,tmp_path):
+    d1_lifecycle(monkeypatch,tmp_path)
+    def fail(plan,*,progress):
+        progress['phase']='D1 synthetic stopped';raise ValueError('synthetic D1 failure')
+    monkeypatch.setattr(audit,'d1_calculate',fail)
+    with pytest.raises(ValueError,match='synthetic D1 failure'):audit.d1_run('1'*64)
+    terminal=json.loads((audit.D1_ROOT/'TERMINAL.json').read_text())
+    assert terminal['status']=='FAILED_CONSUMED'and terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False
+    assert terminal['result']is None and terminal['progress']['phase']=='D1 synthetic stopped'
+    assert not (audit.D1_ROOT/'RESULT.json').exists()
+
+
+def test_d1_success_is_durable_and_source_bookend_blocks_a_later_result(monkeypatch,tmp_path):
+    d1_lifecycle(monkeypatch,tmp_path/'good');monkeypatch.setattr(audit,'d1_calculate',lambda plan,**kwargs:{'synthetic':True})
+    result=audit.d1_run('1'*64);terminal=json.loads((audit.D1_ROOT/'TERMINAL.json').read_text())
+    assert terminal['status']=='COMPLETE'and terminal['result']==result['result']and terminal['relaunch_allowed']is False
+    d1_lifecycle(monkeypatch,tmp_path/'drift');monkeypatch.setattr(audit,'source_clean',lambda plan:False)
+    with pytest.raises(ValueError,match='D1_SOURCE_INPUT_PLAN_POLICY_BOOT_BOOKEND'):audit.d1_run('1'*64)
+    terminal=json.loads((audit.D1_ROOT/'TERMINAL.json').read_text())
+    assert terminal['status']=='FAILED_CONSUMED'and not (audit.D1_ROOT/'RESULT.json').exists()

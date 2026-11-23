@@ -109,7 +109,10 @@ høyst3gratis offentlige POST-nedlastinger,2020-11-30..2025-12-29,ZIP-only,
 1MiB/20s hver,0redirect/retry/token/cookies. Dette er fysisk karantene/
 ZIP-headerinventar,0observasjonsrader/tallkonvertering og ingen nativeFRED-
 innføring. Ny auditor/test har21fokuserte cases og faktisk metadatabuilder
-mednett/NPZ/publisering/Torchblokkert PASS;0data-POST eller payloadadmisjon.
+mednett/NPZ/publisering/Torchblokkert PASS. Faktisk001 er nå brukt/stengt:
+énDGS2POST,20,158s timeout uten mottattHTTPstatus/body; DGS10/DFII10
+ble ikke forsøkt. FAILED_ATTEMPT_REVIEW001 bevarer dette. Ingen numerisk/
+vintagekvalifisering eller nativeFRED-innføring følger. Ingen001retry.
 Råbytes/HTML/ZIP blir iRUNS/separatdisk, aldri Git. Hver jobb må ha egen
 nøyaktig plan/preflight, fersk signertCPUhostadmisjon og avsluttes før neste.
 
@@ -120,7 +123,13 @@ HISTORICAL_CALENDAR_EXTERNAL_EVIDENCE_REQUEST001 er klargjort, ikke sendt.
 994man–tor17–18NY-gap=11928slots; søndag21.11.2021=12;86andre gap=5930.
 Ingen hull omdøpes til stengt eller fylles med oppdiktede priser. Brukeren er
 spurt om eksisterende offisiell kilde; ingen svar/kilde er lagt til grunn.
-07UNKNOWN: intern18eksklusjon skal måles; underliggende kilde/asof-tilgang
+07UNKNOWN:16av18interne forekomster utelukket; de2D1recurrencefeltene
+får separat D1_FOLLOWUP_DESIGN001:2009+2010,40grupper/114696rader,
+4486929diskbytes/12845952logical,3aksearrays/9750808bytes. KunD1registry,
+0nyHMM;153førsterader128+25måmatchegamleakse/state/logSHA førénbarcarry.
+Fast2011cutoff, ingen automatiskutvidelse. Design er ikke launchadmisjon. D1kildekvalifisering001:8nyecasesPASS,
+faktisk blokkert metadatabuilderPASS/0payload/ROOTfalse. Original17funksjoner
+og16testcases ASTuendret,54andre kildeeiere byteidentiske; underliggende kilde/asof-tilgang
 krever fortsatt selvstendig vurdering. Finitthet er ikke historisk known.
 09UNKNOWN: Treasuryoriginal36DIRECTHTTPS-kjede er gjenfunnet;18COT-offisielle
 kildeidentiteter avstemt. Dette er ikke førstevintage/revisjons-/releasebevis.
