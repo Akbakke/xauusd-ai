@@ -11,7 +11,8 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT009:13PASS/3FAIL/4UNKNOWN; samlet false.
+REVIEW_CHECKPOINT010:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+verdicts beholdt; D1-HLCv2 er separat kandidat med NN-baselineUNKNOWN.
 Administrative20PASS; resten krever navngitteeksternekildebevis.
 REQUIRED_EXTERNAL_EVIDENCE_BLOCKED_AUDIT001 eroppfylt over3målfortsettelser;
 Tidligeremålblokkering beholdes somhistorikk; nyautorisertOANDAkilderute
@@ -138,7 +139,7 @@ krever fortsatt selvstendig vurdering. Finitthet er ikke historisk known.
 09UNKNOWN: Treasuryoriginal36DIRECTHTTPS-kjede er gjenfunnet;18COT-offisielle
 kildeidentiteter avstemt. Dette er ikke førstevintage/revisjons-/releasebevis.
 OANDA/Cboe/GLD og Treasury/COT tidsdomener beholdes uavklarte der bevis mangler.
-11/12FAIL: målmaskenes mekanikk er avstemt, representativitet er svak:
+11/12FAIL, historisk v1: målmaskenes mekanikk er avstemt, representativitet er svak:
 D1kun234/1289modnekomplettevinduer,0slutttirs–tors og162unikekjentesidemål.
 15FAIL: egenfasit side-Brier/NLL verre enn frossen matchet prior alle5TF.
 TRAIN-AUC0,5300/0,5317/0,5248/0,5058/0,5239 er ingen senere edge.
@@ -185,7 +186,8 @@ modell/FW/fit/CP/input-/mål-/maskeendringer. MAINcheckpointsogalle porter
 bevart; allefemtreningsporterfalse. Sourcehelpers/manifest/kvitteringer i
 bevisroten erimmutabile, ikke nye rammeverk ellerfortrengning avoriginaler.
 
-Neste konkretearbeid: vurder snevertleverandør-HLC-observasjonssertifikat
+Tidligere neste steg, nå gjennomført i aktiv D1-HLC-kvalifisering nedenfor:
+vurder snevertleverandør-HLC-observasjonssertifikat
 for1055verifiserteD1vinduer. Selvefasiten brukerH/L/sluttC ogkausalATR,
 ingenførstetreffrekkefølge, mensnågjeldenecomplete-kontrakt kreverhver
 forventetM5utenforweeklyclosure. Nominalcompleteogkalenderfakta skalfå
@@ -228,3 +230,10 @@ eksplisittgenerasjonskryssetdiagnostikk,0nyeNNforwards/refit. Detteerikke
 v2initialbaseline/OOF. Deretteregeneksaktv2baseline-/workerkvalifisering
 førnoennyfit. Makrofirstvintage/kalenderogTEST-grenser består; allefem
 trenings-/VALporterfalse, allgenuinefeatures/5TFbeholdes.
+
+D1-kandidatens kildebølge er publisert som ade31c740 på origin, rent.
+Separat Mac-diskbackup:42filer/55154137bytes, manifest02c3d186...60b6e;
+source/diskSHA,F_FULLFSYNC/readback PASS. D1_PROVIDER_HLC_BACKUP001 og
+REVIEW_CHECKPOINT010 binder sikring og administrativ20PASS. Vitenskapelige
+03/07/09/19UNKNOWN,11/12/15FAIL gjelder fortsatt; v2NN-baseline/læring/
+generalisering/edgeUNKNOWN. Nytt mål forblir ACTIVE, ingen treningsadmisjon.
