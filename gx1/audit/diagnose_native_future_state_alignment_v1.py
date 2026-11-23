@@ -255,11 +255,184 @@ def run(plan_sha):
     finally: signal.setitimer(signal.ITIMER_REAL,0); signal.signal(signal.SIGALRM,old)
 
 
-def main():
-    parser=argparse.ArgumentParser(description=__doc__); parser.add_argument('--plan-sha256',required=True); parser.add_argument('--preflight',action='store_true'); args=parser.parse_args()
-    if args.preflight:
-        plan,binding,pref=inspect(args.plan_sha256,admitted=False); checked_inputs(plan)
-        print(json.dumps({'status':'PREFLIGHT_PASS','plan':binding,'policy':pref,'claim_created':False,'array_payloads_decoded':0,'models':0,'checkpoint_loads':0,'forwards':0}))
-    else: print(json.dumps(run(args.plan_sha256)))
+# Distinct one-use accounting on the original unchanged masks; old alignment remains consumed.
+BATCH_STAGE='native_future_state_batch_risk_20261123_001'
+BATCH_BASENAME='NATIVE_FUTURE_STATE_BATCH_RISK_20261123_001'
+BATCH_PLAN=REPO/'configs/research'/(BATCH_BASENAME+'.json');BATCH_ROOT=Path('/home/andre2/GX1_RUNS')/BATCH_BASENAME
+BATCH_EROOT=Path('/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001')
+BATCH_CAPTURE=('issue_ns','source_rows','side_logits');BATCH_TRUTH=('issue_ns','activity_known','side_known','side_up')
+BATCH_BUDGET={'capture_archive_loads':1,'capture_fields':list(BATCH_CAPTURE),'target_archive_loads':1,'target_fields':list(BATCH_TRUTH),
+    'ndarray_bytes_decoded':20918450,'original_batches':3694,'batch_rows':96,'last_batch_rows':22,
+    'models':0,'checkpoint_loads':0,'forwards':0,'backward':0,'autograd_calls':0,'optimizer_updates':0,'optimizer_constructions':0,
+    'fits':0,'source_prices':0,'features':0,'HTTP_calls':0,'new_labels':0,'VAL_TEST_rows':0}
 
-if __name__=='__main__': main()
+
+def batch_risk_statistics(logits,activity_known,side_known,side_up,*,batch_rows,prior_logits):
+    n=len(logits);shape=(n,len(TF));need(type(batch_rows)is int and batch_rows>0 and n>0,'BATCH_RISK_GEOMETRY')
+    need(logits.dtype==np.float32 and logits.shape==shape and np.isfinite(logits).all()
+        and all(a.dtype==np.bool_ and a.shape==shape for a in (activity_known,side_known,side_up))
+        and not np.any(side_known&~activity_known)and not np.any(side_up&~side_known),'BATCH_RISK_MASKS_HEAD')
+    need(prior_logits.dtype==np.float32 and prior_logits.shape==(len(TF),)and np.isfinite(prior_logits).all(),'BATCH_RISK_PRIOR')
+    q=np.exp(-np.logaddexp(0.,-logits.astype(np.float64)));p=np.exp(-np.logaddexp(0.,-prior_logits.astype(np.float64)))
+    batches=[];weighted_n=np.zeros(5,np.float64);weighted_up=np.zeros(5,np.float64);weighted_final=np.zeros(5,np.float64);weighted_prior=np.zeros(5,np.float64)
+    updates=0;total_D=0
+    for start in range(0,n,batch_rows):
+        stop=min(start+batch_rows,n);ak=activity_known[start:stop];sk=side_known[start:stop];up=side_up[start:stop]
+        ca=ak.sum(0,dtype=np.int64);cs=sk.sum(0,dtype=np.int64);cu=(sk&up).sum(0,dtype=np.int64);D=int(ca.sum());r=np.where(sk,q[start:stop]-up,0.).sum(0)
+        rp=p*cs-cu
+        if D:
+            updates+=1;total_D+=D;weighted_n+=cs/D;weighted_up+=cu/D;weighted_final+=r/D;weighted_prior+=rp/D
+        batches.append({'logical_step':len(batches)+1,'rows':stop-start,'start_position':start,'stop_position':stop,'D_activity_all_TF':D,
+            'activity_known':ca.tolist(),'side_known':cs.tolist(),'UP':cu.tolist(),'DOWN':(cs-cu).tolist(),
+            'FINAL_side_residual_sums':r.tolist(),'prior_side_residual_sums':rp.tolist(),'skip_update':D==0})
+    report={}
+    for j,tf in enumerate(TF):
+        sk=side_known[:,j];count=int(sk.sum());up=int(side_up[sk,j].sum());residual=float((q[sk,j]-side_up[sk,j]).sum())
+        report[tf]={'known_side_rows':count,'UP':up,'DOWN':count-up,'constant_row_optimum':up/count if count else None,
+            'constant_mean_batch_optimum':float(weighted_up[j]/weighted_n[j])if weighted_n[j]>0 else None,
+            'weighted_side_mass':float(weighted_n[j]),'weighted_UP_mass':float(weighted_up[j]),'prior_q':float(p[j]),
+            'FINAL_mean_q':(residual+up)/count if count else None,'FINAL_side_residual_sum':residual,
+            'prior_gradient_global':float((p[j]*count-up)/total_D)if total_D else None,
+            'prior_gradient_mean_batch':float(weighted_prior[j]/updates)if updates else None,
+            'FINAL_gradient_global':residual/total_D if total_D else None,
+            'FINAL_gradient_mean_batch':float(weighted_final[j]/updates)if updates else None,
+            'FINAL_gradient_conditional_side':residual/count if count else None,
+            'zero_side_support_batches':sum(b['side_known'][j]==0 for b in batches),
+            'support_status':'OBSERVED'if count else'NO_SUPPORT_NO_CONSTANT_OPTIMUM'}
+    return {'batches':batches,'per_tf':report,'activity_denominator_total':total_D,'updates':updates,'skipped_batches':len(batches)-updates,
+        'constant_reference_status':'Closed-form minimizer of mean supported-batch side BCE only; not a new canonical prior/model/calibrator or Adam convergence prediction.'}
+
+
+def batch_build_plan(*,design,source_base_commit=None):
+    d=read(design);need(Path(design['path'])==BATCH_EROOT/'BATCH_RISK_ACCOUNTING_DESIGN001.json'
+        and d['schema_version']=='gx1_native_batch_risk_accounting_design_v1'and d['execution_authorized']is False
+        and d['execution']==EXECUTION and d['budget']==BATCH_BUDGET,'BATCH_RISK_LOCKED_DESIGN')
+    base=build_plan(source_base_commit=source_base_commit);main=read(base['inputs']['main_plan']);original=read(base['inputs']['main_result'])
+    alignment_ref=ref(ROOT/'RESULT.json');alignment=read(alignment_ref);terminal_ref=ref(ROOT/'TERMINAL.json');terminal=read(terminal_ref);old_plan=read(alignment['plan'])
+    need(terminal['status']=='COMPLETE'and terminal['exit_code']==0 and terminal['result']==alignment_ref
+        and alignment['status']=='COMPLETE_NATIVE_FUTURE_STATE_ALIGNMENT'and alignment['source_unchanged']is True and alignment['test_data_used']is False
+        and all(old_plan['inputs'][k]==base['inputs'][k]for k in ('main_plan','capture_result','capture','dataset','target_arrays','prior'))
+        and alignment['report']['frozen_prior_support_crosscheck']['all_counts_classes_unique_and_mask_hashes_match']is True,'BATCH_RISK_ORIGINAL_ALIGNMENT')
+    schedule=main['schedule'];recipe=main['recipe'];steps=original['report']['steps']
+    need(schedule['rows']==ROWS and schedule['batch_rows']==recipe['train_batch_rows']==96 and schedule['batches_per_pass']==schedule['logical_batches']==3694
+        and schedule['passes']==1 and schedule['shuffle']is False and schedule['drop_last']is False and schedule['skipped_batches']==0
+        and len(steps)==3694 and all(len(schedule[k])==3694 for k in ('known_activity_by_batch','update_flags','batch_source_rows_sha256','batch_issue_ns_sha256'))
+        and original['plan']==base['inputs']['main_plan']and original['source_unchanged']is True
+        and schedule['known_activity_by_batch']==[sum(x['support']['activity'])for x in steps]
+        and all(x is True for x in schedule['update_flags']),'BATCH_RISK_ORIGINAL_SCHEDULE')
+    need(base['capture_array_headers']['source_rows']=={'shape':[ROWS],'dtype':'<i8','sha256':schedule['source_rows_sha256']},'BATCH_RISK_GLOBAL_SOURCE_ROWS')
+    headers=base['target_array_headers'];ch=base['capture_array_headers'];npbytes=sum(int(np.prod(headers[k]['shape']))*np.dtype(headers[k]['dtype']).itemsize for k in BATCH_TRUTH)
+    npbytes+=sum(int(np.prod(ch[k]['shape']))*np.dtype(ch[k]['dtype']).itemsize for k in BATCH_CAPTURE);need(npbytes==20918450,'BATCH_RISK_BYTES')
+    for key in ('qualification_requirements','observed_parameter_attribution'):read(d[key])
+    inputs={**base['inputs'],'batch_risk_design':design,'alignment_result':alignment_ref,'alignment_terminal':terminal_ref,'alignment_plan':alignment['plan'],
+        'qualification_requirements':d['qualification_requirements'],'observed_parameter_attribution':d['observed_parameter_attribution']}
+    return {'schema_version':'gx1_native_batch_risk_accounting_plan_v1','stage':BATCH_STAGE,'status':'PREPARED_NOT_ADMITTED','plan_path':str(BATCH_PLAN),'output_root':str(BATCH_ROOT),
+        'source_base_commit':base['source_base_commit'],'source_owners':base['source_owners'],'inputs':inputs,'execution':EXECUTION,'budget':BATCH_BUDGET,
+        'capture_array_headers':ch,'target_array_headers':{k:headers[k]for k in BATCH_TRUTH},'target_contract':base['target_contract'],
+        'TRAIN_issue_ns_sha256':base['TRAIN_issue_ns_sha256'],'runtime_versions':base['runtime_versions'],'question':d['question'],
+        'method':'Exact original chronologicalB96 masks; compare mean per-batch native partial-loss side derivatives with globally aggregated partial/conditional-side risk. No new labels or canonical prior.'}
+
+
+def batch_gate_expected(binding,admitted):
+    return {'status':'ADMITTED_EXACT_CPU_ONLY_BATCH_RISK_ACCOUNTING'if admitted else'PREPARED_NOT_ADMITTED','plan':binding,
+        'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':False,'test_authorized':False}
+
+
+def batch_inspect(plan_sha,*,admitted):
+    need(Path.cwd().resolve()==REPO and type(plan_sha)is str and len(plan_sha)==64 and all(c in '0123456789abcdef'for c in plan_sha),'BATCH_RISK_CWD_SHA')
+    binding={'path':str(BATCH_PLAN),'sha256':plan_sha};plan=read(binding)
+    need(plan==batch_build_plan(design=plan['inputs']['batch_risk_design'],source_base_commit=plan['source_base_commit'])and source_clean(plan),'BATCH_RISK_EXACT_PLAN_SOURCE')
+    pref=ref(POLICY);policy=read(pref);need(all(policy.get(k)is False for k in saved.FLAGS)and policy[BATCH_STAGE]==batch_gate_expected(binding,admitted),'BATCH_RISK_EXACT_GATE_ALL_TRAINING_CLOSED')
+    need(not BATCH_ROOT.exists()and not BATCH_ROOT.is_symlink(),'BATCH_RISK_FRESH_ROOT');return plan,binding,pref
+
+
+def batch_checked_inputs(plan):
+    for b in plan['inputs'].values():need(ref(b['path'])==b,'BATCH_RISK_INPUT_SHA')
+    saved.archive_headers(plan['inputs']['capture'],{k:plan['capture_array_headers'][k]for k in BATCH_CAPTURE},exact_inventory=saved.CAPTURE_KEYS)
+    saved.archive_headers(plan['inputs']['target_arrays'],plan['target_array_headers'])
+
+
+def batch_calculate(plan,*,progress=None):
+    torch.set_num_threads(1);need(torch.get_num_threads()==1,'BATCH_RISK_CPU_THREAD');progress={}if progress is None else progress;progress['phase']='CAPTURE3_TARGETS4'
+    capture=saved.load_fields(plan['inputs']['capture'],BATCH_CAPTURE,plan['capture_array_headers']);truth=saved.load_fields(plan['inputs']['target_arrays'],BATCH_TRUTH,plan['target_array_headers'])
+    progress['capture_fields_decoded']=list(BATCH_CAPTURE);progress['target_fields_decoded']=list(BATCH_TRUTH)
+    main=read(plan['inputs']['main_plan']);original=read(plan['inputs']['main_result']);schedule=main['schedule'];issue=capture['issue_ns'];source=capture['source_rows']
+    need(issue.shape==source.shape==(ROWS,)and np.array_equal(issue,truth['issue_ns'])and np.all(np.diff(issue)>0)and np.all(np.diff(source)>0)
+        and saved.array_sha(issue)==schedule['issue_ns_sha256']and saved.array_sha(source)==schedule['source_rows_sha256'],'BATCH_RISK_AXES')
+    prior=objective.require_native_future_state_train_prior(read(plan['inputs']['prior']),target_contract=plan['target_contract'])
+    prior_logits=objective.native_future_state_train_prior_logits(prior,rows=1,target_contract=plan['target_contract'])['side_logits'].numpy()[0]
+    stats=batch_risk_statistics(capture['side_logits'],truth['activity_known'],truth['side_known'],truth['side_up'],batch_rows=96,prior_logits=prior_logits)
+    need(stats['updates']==3694 and stats['skipped_batches']==0 and len(stats['batches'])==3694,'BATCH_RISK_UPDATE_COUNTS');steps=original['report']['steps']
+    for b,step,source_hash,issue_hash,D in zip(stats['batches'],steps,schedule['batch_source_rows_sha256'],schedule['batch_issue_ns_sha256'],schedule['known_activity_by_batch']):
+        start,stop=b['start_position'],b['stop_position'];need(saved.array_sha(source[start:stop])==source_hash and saved.array_sha(issue[start:stop])==issue_hash
+            and b['logical_step']==step['logical_step']and b['D_activity_all_TF']==D and b['activity_known']==step['support']['activity']
+            and b['side_known']==step['support']['side']and b['skip_update']==step['skip_update'],'BATCH_RISK_ORIGINAL_BATCH_'+str(b['logical_step']))
+    alignment=read(plan['inputs']['alignment_result'])['report']['strata']['ALL']['per_tf']
+    for j,tf in enumerate(TF):
+        for task,mask in (('activity',truth['activity_known'][:,j]),('side',truth['side_known'][:,j])):
+            cell=prior['per_task'][task][tf];need(int(mask.sum())==cell['count']and saved.array_sha(mask)==cell['mask_sha256'],'BATCH_RISK_PRIOR_MASK_'+task+'_'+tf)
+        cell=stats['per_tf'][tf];reference=alignment[tf];side=reference['conditional_side'];deriv=reference['fixed_output_side_intercept_derivative'];pc=prior['per_task']['side'][tf]
+        need([cell['DOWN'],cell['UP']]==pc['class_counts']==[side['DOWN'],side['UP']]and cell['known_side_rows']==side['count']
+            and cell['FINAL_side_residual_sum']==deriv['sum_sigmoid_minus_known_UP']and stats['activity_denominator_total']==deriv['all_TF_known_activity_denominator']
+            and cell['FINAL_gradient_global']==deriv['native_partial_NLL_derivative'],'BATCH_RISK_EXISTING_GLOBAL_ACCOUNTING_'+tf)
+    progress['phase']='COMPLETE_BATCH_ACCOUNTING'
+    return {**stats,'original_schedule_reproduced_exactly':True,'original_prior_masks_classes_and_FINAL_global_derivatives_exact':True,
+        'unique_side_targets_from_original_frozen_prior':{tf:prior['per_task']['side'][tf]['unique_target_starts']for tf in TF},
+        'counting_unit':'Original issued rows and original B96 batches; repeated TF target labels are not independent targets.',
+        'payload_counts':BATCH_BUDGET,'probability_semantics':'q=P(UP|activity) only; not joint a*q',
+        'formulae':{'native_batch_loss':'(sum allTF activityBCE + sum allTF sideKnownBCE) / D_b; D_b=sum allTF activityKnown',
+            'constant_mean_batch_optimum':'sum_b(UP_bj/D_b) / sum_b(nSide_bj/D_b)',
+            'FINAL_mean_batch_gradient':'mean_b(sum_i sideKnown_ij*(sigmoid(z_ij)-y_ij)/D_b)',
+            'FINAL_global_gradient':'sum_bi sideKnown_ij*(sigmoid(z_ij)-y_ij) / sum_b D_b'},
+        'limits':['Closed-form references summarize original known targets only; no new prior/model/calibrator fit, labels or calendar masks.',
+            'Mean-batch risk is not actual AdamW trajectory or its convergence optimum. Dropout-mode gradients, global clipping and momentum/decay are not reconstructed.',
+            'SavedFINAL eval outputs are held fixed; do not reuse original training clip norms as if they were FINAL batch gradient norms.',
+            'Unknown/calendar/vintage/task-utility/OOS/edge/economic questions remain outside this conditional optimization accounting.']}
+
+
+def batch_publish(name,value):
+    path=BATCH_ROOT/name;saved._publish_bytes(path,(json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n').encode());return ref(path)
+
+
+def batch_run(plan_sha):
+    began=time.monotonic();cap=require_capped_cpu_audit_execution();lock=require_capped_lock_ancestry()
+    need(cap['memory_max']==cap['memory_high']==4*1024**3 and cap['swap']==512*1024**2 and cap['numerical_threads']==1
+        and lock['scope']==cap['cgroup_path'][len('/sys/fs/cgroup'):],'BATCH_RISK_CAPS')
+    plan,binding,pref=batch_inspect(plan_sha,admitted=True);batch_checked_inputs(plan);boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip();BATCH_ROOT.mkdir(parents=True,exist_ok=False)
+    handlers={s:signal.getsignal(s)for s in (signal.SIGALRM,signal.SIGTERM,signal.SIGINT)};claim=result=None;progress={'phase':'CLAIM'}
+    try:
+        def expired(*_):raise TimeoutError('BATCH_RISK_WALL')
+        def stopped(s,*_):raise InterruptedError('BATCH_RISK_EXTERNAL_SIGNAL_'+str(s))
+        signal.signal(signal.SIGALRM,expired);signal.signal(signal.SIGTERM,stopped);signal.signal(signal.SIGINT,stopped)
+        claim=batch_publish('CLAIM.json',{'stage':BATCH_STAGE,'plan':binding,'policy_at_claim':pref,'boot_id':boot,'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
+        remaining=EXECUTION['internal_seconds']-(time.monotonic()-began);need(remaining>0,'BATCH_RISK_TIME');signal.setitimer(signal.ITIMER_REAL,remaining)
+        report=batch_calculate(plan,progress=progress);batch_checked_inputs(plan)
+        need(source_clean(plan)and ref(POLICY)==pref and ref(BATCH_PLAN)==binding and Path('/proc/sys/kernel/random/boot_id').read_text().strip()==boot,'BATCH_RISK_SOURCE_INPUT_PLAN_POLICY_BOOT_BOOKEND')
+        result=batch_publish('RESULT.json',{'status':'COMPLETE_NATIVE_BATCH_RISK_ACCOUNTING','stage':BATCH_STAGE,'plan':binding,'claim':claim,'policy_at_claim':pref,'boot_id':boot,
+            'report':report,'source_unchanged':True,'test_data_used':False,'economic_edge_proven':False,'elapsed_seconds':time.monotonic()-began})
+        terminal=batch_publish('TERMINAL.json',{'status':'COMPLETE','exit_code':0,'stage':BATCH_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,
+            'source_unchanged':True,'test_data_used':False});return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        signal.setitimer(signal.ITIMER_REAL,0);batch_publish('TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'stage':BATCH_STAGE,'plan':binding,'claim':claim,'result':result,
+            'remaining_invocations':0,'relaunch_allowed':False,'progress':progress,'error':type(error).__name__+':'+str(error)[:2000],'test_data_used':False});raise
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0)
+        for s,h in handlers.items():signal.signal(s,h)
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__);mode=parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--plan-sha256');mode.add_argument('--batch-risk-plan-sha256');parser.add_argument('--preflight',action='store_true');args=parser.parse_args()
+    if args.batch_risk_plan_sha256 is not None:
+        import sys
+        need(sys.argv[1:]==['--batch-risk-plan-sha256',args.batch_risk_plan_sha256]+(['--preflight']if args.preflight else[]),'BATCH_RISK_EXACT_CLI')
+        if args.preflight:
+            plan,binding,pref=batch_inspect(args.batch_risk_plan_sha256,admitted=False);batch_checked_inputs(plan)
+            print(json.dumps({'status':'PREFLIGHT_BATCH_RISK_PASS','plan':binding,'policy':pref,'claim_created':False,'array_payloads_decoded':0,'models':0,'checkpoint_loads':0,'forwards':0,'fits':0}))
+        else:print(json.dumps(batch_run(args.batch_risk_plan_sha256)))
+    elif args.preflight:
+        plan,binding,pref=inspect(args.plan_sha256,admitted=False);checked_inputs(plan)
+        print(json.dumps({'status':'PREFLIGHT_PASS','plan':binding,'policy':pref,'claim_created':False,'array_payloads_decoded':0,'models':0,'checkpoint_loads':0,'forwards':0}))
+    else:print(json.dumps(run(args.plan_sha256)))
+
+if __name__=='__main__':main()

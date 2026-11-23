@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-23T08:34:24.050534+00:00",
+  "observed_utc": "2026-11-23T09:05:03.261157+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -3923,7 +3923,7 @@
   "market_state_ta_integrated_objective_later_20261116": {"status": "SOURCE_OBJECTIVE_AND_LATER_INPUTS_READY_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_OBJECTIVE_LATER_INPUTS_REVIEW_20261116.json", "sha256": "d93d30dd580bab052d21219aae31102329f5f37c33148e9135cb495512632d8c"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "later_input_archive": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/INPUTS.npz", "sha256": "9b527afd59c906f32cf91046ddee282b998cfad5b22216030fb6a873f651ae47"}, "later_input_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/RESULT.json", "sha256": "293e9d042788fa750c60fa49bf84dcdef9e016995805605218b552f8e77c5985"}, "later_score_rows": 4096, "later_issue_axis_sha256": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3", "later_M1_complete_paths": 4089, "later_structure_high_observed": 4068, "later_structure_low_observed": 4081, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_objective_preflight_20261116_004": {"status": "GENUINE_TRAIN_INTEGRATED_OBJECTIVE_GRADIENT_PASS_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_ACTUAL_OBJECTIVE_PREFLIGHT_REVIEW_20261116.json", "sha256": "ad48b1ddc40ab5a893ce0c0f936e06eb9f850d85f1ba023baf8787b999f0ff8d"}, "private_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_004/RESULT.json", "sha256": "5e5a1790b4ae8673f6f3ddd63ed078b81e469a92870cf3ac6b5f0fc2b75ac2c4"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "model_contract_sha256": "70a0497b27ba0ab45277ba622443ab2fca36a448357f1ccb3158689193f8bc82", "all_five_S_F_side_head_gradients_nonzero": true, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_later_view_rebind_20261116": {"status": "ACTUAL_LATER_FEATURE_GATHER_PASS_NO_MODEL", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_LATER_VIEW_REBIND_REVIEW_20261116.json", "sha256": "18616578ac8a0f79eb250c892757ccd099e15b27f567eeee02e36b96a546785c"}, "view_sha256": "8056fe96b4340bccc149da7f22dde85e4ac1b62c5e58c874ec7fbb771c1dff1a", "later_rows_gathered": 16, "all_nine_surfaces_finite": true, "model_forwards": 0, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
-  "next_action": "Obtain historicalsamefeedcalendar and first-vintagesource authority; resolve declaredclock/independentsourceknown scope; then exactcausalbiasdiagnosis and separatelyadmitteddata/learningqualification. No automaticfit, newepochseries, TEST, broker or spending.",
+  "next_action": "Commit qualifiedbatch-risk analysis and corrected05/provenance scopes; exactpreflight/signedhostadmission/oneCPU saved-output/target-risk accounting. No model/CP/FW/fit or newlabels.",
   "ta_fold2_F_frozen_readout_20261117_001": {"status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN", "plan": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PLAN.json", "sha256": "c87fcec1c25e351fec6e9c7a7bf2905ce97605661ba9055cc769e621b757e786"}, "admission_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_F_FROZEN_READOUT_ADMISSION_20261117.json", "sha256": "a9ababbb1b6ec9ed9a17e9ccff0426b4f994cfe4b78e9a3b72776cd48659629c"}, "capture": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/CAPTURE.npz", "sha256": "d4c8fa49b82dd6095afa17ebfdf40aff2bcf00b9245450edc49044d8325fb256"}, "reconciliation": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/RECONCILIATION.json", "sha256": "9b1bdfae0386ad155f3c315623b9c053e1eec6359996c8b8507ae07e6e505a74"}, "training_scope": "ten CPU linear side readouts on frozen Fold2 TRAIN representations only", "execution_authorized": false, "remaining_invocations": 0, "claimed_invocations": 1, "max_readout_fits": 10, "native_model_forwards": 0, "native_optimizer_updates": 0, "model_updates_authorized": false, "fresh_physical_boot_required": false, "relaunch_allowed": false, "test_data_used": false, "economic_edge_proven": false, "completed_invocations": 1, "actual_readout_fits": 10, "result": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/RESULT.json", "sha256": "919a894ed21f49faf173aa733775054f734b5a96ad904f4a1ac3f0e792e4a643"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/TERMINAL.json", "sha256": "f23e4ea3b4789ddd0ec72b72bed7de6e39e2d8eda7779b8b018d359c99a3643c"}, "params": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PARAMS.npz", "sha256": "babe4452ee5e51b13a640360caf054e862e3eaab34c2af1d608bf370845fedba"}, "predictions": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PREDICTIONS.npz", "sha256": "6e484806fdc8f26e1e51fa61f44f5e258583861b482b975a3be1947a02b33b46"}, "result_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_F_FROZEN_READOUT_RESULT_REVIEW_20261117.json", "sha256": "01e4ed18528116681b8d808f6c5ba28906c395432d5e5d29ae697c0f4d457cf2"}, "training_authorized": false, "independent_generalization_proven": false},
   "ta_m5_structure_persistence_20261116_001": {"status": "COMPLETE_CONSUMED_FIXED_REFERENCE_NO_ESTABLISHED_GAIN", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_PERSISTENCE_20261116_001.json", "sha256": "907ff7ce4fe6a9449f71501b9f4913f1637e2e6b747ce98670fd206a92f21d4a"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/CLAIM.json", "sha256": "a731f909e8cce5ef949679d65b882ed06520ee19ff53c264a2a0e86fdd1994ed"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/RESULT.json", "sha256": "ea10505d4fa8490880d14a126973a8a4fd0f2f4b59ca7e4c08c67b1f05085c86"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/TERMINAL.json", "sha256": "7290d4bae30cb4c4d212af311f714b80e27263605c49641e9874512eb14c7e3f"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_PERSISTENCE_RESULT_REVIEW_20261116.json", "sha256": "020a6b02aa158d4f6d35cb62197683c36bedf5d6be357b94953a2c69fc420fb5"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"prior_mature_issues": 23886, "later_known_classes": 23302, "prior_correct": 8936, "persistence_correct": 8253, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "ta_m5_structure_fold2_audit_20261116_001": {"status": "COMPLETE_CONSUMED_SOURCE_COVERAGE_ONLY_TARGET_UNQUALIFIED", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json", "sha256": "2d5b7359b377a8d4d7658ff7cbc6a756db94565d70673604f69a86530750c081"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/CLAIM.json", "sha256": "12f4d4c5c0c131cb61bf15d2795f557b3c3ceab37cf7b9f4fab13db569a1a0c8"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/RESULT.json", "sha256": "e6be73a2e5e04a9e0abf91e3b0b3775e93f0d75b6064ff8c842c123b1f842450"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/TERMINAL.json", "sha256": "f6a131efb8b3c0f1a85cfa5544dd16d225cf3a75f98d551c0f27041cea1badd9"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_FOLD2_AUDIT_RESULT_REVIEW_20261116.json", "sha256": "601809c2472d5d9f021499dfce2f72f53d56522404f16654df0334451f6de12d"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"m5_issues": 47784, "both_observed": 47567, "known_pair_class": 47195, "same_pivot_bar": 372, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
@@ -99174,7 +99174,7 @@
     }
   },
   "native_twenty_step_qualification_20261123_001": {
-    "status": "QUALIFICATION_INCOMPLETE",
+    "status": "BATCH_RISK_SOURCE_QUALIFIED_ADMINISTRATIVE_WAVE_OPEN",
     "goal_thread_id": "01a20035-2836-7f62-bb88-9e24603a51a5",
     "requirements": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_QUALIFICATION_20_STEPS.json",
@@ -99226,7 +99226,7 @@
         "scope": "PhysicalTRAIN-clock accounting PASS: exact354550raw/capture equality, all17870missing accounted,0localdroppings/extras/duplicates/overlaps. Expectedmarketcalendar remains open separately in03."
       },
       "05": {
-        "status": "UNKNOWN",
+        "status": "PASS",
         "evidence": [
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RAW_FEED_CLOCK_ACCEPTANCE001.json",
@@ -99235,9 +99235,13 @@
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TF_CLOCK_SCOPE_REVIEW001.json",
             "sha256": "d6d145a78662f39e73d2228baaba4f93ea35efd1ab2bd26f56e41e01e3f0f895"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TF_CLOCK_CRITERION_RECONCILIATION002.json",
+            "sha256": "8a1953dae6c92570bbd42be0081383e60181c7bd618570c35b9579b756fa2e06"
           }
         ],
-        "scope": "UNKNOWN historicalsamefeedcalendar/phaseappropriateness. DeclaredD1fixedUTC22/H4UTC02phase and consumedavailability<=issue mechanics/numerics proven separately; no claim of NewYorkDSTtradingday qualification."
+        "scope": "Unchanged declared analyticalUTCphase, independentintegerphase/OHLC/numericprefix proofs,20unchangedTFarraydescriptors and actualwholeTRAIN available<=issue/ownercontinuity are qualified. NoNYbrokerday equivalence or marketcalendar proof is claimed;03remainsUNKNOWN."
       },
       "06": {
         "status": "PASS",
@@ -99359,9 +99363,13 @@
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/FIELD_UNIT_AUTHORITY002.json",
             "sha256": "7830f5b618f6f316eba6b242f58f1bf0a125c63671de0adbe2df954031ab3bcd"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/MACRO_ORIGIN_VINTAGE_PATH_REVIEW001.json",
+            "sha256": "93c5d902a704d8986a60c8d267b69fb433d5ae1cc644a5743dc17a5fd14ca9f6"
           }
         ],
-        "scope": "UNKNOWN for authentic source/revisionfirstvintage. TreasuryannualCSVreceipts identify intended official endpoints but useRELAYED_OPERATOR_BYTES; neither declaredrevised_after_publication=false nor currentprimaryunitmetadata proves historicallyavailable unmodified vintages."
+        "scope": "UNKNOWNfirstvintage/revisioncoverage. All36Treasury current declaredrawSHA trace to original36DIRECTHTTPS receipts (34relay,2direct2026), correctingrelay-onlyunknownorigin. All18COT originalofficialreceipt identities recovered. Freshreviewis metadata-only; originalnumeric/rawbyte witnesses retain scope. OANDA/CBOE/GLD vintage and historicalreleasecoverage remainunqualified."
       },
       "10": {
         "status": "PASS",
@@ -99439,6 +99447,10 @@
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/FIRST_REVIEW_LEARNING001.json",
             "sha256": "297883ee55212d4efa67e334f112983fac8a5ddaa01fb0fe04e63f02fc0f5e44"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/SIDE_LOGIT_PARAMETER_ATTRIBUTION001.json",
+            "sha256": "8b293be8e655e73311825fedd42fe231ec85389f09727b4b9f9b8d2c33ed7203"
           }
         ],
         "scope": "Current declared forecast function; numerical/contract/routing evidence does not establish predictive quality or independent generalization."
@@ -99496,7 +99508,7 @@
         "scope": "Current declared forecast function; numerical/contract/routing evidence does not establish predictive quality or independent generalization."
       },
       "20": {
-        "status": "PASS",
+        "status": "REVIEWING",
         "evidence": [
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/FIRST_REVIEW_ROOT001.json",
@@ -99507,7 +99519,7 @@
             "sha256": "2c01f8910bbd5959421ada0b2de0198e2da0b35e9574af7fbb88cf6caeb5d9d1"
           }
         ],
-        "scope": "Administrativecontrols PASS: all20requirements retain explicitproof/openfailures, minimalfixes tested, syntax/sourcepath/diff/handoverclean, allread-onlyjobsclosed, originalCPsretained, independentdataevidencebackupverified and source/aggregatecommitpushed. This doesnotapprove theotherfailed/unknownrequirements or mainforecastgoal."
+        "scope": "Priorwave administrativePASS preserved in originalreceipt. Current newbatch-risk source/metadata wave requires post-run proof, syntax/diff/handover, independentbackup and publication before freshadministrativePASS."
       }
     },
     "review_source_commit": "cdeabb453e03f973b9c0e4060f641d1418a948ed",
@@ -99568,8 +99580,8 @@
       "sha256": "57c83be49661a5b62ca623a0ad10dab80a3c615b3e9b238b6ceebdd1fe4f1f5f"
     },
     "review_checkpoint": {
-      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/REVIEW_CHECKPOINT004.json",
-      "sha256": "488a6b5e150c5bbd8535bdb04c72f74fde848f16360a8c3a370431df1a24b54d"
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/REVIEW_CHECKPOINT005.json",
+      "sha256": "4008cc70b0478c32ccff4310766d1a14ca6394f49f79a7779549742616faf9ca"
     },
     "input_observation_design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/INPUT_OBSERVATION_CENSUS_DESIGN001.json",
@@ -99619,6 +99631,26 @@
     "administrative_readiness": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ADMINISTRATIVE_FINAL_READINESS001.json",
       "sha256": "2c01f8910bbd5959421ada0b2de0198e2da0b35e9574af7fbb88cf6caeb5d9d1"
+    },
+    "tf_clock_reconciliation": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TF_CLOCK_CRITERION_RECONCILIATION002.json",
+      "sha256": "8a1953dae6c92570bbd42be0081383e60181c7bd618570c35b9579b756fa2e06"
+    },
+    "macro_origin_vintage_path_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/MACRO_ORIGIN_VINTAGE_PATH_REVIEW001.json",
+      "sha256": "93c5d902a704d8986a60c8d267b69fb433d5ae1cc644a5743dc17a5fd14ca9f6"
+    },
+    "side_logit_parameter_attribution": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/SIDE_LOGIT_PARAMETER_ATTRIBUTION001.json",
+      "sha256": "8b293be8e655e73311825fedd42fe231ec85389f09727b4b9f9b8d2c33ed7203"
+    },
+    "batch_risk_design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/BATCH_RISK_ACCOUNTING_DESIGN001.json",
+      "sha256": "0ddf0f640a35d0d877437d88f22c9feb78f42966ec956eefa444c25ae37d3117"
+    },
+    "batch_risk_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/BATCH_RISK_SOURCE_QUALIFICATION001.json",
+      "sha256": "99615af7a14b6d5e6b57994bade5b8d49c2c0a0d25b41c3f598c8c884678b13c"
     }
   },
   "native_raw_feed_clock_qualification_20261123_001": {

@@ -11,9 +11,11 @@ Brukeren23.11 bestilte et nytt mål med20kvalifikasjonssteg og rettelser.
 Goalen i chat01a20035-2836-7f62-bb88-9e24603a51a5 er ACTIVE, uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status/evidens persteg: native_twenty_step_qualification_20261123_001 i policy.
-Review004:12PASS,3FAIL,5UNKNOWN; samlet godkjenning er false.
-Administrative20 er PASS for riktige åpne statusfelt, bevis, sikring og publisert
-kildebølge; dette er ingen samlet godkjenning av prognosekjeden.
+Steg05 er nå PASS mot uendret kriterium; tidligere ekstra NY-brokerdagskrav
+var ikke nødvendig for den deklarerte UTC-fasen. REVIEW_CHECKPOINT005 binder
+kriterieavstemmingen.13krav er faglig/teknisk kvalifisert inkl forrige bølges
+administrative20; denne nye kode-/metadatabølgens administrative20 kontrolleres
+på nytt og står midlertidig REVIEWING i policy. Samlet godkjenning er false.
 Kildeclean vises separat fra20stegsstatus og gir ingen prognosegodkjenning.
 
 Hovedmålet i docs/ORIGINAL_PROJECT_GOAL.md består: nyttige framtidige prognoser
@@ -81,19 +83,24 @@ selvstendige indikatorformler, og ruting er ikke per-felt lært nytte.
 åpning/stenging/helligdager. Nåværende nettside er ikke kalenderen2021–25.
 Daglig lukking skal ikke gjettes fra hull eller fylles med oppdiktede priser.
 
-05UNKNOWN: erklært klokke er fastUTC22 for D1 ogUTC02/06/10/14/18/22 for H4,
-fra session-eieren. Dette er ikke kvalifisert som historisk NY/DST-brokerdag.
-Numerisk resampling og alle TRAIN-batchers available<=issue-kontroll er bevart.
-TF_CLOCK_SCOPE_REVIEW001 binder skillet; ingen automatisk faseendring.
+05PASS: fastUTC22 for D1 ogUTC02/06/10/14/18/22 for H4 er eksplisitt
+analytisk klokke, ikke en NY-brokerdags-påstand. Uavhengig heltallsfase-/OHLC-
+orakel, uendrede20TFarraydeskriptorer og faktisk kausalt konsum avalle354550
+TRAIN-rader kvalifiserer uendret05kriterium. TF_CLOCK_CRITERION_RECONCILIATION002
+binder beviset;03kalender/07observerbarhet/09vintage/15læring er ikke oppgradert.
 
 07UNKNOWN: source-known, finitthet, strukturelt fravær og udefinert verdi er
 forskjellige.86par er nå målt, men provider observed==isfinite(signal) er
 fortsatt ingen uavhengig vendorobservasjon. Uklassifiserte forhold er ukjente.
 
-09UNKNOWN: makro-asof/utgivelseslag er eksplisitt, men historisk førstevintage
-og opprinnelse er ikke bevist. Treasury-CSV-kvitteringer bruker
-RELAYED_OPERATOR_BYTES; revised_after_publication=false er en deklarasjon.
-Enhetsmetadata kvalifiserer ikke CSV-autentisitet eller revisjonshistorikk.
+09UNKNOWN: makro-asof/utgivelseslag er eksplisitt, historisk førstevintage og
+full release-/revisjonsdekning er ikke bevist. MACRO_ORIGIN_VINTAGE_PATH_REVIEW001
+retter opprinnelsesgrensen:alle36Treasury registrerte råhasher matcher originale
+DIRECT_HTTPS-kvitteringer(34relay+2direkte2026).Alle18COT-identiteter er sporet
+til originale offisielle kildekvitteringer; ingen oppdiktetTLS-attestasjon.
+Dette er fersk metadataavstemming, ikke ny råpayloadrehash eller førstevintage.
+ALFRED initial-release er en konkret rentesti; OANDA/CBOE/GLD-vintager og
+historisk releaseklokke krever fortsatt særskilt bevis. Alle61felt beholdes.
 
 11/12FAIL: gjeldende targetmasker/coverage er mekanisk gjenskapt, men har svak
 representativitet. D1har234/1289modnekomplettevinduer,0slutttirs–tors og bare
@@ -106,11 +113,26 @@ Varslingsaudit001 slo ikke alltidOPP på samme varslingstider i noen celle;
 13nullvarselsceller/UNKNOWN/oversette bevegelser er bevart.1ATR-piloten er
 ikke modellens låste0,5ATR-fasit; målmisforhold forklarer ikke egenfasitsvikten.
 
-BIAS_NEXT_CAUSAL_DESIGN001 er design, ikke launch: etter datakvalifisering,
-gjenbruk FINAL-logits/targets til eksakt batchvis side-gradient-/denominator-
-regnskap uten modell/fit. Adam-momentum er ikke bevist årsak; lokal analytisk
-kontrafaktisk kontroll krever autentisk optimizerstate og egen eksakt plan.
-Ingen nye epoker, klassekvoter eller terskeljakt innrømmes av dette.
+SIDE_LOGIT_PARAMETER_ATTRIBUTION001 bruker eksisterende metadata, ingen CP/
+array/FW: fullTRAIN conditionalq=P(UP|activity) steg for D1 med9,70806pp fra
+initialen, mens faktisk scalarbiasdrift kan bidra høyst0,180284pp. Samlet w·h-
+bidrag er minst9,52778pp ved definert b0-kontrafaktisk; dette separerer ikke w
+og h. Eksisterende CP256/FINAL-swaps på20727kohorten viser positivt headbidrag
+og negative hidden-/interactionbidrag; ingen ny swap/FW er nødvendig.
+Dette er ikke jointa*q eller identifikasjon av faktisk Adam/treningshistorie.
+
+Neste minimale falsifisering er BATCH_RISK_ACCOUNTING_DESIGN001:
+originalB96/3694batcher, siste22, samme354550TRAIN-rader/targets. Native loss
+deler sum aktivitet+kjentside på D_b=alleTFkjentaktivitet; ikke perTFsidecount.
+Undersøk mean-batch versus globalrisiko og konstante referanser uten å endre
+modellen/prioren. Metadata-builder PASS,13fokuserte cases PASS(12nye+1berørt),
+alle14gamlefunksjoner unntattCLI og alle gamle testbytes bevart.
+Kun CAPTURE3+TARGETS4=20,918,450ndarraybytes;0features/priser/CP/FW/autograd/
+optimizer/fit/nye labels/VAL/TEST. CPU4G/512M/1tråd/600souter570sintern.
+Egen eksakt plan/preflight/signert hostadmission/engangskjøring gjenstår.
+Samme gamle kjente kohort er tilstrekkelig for denne smale tapundersøkelsen;
+kalender-/vintagebevis er ikke en nødvendig forutsetning for akkurat den.
+Ingen faktisk analysepayload er kjørt. Alle tidligere engangsplaner er stengt.
 
 19UNKNOWN: ingen senere evaluering av nåværende FINAL-funksjon er kvalifisert.
 TRAIN-årstabeller er in-sample; wholeTRAIN-stats er ikke prefix-OOF.
@@ -134,6 +156,8 @@ Ingen DATA/RUNS-rydding eller omskriving av originalbevis.
 Root eier samlet policy, launch og kontroll. Agentenes to nye inputcensusfiler
 og RAW-submode er integrert og testet; ingen numerisk ONLINE-endring.
 Administrative20 er kvalifisert med ADMINISTRATIVE_FINAL_READINESS001.
-REVIEW_CHECKPOINT004 binder alle20steg og12/3/5-fordelingen.
+REVIEW_CHECKPOINT004 er forrige sikrede bølge; REVIEW_CHECKPOINT005 og
+aktuell policy inneholder nye avklaringer. Ny13-casetest er bestått uten
+gjentakelse av de tidligere107casene.
 Samlet kvalifikasjon og hovedmål forblir åpne
 så lenge de røde/ukjente kravene over ikke er avklart.

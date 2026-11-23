@@ -70,8 +70,9 @@ formler, enheter, parametre, warmup og known/undefined-policy. Alle 388 reglers 
 lukker det tidligere enhetsspørsmålet for seks realrate-/breakeven-regler ved
 å binde den deklarerte Treasury-serien til Federal Reserves eksplisitte
 [prosentenhet i H.15](https://www.federalreserve.gov/releases/h15/). Nivå er prosent per år; differanser og breakeven er prosentpoeng.
-Det tidligere UNKNOWN-supplementet bevares. Dette verifiserer ikke at reléleverte
-CSV-bytes er autentiske historiske førstevintager; makrokilden er fortsatt åpen.
+Det tidligere UNKNOWN-supplementet bevares. MACRO_ORIGIN_VINTAGE_PATH_REVIEW001 viser nå at alle36registrerte Treasury-
+råhasher matcher originale DIRECT_HTTPS-kvitteringer; relé alene gir derfor
+ingen ukjent opprinnelse. Historiske førstevintager/revisjoner er fortsatt åpne.
 Numerisk finitthet er fortsatt ikke bevis for en kjent indikatorverdi eller
 historisk tilgjengelighet. Aktiv kvalifikasjonsstatus eies bare av policy.
 
@@ -104,8 +105,10 @@ rå-MBA-validator: 416 svar, 18 årparts, 13 tallkolonner og tid. Den rekonstrue
 1215514 canonicalrader og det deklarerte ukesfilterets 1410 eksklusjoner.
 En siste grensecandle forblir utenfor de 1215513 aktive før-cutoff-radene.
 Historisk markedsstenging er ikke bevist av denne reproduksjonen.
-TF_CLOCK_SCOPE_REVIEW001 bevarer D1s faste UTC22- og H4s UTC02-fase som
-uttrykkelig deklarert klokke; det er ingen historisk NY/DST-markedsdagsgaranti.
+TF_CLOCK_CRITERION_RECONCILIATION002 kvalifiserer den uendrede analytiske
+UTC22-/H4UTC02-fasen med uavhengig heltallsfase-/OHLC-orakel og faktisk kausalt
+TRAIN-konsum. Kriteriet krever ingen NY-brokerdag. Historisk markedskalender
+er fortsatt åpen separat; ingen fase eller numerisk funksjon er endret.
 
 ## Faktisk kjøring og ubeviste grenser
 
