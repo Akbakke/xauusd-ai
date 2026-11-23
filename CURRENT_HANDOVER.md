@@ -95,10 +95,12 @@ råleser/publisering/Torch-import blokkert PASS,56kildeeiere,0payload/CLAIM.
 OBSERVATION_PREFIX_SOURCE_QUALIFICATION001 binder dette. Faktisk001jobb
 er nå COMPLETE_CONSUMED og stengt:16,991s. ACCEPTANCE001 gir4TFPASS og
 ekte squeeze-release alle5TF:10recurrence+6squeeze-ageforekomster utelukket.
-D1førstelow-ID1 er fortsatt broken/pending ved2009slutt, så2D1recurrencefelt
-forblir uavklarte. EksaktD1konsumhistorikk starter2020-01-12T22UTC. Ingen
-TRAIN-feil er dermed påvist; separat2010D1-probe må fånyeksaktplan,001
-relanseres ikke og ingen global07PASS følger.
+D1førstelow-ID1 var broken/pending ved2009slutt. SeparatD1FOLLOWUP001
+er nå COMPLETE_CONSUMED/stengt:153gamle D1rader gjenskapte eksakt
+akse/state/logSHA;8nyeénbarsteg førLOWid1 expired/expired ved2010-01-12T22:00:00+00:00.
+161D1rader i alt,5,539sCPU. Dermed ALLE18interne tilfeller utelukket
+før faktisk konsumhistorikk2020-01-12T22UTC; ingenTRAIN-feil eller nybit
+begrunnet. ACCEPTANCE001 binder dette; global07source-known er separat.
 
 09referansesti: ALFRED_DOWNLOAD_FORM_INVENTORY003 binder faktiske offentlige
 DGS2/DGS10/DFII10-former og option4 InitialReleaseOnly. Tilbudte vintagedatoer
@@ -123,8 +125,8 @@ HISTORICAL_CALENDAR_EXTERNAL_EVIDENCE_REQUEST001 er klargjort, ikke sendt.
 994man–tor17–18NY-gap=11928slots; søndag21.11.2021=12;86andre gap=5930.
 Ingen hull omdøpes til stengt eller fylles med oppdiktede priser. Brukeren er
 spurt om eksisterende offisiell kilde; ingen svar/kilde er lagt til grunn.
-07UNKNOWN:16av18interne forekomster utelukket; de2D1recurrencefeltene
-får separat D1_FOLLOWUP_DESIGN001:2009+2010,40grupper/114696rader,
+07UNKNOWN kun gjenværende source-known/asof-avhengigheter03/09. Alle18
+interne forekomster er nå utelukket. Gjennomført separat D1_FOLLOWUP_DESIGN001:2009+2010,40grupper/114696rader,
 4486929diskbytes/12845952logical,3aksearrays/9750808bytes. KunD1registry,
 0nyHMM;153førsterader128+25måmatchegamleakse/state/logSHA førénbarcarry.
 Fast2011cutoff, ingen automatiskutvidelse. Design er ikke launchadmisjon. D1kildekvalifisering001:8nyecasesPASS,
@@ -152,6 +154,8 @@ manifeste9f1c697...8d0ad1. Begge MacSHA/F_FULLFSYNC/readback PASS.
 Siste rene publiserteHEAD6bf3cd772, FINAL_POST_PUSH_CONTROL003.
 OriginalMAIN59/62helfilhasher likeCURRENT;3historiske vakt-/eksaktgjen-
 opptakelsesutvidelser er eksplisitt avstemt, ikke endret i denne bølgen.
-Root eier policy/launch/samlet kontroll. Fullfør kildetester/metadatasmoke,
-frys kode, kjør prefix og fysiskreferanse hverforseg, sikre/push/opphavskontroll
-og oppdater20stegsstatus uten å oppgradere åpne lærings-/datakrav.
+Root eier policy/launch/samlet kontroll. Alle nye kildetester/metadatasmoke/prefix/D1jobber er ferdige og stengt;
+Treasury001 feilet trygt utenHTTPrespons. Sikre/push/opphavskontroll og
+oppdater20stegsstatus uten å oppgradere åpne lærings-/datakrav. Neste
+makrorute må være nyexactmanifest/plan; proxyvariabler/getproxies var
+fraværende/tomme på beggeverter i metadatareview, ingen blokkering bevist.
