@@ -1,0 +1,2151 @@
+{
+  "budget": {
+    "COT_date_code_only": 18,
+    "COT_position_value_conversions": 0,
+    "HTTP_calls": 0,
+    "VAL_TEST_rows_analyzed": 0,
+    "capture_archive_loads": 1,
+    "capture_fields": [
+      "source_rows",
+      "issue_ns"
+    ],
+    "checkpoint_loads": 0,
+    "driver_feature_reconstructions": 0,
+    "feature_archive_loads": 1,
+    "feature_fields": [
+      "bar_start_ns",
+      "retained_source_rows"
+    ],
+    "fits": 0,
+    "gld_xlsx": 1,
+    "model_forwards": 0,
+    "models": 0,
+    "ndarray_bytes_decoded": 18513536,
+    "numeric_source_cutoff_ns": 1767225600000000000,
+    "panel_close_value_conversions": 0,
+    "panel_time_only": 11,
+    "raw_container_bytes_hashed": 116879913,
+    "raw_containers": 67,
+    "raw_driver_primitive_columns": 5,
+    "treasury_csv": 36,
+    "vix_csv": 1
+  },
+  "capture_array_headers": {
+    "activity_logits": {
+      "dtype": "<f4",
+      "sha256": "0d0f3dd4c91c4cd1fb5f27e93f09fd826c8ababefab0bfb9887177993c850ee7",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "issue_ns": {
+      "dtype": "<i8",
+      "sha256": "c0805f39affb9bd80e679e0b41f69a558ea975d0e479ddeee815c7dd370997ea",
+      "shape": [
+        354550
+      ]
+    },
+    "selected_positions": {
+      "dtype": "<i8",
+      "sha256": "9fa3aabd86cc726c0dca3e1ac9b6629bc549f3f2524626d69075fa255f382cae",
+      "shape": [
+        354550
+      ]
+    },
+    "side_logits": {
+      "dtype": "<f4",
+      "sha256": "08c0a3c3e5f19aed67a7107f1929ee1dbced1b9fc0cbda6337b363435abc8da6",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "source_rows": {
+      "dtype": "<i8",
+      "sha256": "9fa3aabd86cc726c0dca3e1ac9b6629bc549f3f2524626d69075fa255f382cae",
+      "shape": [
+        354550
+      ]
+    }
+  },
+  "execution": {
+    "class": "audit",
+    "internal_seconds": 570,
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "numerical_threads": 1,
+    "outer_seconds": 600,
+    "swap": "512M"
+  },
+  "feature_array_headers": {
+    "bar_start_ns": {
+      "dtype": "<i8",
+      "sha256": "af0e8ece9a8dd5aa4f9cc7fc3cfaa2204058e7ee4b1ad4789971c1ebb3214701",
+      "shape": [
+        1215513
+      ]
+    },
+    "ctx_cat": {
+      "dtype": "<i8",
+      "sha256": "f50851c8edfdb8c853ad5218fa473c88b029612f0f149cc0780c974e18402c8a",
+      "shape": [
+        389579,
+        1
+      ]
+    },
+    "ctx_cont": {
+      "dtype": "<f4",
+      "sha256": "257726274d0e5e95c3584999bf3075a04a754454d7b666043550dcada5d486d7",
+      "shape": [
+        389579,
+        132
+      ]
+    },
+    "observed": {
+      "dtype": "|b1",
+      "sha256": "b14bab68e1e11f279c75fddee9c8f132cd7e199d7d0dd72592f84fd3010af6d0",
+      "shape": [
+        389579,
+        318
+      ]
+    },
+    "retained_issue_rows": {
+      "dtype": "<i8",
+      "sha256": "c57803c2c29571561633de1d004969bcc2054a421f0e17eba9aa97c8695dc3e0",
+      "shape": [
+        389484
+      ]
+    },
+    "retained_source_rows": {
+      "dtype": "<i8",
+      "sha256": "59a731fc63db688cc4707b273b0e679a8c88f701538d2d1bf48c918fca585649",
+      "shape": [
+        389579
+      ]
+    },
+    "signal": {
+      "dtype": "<f4",
+      "sha256": "bd4b7ddfb5dbf675f02799c28d11bbafd3840aa1d4f67c5dc77968971cb32891",
+      "shape": [
+        389579,
+        318
+      ]
+    },
+    "tf_D1_feats_np": {
+      "dtype": "<f4",
+      "sha256": "846d5cdbcadfe98e4db03a6cf06b110e057ec4dc40071d582e0c0bd6feb8fd4b",
+      "shape": [
+        1669,
+        256
+      ]
+    },
+    "tf_D1_model_native_mtf_scalars_np_v4": {
+      "dtype": "<f4",
+      "sha256": "e4af8058108aa52bef7f0945e12c73ff9d07adbf0d20f427cb6b2d62f401bc9c",
+      "shape": [
+        1669,
+        8
+      ]
+    },
+    "tf_D1_owner_row_indices": {
+      "dtype": "<i8",
+      "sha256": "f277124feeba771855504a7495e9fd10d57104ca906d3456dc4a99666b4cc033",
+      "shape": [
+        1669
+      ]
+    },
+    "tf_D1_ts_int64": {
+      "dtype": "<i8",
+      "sha256": "e6619d8f0ab0a292804e795f7e0369d678cc7e9535b2943d255c85248e8f21dc",
+      "shape": [
+        1669
+      ]
+    },
+    "tf_H1_feats_np": {
+      "dtype": "<f4",
+      "sha256": "45fe7788052d1989ea0d0df695cd69c04d007b31c24c834eb0f4e2f9885fc7ac",
+      "shape": [
+        32575,
+        256
+      ]
+    },
+    "tf_H1_model_native_mtf_scalars_np_v4": {
+      "dtype": "<f4",
+      "sha256": "99f1bcdf7a4a7006de7f5933a6f4a8815fad3654288a96ac7e47e5f51f1268aa",
+      "shape": [
+        32575,
+        6
+      ]
+    },
+    "tf_H1_owner_row_indices": {
+      "dtype": "<i8",
+      "sha256": "f14089e416d7a757b365a27f2574783bf1773246f41333523dda2930c570187f",
+      "shape": [
+        32575
+      ]
+    },
+    "tf_H1_ts_int64": {
+      "dtype": "<i8",
+      "sha256": "1f22ff74c81a92665c1f1ea38164b9acf52fd5592489e60d4fc298b2180062dd",
+      "shape": [
+        32575
+      ]
+    },
+    "tf_H4_feats_np": {
+      "dtype": "<f4",
+      "sha256": "5aaa0e5a4cec534fccd558e9cca4d0e48f002b91dca750b6953d207a1235f6fd",
+      "shape": [
+        8590,
+        256
+      ]
+    },
+    "tf_H4_model_native_mtf_scalars_np_v4": {
+      "dtype": "<f4",
+      "sha256": "9f4f63ed78c08dd7be3276deadd3256705520e1a3a53b82ad95fd7dbc42cfee4",
+      "shape": [
+        8590,
+        7
+      ]
+    },
+    "tf_H4_owner_row_indices": {
+      "dtype": "<i8",
+      "sha256": "c2271a8ccb82266d58b4b6efe6888a795799273acad4deb4a43876d0e3e89083",
+      "shape": [
+        8590
+      ]
+    },
+    "tf_H4_ts_int64": {
+      "dtype": "<i8",
+      "sha256": "3c5c0ed4dbecf8e29d9aa3200a56d7393d4ba580d9147e2004eb6979840073dc",
+      "shape": [
+        8590
+      ]
+    },
+    "tf_M15_feats_np": {
+      "dtype": "<f4",
+      "sha256": "ecb2b06510b931f92a45da2543404079db69d4ba504e333cbf6e07abbbdb6b00",
+      "shape": [
+        129916,
+        256
+      ]
+    },
+    "tf_M15_model_native_mtf_scalars_np_v4": {
+      "dtype": "<f4",
+      "sha256": "1676b67f905435dee57aa49aae66b87c6d707d94b80f220a6a8c7bffc6d3281b",
+      "shape": [
+        129916,
+        3
+      ]
+    },
+    "tf_M15_owner_row_indices": {
+      "dtype": "<i8",
+      "sha256": "6853c9cec91c67c73d3b1848cd8b8eaad5208a9ee6e748bd176b81583202d1b5",
+      "shape": [
+        129916
+      ]
+    },
+    "tf_M15_ts_int64": {
+      "dtype": "<i8",
+      "sha256": "ee2551afc0edf367ee2aee5a35f324cdfc36b90f030e2ea51768a0b400df12f1",
+      "shape": [
+        129916
+      ]
+    },
+    "tf_M5_feats_np": {
+      "dtype": "<f4",
+      "sha256": "aeba419024b63eeddc5c033cb0709f7abfec6bf098e9594fdb9d58afc90f7b2e",
+      "shape": [
+        389579,
+        256
+      ]
+    },
+    "tf_M5_model_native_mtf_scalars_np_v4": {
+      "dtype": "<f4",
+      "sha256": "ced14a3951079c596a9df1f43fb8d540120cf85faf56de97dfac757e96b6e47f",
+      "shape": [
+        389579,
+        1
+      ]
+    },
+    "tf_M5_owner_row_indices": {
+      "dtype": "<i8",
+      "sha256": "59a731fc63db688cc4707b273b0e679a8c88f701538d2d1bf48c918fca585649",
+      "shape": [
+        389579
+      ]
+    },
+    "tf_M5_ts_int64": {
+      "dtype": "<i8",
+      "sha256": "e6c2bde4587ea99d7aa68c17457896ba4bde247e5f0d36e08b72892d2c7aaca5",
+      "shape": [
+        389579
+      ]
+    }
+  },
+  "inputs": {
+    "capture": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001/CAPTURE.npz",
+      "sha256": "5349c1d6af1696541e5cef2bb201e539155e4ae476c5d9197825fff6909bc98b"
+    },
+    "capture_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001.json",
+      "sha256": "638c32e0e90c6da439eec4db3fb79c70be36bc2689140abe66f7d127ba54717f"
+    },
+    "capture_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001/RESULT.json",
+      "sha256": "ce287ed654746281e679ba847a3f01c1a0df0244e8684d950caeacfa5f68e89a"
+    },
+    "capture_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001/TERMINAL.json",
+      "sha256": "b47b4a90dca1fe7fb2dfb26ab4e70404ebcd82f99bae45dac251a27e212115f6"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/MACRO_SOURCE_KEY_DESIGN001.json",
+      "sha256": "0ccf3fb82e32671b177015334e57319798dbf7265c47ced3c0b5d97859144bb2"
+    },
+    "feature_archive": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001/FEATURE_INPUTS.npz",
+      "sha256": "b096bc2899a1cb8d831c1f120821a10dcfdccda25f8c9e1f81fbc8d00d414d36"
+    },
+    "main_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001.json",
+      "sha256": "c3e769fc5468739b576144f2cb2e5bf572d6b662a3c490ee56d8641fde1dd561"
+    },
+    "normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_NORMALIZATION_20261121_001/NORMALIZATION.json",
+      "sha256": "46f1cb1c190af002c4dc7caa75f85fc6c72bbaddb3a76183b843fc2c798dc3dc"
+    },
+    "numeric_contract": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/MACRO_NUMERIC_CONTRACT001.json",
+      "sha256": "9a3e13d645593e89ab91da23242741a5a861f96da736c2af440a3cd5ed2bd3e0"
+    },
+    "numeric_result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_MACRO_NUMERIC001/RESULT.json",
+      "sha256": "96cbd2b28bed30e11a5670cd369314e110b40db3f36cf5e4258e48f831d7c89d"
+    },
+    "numeric_terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/FULL_MACRO_NUMERIC001/TERMINAL.json",
+      "sha256": "1e642633ff2e5962774b8341c7523a609f81ec4b35c8b5abe1a3ab9aa42174e2"
+    },
+    "primitive_worker": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/MACRO_NUMERIC_WORKER_001.py",
+      "sha256": "d04c24982b6941f98ad3888388c1269c75454839312105eae2a9ab944734d635"
+    },
+    "publication_clock": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/CFTC_COT_PUBLICATION_CLOCK_20261018_001.json",
+      "sha256": "9e7c0e793f671e661f4c9fd0df8c72d72e3492847f15fa751a5ede16ac4d3ec5"
+    },
+    "snapshot": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001/FEATURE_INPUTS.json",
+      "sha256": "2b8a35965f69ee04c66f85cecdd8531720afb176425d964d0cc0579da7f9cac7"
+    },
+    "source_result_cot": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/RESULT.json",
+      "sha256": "97c6d4ef84db17f2655622033e6820ec4192abedb993a42366996bea635ab00b"
+    },
+    "source_result_gld": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_HOLDINGS_SOURCE_20261011_003/RESULT.json",
+      "sha256": "d54c28e1169c7719a1bcc01abe423b71942c8dd78bfae42f3bbebd4b75c45b88"
+    },
+    "source_result_panel": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/OANDA_PANEL_DAILY_SOURCE_20261011_004/RESULT.json",
+      "sha256": "d6a575464a1d9a43c013443575b931cb29b8a8fb43130e2cabe226322a986ab1"
+    },
+    "source_result_treasury": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/RESULT.json",
+      "sha256": "9267700c213da15ce9a5746556ef751fc92d1d828b7d0154f1bb7b4937309c68"
+    },
+    "source_result_vix": {
+      "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CBOE_VIX_SOURCE_20261011_002/RESULT.json",
+      "sha256": "bf8464b6e9c44c03769d50bdfc3c98c9768ba9823df8e5bcfc7655d1ee9103b7"
+    },
+    "source_spec": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/D1_MACRO_CONTEXT_SOURCES_20261011_001.json",
+      "sha256": "0372508910a88993540327b17cf651d519fc4ef7d9b960f245eb969ccdf1ec04"
+    }
+  },
+  "output_root": "/home/andre2/GX1_RUNS/NATIVE_MACRO_SOURCE_KEYS_20261123_001",
+  "parser_shim": "Unmodified immutable csv_primitives date/header/END filter; temporary numeric_text rawtext shim then per-column pd.to_numeric; reject ambiguous boolean lexical cases. GLD unchanged plain-decimal regex. pd.notna precedes ffill; Inf never silently treated missing.",
+  "plan_path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_MACRO_SOURCE_KEYS_20261123_001.json",
+  "question": "Which exact underlying report/instrument/primitive observation keys were consumed by all61macrofields in the unchanged wholeTRAIN function, including observed-history lookbacks and source-specific forwardfills?",
+  "runtime_versions": {
+    "numpy": "2.2.6",
+    "pandas": "2.3.3"
+  },
+  "schema_version": "gx1_native_macro_source_key_plan_v1",
+  "source_base_commit": "50ec85089ab14915711caefafcc767070a989ccc",
+  "source_owners": {
+    "gx1/audit/audit_native_future_window_coverage_v1.py": "b25c5a9c9d18bb0c789c68e25d3f9d9859874eee1ead42bc4add9135af055be9",
+    "gx1/audit/audit_native_input_observation_v1.py": "dff60935540a2bac8cf2d7a306ba2f267b3f2034a7722d50d56303e603e8d260",
+    "gx1/audit/audit_native_macro_source_keys_v1.py": "42d28b32002ded5a93e8a5a80a9dc736d8aa3b2382e881895af3d484529dfe4f",
+    "gx1/audit/audit_native_selective_moves_v1.py": "0206cd33be3dabf00a3211e1d8fca74c0e5664fe83d68225fa4aeb70533c5b19",
+    "gx1/audit/build_native_m5_direction_targets_v1.py": "161f9751f8648d01ff620a71c071f1ac3062a4ee99d2420b65d0c933c7306f42",
+    "gx1/audit/build_native_m5_ta_feature_cache_v1.py": "2ef80e0580040f5adda2f3afbb07f752a28293a47d883ac86504c7f219323bab",
+    "gx1/audit/qualify_market_state_native_m5_pipeline_v1.py": "65f520c8cc9c6e3cb57dc2e6db030fc8b4dc6568b0a94a8616f60b01fcb104bd",
+    "gx1/contracts/entry_exit_production_architecture_v1.py": "cdb2d2e08e52de0597cb011bd6350b78f905e0a0a2514db75fc43f81fb9086b2",
+    "gx1/contracts/entry_gc_mtf_history_v1.py": "7e44f6d16c065366a26867e5fb67aff9bbfc47fea4d975db4f4706611244f29b",
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": "1d830c7cb767db699879c6c315f5696854dc1f3bf9fa2021a4020bb76c7c0fa4",
+    "gx1/contracts/entry_model_native_signal_v1.py": "69a819484762dad28194942fd98319be060297dd262c30711e2795515d2f4598",
+    "gx1/contracts/gx1_capped_execution_v1.py": "3a785511650592f990e644759f13d54da615313272bc1b6a4d6be89434b35563",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_native_m5_feature_inputs_v1.py": "6e062cb5c11ded0dab50f082e7d40e37d505593cdae53874b2398607086930dc",
+    "gx1/contracts/market_state_native_m5_targets_v1.py": "1d83e4c04a1e14f067b72a6c4ac2a81af245c77dcb82c3e6320fcbee113c9d4e",
+    "gx1/contracts/market_state_ta_integrated_model_v1.py": "69f8b1f659db1985f3e6691f5dcf3d3b203e746c340e1e73769cb660ab13a67b",
+    "gx1/contracts/market_state_ta_integrated_objective_v1.py": "bf2cf5625b7c84075a1c24ac2448defb43dca71809b9dc9962b38a428d5ba495",
+    "gx1/contracts/model_state_digest_v1.py": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4",
+    "gx1/contracts/native_m5_direction_io_firewall_v1.py": "4ebe5d7a49a8fd719e82f62a5d04ca45489af1dfdc1022475e6044723c170739",
+    "gx1/contracts/registry_hyperparameter_fit_v1.py": "214fa54194e42fe43c94fa022dc87ec0ea1eb16558b092dda0e0cb37b815b197",
+    "gx1/contracts/xau_tape_provenance_v1.py": "402ccad76c08ae27f21d5bdbe315a8d087ba76bea706f0f058b886393183292d",
+    "gx1/features/basic_v1.py": "30ef4e4e6dc5a0011b13eeb7e11227dbeaa3a44b78c35405e64f7ca655bad220",
+    "gx1/features/d1_macro_context_v1.py": "1d61f70381a912a275115a35bb97b103919bc23515d79faed7016f0985ae3d56",
+    "gx1/features/entry_candle_primitives_v1.py": "3f5a5e4fa3f12233aa5f9e5cc43d00d5cd5d5069fb7625a6690ce606eec4b0d0",
+    "gx1/features/entry_foundation_structure_v1.py": "c3c91476051b2e6552fc3089ca50980a38a5a20060af74b802435c786325e558",
+    "gx1/features/entry_model_native_feature_layers_v1.py": "db85c4c365cac9bf7d89b5f36cd7ea6112f020b7eb26d2ae4d0462659b3c3a1b",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "cf5a6da5374e25627c42b9ab3dde93770a92efd85411e6b8e8431b577c2a9153",
+    "gx1/features/event_age_v1.py": "7c20d98c26f5c94885d9defdfc070eb19df81d6344f0457acdf903b4f6712ef5",
+    "gx1/features/gc_native_context_v1.py": "072819223bb13d970cc349650f608367858500ea1a8989e2833a0bbb7ed464ff",
+    "gx1/features/gc_native_field_catalog_v1.py": "c24d1ce880d55dbff6fe346eac4a21529d9dd906fa56a6e55c417edde5a80b8a",
+    "gx1/features/htf_features.py": "3d13c1705c95ddd0e57d93e5c902ef33ed2e6cd24c59cafb24852023e0d0377b",
+    "gx1/features/level_registry_v1.py": "e7304de96c211678f9c6d4a7513d267b1f974c7718fe3a33b8103c71f3a39e02",
+    "gx1/features/micro_structure_v1.py": "761533b9ae31fd268dbe4c075bb7e73f1436076af8372a8efc08fa2d8c1800dd",
+    "gx1/features/model_native_market_context_v1.py": "69f61a52c79711ea58a4c7b2d0e743c01cff6dd3af1e1f1e5f2b4864a12826c2",
+    "gx1/features/smc_v1.py": "56b9fe479e1cdb7dc524179b65e585d890cdd2fef128d47a6cada00692b94d9a",
+    "gx1/features/swing_structure_v1.py": "c46ab4413e5bd5dd7114625fa3539e21ab39f9100341092b73d17e6efdd101e0",
+    "gx1/features/technical_indicators_v1.py": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad",
+    "gx1/features/trendline_registry_v1.py": "24c12e8d4c6f597a331dacecbdc5e9a9ed8fdf6c0b6798ee7c543884d04aee58",
+    "gx1/features/volatility_squeeze_state_v1.py": "652b999a4b058026568b72018be2cf5cf0820d30b12e4f557830986ddeed05dc",
+    "gx1/features/volume_features.py": "31433e540ada7808142805aca353c36fa8de566c88724e7f046aed8f03aef493",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "236ea6d7d9dad3801c2ee06a2115c878c0d773c0630038ef0815d407d18ff1c4",
+    "gx1/scripts/augment_forward_outcome_v2.py": "347e0d7b6235302c4afd8fabd10f9075e25a142a7b49fd5f18c3ed41f730a2c6",
+    "gx1/scripts/fit_volatility_squeeze_artifacts_v1.py": "3b67e8454ef39542dd8a2775e6b7677b1f727335d5474587c08a8f0753831e08",
+    "gx1/scripts/materialize_build_canonical_features_v1.py": "b84ce141598294d2449f9f40b49b7ef8c2563ff8ad832e80664a2f1eb15a1a75",
+    "gx1/scripts/materialize_canonical_v3_augment.py": "f09ec727cac68e8a1a033362fe87276a254b249275fed993ba092afa9be53bae",
+    "gx1/scripts/research_ta_campaign_v1.py": "146d58e5242501827d671341cf5b99ec97b747c56d5e8e1e013b42f3ca03b7e2",
+    "gx1/time/session_detector.py": "ed0189b74ec72a80c9667c470e59c37719e59e549d683cc4b50759855c8e03d8",
+    "scripts/gx1_capped_run.sh": "0c97154564fdc6cbb9759b989e825ed0776033ba357de22b01ff13bfdf93d1e4",
+    "tests/test_audit_native_future_window_coverage_v1.py": "9eb2dc952ea964b7d5c2f99d8ff655768252e7b4904fddd44cbcd1ccbebbb57f",
+    "tests/test_audit_native_input_observation_v1.py": "8cc9a905c4debb50c54ce30c4edd30d5d00dbb8376869d501bb24be482314ee3",
+    "tests/test_audit_native_macro_source_keys_v1.py": "ee46f361e817a94a58e3ec338326d36b030c1b1b1661eb406d65fe92f314b248",
+    "tests/test_audit_native_selective_moves_v1.py": "03b7bd8a6615f7232879ac2fc3707fd99e8de7580e9247f30378bbe30e8367cf",
+    "tests/test_build_native_m5_ta_feature_cache_v1.py": "82d218ea64fe1bb8bdc28131213e8140633e11b8c6bf1db7fd3b24adabc56bd0",
+    "tests/test_qualify_market_state_native_m5_pipeline_v1.py": "95f24b5fbb09531dc19c36a42a533a43d6651b838f7f23ac7a46c410835966e8"
+  },
+  "source_records": [
+    {
+      "bytes": 959612,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2009.zip",
+        "sha256": "5558e169e558ee15a861fb623e2a986aaafcdc178d7ab2eaf7dc628ed217b32b"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2009.zip",
+        "item": "2009",
+        "members": {
+          "annual.txt": {
+            "bytes": 7610954,
+            "sha256": "cb04393dd28ad9da8e569e2844becefbea6665ad369d4da48e90525eb6977ed6"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 959612,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2009.zip",
+        "raw_sha256": "5558e169e558ee15a861fb623e2a986aaafcdc178d7ab2eaf7dc628ed217b32b",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2009.zip",
+        "year": 2009
+      },
+      "source_id": "cot|2009"
+    },
+    {
+      "bytes": 1021288,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2010.zip",
+        "sha256": "ba52af024b2cc24f4bf7699950b70b0ae70ce2a123fca63e88c93f5d67561253"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2010.zip",
+        "item": "2010",
+        "members": {
+          "annual.txt": {
+            "bytes": 8483178,
+            "sha256": "6f85a0f661c64e37774c7adf6a9cf54f62caf65ddf646aa0a2850ab99ae2532d"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1021288,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2010.zip",
+        "raw_sha256": "ba52af024b2cc24f4bf7699950b70b0ae70ce2a123fca63e88c93f5d67561253",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2010.zip",
+        "year": 2010
+      },
+      "source_id": "cot|2010"
+    },
+    {
+      "bytes": 1046419,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2011.zip",
+        "sha256": "8872d6e7d43cc09d5d5834122dcbf4dd426dc0590faa394d041f603234e8d16a"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2011.zip",
+        "item": "2011",
+        "members": {
+          "annual.txt": {
+            "bytes": 8538665,
+            "sha256": "b240d0751f0ae5d404a6d9201b1888c281cf0c0c48d53edf6a7db2a5b4738237"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1046419,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2011.zip",
+        "raw_sha256": "8872d6e7d43cc09d5d5834122dcbf4dd426dc0590faa394d041f603234e8d16a",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2011.zip",
+        "year": 2011
+      },
+      "source_id": "cot|2011"
+    },
+    {
+      "bytes": 1103492,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2012.zip",
+        "sha256": "018de1a8b9c8c87ccdcac31652f56828f9af3b44f89df2de474fd460a0dfd6de"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2012.zip",
+        "item": "2012",
+        "members": {
+          "annual.txt": {
+            "bytes": 9091372,
+            "sha256": "f6fa9a3b61101e0e5c4281707b5d6c620ca31c08b89eef5a2758bc0a6ec89997"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1103492,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2012.zip",
+        "raw_sha256": "018de1a8b9c8c87ccdcac31652f56828f9af3b44f89df2de474fd460a0dfd6de",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2012.zip",
+        "year": 2012
+      },
+      "source_id": "cot|2012"
+    },
+    {
+      "bytes": 1336525,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2013.zip",
+        "sha256": "881bed5906e156c23dc2036f6b4312f3c2215a7b9aebe51ee7973458ec0bf845"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2013.zip",
+        "item": "2013",
+        "members": {
+          "annual.txt": {
+            "bytes": 11765083,
+            "sha256": "d1eda9b2d30cb7af5386c6efdaeccb3ac0dc264271110eef771b2f09a760a735"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1336525,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2013.zip",
+        "raw_sha256": "881bed5906e156c23dc2036f6b4312f3c2215a7b9aebe51ee7973458ec0bf845",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2013.zip",
+        "year": 2013
+      },
+      "source_id": "cot|2013"
+    },
+    {
+      "bytes": 1545256,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2014.zip",
+        "sha256": "65e8c7111bc628c1bc2801a246e7872c574fdead67f210a5dd58303b384dba1a"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2014.zip",
+        "item": "2014",
+        "members": {
+          "annual.txt": {
+            "bytes": 14013910,
+            "sha256": "3efbfba04e1eef911d64b4f1be29b937c418fd0203544425c91b432605c070e5"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1545256,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2014.zip",
+        "raw_sha256": "65e8c7111bc628c1bc2801a246e7872c574fdead67f210a5dd58303b384dba1a",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2014.zip",
+        "year": 2014
+      },
+      "source_id": "cot|2014"
+    },
+    {
+      "bytes": 1598000,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2015.zip",
+        "sha256": "768b7be61d0f9895dd6c3ddcef9f1449c85773bd61dc8cc656fd43d30531871b"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2015.zip",
+        "item": "2015",
+        "members": {
+          "annual.txt": {
+            "bytes": 13293618,
+            "sha256": "0e8c1523e5168a790aecbe30dff9adeb91191e3c00c35a6e8e40e1ccddb52e58"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1598000,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2015.zip",
+        "raw_sha256": "768b7be61d0f9895dd6c3ddcef9f1449c85773bd61dc8cc656fd43d30531871b",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2015.zip",
+        "year": 2015
+      },
+      "source_id": "cot|2015"
+    },
+    {
+      "bytes": 1710723,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2016.zip",
+        "sha256": "186c95a12c71fdbd241b83679afcfff2cc900c779b67bfe9bcd091d16a7ca0ce"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2016.zip",
+        "item": "2016",
+        "members": {
+          "annual.txt": {
+            "bytes": 14243091,
+            "sha256": "106684edf948ccf691f7cd3a8638f8fdd6846c36d19da429268357fe3812175a"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1710723,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2016.zip",
+        "raw_sha256": "186c95a12c71fdbd241b83679afcfff2cc900c779b67bfe9bcd091d16a7ca0ce",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2016.zip",
+        "year": 2016
+      },
+      "source_id": "cot|2016"
+    },
+    {
+      "bytes": 1711091,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2017.zip",
+        "sha256": "5e910b93b5af5e1c8f4006eaeee10109754ee5dd2c7f9d04520bd9770c8ece2b"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2017.zip",
+        "item": "2017",
+        "members": {
+          "annual.txt": {
+            "bytes": 14109048,
+            "sha256": "8ba60cfb622ce72c1a692fc754d0a2ffb55f3566f45065ba5433d7bd071f92cb"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1711091,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2017.zip",
+        "raw_sha256": "5e910b93b5af5e1c8f4006eaeee10109754ee5dd2c7f9d04520bd9770c8ece2b",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2017.zip",
+        "year": 2017
+      },
+      "source_id": "cot|2017"
+    },
+    {
+      "bytes": 1900546,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2018.zip",
+        "sha256": "adaecbfadf54f117308cc8a135cd9ba827deac3eb1489a5febc642c403728527"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2018.zip",
+        "item": "2018",
+        "members": {
+          "annual.txt": {
+            "bytes": 15365481,
+            "sha256": "dd0173fcf9fdc14d9eda608836eeaf3f3f83f4f1fc01999dc6a4c97839542666"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1900546,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2018.zip",
+        "raw_sha256": "adaecbfadf54f117308cc8a135cd9ba827deac3eb1489a5febc642c403728527",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2018.zip",
+        "year": 2018
+      },
+      "source_id": "cot|2018"
+    },
+    {
+      "bytes": 1904592,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2019.zip",
+        "sha256": "3f2707b5fcab1491329684c82cc03759ab66899839f533e09ff0a5dcf517b0c5"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2019.zip",
+        "item": "2019",
+        "members": {
+          "annual.txt": {
+            "bytes": 15419216,
+            "sha256": "004c1952f32c4bc911676f8f2603eaeae75cba9a8c9c6d9b1a3b6ae9f4939900"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1904592,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2019.zip",
+        "raw_sha256": "3f2707b5fcab1491329684c82cc03759ab66899839f533e09ff0a5dcf517b0c5",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2019.zip",
+        "year": 2019
+      },
+      "source_id": "cot|2019"
+    },
+    {
+      "bytes": 1838852,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2020.zip",
+        "sha256": "8c83c820e5f6fd193a0923aa02cfe520d20dbe74bba571a576c92baf7a186317"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2020.zip",
+        "item": "2020",
+        "members": {
+          "annual.txt": {
+            "bytes": 15038669,
+            "sha256": "4bd39b1f0cdf679f620e20f3d4b5667218158e1c1cfdb8678d23c6dd73da21a7"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1838852,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2020.zip",
+        "raw_sha256": "8c83c820e5f6fd193a0923aa02cfe520d20dbe74bba571a576c92baf7a186317",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2020.zip",
+        "year": 2020
+      },
+      "source_id": "cot|2020"
+    },
+    {
+      "bytes": 1882568,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2021.zip",
+        "sha256": "423d20412ec3fb629500fcbfbaa7b6973c5868965000d13963e9b63700c90952"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2021.zip",
+        "item": "2021",
+        "members": {
+          "annual.txt": {
+            "bytes": 15251600,
+            "sha256": "ae16eb98bdfd59902a22234c0684253f514d2477c200be89779dc981e6f3bf87"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1882568,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2021.zip",
+        "raw_sha256": "423d20412ec3fb629500fcbfbaa7b6973c5868965000d13963e9b63700c90952",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2021.zip",
+        "year": 2021
+      },
+      "source_id": "cot|2021"
+    },
+    {
+      "bytes": 1983765,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2022.zip",
+        "sha256": "206364f467eb0013b0a5f8e9526426cc6fcfc5bad4e4f91b25e00311a0184cfa"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2022.zip",
+        "item": "2022",
+        "members": {
+          "annual.txt": {
+            "bytes": 16277791,
+            "sha256": "586c0debe2f7d714b844d8c0d396c152d2f432d11962795490005afbd223e4ad"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 1983765,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2022.zip",
+        "raw_sha256": "206364f467eb0013b0a5f8e9526426cc6fcfc5bad4e4f91b25e00311a0184cfa",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2022.zip",
+        "year": 2022
+      },
+      "source_id": "cot|2022"
+    },
+    {
+      "bytes": 2116244,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2023.zip",
+        "sha256": "fd17a44cb7c9acb068515380f5c9ff450052d4a89f45d6b97f0d71ca2d69425c"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2023.zip",
+        "item": "2023",
+        "members": {
+          "annual.txt": {
+            "bytes": 17524873,
+            "sha256": "ec4e38013e9c389b6f086110aca623708b13ef3d122f544b3aa63d00d861eff3"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 2116244,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2023.zip",
+        "raw_sha256": "fd17a44cb7c9acb068515380f5c9ff450052d4a89f45d6b97f0d71ca2d69425c",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2023.zip",
+        "year": 2023
+      },
+      "source_id": "cot|2023"
+    },
+    {
+      "bytes": 2302771,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2024.zip",
+        "sha256": "3a33564a5677a4dad90b2513b07a81d8d55308318f9dcd6c8e80690a25c6b768"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2024.zip",
+        "item": "2024",
+        "members": {
+          "annual.txt": {
+            "bytes": 19149563,
+            "sha256": "49ec8e2246d15559d99c77eac794fe342d67e291f7988040561a0942d6459c00"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 2302771,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2024.zip",
+        "raw_sha256": "3a33564a5677a4dad90b2513b07a81d8d55308318f9dcd6c8e80690a25c6b768",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2024.zip",
+        "year": 2024
+      },
+      "source_id": "cot|2024"
+    },
+    {
+      "bytes": 2392119,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2025.zip",
+        "sha256": "e5ae323dadda5ebbf69b6989af0d912fb1a4aebd954372f999eccb3a692352f9"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_001/deacot2025.zip",
+        "item": "2025",
+        "members": {
+          "annual.txt": {
+            "bytes": 19792692,
+            "sha256": "1e3055c6aaed50341493052d09f82e72f0c718a58be925e6558e1e07f4d198e7"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 2392119,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2025.zip",
+        "raw_sha256": "e5ae323dadda5ebbf69b6989af0d912fb1a4aebd954372f999eccb3a692352f9",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2025.zip",
+        "year": 2025
+      },
+      "source_id": "cot|2025"
+    },
+    {
+      "bytes": 1980416,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2026.zip",
+        "sha256": "f5ae08dffa48cd5242392b2fc0e9b6bedb5a643c966e6165416d6995d044d913"
+      },
+      "group": "cot",
+      "record": {
+        "final_url": "https://www.cftc.gov/files/dea/history/deacot2026.zip",
+        "item": "2026",
+        "members": {
+          "annual.txt": {
+            "bytes": 16494520,
+            "sha256": "93573a8f0ea889e6e1ab1987e198843ed7ca19a2462baf512e61233f7ab2a880"
+          }
+        },
+        "predictor_admitted": false,
+        "provenance": "DIRECT_HTTPS",
+        "raw_bytes": 1980416,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CFTC_COT_ARCHIVE_SOURCE_20261011_002/deacot2026.zip",
+        "raw_sha256": "f5ae08dffa48cd5242392b2fc0e9b6bedb5a643c966e6165416d6995d044d913",
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://www.cftc.gov/files/dea/history/deacot2026.zip",
+        "year": 2026
+      },
+      "source_id": "cot|2026"
+    },
+    {
+      "bytes": 11154972,
+      "file": {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XAG_USD_D.parquet",
+        "sha256": "fd226e08dfc615c810ed1ed95faea1eb4bedf97da173fd88ddbb89ee69bb9daf"
+      },
+      "group": "panel",
+      "record": {
+        "alignment": "client default: dailyAlignment 17 America/New_York (not parameterized)",
+        "columns": [
+          "time",
+          "open",
+          "high",
+          "low",
+          "close",
+          "bid_open",
+          "bid_high",
+          "bid_low",
+          "bid_close",
+          "ask_open",
+          "ask_high",
+          "ask_low",
+          "ask_close",
+          "volume"
+        ],
+        "first_time": "2009-06-01 00:00:00+00:00",
+        "granularity": "H1",
+        "instrument": "XAG_USD",
+        "item": "XAG_USD",
+        "last_time": "2026-10-09 20:00:00+00:00",
+        "parquet_path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XAG_USD_D.parquet",
+        "parquet_sha256": "fd226e08dfc615c810ed1ed95faea1eb4bedf97da173fd88ddbb89ee69bb9daf",
+        "predictor_admitted": false,
+        "role": "panel_metal",
+        "rows": 105114,
+        "status": "RETRIEVED_NOT_ADMITTED"
+      },
+      "source_id": "panel|XAG_USD"
+    },
+    {
+      "bytes": 8016535,
+      "file": {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XPT_USD_D.parquet",
+        "sha256": "64a8d0c7eb5d5b9475f111a151ecbb1e71e863355d75a2369384c7f89c120f53"
+      },
+      "group": "panel",
+      "record": {
+        "alignment": "client default: dailyAlignment 17 America/New_York (not parameterized)",
+        "columns": [
+          "time",
+          "open",
+          "high",
+          "low",
+          "close",
+          "bid_open",
+          "bid_high",
+          "bid_low",
+          "bid_close",
+          "ask_open",
+          "ask_high",
+          "ask_low",
+          "ask_close",
+          "volume"
+        ],
+        "first_time": "2009-06-01 00:00:00+00:00",
+        "granularity": "H1",
+        "instrument": "XPT_USD",
+        "item": "XPT_USD",
+        "last_time": "2026-10-09 20:00:00+00:00",
+        "parquet_path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XPT_USD_D.parquet",
+        "parquet_sha256": "64a8d0c7eb5d5b9475f111a151ecbb1e71e863355d75a2369384c7f89c120f53",
+        "predictor_admitted": false,
+        "role": "panel_metal",
+        "rows": 102638,
+        "status": "RETRIEVED_NOT_ADMITTED"
+      },
+      "source_id": "panel|XPT_USD"
+    },
+    {
+      "bytes": 8096638,
+      "file": {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XPD_USD_D.parquet",
+        "sha256": "74ddb33ed3f3c693ec5014a7936ba8b71cbe0e55c2b81830687a85363ce60dd0"
+      },
+      "group": "panel",
+      "record": {
+        "alignment": "client default: dailyAlignment 17 America/New_York (not parameterized)",
+        "columns": [
+          "time",
+          "open",
+          "high",
+          "low",
+          "close",
+          "bid_open",
+          "bid_high",
+          "bid_low",
+          "bid_close",
+          "ask_open",
+          "ask_high",
+          "ask_low",
+          "ask_close",
+          "volume"
+        ],
+        "first_time": "2009-06-01 02:00:00+00:00",
+        "granularity": "H1",
+        "instrument": "XPD_USD",
+        "item": "XPD_USD",
+        "last_time": "2026-10-09 20:00:00+00:00",
+        "parquet_path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XPD_USD_D.parquet",
+        "parquet_sha256": "74ddb33ed3f3c693ec5014a7936ba8b71cbe0e55c2b81830687a85363ce60dd0",
+        "predictor_admitted": false,
+        "role": "panel_metal",
+        "rows": 101753,
+        "status": "RETRIEVED_NOT_ADMITTED"
+      },
+      "source_id": "panel|XPD_USD"
+    },
+    {
+      "bytes": 11282242,
+      "file": {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XCU_USD_D.parquet",
+        "sha256": "f8a58519139e20957f40bac2bb39adcf361d031744cf5421d0894fe92289927e"
+      },
+      "group": "panel",
+      "record": {
+        "alignment": "client default: dailyAlignment 17 America/New_York (not parameterized)",
+        "columns": [
+          "time",
+          "open",
+          "high",
+          "low",
+          "close",
+          "bid_open",
+          "bid_high",
+          "bid_low",
+          "bid_close",
+          "ask_open",
+          "ask_high",
+          "ask_low",
+          "ask_close",
+          "volume"
+        ],
+        "first_time": "2009-06-01 00:00:00+00:00",
+        "granularity": "H1",
+        "instrument": "XCU_USD",
+        "item": "XCU_USD",
+        "last_time": "2026-10-09 20:00:00+00:00",
+        "parquet_path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XCU_USD_D.parquet",
+        "parquet_sha256": "f8a58519139e20957f40bac2bb39adcf361d031744cf5421d0894fe92289927e",
+        "predictor_admitted": false,
+        "role": "panel_metal",
+        "rows": 101215,
+        "status": "RETRIEVED_NOT_ADMITTED"
+      },
+      "source_id": "panel|XCU_USD"
+    },
+    {
+      "bytes": 6547640,
+      "file": {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/BCO_USD_D.parquet",
+        "sha256": "ef828d4effde87e7ffa05edad55024a7ce8a25566b5dc43aaa9e631934a4541a"
+      },
+      "group": "panel",
+      "record": {
+        "alignment": "client default: dailyAlignment 17 America/New_York (not parameterized)",
+        "columns": [
+          "time",
+          "open",
+          "high",
+          "low",
+          "close",
+          "bid_open",
+          "bid_high",
+          "bid_low",
+          "bid_close",
+          "ask_open",
+          "ask_high",
+          "ask_low",
+          "ask_close",
+          "volume"
+        ],
+        "first_time": "2009-06-01 00:00:00+00:00",
+        "granularity": "H1",
+        "instrument": "BCO_USD",
+        "item": "BCO_USD",
+        "last_time": "2026-10-09 20:00:00+00:00",
+        "parquet_path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/BCO_USD_D.parquet",
+        "parquet_sha256": "ef828d4effde87e7ffa05edad55024a7ce8a25566b5dc43aaa9e631934a4541a",
+        "predictor_admitted": false,
+        "role": "panel_energy",
+        "rows": 98009,
+        "status": "RETRIEVED_NOT_ADMITTED"
+      },
+      "source_id": "panel|BCO_USD"
+    },
+    {
+      "bytes": 6779051,
+      "file": {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/WTICO_USD_D.parquet",
+        "sha256": "35b68ebb621aa8cfcc73f12aa1c7747b4864a0f1ae7d79af6b6cd9b5ebbacbbe"
+      },
+      "group": "panel",
+      "record": {
+        "alignment": "client default: dailyAlignment 17 America/New_York (not parameterized)",
+        "columns": [
+          "time",
+          "open",
+          "high",
+          "low",
+          "close",
+          "bid_open",
+          "bid_high",
+          "bid_low",
+          "bid_close",
+          "ask_open",
+          "ask_high",
+          "ask_low",
+          "ask_close",
+          "volume"
+        ],
+        "first_time": "2009-06-01 00:00:00+00:00",
+        "granularity": "H1",
+        "instrument": "WTICO_USD",
+        "item": "WTICO_USD",
+        "last_time": "2026-10-09 20:00:00+00:00",
+        "parquet_path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/WTICO_USD_D.parquet",
+        "parquet_sha256": "35b68ebb621aa8cfcc73f12aa1c7747b4864a0f1ae7d79af6b6cd9b5ebbacbbe",
+        "predictor_admitted": false,
+        "role": "panel_energy",
+        "rows": 103989,
+        "status": "RETRIEVED_NOT_ADMITTED"
+      },
+      "source_id": "panel|WTICO_USD"
+    },
+    {
+      "bytes": 5294643,
+      "file": {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/SPX500_USD_D.parquet",
+        "sha256": "6f38fc4cef340419f7079ca663811b7eadc9bc59cd2d5d35a4e33b5e28de20f3"
+      },
+      "group": "panel",
+      "record": {
+        "alignment": "client default: dailyAlignment 17 America/New_York (not parameterized)",
+        "columns": [
+          "time",
+          "open",
+          "high",
+          "low",
+          "close",
+          "bid_open",
+          "bid_high",
+          "bid_low",
+          "bid_close",
+          "ask_open",
+          "ask_high",
+          "ask_low",
+          "ask_close",
+          "volume"
+        ],
+        "first_time": "2009-06-01 00:00:00+00:00",
+        "granularity": "H1",
+        "instrument": "SPX500_USD",
+        "item": "SPX500_USD",
+        "last_time": "2026-10-09 20:00:00+00:00",
+        "parquet_path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/SPX500_USD_D.parquet",
+        "parquet_sha256": "6f38fc4cef340419f7079ca663811b7eadc9bc59cd2d5d35a4e33b5e28de20f3",
+        "predictor_admitted": false,
+        "role": "panel_equity",
+        "rows": 103687,
+        "status": "RETRIEVED_NOT_ADMITTED"
+      },
+      "source_id": "panel|SPX500_USD"
+    },
+    {
+      "bytes": 4842761,
+      "file": {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/USB10Y_USD_D.parquet",
+        "sha256": "2f749672ac5c2413bd47aaedc19748e72769f27d3136a7e311c70079235d0103"
+      },
+      "group": "panel",
+      "record": {
+        "alignment": "client default: dailyAlignment 17 America/New_York (not parameterized)",
+        "columns": [
+          "time",
+          "open",
+          "high",
+          "low",
+          "close",
+          "bid_open",
+          "bid_high",
+          "bid_low",
+          "bid_close",
+          "ask_open",
+          "ask_high",
+          "ask_low",
+          "ask_close",
+          "volume"
+        ],
+        "first_time": "2009-06-01 00:00:00+00:00",
+        "granularity": "H1",
+        "instrument": "USB10Y_USD",
+        "item": "USB10Y_USD",
+        "last_time": "2026-10-09 20:00:00+00:00",
+        "parquet_path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/USB10Y_USD_D.parquet",
+        "parquet_sha256": "2f749672ac5c2413bd47aaedc19748e72769f27d3136a7e311c70079235d0103",
+        "predictor_admitted": false,
+        "role": "panel_rates",
+        "rows": 102367,
+        "status": "RETRIEVED_NOT_ADMITTED"
+      },
+      "source_id": "panel|USB10Y_USD"
+    },
+    {
+      "bytes": 7233332,
+      "file": {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/EUR_USD_D.parquet",
+        "sha256": "2c2d1dd0866ec084bec39542809943fe8f520b32adb89ae4ca0a1966b45e5ede"
+      },
+      "group": "panel",
+      "record": {
+        "alignment": "client default: dailyAlignment 17 America/New_York (not parameterized)",
+        "columns": [
+          "time",
+          "open",
+          "high",
+          "low",
+          "close",
+          "bid_open",
+          "bid_high",
+          "bid_low",
+          "bid_close",
+          "ask_open",
+          "ask_high",
+          "ask_low",
+          "ask_close",
+          "volume"
+        ],
+        "first_time": "2009-06-01 00:00:00+00:00",
+        "granularity": "H1",
+        "instrument": "EUR_USD",
+        "item": "EUR_USD",
+        "last_time": "2026-10-09 20:00:00+00:00",
+        "parquet_path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/EUR_USD_D.parquet",
+        "parquet_sha256": "2c2d1dd0866ec084bec39542809943fe8f520b32adb89ae4ca0a1966b45e5ede",
+        "predictor_admitted": false,
+        "role": "panel_fx",
+        "rows": 109711,
+        "status": "RETRIEVED_NOT_ADMITTED"
+      },
+      "source_id": "panel|EUR_USD"
+    },
+    {
+      "bytes": 6452908,
+      "file": {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/USD_JPY_D.parquet",
+        "sha256": "1dc1670612319e8b78d203fc763dec84bb3dc4bae47ab013beae33d86eea8b9f"
+      },
+      "group": "panel",
+      "record": {
+        "alignment": "client default: dailyAlignment 17 America/New_York (not parameterized)",
+        "columns": [
+          "time",
+          "open",
+          "high",
+          "low",
+          "close",
+          "bid_open",
+          "bid_high",
+          "bid_low",
+          "bid_close",
+          "ask_open",
+          "ask_high",
+          "ask_low",
+          "ask_close",
+          "volume"
+        ],
+        "first_time": "2009-06-01 00:00:00+00:00",
+        "granularity": "H1",
+        "instrument": "USD_JPY",
+        "item": "USD_JPY",
+        "last_time": "2026-10-09 20:00:00+00:00",
+        "parquet_path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/USD_JPY_D.parquet",
+        "parquet_sha256": "1dc1670612319e8b78d203fc763dec84bb3dc4bae47ab013beae33d86eea8b9f",
+        "predictor_admitted": false,
+        "role": "panel_fx",
+        "rows": 109642,
+        "status": "RETRIEVED_NOT_ADMITTED"
+      },
+      "source_id": "panel|USD_JPY"
+    },
+    {
+      "bytes": 9353098,
+      "file": {
+        "path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XAU_USD_D.parquet",
+        "sha256": "26ba0f908e10bf65b9c47244a6f8495774f27edf297622d661deda09990ca31f"
+      },
+      "group": "panel",
+      "record": {
+        "alignment": "client default: dailyAlignment 17 America/New_York (not parameterized)",
+        "columns": [
+          "time",
+          "open",
+          "high",
+          "low",
+          "close",
+          "bid_open",
+          "bid_high",
+          "bid_low",
+          "bid_close",
+          "ask_open",
+          "ask_high",
+          "ask_low",
+          "ask_close",
+          "volume"
+        ],
+        "first_time": "2009-06-01 00:00:00+00:00",
+        "granularity": "H1",
+        "instrument": "XAU_USD",
+        "item": "XAU_USD",
+        "last_time": "2026-10-09 20:00:00+00:00",
+        "parquet_path": "/home/andre2/GX1_DATA/research/OANDA_PANEL_DAILY_20261011_FWD/XAU_USD_D.parquet",
+        "parquet_sha256": "26ba0f908e10bf65b9c47244a6f8495774f27edf297622d661deda09990ca31f",
+        "predictor_admitted": false,
+        "role": "reference_consistency_check_only",
+        "rows": 105276,
+        "status": "RETRIEVED_NOT_ADMITTED"
+      },
+      "source_id": "panel|XAU_USD"
+    },
+    {
+      "bytes": 16584,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2009.csv",
+        "sha256": "3c9294cfa71136e1d5330b09a00bf996ecf86c865d593d7ee954d11984a5bdb1"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2009.csv",
+        "item": "TREASURY_NOMINAL_2009",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 16584,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2009.csv",
+        "raw_sha256": "3c9294cfa71136e1d5330b09a00bf996ecf86c865d593d7ee954d11984a5bdb1",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2009/all?type=daily_treasury_yield_curve&field_tdr_date_value=2009&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2009"
+    },
+    {
+      "bytes": 7784,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2009.csv",
+        "sha256": "68f1f8b2de5234e2e4650de06c6786dbb4fbec6ea3894bd4edb73930e32843c4"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2009.csv",
+        "item": "TREASURY_REAL_2009",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 7784,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2009.csv",
+        "raw_sha256": "68f1f8b2de5234e2e4650de06c6786dbb4fbec6ea3894bd4edb73930e32843c4",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2009/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2009&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2009"
+    },
+    {
+      "bytes": 16672,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2010.csv",
+        "sha256": "f973bd3988989d3e408655cbc7fed89faefbaa8a1c111ec313241fb47fc75e2d"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2010.csv",
+        "item": "TREASURY_NOMINAL_2010",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 16672,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2010.csv",
+        "raw_sha256": "f973bd3988989d3e408655cbc7fed89faefbaa8a1c111ec313241fb47fc75e2d",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2010/all?type=daily_treasury_yield_curve&field_tdr_date_value=2010&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2010"
+    },
+    {
+      "bytes": 9003,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2010.csv",
+        "sha256": "c16d0db0208b7e016a35c93cd1b354cbe735002683fe66063fa6371aae3f3bc2"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2010.csv",
+        "item": "TREASURY_REAL_2010",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9003,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2010.csv",
+        "raw_sha256": "c16d0db0208b7e016a35c93cd1b354cbe735002683fe66063fa6371aae3f3bc2",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2010/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2010&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2010"
+    },
+    {
+      "bytes": 16584,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2011.csv",
+        "sha256": "224eaf29d6fe7cbccc746c7a8c845f189cf91424bab43f46ca386a74e98d81f7"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2011.csv",
+        "item": "TREASURY_NOMINAL_2011",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 16584,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2011.csv",
+        "raw_sha256": "224eaf29d6fe7cbccc746c7a8c845f189cf91424bab43f46ca386a74e98d81f7",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2011/all?type=daily_treasury_yield_curve&field_tdr_date_value=2011&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2011"
+    },
+    {
+      "bytes": 9390,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2011.csv",
+        "sha256": "d1bd695b0764e2af85373f6b2909a57217cb575ba21e131853a512af5d3ec63b"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2011.csv",
+        "item": "TREASURY_REAL_2011",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9390,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2011.csv",
+        "raw_sha256": "d1bd695b0764e2af85373f6b2909a57217cb575ba21e131853a512af5d3ec63b",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2011/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2011&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2011"
+    },
+    {
+      "bytes": 16584,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2012.csv",
+        "sha256": "9c889b6e3cb87f40f3760bddb69f05f7525800ac480ef5712b2cf318765fa184"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2012.csv",
+        "item": "TREASURY_NOMINAL_2012",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 16584,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2012.csv",
+        "raw_sha256": "9c889b6e3cb87f40f3760bddb69f05f7525800ac480ef5712b2cf318765fa184",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2012/all?type=daily_treasury_yield_curve&field_tdr_date_value=2012&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2012"
+    },
+    {
+      "bytes": 9849,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2012.csv",
+        "sha256": "6ee991ccdbdaa615bf329cdfd79fcd813a9fbd88e1795b13e77ff0c76c905ec4"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2012.csv",
+        "item": "TREASURY_REAL_2012",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9849,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2012.csv",
+        "raw_sha256": "6ee991ccdbdaa615bf329cdfd79fcd813a9fbd88e1795b13e77ff0c76c905ec4",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2012/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2012&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2012"
+    },
+    {
+      "bytes": 16584,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2013.csv",
+        "sha256": "1e1a98426d9274afcc68467962f9238104db775b8765e48f45ac7488b33ff338"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2013.csv",
+        "item": "TREASURY_NOMINAL_2013",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 16584,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2013.csv",
+        "raw_sha256": "1e1a98426d9274afcc68467962f9238104db775b8765e48f45ac7488b33ff338",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2013/all?type=daily_treasury_yield_curve&field_tdr_date_value=2013&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2013"
+    },
+    {
+      "bytes": 9523,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2013.csv",
+        "sha256": "6819c5fbbbbfbd511dd7fef270857db7cf2c97f862805fd24589af7af2df8c15"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2013.csv",
+        "item": "TREASURY_REAL_2013",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9523,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2013.csv",
+        "raw_sha256": "6819c5fbbbbfbd511dd7fef270857db7cf2c97f862805fd24589af7af2df8c15",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2013/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2013&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2013"
+    },
+    {
+      "bytes": 16584,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2014.csv",
+        "sha256": "8d560698e03e4c0d8d22ff8be7f5f7c5c0d472b1e33a22b6a75373a57e84aa0f"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2014.csv",
+        "item": "TREASURY_NOMINAL_2014",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 16584,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2014.csv",
+        "raw_sha256": "8d560698e03e4c0d8d22ff8be7f5f7c5c0d472b1e33a22b6a75373a57e84aa0f",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2014/all?type=daily_treasury_yield_curve&field_tdr_date_value=2014&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2014"
+    },
+    {
+      "bytes": 9204,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2014.csv",
+        "sha256": "1b7365254bdc3bd75a1fef774c9bba0a39fa3d499a13ae80e65a4eda4c61a92d"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2014.csv",
+        "item": "TREASURY_REAL_2014",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9204,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2014.csv",
+        "raw_sha256": "1b7365254bdc3bd75a1fef774c9bba0a39fa3d499a13ae80e65a4eda4c61a92d",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2014/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2014&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2014"
+    },
+    {
+      "bytes": 16650,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2015.csv",
+        "sha256": "b7665d1ce46d6ed6d08fbda34aae1831de38e274e3c7caed81904042aac9b5bc"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2015.csv",
+        "item": "TREASURY_NOMINAL_2015",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 16650,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2015.csv",
+        "raw_sha256": "b7665d1ce46d6ed6d08fbda34aae1831de38e274e3c7caed81904042aac9b5bc",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2015/all?type=daily_treasury_yield_curve&field_tdr_date_value=2015&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2015"
+    },
+    {
+      "bytes": 9157,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2015.csv",
+        "sha256": "aec6d36e527bab697717aea76a04113e168392a15944bc8461690d05f9aa0b47"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2015.csv",
+        "item": "TREASURY_REAL_2015",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9157,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2015.csv",
+        "raw_sha256": "aec6d36e527bab697717aea76a04113e168392a15944bc8461690d05f9aa0b47",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2015/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2015&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2015"
+    },
+    {
+      "bytes": 16584,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2016.csv",
+        "sha256": "b4d0a8d86e2734bc64d84d9a9824434d841737621582daeac58f13c7129f325c"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2016.csv",
+        "item": "TREASURY_NOMINAL_2016",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 16584,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2016.csv",
+        "raw_sha256": "b4d0a8d86e2734bc64d84d9a9824434d841737621582daeac58f13c7129f325c",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2016/all?type=daily_treasury_yield_curve&field_tdr_date_value=2016&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2016"
+    },
+    {
+      "bytes": 9343,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2016.csv",
+        "sha256": "b38e72f59b7edbc660b00be57e1a82e1a49bc7f3128fcb520faddd05d99f7c49"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2016.csv",
+        "item": "TREASURY_REAL_2016",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9343,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2016.csv",
+        "raw_sha256": "b38e72f59b7edbc660b00be57e1a82e1a49bc7f3128fcb520faddd05d99f7c49",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2016/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2016&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2016"
+    },
+    {
+      "bytes": 16584,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2017.csv",
+        "sha256": "56074da7c32103a28cf4ba2bdf5eaa12f98fd49852047aef1a6eb16e64bd6e83"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2017.csv",
+        "item": "TREASURY_NOMINAL_2017",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 16584,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2017.csv",
+        "raw_sha256": "56074da7c32103a28cf4ba2bdf5eaa12f98fd49852047aef1a6eb16e64bd6e83",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2017/all?type=daily_treasury_yield_curve&field_tdr_date_value=2017&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2017"
+    },
+    {
+      "bytes": 9054,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2017.csv",
+        "sha256": "94b310fafe718ca3f6717b7da4cd7d7bf335faecf1a302793f0f34733f164473"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2017.csv",
+        "item": "TREASURY_REAL_2017",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9054,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2017.csv",
+        "raw_sha256": "94b310fafe718ca3f6717b7da4cd7d7bf335faecf1a302793f0f34733f164473",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2017/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2017&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2017"
+    },
+    {
+      "bytes": 16978,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2018.csv",
+        "sha256": "e8375524a7a8d3e8091bbe7690d0378b9365be09efff5b18b8eefddc25f718d3"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2018.csv",
+        "item": "TREASURY_NOMINAL_2018",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 16978,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2018.csv",
+        "raw_sha256": "e8375524a7a8d3e8091bbe7690d0378b9365be09efff5b18b8eefddc25f718d3",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2018/all?type=daily_treasury_yield_curve&field_tdr_date_value=2018&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2018"
+    },
+    {
+      "bytes": 9006,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2018.csv",
+        "sha256": "d1ef01905a1608957d06cbcd26593eac1e8b9bff9e92a1fa3a1b142a97ef0a95"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2018.csv",
+        "item": "TREASURY_REAL_2018",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9006,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2018.csv",
+        "raw_sha256": "d1ef01905a1608957d06cbcd26593eac1e8b9bff9e92a1fa3a1b142a97ef0a95",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2018/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2018&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2018"
+    },
+    {
+      "bytes": 17841,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2019.csv",
+        "sha256": "83fc47c17325e222c45fd3a1eb26c69ae01f62d33b793030b4b8b350ca0a290b"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2019.csv",
+        "item": "TREASURY_NOMINAL_2019",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 17841,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2019.csv",
+        "raw_sha256": "83fc47c17325e222c45fd3a1eb26c69ae01f62d33b793030b4b8b350ca0a290b",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2019/all?type=daily_treasury_yield_curve&field_tdr_date_value=2019&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2019"
+    },
+    {
+      "bytes": 9055,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2019.csv",
+        "sha256": "593741b038e0970fe5be65a04e0047e17f00809da64e84948d1d306ab032e207"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2019.csv",
+        "item": "TREASURY_REAL_2019",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9055,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2019.csv",
+        "raw_sha256": "593741b038e0970fe5be65a04e0047e17f00809da64e84948d1d306ab032e207",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2019/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2019&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2019"
+    },
+    {
+      "bytes": 17912,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2020.csv",
+        "sha256": "edcf1c8be9622f3cd92eb7de1847aefc3977e2118e2ff9af67f46614a5c306a7"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2020.csv",
+        "item": "TREASURY_NOMINAL_2020",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 17912,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2020.csv",
+        "raw_sha256": "edcf1c8be9622f3cd92eb7de1847aefc3977e2118e2ff9af67f46614a5c306a7",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2020/all?type=daily_treasury_yield_curve&field_tdr_date_value=2020&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2020"
+    },
+    {
+      "bytes": 10177,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2020.csv",
+        "sha256": "30c98a2d75a4474e08a338bc3874745241d63be8f4a0d07a7f04a454a332921c"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2020.csv",
+        "item": "TREASURY_REAL_2020",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 10177,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2020.csv",
+        "raw_sha256": "30c98a2d75a4474e08a338bc3874745241d63be8f4a0d07a7f04a454a332921c",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2020/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2020&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2020"
+    },
+    {
+      "bytes": 17912,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2021.csv",
+        "sha256": "1be57e49c63a99f6002431a1030c8fbe539b71066c3eaf14f9f58ddc34492cea"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2021.csv",
+        "item": "TREASURY_NOMINAL_2021",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 17912,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2021.csv",
+        "raw_sha256": "1be57e49c63a99f6002431a1030c8fbe539b71066c3eaf14f9f58ddc34492cea",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2021/all?type=daily_treasury_yield_curve&field_tdr_date_value=2021&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2021"
+    },
+    {
+      "bytes": 10275,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2021.csv",
+        "sha256": "9c614f8b16db601f1dc01ddd77db42d4e4a54b7243db4b4fc228270a08f747d3"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2021.csv",
+        "item": "TREASURY_REAL_2021",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 10275,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2021.csv",
+        "raw_sha256": "9c614f8b16db601f1dc01ddd77db42d4e4a54b7243db4b4fc228270a08f747d3",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2021/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2021&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2021"
+    },
+    {
+      "bytes": 18226,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2022.csv",
+        "sha256": "c33cb2758e5e34c2c23b7ab759d18681091860f3f9e5960112859f64f31cd814"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2022.csv",
+        "item": "TREASURY_NOMINAL_2022",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 18226,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2022.csv",
+        "raw_sha256": "c33cb2758e5e34c2c23b7ab759d18681091860f3f9e5960112859f64f31cd814",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2022/all?type=daily_treasury_yield_curve&field_tdr_date_value=2022&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2022"
+    },
+    {
+      "bytes": 9390,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2022.csv",
+        "sha256": "70b21a92a05801c479f1ddaee21137b7f842d43d883d32d57f9bbae272111a48"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2022.csv",
+        "item": "TREASURY_REAL_2022",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9390,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2022.csv",
+        "raw_sha256": "70b21a92a05801c479f1ddaee21137b7f842d43d883d32d57f9bbae272111a48",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2022/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2022&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2022"
+    },
+    {
+      "bytes": 19098,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2023.csv",
+        "sha256": "edb7f3904e11dcaa502cdcc03ad9b1b16c893802d166ce9bc5fa1118251249d4"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2023.csv",
+        "item": "TREASURY_NOMINAL_2023",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 19098,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2023.csv",
+        "raw_sha256": "edb7f3904e11dcaa502cdcc03ad9b1b16c893802d166ce9bc5fa1118251249d4",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2023/all?type=daily_treasury_yield_curve&field_tdr_date_value=2023&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2023"
+    },
+    {
+      "bytes": 9042,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2023.csv",
+        "sha256": "ef28bcafaca75c45bb6b3491b4df4bd1b5e2ab7ff35ac014b6f8362df330c0ca"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2023.csv",
+        "item": "TREASURY_REAL_2023",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9042,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2023.csv",
+        "raw_sha256": "ef28bcafaca75c45bb6b3491b4df4bd1b5e2ab7ff35ac014b6f8362df330c0ca",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2023/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2023&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2023"
+    },
+    {
+      "bytes": 19098,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2024.csv",
+        "sha256": "6775840b76cd7fd41121f61d6f6c60184eca6b2ba49954ec7372c463cbeef34d"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2024.csv",
+        "item": "TREASURY_NOMINAL_2024",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 19098,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2024.csv",
+        "raw_sha256": "6775840b76cd7fd41121f61d6f6c60184eca6b2ba49954ec7372c463cbeef34d",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2024/all?type=daily_treasury_yield_curve&field_tdr_date_value=2024&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2024"
+    },
+    {
+      "bytes": 9042,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2024.csv",
+        "sha256": "d3ff00a9287ebf68fdc80e72fb2d1895a73c84b3ff2a6ca8c6d64648cb470f16"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2024.csv",
+        "item": "TREASURY_REAL_2024",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9042,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2024.csv",
+        "raw_sha256": "d3ff00a9287ebf68fdc80e72fb2d1895a73c84b3ff2a6ca8c6d64648cb470f16",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2024/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2024&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2024"
+    },
+    {
+      "bytes": 20155,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2025.csv",
+        "sha256": "cf2fa3da7f160384b63d2ead698532b1d76cd9f789ce4911e2304db85b14e6d5"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_nominal_2025.csv",
+        "item": "TREASURY_NOMINAL_2025",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 20155,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2025.csv",
+        "raw_sha256": "cf2fa3da7f160384b63d2ead698532b1d76cd9f789ce4911e2304db85b14e6d5",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2025/all?type=daily_treasury_yield_curve&field_tdr_date_value=2025&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2025"
+    },
+    {
+      "bytes": 9006,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2025.csv",
+        "sha256": "d3d3131c41e1f93f4661d227ce7079049d51888b395aaff863b6ad8e08838b64"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "relay:///home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_001/treasury_real_2025.csv",
+        "item": "TREASURY_REAL_2025",
+        "predictor_admitted": false,
+        "provenance": "RELAYED_OPERATOR_BYTES",
+        "raw_bytes": 9006,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2025.csv",
+        "raw_sha256": "d3d3131c41e1f93f4661d227ce7079049d51888b395aaff863b6ad8e08838b64",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2025/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2025&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2025"
+    },
+    {
+      "bytes": 15905,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2026.csv",
+        "sha256": "0e7164f6f348497a4541b61ce9b3e76fc00902c988540d08332a7d956350c764"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+        "item": "TREASURY_NOMINAL_2026",
+        "predictor_admitted": false,
+        "provenance": "DIRECT_HTTPS",
+        "raw_bytes": 15905,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_nominal_2026.csv",
+        "raw_sha256": "0e7164f6f348497a4541b61ce9b3e76fc00902c988540d08332a7d956350c764",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_NOMINAL_2026"
+    },
+    {
+      "bytes": 7062,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2026.csv",
+        "sha256": "2fe4b3a277eae774a79748c4cb8db54a64b1bec5ad4a84cc453a5915a573a509"
+      },
+      "group": "treasury",
+      "record": {
+        "final_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+        "item": "TREASURY_REAL_2026",
+        "predictor_admitted": false,
+        "provenance": "DIRECT_HTTPS",
+        "raw_bytes": 7062,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/TREASURY_YIELDS_SOURCE_20261011_002/treasury_real_2026.csv",
+        "raw_sha256": "2fe4b3a277eae774a79748c4cb8db54a64b1bec5ad4a84cc453a5915a573a509",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_real_yield_curve&field_tdr_date_value=2026&page&_format=csv"
+      },
+      "source_id": "treasury|TREASURY_REAL_2026"
+    },
+    {
+      "bytes": 473584,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CBOE_VIX_SOURCE_20261011_002/VIX_History.csv",
+        "sha256": "51ea1e59bfeaf400f6816300c39145df5e3fb437e7c60bdb8ca2178f8c96f436"
+      },
+      "group": "vix",
+      "record": {
+        "final_url": "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+        "item": "VIX_HISTORY",
+        "predictor_admitted": false,
+        "provenance": "DIRECT_HTTPS",
+        "raw_bytes": 473584,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/CBOE_VIX_SOURCE_20261011_002/VIX_History.csv",
+        "raw_sha256": "51ea1e59bfeaf400f6816300c39145df5e3fb437e7c60bdb8ca2178f8c96f436",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+      },
+      "source_id": "vix|VIX_HISTORY"
+    },
+    {
+      "bytes": 541333,
+      "file": {
+        "path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_HOLDINGS_SOURCE_20261011_003/GLD_historical_archive_live.xlsx",
+        "sha256": "57f07e03e9cb4cdada97405227e8ff642e9d63ffc9a5336e1d7c35da69cedff0"
+      },
+      "group": "gld",
+      "record": {
+        "final_url": "https://api.spdrgoldshares.com/api/v1/historical-archive?product=gld&exchange=NYSE&lang=en",
+        "item": "GLD_HISTORICAL_ARCHIVE_XLSX",
+        "predictor_admitted": false,
+        "provenance": "DIRECT_HTTPS",
+        "raw_bytes": 541333,
+        "raw_path": "/home/andre2/GX1_RUNS/TA_RESEARCH_20260929/GLD_HOLDINGS_SOURCE_20261011_003/GLD_historical_archive_live.xlsx",
+        "raw_sha256": "57f07e03e9cb4cdada97405227e8ff642e9d63ffc9a5336e1d7c35da69cedff0",
+        "revised_after_publication": false,
+        "status": "RETRIEVED_NOT_ADMITTED",
+        "url": "https://api.spdrgoldshares.com/api/v1/historical-archive?product=gld&exchange=NYSE&lang=en"
+      },
+      "source_id": "gld|GLD_HISTORICAL_ARCHIVE_XLSX"
+    }
+  ],
+  "stage": "native_macro_source_keys_20261123_001",
+  "status": "PREPARED_NOT_ADMITTED"
+}

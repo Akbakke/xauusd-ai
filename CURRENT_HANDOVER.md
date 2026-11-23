@@ -104,7 +104,11 @@ eksklusjon er ennå ikke målt; ingen ny modellbit eller numerisk endring
 er begrunnet. OBSERVATION_SEMANTIC_PARTITION001 kryssjekker28blokker,
 388/388regler eksaktén gang og1731/1731felt. Et autentisert tidligprefix-
 vitne kan utelukke de førsteankrene og squeeze-sensur uten fullTRAINreplay;
-dette vitnet er ennå ikke kjørt. Kalender03 og vintage09 er separate beviskrav.
+dette vitnet er ennå ikke kjørt. OBSERVATION_PREFIX_WITNESS_SCOPE001 binder
+femTFstrømmer, sammefrosneparametre og ektecarry. Permanent retest_fail
+er også gyldig terminalt vitne; ikke krev oppdiktetexpiry. Tidligste
+96M5-/252D1-konsumhistorikk må måles, ikke gjettes fra førsteTRAINutstedelse.
+Kalender03 og vintage09 er separate beviskrav.
 
 09UNKNOWN: makro-asof/utgivelseslag er eksplisitt, historisk førstevintage og
 full release-/revisjonsdekning er ikke bevist. MACRO_ORIGIN_VINTAGE_PATH_REVIEW001
@@ -180,13 +184,21 @@ MACRO_SOURCE_KEY_DESIGN001 binder konkret intern blokkering før vintages:
 ingen komplett consumed-source-keymanifest finnes i undersøkte metadata.
 Ny isolert CPU-auditor/testeier er kildekvalifisert:18syntetiske cases PASS
 og faktisk metadatabuilder med deserialisering/publisering blokkert PASS,
-54kildeeiere. Ingen payloadkjøring er admittert.
+54kildeeiere. Plan001 er nå én gang COMPLETE_CONSUMED og stengt.
 Planbudsjettet skal navngi67eksisterende råcontainere/116879913filbytes og
 bare2capture-/2featureklokke-arraymembers,18513536ndarraybytes. Ingen
 signal/ctx/TF-featureverdier, CP, modeller, forwards, fits eller API-kall.
 Drivers krever ærlig tilgang til5primitive kolonner med tilgjengelighet
 før2026 for presence;
 datoaksen alene holder ikke. notna/ffill beholdes, ogsåallmissingdaterader.
+MACRO_SOURCE_KEY_ACCEPTANCE001: faktisk16,918s, peakRSS346796KiB.
+Alle122felt/flater har støtte,0ukjente avhengigheter/ugyldige konsumerte
+primitiver. Signal354645rader bruker21060unike kildenøkler; context354550
+bruker21044, alle er nåbare i signal.16ekstra gjelder signalhistorikken.
+SOURCE_KEYS.json binder full nøkkelliste; ingen tallverdier er skrevet ut.
+27345eligible primitiver er konvertert for presence,0indikatorrekonstruksjon,
+modell/FW/fit/CP/API/TEST. Første hostprobe timetut føradmisjon; en ny
+signert prøve passerteCPU30C/10,11W og59,3GBledig utenvaktendring.
 Dette er kildenøkkelregnskap, ikke kvalifisert historisk førstevintage.
  COTtrenger lag4 observerte rapporter, panelet
 21observerteD1-closekeys, drivers lag1/5/21 påoutermergeddategrid oghver
@@ -220,3 +232,10 @@ MAC_EVIDENCE_BACKUP005:14artefakter/10529954bytes, manifest1896f87e...7b0f5.
 Ny makronøkkelbølge må sikres/publiseres før nyadministrativPASS. IngenDATA/RUNS-rydding.
 Root eier policy/launch/samlet kontroll. Alle20er undersøkt, hovedmålet og
 samlet kvalifikasjon forblir åpne ved3FAIL/4UNKNOWN. Ingen nye epoker startes.
+
+Makronøkkelbølgens30nye artefakter/28497277bytes er separatdiskverifisert i
+MAC_EVIDENCE_BACKUP006; manifestde715ff4...356feb. SOURCE_KEYS.json beholdes
+iRUNS/Mac-sikring, og råverdier/vekter er ikke publiseringsinnhold.
+OpprinneligMAIN har59/62helfilhasher identiske medCURRENT; tre senere
+vakt-/eksaktgjenopptakelsesutvidelser er eksplisitt avstemt. Denne bølgen
+endrer ingen av disse eksisterende kildefilene eller ONLINE-beregningen.
