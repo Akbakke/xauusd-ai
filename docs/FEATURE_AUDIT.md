@@ -62,6 +62,33 @@ TRAIN har 354550 issues i 2021–2025; utviklings-VAL har 34934 issues i første
 halvår 2026. Native TEST fra 01.07.2026 er forseglet. Retningsruten bruker native
 M5 med lukket M15/H1/H4/D1, uten M1-data eller M1-metadata.
 
+## Formelkontrakter og observasjon
+
+Feltvis kildeavstemming dekker 19 produsentgrupper, 388 selvstendige regler og
+1731 feltforekomster. FIELD_CONTRACTS001 i den aktive 20-stegs bevisroten binder
+formler, enheter, parametre, warmup og known/undefined-policy. Alle 388 reglers deklarerte kildekontrakt er avstemt. FIELD_UNIT_AUTHORITY002
+lukker det tidligere enhetsspørsmålet for seks realrate-/breakeven-regler ved
+å binde den deklarerte Treasury-serien til Federal Reserves eksplisitte
+prosentenhet. Nivå er prosent per år; differanser og breakeven er prosentpoeng.
+Det tidligere UNKNOWN-supplementet bevares. Dette verifiserer ikke at reléleverte
+CSV-bytes er autentiske historiske førstevintager; makrokilden er fortsatt åpen.
+Numerisk finitthet er fortsatt ikke bevis for en kjent indikatorverdi eller
+historisk tilgjengelighet. Aktiv kvalifikasjonsstatus eies bare av policy.
+
+To eldre inlinekommentarer beskriver ikke faktisk kode korrekt:
+
+- I `entry_candle_primitives_v1.py` er body-direction duration definert som 1
+  på første observerte bar. Relasjoner til forrige bar har én NaN-prefiksrad;
+  range-relation duration krever et barpar.
+- I `trendline_registry_v1.py` bestemmer fitted band re-entry-geometrien, mens
+  `TRENDLINE_RETEST_WINDOW_BARS_V1=2*SWING_LOOKBACK+1=7` separat begrenser
+  BROKEN-periodens retestmulighet.
+
+FIELD_COMMENT_CORRECTIONS_REVERTED001 binder eksakte symboler/linjer og
+originale fil-/AST-hasher. Inlinekommentarene står igjen fordi de komplette
+filene inngår i den fryste kildeidentiteten. Denne dokumentasjonen korrigerer
+fortolkningen; snapshot, normalisering, beregninger og vekter er uendret.
+
 ## Faktisk kjøring og ubeviste grenser
 
 Den gjenbrukte ferske initialbaselinen kjørte én modell og 6086 forwards over
