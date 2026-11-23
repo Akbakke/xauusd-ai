@@ -1,0 +1,380 @@
+{
+  "TRAIN_issue_ns_sha256": "c0805f39affb9bd80e679e0b41f69a558ea975d0e479ddeee815c7dd370997ea",
+  "budget": {
+    "VAL_TEST_rows": 0,
+    "backward": 0,
+    "canonical_proper_score_calls": 12,
+    "capture_archive_loads": 1,
+    "capture_fields": [
+      "issue_ns",
+      "activity_logits",
+      "side_logits"
+    ],
+    "checkpoint_loads": 0,
+    "fits": 0,
+    "forwards": 0,
+    "models": 0,
+    "optimizer_updates": 0,
+    "source_prices": 0,
+    "target_archive_loads": 1,
+    "target_fields": [
+      "issue_ns",
+      "target_start_ns",
+      "validity_ns",
+      "target_present",
+      "mature",
+      "nominal_complete",
+      "activity_known",
+      "activity",
+      "side_known",
+      "side_up",
+      "state_window_complete",
+      "partial_range_active"
+    ]
+  },
+  "capture_array_headers": {
+    "activity_logits": {
+      "dtype": "<f4",
+      "sha256": "0d0f3dd4c91c4cd1fb5f27e93f09fd826c8ababefab0bfb9887177993c850ee7",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "issue_ns": {
+      "dtype": "<i8",
+      "sha256": "c0805f39affb9bd80e679e0b41f69a558ea975d0e479ddeee815c7dd370997ea",
+      "shape": [
+        354550
+      ]
+    },
+    "selected_positions": {
+      "dtype": "<i8",
+      "sha256": "9fa3aabd86cc726c0dca3e1ac9b6629bc549f3f2524626d69075fa255f382cae",
+      "shape": [
+        354550
+      ]
+    },
+    "side_logits": {
+      "dtype": "<f4",
+      "sha256": "08c0a3c3e5f19aed67a7107f1929ee1dbced1b9fc0cbda6337b363435abc8da6",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "source_rows": {
+      "dtype": "<i8",
+      "sha256": "9fa3aabd86cc726c0dca3e1ac9b6629bc549f3f2524626d69075fa255f382cae",
+      "shape": [
+        354550
+      ]
+    }
+  },
+  "execution": {
+    "class": "audit",
+    "internal_seconds": 570,
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "numerical_threads": 1,
+    "outer_seconds": 600,
+    "swap": "512M"
+  },
+  "inputs": {
+    "capture": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001/CAPTURE.npz",
+      "sha256": "5349c1d6af1696541e5cef2bb201e539155e4ae476c5d9197825fff6909bc98b"
+    },
+    "capture_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001.json",
+      "sha256": "638c32e0e90c6da439eec4db3fb79c70be36bc2689140abe66f7d127ba54717f"
+    },
+    "capture_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001/RESULT.json",
+      "sha256": "ce287ed654746281e679ba847a3f01c1a0df0244e8684d950caeacfa5f68e89a"
+    },
+    "capture_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001/TERMINAL.json",
+      "sha256": "b47b4a90dca1fe7fb2dfb26ab4e70404ebcd82f99bae45dac251a27e212115f6"
+    },
+    "coverage_requirements": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_ALIGNMENT_PREPARATION_20261123_001/COVERAGE_REQUIREMENTS001.json",
+      "sha256": "226d82dd109c297f3af127af3d5afee83900ade6430849349e68cc8a2e26a363"
+    },
+    "dataset": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/FUTURE_STATE_DATASET001.json",
+      "sha256": "109a2738abf020a528765bac95b7cf73e145a88644dda58a0bc8f95c252ffe30"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_ALIGNMENT_PREPARATION_20261123_001/DESIGN001.json",
+      "sha256": "71c8fa5f195d77f3a6fc958c95e0f06cededaee132d5fbcbc1abe035ecb4b64a"
+    },
+    "main_goal": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/ORIGINAL_PROJECT_GOAL.md",
+      "sha256": "4f6014796974d854d37d166a20afe49ccee2c6d3d0cb652e5b0f0a44a6c4bcc3"
+    },
+    "main_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001.json",
+      "sha256": "c3e769fc5468739b576144f2cb2e5bf572d6b662a3c490ee56d8641fde1dd561"
+    },
+    "main_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001/RESULT.json",
+      "sha256": "dcc87287713ba1fb93095cb19026ad4d2cfc08b71229de63d46152bcf79446ef"
+    },
+    "original_model_identity": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_SELECTIVE_MOVE_PREPARATION_20261122_001/SELECTIVE_MOVE_PREREGISTRATION001.json",
+      "sha256": "94e93090a49b62c3a0b17fc0403db6a69993bd140e65f4fa378dd43ed52825c9"
+    },
+    "prior": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/FUTURE_STATE_TRAIN_PRIOR001.json",
+      "sha256": "d441bd6dcb707d2adcc043c2bdf5ea55be51f6a78b586f543d03d5158283e16f"
+    },
+    "target_arrays": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/FUTURE_STATE_TARGETS001.npz",
+      "sha256": "d21b7edd8fbce2afcaecbc7d16ea764d259cf4ed1db219ebb661857acb32f851"
+    }
+  },
+  "output_root": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_ALIGNMENT_20261123_001",
+  "plan_path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_FUTURE_STATE_ALIGNMENT_20261123_001.json",
+  "question": "Is the DOWN failure already present on the model own chosen future high-low0.5ATR endpoint-certificate target, and is conditional side ranking stable within each TRAIN year?",
+  "runtime_versions": {
+    "numpy": "2.2.6",
+    "torch": "2.6.0+cu124"
+  },
+  "schema_version": "gx1_native_future_state_alignment_plan_v1",
+  "score_aggregation": "Each nonempty ALL/year stratum is one CPU float32-logit call per model/prior to the canonical owner; owner computes float64 probability/proper-score sums. Not claimed bitidentical to original E256 sums.",
+  "source_base_commit": "c1ec94d5d950b4dce1e04a395bc0110fb4b00284",
+  "source_owners": {
+    "gx1/audit/assemble_native_m5_gc_inputs_v1.py": "1ec8a0f2de2db90552e56c7eca055c3d2c8f3f06ca05e067b78b50c61e7ca9e1",
+    "gx1/audit/audit_native_selective_moves_v1.py": "0206cd33be3dabf00a3211e1d8fca74c0e5664fe83d68225fa4aeb70533c5b19",
+    "gx1/audit/build_native_m5_direction_targets_v1.py": "161f9751f8648d01ff620a71c071f1ac3062a4ee99d2420b65d0c933c7306f42",
+    "gx1/audit/build_native_m5_gc_raw_components_v1.py": "db2c57e60ed9acbc2b7f00f32c00586e8f0984f9480b6c9d355b7a703c1f5931",
+    "gx1/audit/build_native_m5_ta_feature_cache_v1.py": "2ef80e0580040f5adda2f3afbb07f752a28293a47d883ac86504c7f219323bab",
+    "gx1/audit/diagnose_native_future_state_alignment_v1.py": "cc6a1a480539164a964b794c79b7e16360bf9f7ebef52482355b2e2ca09ef35d",
+    "gx1/audit/measure_native_future_state_throughput_v1.py": "e1e2989a4bd3dc03452251eadfc5b0771aaf6cc4057dbac7ff689748a2dfc6a3",
+    "gx1/audit/native_future_state_training_v1.py": "bd433921c6f226bda6bf42cbe146238d5c676635515fb892d6c36964bb8e32d9",
+    "gx1/audit/qualify_market_state_native_m5_pipeline_v1.py": "65f520c8cc9c6e3cb57dc2e6db030fc8b4dc6568b0a94a8616f60b01fcb104bd",
+    "gx1/audit/qualify_native_m5_full_gc_direction_v1.py": "c80fe2bec2febfa8e990adfc5f7f57213a42b1f58fb3a6de4c7fda5a7ada713d",
+    "gx1/contracts/entry_exit_production_architecture_v1.py": "cdb2d2e08e52de0597cb011bd6350b78f905e0a0a2514db75fc43f81fb9086b2",
+    "gx1/contracts/entry_gc_mtf_history_v1.py": "7e44f6d16c065366a26867e5fb67aff9bbfc47fea4d975db4f4706611244f29b",
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": "1d830c7cb767db699879c6c315f5696854dc1f3bf9fa2021a4020bb76c7c0fa4",
+    "gx1/contracts/entry_model_native_signal_v1.py": "69a819484762dad28194942fd98319be060297dd262c30711e2795515d2f4598",
+    "gx1/contracts/gc_continuous_source_v1.py": "f80ac338e1467788792ee729ff54b309646940fb8eebc7243126eb5ac75cfcb9",
+    "gx1/contracts/gc_native_m5_source_inputs_v1.py": "bc3c53380bc6d7b5b4af1eecae7fe72ac71591a798da808ae59e765849e0e040",
+    "gx1/contracts/gc_order_flow_source_v1.py": "162adee10585e498e8a5f1745a1f753e8a3f6d9d46dec8bf28c61c69ce7baa1f",
+    "gx1/contracts/gc_source_disposition_v1.py": "b2ebde8204e842062a23f9484c2ccdfbd384779c7d7d1389dfaa67b9beb95aae",
+    "gx1/contracts/gx1_capped_execution_v1.py": "3a785511650592f990e644759f13d54da615313272bc1b6a4d6be89434b35563",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_native_m5_feature_inputs_v1.py": "6e062cb5c11ded0dab50f082e7d40e37d505593cdae53874b2398607086930dc",
+    "gx1/contracts/market_state_native_m5_gc_feature_inputs_v1.py": "c6f4fdacea58b9abbf2b9e18526127b94a0ae08f252cdd4a29c77aaacd878e66",
+    "gx1/contracts/market_state_native_m5_targets_v1.py": "1d83e4c04a1e14f067b72a6c4ac2a81af245c77dcb82c3e6320fcbee113c9d4e",
+    "gx1/contracts/market_state_ta_integrated_model_v1.py": "69f8b1f659db1985f3e6691f5dcf3d3b203e746c340e1e73769cb660ab13a67b",
+    "gx1/contracts/market_state_ta_integrated_objective_v1.py": "bf2cf5625b7c84075a1c24ac2448defb43dca71809b9dc9962b38a428d5ba495",
+    "gx1/contracts/model_state_digest_v1.py": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4",
+    "gx1/contracts/native_m5_direction_io_firewall_v1.py": "4ebe5d7a49a8fd719e82f62a5d04ca45489af1dfdc1022475e6044723c170739",
+    "gx1/contracts/registry_hyperparameter_fit_v1.py": "214fa54194e42fe43c94fa022dc87ec0ea1eb16558b092dda0e0cb37b815b197",
+    "gx1/features/basic_v1.py": "30ef4e4e6dc5a0011b13eeb7e11227dbeaa3a44b78c35405e64f7ca655bad220",
+    "gx1/features/d1_macro_context_v1.py": "1d61f70381a912a275115a35bb97b103919bc23515d79faed7016f0985ae3d56",
+    "gx1/features/entry_candle_primitives_v1.py": "3f5a5e4fa3f12233aa5f9e5cc43d00d5cd5d5069fb7625a6690ce606eec4b0d0",
+    "gx1/features/entry_foundation_structure_v1.py": "c3c91476051b2e6552fc3089ca50980a38a5a20060af74b802435c786325e558",
+    "gx1/features/entry_model_native_feature_layers_v1.py": "db85c4c365cac9bf7d89b5f36cd7ea6112f020b7eb26d2ae4d0462659b3c3a1b",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "cf5a6da5374e25627c42b9ab3dde93770a92efd85411e6b8e8431b577c2a9153",
+    "gx1/features/event_age_v1.py": "7c20d98c26f5c94885d9defdfc070eb19df81d6344f0457acdf903b4f6712ef5",
+    "gx1/features/gc_native_context_v1.py": "072819223bb13d970cc349650f608367858500ea1a8989e2833a0bbb7ed464ff",
+    "gx1/features/gc_native_field_catalog_v1.py": "c24d1ce880d55dbff6fe346eac4a21529d9dd906fa56a6e55c417edde5a80b8a",
+    "gx1/features/gc_native_m5_features_v1.py": "6f453e531d37a5238aae4a8d9bfb97fe07e10628dd60cb699c1f3064cb654dc2",
+    "gx1/features/gc_order_flow_v1.py": "8daec9fecc135e1ed510494c31ca993f1757f53e9a73689d97afeeb6771a2a10",
+    "gx1/features/htf_features.py": "3d13c1705c95ddd0e57d93e5c902ef33ed2e6cd24c59cafb24852023e0d0377b",
+    "gx1/features/level_registry_v1.py": "e7304de96c211678f9c6d4a7513d267b1f974c7718fe3a33b8103c71f3a39e02",
+    "gx1/features/micro_structure_v1.py": "761533b9ae31fd268dbe4c075bb7e73f1436076af8372a8efc08fa2d8c1800dd",
+    "gx1/features/model_native_market_context_v1.py": "69f61a52c79711ea58a4c7b2d0e743c01cff6dd3af1e1f1e5f2b4864a12826c2",
+    "gx1/features/smc_v1.py": "56b9fe479e1cdb7dc524179b65e585d890cdd2fef128d47a6cada00692b94d9a",
+    "gx1/features/swing_structure_v1.py": "c46ab4413e5bd5dd7114625fa3539e21ab39f9100341092b73d17e6efdd101e0",
+    "gx1/features/technical_indicators_v1.py": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad",
+    "gx1/features/trendline_registry_v1.py": "24c12e8d4c6f597a331dacecbdc5e9a9ed8fdf6c0b6798ee7c543884d04aee58",
+    "gx1/features/volatility_squeeze_state_v1.py": "652b999a4b058026568b72018be2cf5cf0820d30b12e4f557830986ddeed05dc",
+    "gx1/features/volume_features.py": "31433e540ada7808142805aca353c36fa8de566c88724e7f046aed8f03aef493",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "236ea6d7d9dad3801c2ee06a2115c878c0d773c0630038ef0815d407d18ff1c4",
+    "gx1/scripts/augment_forward_outcome_v2.py": "347e0d7b6235302c4afd8fabd10f9075e25a142a7b49fd5f18c3ed41f730a2c6",
+    "gx1/scripts/fit_volatility_squeeze_artifacts_v1.py": "3b67e8454ef39542dd8a2775e6b7677b1f727335d5474587c08a8f0753831e08",
+    "gx1/scripts/materialize_build_canonical_features_v1.py": "b84ce141598294d2449f9f40b49b7ef8c2563ff8ad832e80664a2f1eb15a1a75",
+    "gx1/scripts/materialize_canonical_v3_augment.py": "f09ec727cac68e8a1a033362fe87276a254b249275fed993ba092afa9be53bae",
+    "gx1/scripts/research_ta_campaign_v1.py": "146d58e5242501827d671341cf5b99ec97b747c56d5e8e1e013b42f3ca03b7e2",
+    "gx1/time/session_detector.py": "ed0189b74ec72a80c9667c470e59c37719e59e549d683cc4b50759855c8e03d8",
+    "scripts/gx1_capped_run.sh": "0c97154564fdc6cbb9759b989e825ed0776033ba357de22b01ff13bfdf93d1e4",
+    "tests/test_audit_native_selective_moves_v1.py": "03b7bd8a6615f7232879ac2fc3707fd99e8de7580e9247f30378bbe30e8367cf",
+    "tests/test_build_native_m5_ta_feature_cache_v1.py": "82d218ea64fe1bb8bdc28131213e8140633e11b8c6bf1db7fd3b24adabc56bd0",
+    "tests/test_diagnose_native_future_state_alignment_v1.py": "1fc4f3df4ae48367e1d385cec11aa99155459549aa0a8f6dfedf05184422ecfc",
+    "tests/test_native_future_state_cpu_mechanics_v1.py": "a3d8208ceb4f34ce50f5693a34bb7bbd48016dce075baa1ec9c82d4ab514af0f",
+    "tests/test_native_future_state_cuda_qualification_v1.py": "9f75e04f642dbe8bf607c0963e34955ef00967435737f13af33868f7fdc23b68",
+    "tests/test_native_future_state_throughput_v1.py": "445757b11f5224dda4618d32d1187eb1ca31cf83e017c39ea068be3a4ef077ca",
+    "tests/test_native_future_state_training_v1.py": "7c8565c3f489a5099c0a55d14e38479f2efb40199c9f4fb3f6a4b003ea649201",
+    "tests/test_qualify_market_state_native_m5_pipeline_v1.py": "95f24b5fbb09531dc19c36a42a533a43d6651b838f7f23ac7a46c410835966e8",
+    "tests/test_qualify_native_m5_full_gc_direction_v1.py": "0862380ef22fc878dfd61f0d0e1e85079025062a40c582f293d16296946b3bcb"
+  },
+  "stage": "native_future_state_alignment_20261123_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "strata": [
+    "ALL",
+    "2021",
+    "2022",
+    "2023",
+    "2024",
+    "2025"
+  ],
+  "target_array_headers": {
+    "activity": {
+      "dtype": "|b1",
+      "sha256": "cab047dd784d7a8f314fcb13a8d5dd731476d4d193d00dadd598aa1a3e019fe0",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "activity_known": {
+      "dtype": "|b1",
+      "sha256": "3c487ba6056899c92ae0822efefdb4974cdcf1bc59037be3bbbe5fbbd2da8716",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "issue_ns": {
+      "dtype": "<i8",
+      "sha256": "c0805f39affb9bd80e679e0b41f69a558ea975d0e479ddeee815c7dd370997ea",
+      "shape": [
+        354550
+      ]
+    },
+    "mature": {
+      "dtype": "|b1",
+      "sha256": "957a71d6f5fc112d6d15c20a53b4fd28e62f13653e4e71e3c8407df116074208",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "nominal_complete": {
+      "dtype": "|b1",
+      "sha256": "29feb6d41ead602a5c46460b8b392c4ba6ff8d14c2d0e2b76d5620e16cae818b",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "partial_range_active": {
+      "dtype": "|b1",
+      "sha256": "77e350bcb232b2af36cb3d722c8e1898702cb0f2bea66b2929809dd3279fc9e5",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "side_known": {
+      "dtype": "|b1",
+      "sha256": "1ebafea58df5cb3cddb03b6db78c1692fcb95c5a3484e1ba79ba07ac43a33e91",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "side_up": {
+      "dtype": "|b1",
+      "sha256": "a8070209e702f9fc3c7e027b7e33b0a8e87ccf3d84102ca74423824867a3fb6b",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "state_window_complete": {
+      "dtype": "|b1",
+      "sha256": "fac8953ba8a30b59f615b7533b815cb8575d11ebc8af07370dc13ca3ac5f42c6",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "target_present": {
+      "dtype": "|b1",
+      "sha256": "1aa90a1205caa72e623238c442eb18234ac4d5ee89cc99e6c8d9f1fbd1e9895d",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "target_start_ns": {
+      "dtype": "<i8",
+      "sha256": "dfdda3166914c0b9b9c38add5b52365e408a3f414822cb6944568b373126f5a2",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "validity_ns": {
+      "dtype": "<i8",
+      "sha256": "054ad8da866c6e5a9db61c14d3d1f759ca304587bc7683cb94ec35783abb6b1d",
+      "shape": [
+        354550,
+        5
+      ]
+    }
+  },
+  "target_contract": {
+    "activity_known": "mature_and_complete_or_explicit_partial_positive_range_certificate",
+    "activity_rule": "positive_observed_range_ge_scale_proves_ACTIVE_complete_range_below_scale_or_exact_zero_proves_FLAT",
+    "activity_scale": "0.5_times_TF_Wilder_ATR14_last_closed_at_issue_no_future_scale",
+    "ambiguous_side": "both_or_neither_material_endpoint_excursions_remain_unknown_no_extrema_order_assumed",
+    "class_order": [
+      "DOWN",
+      "FLAT",
+      "UP"
+    ],
+    "contract_sha256": "f680c6972ebb9b920770cfc68db7ae717b1ea48149fddf061f17f29f193dad5f",
+    "coverage_owner": "gx1.contracts.xau_tape_provenance_v1.scheduled_weekly_closure_mask",
+    "future_bar_contract_sha256": "104cb5991b2f3ec65835e6d3e029c1e51164ed63d157e3b07f1b9852afd926d9",
+    "local_window": "high_low_of_next_entirely_future_TF_bar_operator_choice_20261121",
+    "missing_ATR": "nonzero_range_unknown_no_guessed_scale",
+    "nominal_complete": "retained_strict_calendar_clock_fact_never_overwritten",
+    "observation_fields": [
+      "activity_known",
+      "activity",
+      "side_known",
+      "side_up"
+    ],
+    "partial_range_active": "positive_observed_range_is_lower_bound_only_ACTIVE_can_be_certified_without_complete_window",
+    "probability_limits": "proper_scores_on_observed_support_do_not_establish_unconditional_calibration_or_utility",
+    "production_training_admitted": false,
+    "qualification": "defined_candidate_requires_genuine_coverage_qualification_no_fit_admission",
+    "schema_version": "gx1_native_m5_fully_future_state_dataset_v1",
+    "side_boundary": "positive_scale_ge_is_material_zero_scale_requires_strict_positive_excursion",
+    "side_certificate": "complete_window_unique_material_endpoint_excursion_C_minus_L_vs_H_minus_C_same_scale",
+    "side_known": "requires_known_ACTIVE_complete_window_and_exclusive_endpoint_excursion_certificate",
+    "source_closure_contract": "oanda_complete_true_scheduled_weekly_closure_excluded_v2",
+    "state_endpoint": "complete_window_last_expected_open_M5_close_incomplete_window_last_observed_close_only_no_invented_nominal_end_price",
+    "state_window_complete": "every_expected_M5_start_outside_declared_weekly_closure_present_no_other_missing_bar_excused",
+    "target_arrays_and_metadata_as_model_input": false,
+    "tf_duration_ns": {
+      "D1": 86400000000000,
+      "H1": 3600000000000,
+      "H4": 14400000000000,
+      "M15": 900000000000,
+      "M5": 300000000000
+    },
+    "tf_origin_ns": {
+      "D1": 79200000000000,
+      "H1": 0,
+      "H4": 7200000000000,
+      "M15": 0,
+      "M5": 0
+    },
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "unknown_storage": "false_boolean_payload_is_not_an_observed_class",
+    "zero_range": "complete_exact_zero_is_FLAT_even_zero_or_missing_ATR_no_epsilon"
+  }
+}

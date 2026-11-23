@@ -53,44 +53,69 @@ native_selective_move_preparation_20261122_001 i policy. Begge kjøreporter er
 konsumert/lukket,0gjenstående. Ingen relansering. Ren/pushet sluttkilde3868758f7
 ble bookendet før denne fortsettelsen.
 
-## Nå: avklar egen mål-/prognosesvikt før neste rettelse
+## Ferdig egenfasit-test; nå undersøkes det konkrete dekningshullet
 
-Alle fem globale treningsporter forblir false. Ingen GPU/ny trening/epoke,
-kalibreringsfit, VAL/TEST, Entry/Exit, broker eller handel er innrømmet.
-Ny kildekvalifisering gjelder én CPU-audit av allerede lagrede arrays:
-Er NED-svikten til stede også på modellens EGEN vedtatte high-low/endpointfasit,
-og finnes stabil betinget OPP/NED-rangering i hver TRAIN-årsblokk?
+Brukeren23.11 ber også om dekning på ALLE nødvendige ledd, uten at100%rader
+forveksles med ekte kildedekning, uavhengige mål eller lært kvalitet.
+Alignment001 er COMPLETE13,65s, nullmodell/forward/fit/priser/TEST.
+Plan1ce171f7...89a239, kildec1ec94d5d, RESULT7c166426...3cd127,
+TERMINALa6fa302e...1af1fe; lesegate konsumert/lukket og leaf er stoppet.
+Alle1772750issue×TF-celler er regnet med. Kanonisk12felts truth-SHA/masker/
+klassecounts/unike mål stemmer eksakt med den originale frosne TRAIN-prioren.
+22nye fokuserte tester og faktisk metadata/CLI-preflight PASS.
 
-DESIGN001.json i
-/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_ALIGNMENT_PREPARATION_20261123_001
-SHA71c8fa5f...b4b64a låser354550issues, alle5TF og ALL/2021/2022/2023/2024/2025.
-Kun12kanoniske truthfelt og3capturefelt/prior/metadata. Ingen nye priser,
-modeller, checkpoints, forwards, fits, thresholds, klassekvoter eller vinnerår.
+Retnings-Brier og logloss er svakere enn frossenprior på alle5TF på EGEN
+vedtatt endpointfasit. Betinget side-AUC: M5=0,5300/M15=0,5317/H1=0,5248/
+H4=0,5058/D1=0,5239. H4-rangering under0,5 i2022/23/24. Eget3klasseargmax gir
+NED-recall13,60%M5/1,99%M15/0%H1/H4/D1. Alleår er rapportert, ingen vinner valgt.
+Positiv side-biasderivert på alle5TF viser overpredikert OPP ved faste outputs;
+dette er ikke i seg selv en optimizer-/kodefeil eller bevist eneste årsak.
 
-Gjeldende vedtatte sertifikat beskriver C−L mot H−C ved issue-kausal0,5ATR i
-neste helt framtidige TF-bar. Det er ikke issue-close-retning, first-cross-
-rekkefølge eller latent vendingsstart. Dette er en bevist semantikkforskjell,
-ikke bevist eneste årsak til bias. 1ATR-auditen blir aldri ny treningsfasit
-ved ommerking. Rå open_sign/close_sign er mot forrige TF-bar, ikke C−O.
+Dekning per354550issue-rader (unike target-ID-er er IKKE uavhengige episoder):
 
-Ny audit skal gjenbruke kanoniske masker/proper-scoreeier og frossen TRAINprior,
-rapportere naturlig støtte/ukjent/unikemål, side-AUC/Brier/NLL og uendret
-DOWN/FLAT/UPargmax med tie-regnskap. Samme labels for modell/prior. Årsblokker
-med helTRAIN-vekter/statistikk er bare in-sample strata, aldri kronologisk OOF.
-Gammel current_work-blokkering/next_action om003-driverkvalifisering er rettet.
-22nye fokuserte alignmentcases PASS og faktiske metadata/arkivheaders fra
-66bundne kildeeiere PASS uten arraypayload/modell. Kildekvittering i eROOT.
-SOURCE_COVERAGE_REVIEW001 (f1121704...f91c1) bekrefter220/220 pris-/trendlinjefelt
-i alle256MTF-flater;318=187direkte+33trendlinje+61makro+37kontekst/kalender.
-Providerens observed==isfinite(signal); readiness er derfor en finitthets- og
-historielengdekontroll, ingen uavhengig ekte kildemasketelling. Dette korrigerer
-tidligere sterkere fortolkning uten å påstå at faktisk kilde mangler.
-Formelkorrekthet perindikator, ekte observasjonscensus/makrovintage og lært
-merverdi skal ikke oppgraderes fra disse metadatakontrollene.
+| TF | Komplett state-vindu | Kjent sidefasit | Unike kjente sidemål |
+|---|---:|---:|---:|
+| M5 | 100.00% | 64.58% | 228951 |
+| M15 | 99.96% | 59.20% | 71520 |
+| H1 | 99.79% | 54.46% | 16582 |
+| H4 | 85.52% | 52.75% | 4140 |
+| D1 | 18.14% | 12.57% | 162 |
 
-Neste handling: fokuserte nødvendige tester, kildecommit, eksakt ny CPU-plan,
-CLI-preflight uten payload/CLAIM, én lesegate, én audit, lukk/review/sikre outputs.
-Konkret neste læringsrettelse velges på resultatet, ikke en automatisk fitserie.
+D1 har234komplette av1290unike målbarer og162med kjent side. Nominal streng
+D1-kompletthet er0; statekompletthet bruker bare manifestbundet ukestenging.
+Delvis stor range kan fortsatt bevise AKTIV, så aktivitetsdekning95,34% påD1
+betyr ikke kjent side eller komplett vindu. Ukjent blir aldri gjettet FLAT.
+
+Aktiv ruting er bekreftet:318=187direkte+33trendlinje+61makro+37kontekst;
+220/220pris-/trendlinjefelt finnes i256felt påalle5TF. SOURCE_COVERAGE_REVIEW001
+SHaf1121704...f91c1. Ny presisering OBSERVABILITY_SEMANTICS_CORRECTION001
+SHA7a2ca0b1...6d3fd: provider observed==isfinite(signal) ogreadinessbyggerpå
+finitthet/historielengde. Dette er IKKE uavhengig ekte kildeobservabilitet.
+Tidligere sterkere fortolkning trekkes tilbake; originaltall/paritet beholdes.
+Ingen faktisk datamangel er bevist av dette. Full formel-/observasjonscensus,
+makrofirstvintage, feltvis lært verdi og uavhengig generalisering er UNKNOWN.
+
+Alignmentresultater, kilde, plan og alle reviews er Mac-diskverifisert i
+CURRENT_FUTURE_STATE_ALIGNMENT_COMPLETE_20261123_001, manifest
+ e20efd8a...6ddfe6 (21filer/15866853bytes). Alleoriginalecheckpointsbeholdes.
+
+Aktivt steg er nå native_future_window_coverage_preparation_20261123_001:
+Én CPU-clockaudit av captureissue_ns−300s og8lagrede targetfelt skal reprodusere
+canonical expected/missing/complete på modne vinduer innen TRAINgrid. Alle5TF,
+issuecounts og unike start/end-vinduer, UTC/NY start-/sluttukedag/time og
+gaplengdefordeling. Ingen nye logits/priser/features/model/fit/TEST.
+DESIGN001 i /home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_WINDOW_COVERAGE_PREPARATION_20261123_001
+SHAe37aefa0...46abfe. Ingen daglig/helligdagskalender gjettes fra fravær.
+Dagens OANDA-handelsplan kvalifiserer ikke automatisk2021–25practice-candle-
+kalender; bare ukestenging er bundet i dagens manifest. Public source limits
+SHA d179d363...46aeb0. Ingen tidsforskyvning/labelomskriving for å få grønt.
+
+Clockaudit:14nye fokuserte tester PASS,11kildeeiere/aktuelle headers
+metadataverifisert utenpayload. Neste handling er sourcecommit, eksakt ny
+plan/CLI-preflight og én cappedlesejobb. Deretter
+reproduser de faktiske manglene og velg minste kilde-/kalenderkvalifisering.
+Alle fem globale treningsporter er false. Ingen automatisk ny trening/epoke.
+Hovedmålet ståråpent; gjeldende0,5ATR/high-low-fasit ommerkes ikke til1ATR-testen.
 
 ## Kapasitet og ubeviste grenser
 
