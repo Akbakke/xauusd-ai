@@ -1,0 +1,46 @@
+{
+  "canonical_sources": {
+    "adapter": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_treasury_mac_relay_v1.py",
+      "sha256": "78adb08157266bc67d2d584afa1fb450e3ae1dda4f4ad55af4e0da3cedda5fd8"
+    },
+    "manifest": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_INITIAL_RELEASE_MAC_RELAY_MANIFEST001.json",
+      "sha256": "5be39ed3926dcc740f8594f0b162ccb88dde0127f7cf92a1719027a98825ef51"
+    },
+    "owner": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/audit_native_treasury_vintage_source_v1.py",
+      "sha256": "7fe77d7f1e630ba291f8240181457e6b9a773d93053620639605a1be4adf7324"
+    }
+  },
+  "execution": {
+    "global_wall_seconds": 90,
+    "host": "Mac_Darwin",
+    "request_timeout_seconds": 20,
+    "requests_max": 3
+  },
+  "execution_authorized": false,
+  "local_plan_path": "/Users/andrekildalbakke/GX1_BACKUP/NATIVE_TREASURY_MAC_RELAY_20261123_001.plan.json",
+  "output_root": "/Users/andrekildalbakke/GX1_BACKUP/NATIVE_TREASURY_MAC_RELAY_20261123_001",
+  "plan_path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_TREASURY_MAC_RELAY_20261123_001.json",
+  "policy_path": "/Users/andrekildalbakke/GX1_BACKUP/NATIVE_TREASURY_MAC_RELAY_20261123_001.policy.json",
+  "qualification_scope": "Physical quarantine only; no data-row decode, native input changes or first-vintage PASS.",
+  "schema_version": "gx1_treasury_mac_relay_plan_v1",
+  "source_base_commit": "9037beea6e5c2c7a828134f82003bcbb6e48f68e",
+  "source_copies": {
+    "adapter": {
+      "path": "/Users/andrekildalbakke/GX1_BACKUP/NATIVE_TREASURY_MAC_RELAY_20261123_001.adapter.py",
+      "sha256": "78adb08157266bc67d2d584afa1fb450e3ae1dda4f4ad55af4e0da3cedda5fd8"
+    },
+    "manifest": {
+      "path": "/Users/andrekildalbakke/GX1_BACKUP/NATIVE_TREASURY_MAC_RELAY_20261123_001.manifest.json",
+      "sha256": "5be39ed3926dcc740f8594f0b162ccb88dde0127f7cf92a1719027a98825ef51"
+    },
+    "owner": {
+      "path": "/Users/andrekildalbakke/GX1_BACKUP/NATIVE_TREASURY_MAC_RELAY_20261123_001.owner.py",
+      "sha256": "7fe77d7f1e630ba291f8240181457e6b9a773d93053620639605a1be4adf7324"
+    }
+  },
+  "stage": "native_treasury_mac_relay_20261123_001",
+  "status": "PREPARED_NOT_ADMITTED"
+}

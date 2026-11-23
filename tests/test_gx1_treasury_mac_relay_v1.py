@@ -117,8 +117,46 @@ def test_mac_publish_serializes_before_exclusive_open_and_never_overwrites(tmp_p
     assert (tmp_path/'immutable.bin').read_bytes()==b'first'
 
 
-def test_mac_global_deadline_before_requests_is_consumed_without_HTTP(prepared,monkeypatch):
+def test_mac_expired_budget_before_setup_is_unclaimed_without_HTTP(prepared,monkeypatch):
     plan,sha,_=prepared;calls,_=fake_transport(monkeypatch,plan);ticks=iter((0.,100.))
     monkeypatch.setattr(mac,'time',SimpleNamespace(monotonic=lambda:next(ticks)))
-    with pytest.raises(ValueError,match='TIME_BEFORE_REQUESTS'):mac.run(sha)
-    assert calls==[] and json.loads((mac.ROOT/'TERMINAL.json').read_text())['remaining_invocations']==0
+    with pytest.raises(ValueError,match='GLOBAL_DEADLINE_EXPIRED'):mac.run(sha)
+    assert calls==[] and not mac.ROOT.exists()
+
+
+def test_mac_global_alarm_is_armed_during_inspect_setup(prepared,monkeypatch):
+    plan,sha,_=prepared;calls,timers=fake_transport(monkeypatch,plan)
+    def interrupted_inspect(*a,**k):
+        assert timers and 0<timers[0][1]<=90
+        mac.signal.getsignal(mac.signal.SIGALRM)()
+    monkeypatch.setattr(mac,'inspect',interrupted_inspect)
+    with pytest.raises(TimeoutError,match='GLOBAL_90S_WALL'):mac.run(sha)
+    assert calls==[] and not mac.ROOT.exists()and timers[-1][1]==0
+
+
+def test_mac_expiry_after_first_response_never_probes_second_POST(prepared,monkeypatch):
+    plan,sha,_=prepared;calls,timers=fake_transport(monkeypatch,plan);clock={'now':0.}
+    monkeypatch.setattr(mac,'time',SimpleNamespace(monotonic=lambda:clock['now']))
+    pure=mac.extract_owner(plan['source_copies']['owner']);collect=pure['collect_one']
+    def first_response_then_expire(*a,**k):
+        entry=collect(*a,**k);clock['now']=91.;return entry
+    pure['collect_one']=first_response_then_expire
+    with pytest.raises(ValueError,match='GLOBAL_DEADLINE_EXPIRED'):mac.run(sha)
+    assert len(calls)==1 and not (mac.ROOT/'DGS10_ATTEMPT.json').exists()
+    assert (mac.ROOT/'DGS2_RESPONSE.bin').exists()
+    assert json.loads((mac.ROOT/'TERMINAL.json').read_text())['remaining_invocations']==0
+    assert all(t[1]in (0,20,90)for t in timers)
+
+
+def test_mac_expiry_after_claim_never_probes_first_POST(prepared,monkeypatch):
+    plan,sha,_=prepared;calls,timers=fake_transport(monkeypatch,plan);clock={'now':0.};publish=mac.publish
+    monkeypatch.setattr(mac,'time',SimpleNamespace(monotonic=lambda:clock['now']))
+    def claim_then_expire(name,value):
+        binding=publish(name,value)
+        if name=='CLAIM.json':clock['now']=91.
+        return binding
+    monkeypatch.setattr(mac,'publish',claim_then_expire)
+    with pytest.raises(ValueError,match='GLOBAL_DEADLINE_EXPIRED'):mac.run(sha)
+    assert calls==[] and not (mac.ROOT/'DGS2_ATTEMPT.json').exists()
+    assert json.loads((mac.ROOT/'TERMINAL.json').read_text())['remaining_invocations']==0
+    assert all(t[1]in (0,90)for t in timers)

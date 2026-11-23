@@ -159,13 +159,15 @@ opptakelsesutvidelser er eksplisitt avstemt, ikke endret i denne bølgen.
 Root eier policy/launch/samlet kontroll. Alle nye kildetester/metadatasmoke/prefix/D1jobber er ferdige og stengt;
 Treasury001 feilet trygt utenHTTPrespons. Sikre/push/opphavskontroll og
 oppdater20stegsstatus uten å oppgradere åpne lærings-/datakrav. Neste
-makrorute er nå særskilt manifestert: TREASURY_INITIAL_RELEASE_MAC_RELAY_
-MANIFEST001 SHA5be39ed3...25ef51. SHA-identisk liten stdlib-adapter fra
-CURRENT tilMac; max3POST/20s wall/1MiB,90s totalt, ingen proxy/redirect/
-retry/auth/cookie. Macnett er ikke WSLcgroup; senere WSLbyte-/ZIPkontroll
-beholder4G/512M/éntråd. NyMacadapter/test:8fokusertecasesPASS etterfixtureisolering avpytestTorch;
-produksjonsvaktenuendret. Faktisk blokkertmetadatabuilderPASS/0HTTP/payload/
-ROOT/CLAIM. SOURCE_QUALIFICATION001 binderkilden. IngenfysiskMacinnhenting/
-plan/admisjon ennå.
-Proxyvariabler/getproxies var
-fraværende/tomme på beggeverter i metadatareview, ingen blokkering bevist.
+makrorute002 er nå særskilt manifestert: TREASURY_INITIAL_RELEASE_MAC_RELAY_
+MANIFEST002 SHAef52c186...0cda5e. SHA-identisk liten stdlib-adapter fra
+CURRENT tilMac; max3POST/20s wall/1MiB,90s globalalarm før oppsett/CLAIM,
+positiv resttid før hver POST. Ingen proxy/redirect/retry/auth/cookie.
+Macnett er ikkeWSLcgroup; senereWSLbytekontroll capped4G/512M/éntråd.
+001 ble lukket førMacfiler/ROOT/HTTP: ufullstendigglobalvakt fanget i
+uavhengigreview. Originalplan/kvalifisering/ERRATUM001 beholdes,0kall.
+002kildekvalifisering:11fokusertecasesPASS inkl4fristtilfeller; faktisk
+blokkertmetadatabuilderPASS/0HTTP/payload/ROOT/CLAIM/heavyimports.
+ProduksjonensTorch/TLS/byte/ZIP-vakter oggammelHTTPeier uendret.
+Ingen fysiskMacinnhenting/002plan/admisjon ennå. Proxyvariabler/getproxies
+varfraværende/tomme påbeggeverter; ruteblokkering erikke bevist.

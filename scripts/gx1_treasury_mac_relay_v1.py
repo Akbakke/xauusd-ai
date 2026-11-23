@@ -6,13 +6,13 @@ from pathlib import Path,PurePosixPath
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request,ProxyHandler,HTTPRedirectHandler,HTTPSHandler,build_opener
-BASE=Path('/Users/andrekildalbakke/GX1_BACKUP');NAME='NATIVE_TREASURY_MAC_RELAY_20261123_001'
+BASE=Path('/Users/andrekildalbakke/GX1_BACKUP');NAME='NATIVE_TREASURY_MAC_RELAY_20261123_002'
 ROOT=BASE/NAME;PLAN=BASE/(NAME+'.plan.json');POLICY=BASE/(NAME+'.policy.json')
 REMOTE=Path('/home/andre2/src/GX1_CURRENT');SELF='scripts/gx1_treasury_mac_relay_v1.py'
-REMOTE_PLAN=REMOTE/'configs/research'/(NAME+'.json');STAGE='native_treasury_mac_relay_20261123_001'
+REMOTE_PLAN=REMOTE/'configs/research'/(NAME+'.json');STAGE='native_treasury_mac_relay_20261123_002'
 OWNER=REMOTE/'gx1/audit/audit_native_treasury_vintage_source_v1.py';OWNER_SHA='7fe77d7f1e630ba291f8240181457e6b9a773d93053620639605a1be4adf7324'
-MANIFEST=Path('/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_INITIAL_RELEASE_MAC_RELAY_MANIFEST001.json')
-MANIFEST_SHA='5be39ed3926dcc740f8594f0b162ccb88dde0127f7cf92a1719027a98825ef51'
+MANIFEST=Path('/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_INITIAL_RELEASE_MAC_RELAY_MANIFEST002.json')
+MANIFEST_SHA='ef52c18697143c8db0c4c1d1aa67b0083828de0f17bb62eb8c0e2c02eb0cda5e'
 FUNCTIONS=('need','body_bytes','audit_event','NoRedirect','make_opener','fetch_response','safe_member','csv_header_candidate','inspect_zip','collect_one')
 FLAGS=('training_enabled','native_training_enabled','native_launch_authorized','full_epoch_training_allowed','full_val_allowed')
 EXECUTION={'host':'Mac_Darwin','global_wall_seconds':90,'request_timeout_seconds':20,'requests_max':3}
@@ -104,26 +104,32 @@ def bookends(plan,binding,policy_ref):
 
 
 def run(plan_sha):
-    began=time.monotonic();deadline=began+90;plan,binding,policy_ref,manifest=inspect(plan_sha,admitted=True)
-    pure=extract_owner(plan['source_copies']['owner']);sys.addaudithook(pure['audit_event']);ROOT.mkdir(mode=0o700,exist_ok=False)
-    handlers={s:signal.getsignal(s)for s in (signal.SIGALRM,signal.SIGTERM,signal.SIGINT)};claim=result=None;attempts=[]
+    began=time.monotonic();deadline=began+90;handlers={s:signal.getsignal(s)for s in (signal.SIGALRM,signal.SIGTERM,signal.SIGINT)}
+    pure=None;plan=binding=policy_ref=None;claim=result=None;attempts=[];root_created=False
+    def remaining():
+        seconds=deadline-time.monotonic();need(seconds>0,'GLOBAL_DEADLINE_EXPIRED');return seconds
+    def expired(*_):raise TimeoutError('TREASURY_MAC_REQUEST_20S_WALL'if pure is not None and pure['_HTTP']is not None else'TREASURY_MAC_GLOBAL_90S_WALL')
+    def stopped(s,*_):raise InterruptedError('TREASURY_MAC_EXTERNAL_SIGNAL_'+str(s))
     try:
-        def expired(*_):raise TimeoutError('TREASURY_MAC_REQUEST_20S_WALL'if pure['_HTTP']is not None else'TREASURY_MAC_GLOBAL_90S_WALL')
-        def stopped(s,*_):raise InterruptedError('TREASURY_MAC_EXTERNAL_SIGNAL_'+str(s))
         signal.signal(signal.SIGALRM,expired);signal.signal(signal.SIGTERM,stopped);signal.signal(signal.SIGINT,stopped)
+        signal.setitimer(signal.ITIMER_REAL,remaining())
+        plan,binding,policy_ref,manifest=inspect(plan_sha,admitted=True);remaining()
+        pure=extract_owner(plan['source_copies']['owner']);remaining();sys.addaudithook(pure['audit_event'])
+        ROOT.mkdir(mode=0o700,exist_ok=False);root_created=True
         claim=publish('CLAIM.json',{'stage':STAGE,'plan':binding,'policy_at_claim':policy_ref,'pid':os.getpid(),'host':'Mac_Darwin',
             'source_origin':'DIRECT_HTTPS','WSL_cgroup_claim':False,'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
-        need(deadline>time.monotonic(),'TIME_BEFORE_REQUESTS')
+        remaining()
         for item in manifest['series']:
-            need(pure['_HTTP']is None and len(attempts)<3,'ONE_REQUEST_PER_SERIES');pure['_HTTP']={'url':item['url'],'body':pure['body_bytes'](item),'seen':False}
-            signal.setitimer(signal.ITIMER_REAL,min(20,max(.001,deadline-time.monotonic())))
+            need(pure['_HTTP']is None and len(attempts)<3,'ONE_REQUEST_PER_SERIES');seconds=remaining()
+            pure['_HTTP']={'url':item['url'],'body':pure['body_bytes'](item),'seen':False}
+            signal.setitimer(signal.ITIMER_REAL,min(20,seconds))
             try:entry=pure['collect_one'](item,attempts)
             finally:
                 if attempts:
                     attempts[-1].update(urllib_request_event_seen=pure['_HTTP']['seen'],source_origin='DIRECT_HTTPS',retrieval_host='Mac_Darwin',
                         TLS_context='ssl.create_default_context; CERT_REQUIRED; check_hostname=True',relay_verification_status='NOT_PERFORMED_HERE')
-                pure['_HTTP']=None;signal.setitimer(signal.ITIMER_REAL,max(.001,deadline-time.monotonic()))
-            need(entry['status']=='PHYSICAL_ZIP_AND_HEADER_CANDIDATES_ONLY'and entry['urllib_request_event_seen'],'RESPONSE_FAILED_CONSUMED')
+                pure['_HTTP']=None;seconds=deadline-time.monotonic();signal.setitimer(signal.ITIMER_REAL,seconds if seconds>0 else 0)
+            remaining();need(entry['status']=='PHYSICAL_ZIP_AND_HEADER_CANDIDATES_ONLY'and entry['urllib_request_event_seen'],'RESPONSE_FAILED_CONSUMED')
         ending=bookends(plan,binding,policy_ref);need(len(attempts)==3 and len(ending)==3 and all(ending.values()),'SOURCE_PLAN_POLICY_BOOKEND')
         result=publish('RESULT.json',{'status':'COMPLETE_MAC_PHYSICAL_TREASURY_REFERENCE','stage':STAGE,'plan':binding,'claim':claim,'attempts':attempts,'bookends':ending,
             'source_origin':'DIRECT_HTTPS','retrieval_host':'Mac_Darwin','WSL_cgroup_claim':False,'relay_verification_status':'NOT_PERFORMED_HERE',
@@ -133,7 +139,10 @@ def run(plan_sha):
         terminal=publish('TERMINAL.json',{'status':'COMPLETE','exit_code':0,'stage':STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'test_data_used':False})
         return {'result':result,'terminal':terminal}
     except BaseException as error:
-        pure['_HTTP']=None;signal.setitimer(signal.ITIMER_REAL,0);ending=bookends(plan,binding,policy_ref)
+        signal.setitimer(signal.ITIMER_REAL,0)
+        if pure is not None:pure['_HTTP']=None
+        if not root_created:raise
+        ending=bookends(plan,binding,policy_ref)
         if result is None:result=publish('RESULT.json',{'status':'FAILED_CONSUMED_MAC_PHYSICAL_REFERENCE','stage':STAGE,'plan':binding,'claim':claim,'attempts':attempts,'bookends':ending,
             'source_origin':'DIRECT_HTTPS','retrieval_host':'Mac_Darwin','HTTP_POST_attempts':sum(x.get('urllib_request_event_seen',False)for x in attempts),
             'error_type':type(error).__name__,'error':str(error)[:1000],'schema_status':'UNKNOWN','first_vintage_status':'UNKNOWN_NOT_QUALIFIED',
@@ -141,7 +150,8 @@ def run(plan_sha):
         publish('TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'stage':STAGE,'plan':binding,'claim':claim,'result':result,'bookends':ending,
             'remaining_invocations':0,'relaunch_allowed':False,'error_type':type(error).__name__,'error':str(error)[:1000],'test_data_used':False});raise
     finally:
-        pure['_HTTP']=None;signal.setitimer(signal.ITIMER_REAL,0)
+        if pure is not None:pure['_HTTP']=None
+        signal.setitimer(signal.ITIMER_REAL,0)
         for s,h in handlers.items():signal.signal(s,h)
 
 
