@@ -130,6 +130,7 @@ def run(sha):
  except BaseException as error:pub(ROOT,'TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'plan':binding,'claim':claim,'error':type(error).__name__+':'+str(error)[:1800],'remaining_invocations':0,'relaunch_allowed':False});raise
  finally:signal.setitimer(signal.ITIMER_REAL,0)
 def main():
+ if sys.argv[1:2]==['--resume-plan-sha256']:return main_resume()
  from gx1.contracts.gx1_capped_execution_v1 import require_native_provider_hlc_learning_execution
  p=argparse.ArgumentParser();p.add_argument('--plan-sha256',required=True);p.add_argument('--preflight',action='store_true');a=p.parse_args();need(sys.argv[1:]==['--plan-sha256',a.plan_sha256]+(['--preflight']if a.preflight else[]),'EXACT_CLI')
  if a.preflight:
@@ -357,5 +358,219 @@ def quality_panels(context, outputs):
         'binary_argmax': 'Positive only logit>0, negative only logit<0; exact ties receive neither side.',
         'interpretation': 'Fixed whole-TRAIN fit diagnostics only. Proper-score improvement is not absolute calibration proof; argmax counts impose no class quota. Repeated TF targets are dependent. No chronological generalization, economic edge or run admission.',
     }
+
+# Cursor512 resume authority: additive orchestration only.
+RESUME_NAME='NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_001'
+RESUME_STAGE=RESUME_NAME.lower();RESUME_PLAN=REPO/'configs/research'/(RESUME_NAME+'.json');RESUME_ROOT=ROOT.parent/RESUME_NAME
+RESUME_ANCHOR='aa6f23bb6ad0d867fc23f3604b8399e89b633ed6'
+RESUME_PRODUCER='3bd2cde102afedf81f047e9804e90765b09aad02'
+RESUME_TEST='tests/test_native_provider_hlc_learning_resume_v1.py'
+RESUME_GUARD_TEST='tests/test_native_provider_hlc_learning_resume_guard_v1.py'
+RESUME_CURSOR=512
+RESUME_LIMITS={'model_constructions':1,'optimizer_constructions':1,'feature_cache_payload_loads':1,'target_archive_loads':1,'model_forwards':4567,'backbone_forwards':4567,'readout_forwards':4567,'optimizer_steps':3182,'backward_calls':3182,'autograd_calls':0,'skipped_batches':0,'checkpoint_writes':13,'checkpoint_readbacks':13,'checkpoint_receipt_writes':13,'checkpoint_loads':1,'model_restores':1}
+RESUME_INPUTS={
+ 'original_plan':{'path':str(PLAN),'sha256':'68dd2bf33283ed72109e835228f964d54ebf075eb37297aba8a21d2b7826860c'},
+ 'checkpoint_receipt':{'path':str(ROOT/'UPDATE000512.json'),'sha256':'24ccf435e4c6d93ebb13a97e5ce613a5254d0aa58c61607f2bb27a290fd9693f'},
+ 'original_checkpoint':{'path':str(ROOT/'UPDATE000512.pt'),'sha256':'0b2d66011cb364da73d104be43d83951c9ff2945f836edae8f570886519563b1'},
+ 'original_claim':{'path':str(ROOT/'CLAIM.json'),'sha256':'4b2e129e17757768fba79ce8cb1453edeb889ac8f32eb28893f2960b2abf9446'},
+ 'original_terminal':{'path':str(ROOT/'TERMINAL.json'),'sha256':'170bf60151210a3aeb867a8359ef18b309925c39d9c778bcebe788b9139991fc'},
+ 'original_admitted_policy':{'path':str(E/'POLICY_PROVIDER_HLC_LEARNING_ADMITTED001.json'),'sha256':'021184bfd57ce487c2987eba0ffa0bb3120d3423ca0b75d37a080fad44186f51'},
+ 'original_stop_review':{'path':str(E/'PROVIDER_HLC_LEARNING_STOP_REVIEW001.json'),'sha256':'35cd2828d4686da03cce9aad4e19a3b83aef0f8a18c7319d2d82ee0a54555a7b'},
+ 'original_backup':{'path':str(E/'PROVIDER_HLC_LEARNING_STOP_BACKUP001.json'),'sha256':'e7a1922cd63de2604a94d09eb8ead331a1a628e4e5f723adc16da8827c65baaa'}}
+
+
+def resume_gate(binding,admitted=False):
+ return {'status':'ADMITTED_EXACT_V2_CURSOR512_REMAINING_EPOCH'if admitted else'PREPARED_CLOSED_NOT_ADMITTED','plan':binding,'remaining_invocations':int(admitted),'execution_authorized':admitted,'full_epoch_training_allowed':admitted,'additional_epochs_allowed':False,'test_authorized':False,'relaunch_allowed':False}
+
+
+def resume_reference(binding,expected_path=None):
+ path=train.require_recovery_ref(binding,expected_path=expected_path,suffix=Path(binding['path']).suffix)
+ need(path.is_file()and not path.is_symlink()and path.resolve()==path and ref(path)==binding,'RESUME_CANONICAL_REFERENCE')
+ return path
+
+
+def resume_source_bridge():
+ before=subprocess.check_output(['git','show',RESUME_ANCHOR+':'+SELF],cwd=REPO);after=(REPO/SELF).read_bytes()
+ start=b'# Cursor512 resume authority: additive orchestration only.\n';end=b'# End cursor512 resume authority.\n\n'
+ need(after.count(start)==after.count(end)==1,'RESUME_SINGLE_ADDITIVE_BLOCK')
+ first,tail=after.split(start);_,last=tail.split(end)
+ dispatch=b" if sys.argv[1:2]==['--resume-plan-sha256']:return main_resume()\n"
+ need(first.count(dispatch)==1 and before==first.replace(dispatch,b'')+last,'RESUME_OLD_OWNER_BYTES_UNCHANGED_EXCEPT_DISPATCH')
+ return {'anchor':RESUME_ANCHOR,'owner':SELF,'original_sha256':hashlib.sha256(before).hexdigest(),'current_sha256':hashlib.sha256(after).hexdigest(),'old_numeric_bytes_and_AST_preserved':True,'old_main_only_change':'exact_first_token_resume_dispatch'}
+
+
+def resume_original_metadata(original,inputs):
+ """Authenticate original receipt and closure without deserializing tensor payloads."""
+ need({key:inputs[key]for key in RESUME_INPUTS}==RESUME_INPUTS,'RESUME_EXACT_ORIGINAL_REFS')
+ for key,binding in inputs.items():resume_reference(binding)
+ original_ref=inputs['original_plan'];receipt=read(inputs['checkpoint_receipt']);traj=trajectory(original)
+ need(original['schema_version']=='gx1_native_provider_hlc_one_epoch_plan_v1'and original['stage']==STAGE
+      and original['source_commit']==RESUME_PRODUCER and original['output_root']==str(ROOT)
+      and original['execution']==EXECUTION and original['backbone_gradient_policy']=='M5_primary','RESUME_ORIGINAL_PLAN_IDENTITY')
+ schedule=original['schedule'];recipe=original['recipe']
+ need(schedule['rows']==354550 and schedule['logical_batches']==schedule['batches_per_pass']==3694
+      and schedule['passes']==recipe['passes']==1 and schedule['optimizer_updates']==3694
+      and schedule['skipped_batches']==0 and len(schedule['update_flags'])==3694
+      and all(flag is True for flag in schedule['update_flags'])and recipe['train_batch_rows']==96
+      and recipe['eval_batch_rows']==256 and recipe['checkpoint_every_optimizer_updates']==256,'RESUME_SAME_EPOCH_RECIPE_CLOCK')
+ keys={'schema_version','checkpoint','original_plan','execution_plan','producer_lane','producer_runtime','logical_cursor','optimizer_updates','trajectory_sha256','proof'}
+ need(type(receipt)is dict and set(receipt)==keys,'RESUME_RECEIPT_SCHEMA')
+ proof=train.require_recovery_checkpoint_proof(receipt['proof'])
+ need(receipt['schema_version']=='gx1_native_future_state_training_checkpoint_receipt_v1'
+      and receipt['checkpoint']==inputs['original_checkpoint']and receipt['original_plan']==receipt['execution_plan']==original_ref
+      and receipt['producer_lane']=='main'and type(receipt['logical_cursor'])is int and type(receipt['optimizer_updates'])is int
+      and receipt['logical_cursor']==receipt['optimizer_updates']==RESUME_CURSOR
+      and receipt['trajectory_sha256']==traj['contract_sha256']and proof['trajectory']==core.state_sha(traj)
+      and proof['position']==core.state_sha(train.position(schedule,RESUME_CURSOR))
+      and proof['scheduler_state']==core.state_sha(None)and proof['training']==core.state_sha(True)
+      and proof['scores']==core.state_sha({'INITIAL':{'reused_qualified_result':original['inputs']['baseline_result'],'no_repeated_initial_forwards':True}}),'RESUME_AUTHENTIC_CURSOR512_PROOFS')
+ core.future_cuda_runtime_matches(original['metadata']['runtime'],receipt['producer_runtime'])
+ claim=read(inputs['original_claim']);terminal=read(inputs['original_terminal']);policy=read(inputs['original_admitted_policy'])
+ train.require_recovery_ref(claim['policy_at_claim'],expected_path=POLICY)
+ need(claim['plan']==original_ref and claim['policy_at_claim']['sha256']==inputs['original_admitted_policy']['sha256']
+      and claim['runtime']==receipt['producer_runtime']and claim['remaining_invocations']==0
+      and claim['TRAIN_diagnostic_only']is True,'RESUME_FROZEN_ORIGINAL_CLAIM_POLICY')
+ validate_flags(policy,True);need(policy[STAGE]==gate(original_ref,True),'RESUME_FROZEN_ORIGINAL_ADMISSION')
+ need(terminal['status']=='FAILED_CONSUMED'and terminal['exit_code']==1 and terminal['plan']==original_ref
+      and terminal['claim']==inputs['original_claim']and terminal['remaining_invocations']==0
+      and terminal['relaunch_allowed']is False and 'result'not in terminal,'RESUME_FAILED_ORIGINAL_TERMINAL')
+ core.future_cpu_parent_stopped(claim['process_identity'])
+ review=read(inputs['original_stop_review']);backup=read(inputs['original_backup'])
+ need(review['plan']==original_ref and review['original_process_stopped']is True and review['completed_epoch']is False
+      and review['last_durable_cursor']==512 and review['last_durable_rows']==49152
+      and {k:review['last_durable_checkpoint'][k]for k in ('path','sha256')}==inputs['original_checkpoint']
+      and {k:review['last_durable_receipt'][k]for k in ('path','sha256')}==inputs['checkpoint_receipt']
+      and review['guard_stop_reason']=='host_maintenance_active','RESUME_STOP_REVIEW')
+ need(backup['schema_version']=='gx1_bound_separate_disk_backup_ack_v1'
+      and backup['status']=='PASS_INITIAL_AND_DURABLE256_512_CHECKPOINTS_AND_ORIGINAL_RECEIPTS'
+      and backup['Mac_F_FULLFSYNC_and_disk_SHA_readback']is True and backup['checkpoint_files']==3
+      and backup['files']==32 and backup['total_bytes']==248176021,'RESUME_ORIGINALS_SEPARATELY_SECURED')
+ return receipt,traj
+
+
+def build_resume_plan(runtime,source_commit=None):
+ from gx1.contracts.gx1_capped_execution_v1 import native_provider_hlc_learning_resume_source_bridge
+ from gx1.contracts.market_state_ta_integrated_model_v1 import native_future_state_model_contract
+ core.future_cuda_require_runtime(runtime);need(source_commit in (None,runtime['source_commit']),'RESUME_RUNTIME_SOURCE_IDENTITY')
+ original=read(RESUME_INPUTS['original_plan']);inputs={**original['inputs'],**RESUME_INPUTS}
+ receipt,traj=resume_original_metadata(original,inputs)
+ train.runtime_compatible(traj['runtime_compatibility'],runtime)
+ meta=original['metadata'];binding=read(meta['input_binding_ref']);normalization=read(meta['normalization'])
+ need(binding==meta['input_binding']and binding['input_normalization_sha256']==normalization['contract_sha256']
+      and binding['feature_provider_contract_sha256']==normalization['feature_provider_contract_sha256'],'RESUME_PHYSICAL_FEATURE_NORMALIZATION_IDENTITY')
+ contract=native_future_state_model_contract(binding,architecture=meta['architecture'],train_prior=read(meta['prior']),target_contract=meta['target_contract'],backbone_gradient_policy='M5_primary')
+ initial=original['initial_reference'];need(contract==original['model_contract']
+      and initial['model_contract_sha256']==contract['contract_sha256']
+      and initial['target_contract_sha256']==meta['target_contract']['contract_sha256']
+      and initial==read(original['inputs']['baseline_initial_receipt']),'RESUME_SAME_INITIAL_FUNCTION_CONTRACT')
+ for name,digest in original['source_owners'].items():
+  need(hashlib.sha256(subprocess.check_output(['git','show',RESUME_PRODUCER+':'+name],cwd=REPO)).hexdigest()==digest,'RESUME_ORIGINAL_SOURCE_GIT_IDENTITY')
+  if name not in (*GUARDS,SELF):need(ref(REPO/name)['sha256']==digest,'RESUME_UNCHANGED_NUMERIC_OWNER_'+name)
+ bridge=resume_source_bridge();guard_hashes={name:hashlib.sha256(subprocess.check_output(['git','show',RESUME_ANCHOR+':'+name],cwd=REPO)).hexdigest()for name in GUARDS}
+ owners=set(original['source_owners'])|{RESUME_TEST,RESUME_GUARD_TEST};limits=copy.deepcopy(RESUME_LIMITS)
+ return {'schema_version':'gx1_native_provider_hlc_remaining_epoch_plan_v1','stage':RESUME_STAGE,'source_commit':source_commit or runtime['source_commit'],'source_owners':{name:ref(REPO/name)['sha256']for name in sorted(owners)},'source_bridge':bridge,'guard_source_bridge':native_provider_hlc_learning_resume_source_bridge(guard_hashes,producer_commit=RESUME_ANCHOR),'metadata':{'original':original,'original_plan':RESUME_INPUTS['original_plan'],'receipt':receipt,'trajectory':traj,'runtime':runtime},'inputs':inputs,'recipe':copy.deepcopy(original['recipe']),'schedule':copy.deepcopy(original['schedule']),'model_contract':contract,'initial_reference':copy.deepcopy(initial),'backbone_gradient_policy':'M5_primary','starting_cursor':512,'remaining_TRAIN_rows':305398,'remaining_FINAL_rows':354550,'execution':EXECUTION,'limits':limits,'output_root':str(RESUME_ROOT),'scientific_scope':copy.deepcopy(original['scientific_scope']),'authority':'EXACT_ORIGINAL_EPOCH_SUFFIX_FROM_DURABLE_CURSOR512_NO_NEW_EPOCH_VAL_TEST_SELECTION_OR_EDGE','original_trajectory_preserved_verbatim':True,'new_INITIAL_writes':0}
+
+
+def check_resume_sources_inputs(plan):
+ check_sources_inputs(plan)
+ for binding in plan['inputs'].values():resume_reference(binding)
+
+
+def inspect_resume(sha,admitted):
+ binding={'path':str(RESUME_PLAN),'sha256':sha};resume_reference(binding,RESUME_PLAN);plan=read(binding)
+ need(plan==build_resume_plan(plan['metadata']['runtime'],plan['source_commit']),'RESUME_EXACT_PLAN');check_resume_sources_inputs(plan)
+ pref=ref(POLICY);policy=read(pref);validate_flags(policy,admitted);need(policy[RESUME_STAGE]==resume_gate(binding,admitted),'RESUME_ONE_USE_GATE')
+ old=policy[STAGE];need(old['plan']==plan['metadata']['original_plan']and old['remaining_invocations']==0
+      and all(old[key]is False for key in ('execution_authorized','full_epoch_training_allowed','additional_epochs_allowed','test_authorized','relaunch_allowed')),'RESUME_ORIGINAL_GATE_CLOSED')
+ need(not RESUME_ROOT.exists()and not RESUME_ROOT.is_symlink(),'RESUME_FRESH_OUTPUT')
+ live=core.collect_future_cuda_runtime_metadata();core.future_cuda_runtime_matches(plan['metadata']['runtime'],live)
+ return plan,binding,pref,live
+
+
+def physical_resume(plan,binding,pref,live):
+ import torch
+ from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_future_state_model
+ from gx1.contracts.market_state_ta_integrated_objective_v1 import _native_future_state_truth
+ began=time.monotonic();meta=plan['metadata'];original=meta['original'];receipt=meta['receipt'];traj=meta['trajectory'];counts=dict.fromkeys(plan['limits'],0)
+ context=adapter.load_context(original['metadata']);counts['feature_cache_payload_loads']=counts['target_archive_loads']=1
+ batches=core.all_score_batches(np.arange(len(context['source_rows']),dtype=np.int64),original['recipe']['train_batch_rows']);need(len(batches)==original['schedule']['logical_batches'],'RESUME_FULL_CLOCK_BATCHES')
+ for j,take in enumerate(batches):need(core.digest(context['source_rows'][take])==original['schedule']['batch_source_rows_sha256'][j]and core.digest(context['truth']['issue_ns'][take])==original['schedule']['batch_issue_ns_sha256'][j],'RESUME_WHOLE_CLOCK_BINDING')
+ core.future_cuda_seed_and_runtime({'recipe':original['recipe'],'metadata':{'runtime':live}})
+ model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=context['input_binding'],architecture=original['metadata']['architecture'],device=torch.device('cuda'),train_prior=context['prior'],target_contract=context['target_contract'],backbone_gradient_policy='M5_primary');counts['model_constructions']=1
+ initial=original['initial_reference'];need(model.research_objective==original['model_contract']and core.state_sha(model.state_dict())==initial['model_state_sha256']and core.state_sha(core.training_rng())==initial['rng_sha256'],'RESUME_FRESH_QUALIFIED_INITIAL_STATE_RNG')
+ optimizer=torch.optim.AdamW(model.parameters(),**original['recipe']['optimizer']);counts['optimizer_constructions']=1;need(not optimizer.state,'RESUME_EMPTY_FRESH_OPTIMIZER')
+ resume_reference(receipt['checkpoint'],ROOT/'UPDATE000512.pt');cp=torch.load(receipt['checkpoint']['path'],map_location='cpu',weights_only=True);counts['checkpoint_loads']=1
+ need(cp['producer']=={'original_plan':meta['original_plan'],'lane':receipt['producer_lane'],'runtime':receipt['producer_runtime']},'RESUME_ACTUAL_CHECKPOINT_PRODUCER')
+ restored=train.strict_restore(model,optimizer,cp,trajectory=traj,original_plan_ref=meta['original_plan'],expected_cursor=512,current_runtime=live,expected_state_proof=receipt['proof'])
+ need(restored==train.position(original['schedule'],512),'RESUME_RESTORED_EXACT_POSITION');counts['model_restores']=1
+ restore_proof=pub(RESUME_ROOT,'RESTORE512_PROOF.json',{'status':'PASS_CANONICAL_CURSOR512_MODEL_ADAMW_RNG_RESTORE','original_plan':meta['original_plan'],'execution_plan':binding,'checkpoint':receipt['checkpoint'],'checkpoint_receipt':plan['inputs']['checkpoint_receipt'],'position':restored,'expected_state_proof':receipt['proof'],'canonical_strict_restore_completed':True,'new_model_forwards':0,'uninterrupted_next_step_parity':'NOT_MEASURED'})
+ steps=copy.deepcopy(cp['steps']);scores=copy.deepcopy(cp['scores']);del cp;receipts=[]
+ def count(key):
+  def hook(*args):counts[key]+=1;need(counts[key]<=plan['limits'][key],'RESUME_FORWARD_BUDGET')
+  return hook
+ hooks=[model.register_forward_pre_hook(count('model_forwards')),model.backbone.register_forward_pre_hook(count('backbone_forwards')),model.readout.register_forward_pre_hook(count('readout_forwards'))]
+ def checkpoint(cursor,name):
+  cp=train.make_checkpoint(model,optimizer,trajectory=traj,original_plan_ref=meta['original_plan'],lane='main',cursor=cursor,steps=list(steps),scores=copy.deepcopy(scores),producer_runtime=live)
+  result=train.publish_checkpoint_receipt(RESUME_ROOT/name,cp,counts,execution_ref=binding);receipts.append(result);return result
+ try:
+  for j in range(512,len(batches)):
+   take=batches[j];packet=adapter.packet(context,take);masks=_native_future_state_truth(packet['truth'],rows=len(take),fold_upper_ns=train.UPPER,target_contract=context['target_contract']);need(bool(masks['activity'].any())==original['schedule']['update_flags'][j],'RESUME_ACTUAL_BATCH_SUPPORT')
+   steps.append(train.training_step(model,optimizer,packet,original,counts,j));cursor=j+1
+   need(counts['optimizer_steps']+512==train.position(original['schedule'],cursor)['optimizer_updates']and len(steps)==cursor and counts['skipped_batches']==0,'RESUME_EXACT_LOGICAL_CURSOR');del packet,masks
+   if cursor%original['recipe']['checkpoint_every_optimizer_updates']==0 and cursor<len(batches):
+    checkpoint_ref=checkpoint(cursor,'UPDATE%06d.pt'%cursor);pub(RESUME_ROOT,'PROGRESS_%06d.json'%cursor,{'cursor':cursor,'rows_done':min(cursor*96,354550),'rows_total':354550,'starting_cursor':512,'new_optimizer_updates':counts['optimizer_steps'],'checkpoint_receipt':checkpoint_ref,'last_step':steps[-1],'policy':pref,'elapsed_training_scope_seconds':time.monotonic()-began})
+  optimizer.zero_grad(set_to_none=True);boundary=train.release_phase_allocator_cache(model,optimizer,label='TRAIN_TO_FULL_V2_FINAL_SCORE')
+  scores['PASS1'],outputs=adapter.score_final(model,context,batch_rows=original['recipe']['eval_batch_rows'],device='cuda');quality=quality_panels(context,outputs)
+  for tf in train.TF:
+   for task in ('activity','side'):
+    panel=quality['all_TF'][tf][task];cell=scores['PASS1']['scores']['per_tf'][tf][task];need(panel['count']==cell['count'],'RESUME_QUALITY_CANONICAL_COUNT')
+    if panel['count']:
+     for name,total in (('NLL','log_loss_sum'),('brier','brier_sum')):need(np.isclose(panel['model'][name]*panel['count'],cell[total],rtol=1e-12,atol=1e-7),'RESUME_QUALITY_CANONICAL_SUM')
+  score_ref=pub(RESUME_ROOT,'FINAL_QUALITY.json',quality)
+  import io
+  memory=io.BytesIO();np.savez_compressed(memory,issue_ns=context['truth']['issue_ns'],**outputs);capture=pub(RESUME_ROOT,'FINAL_LOGITS.npz',memory.getvalue())
+  final=checkpoint(len(batches),'FINAL.pt');need(counts==plan['limits'],'RESUME_EXACT_COUNTS');need(torch.cuda.max_memory_reserved()<=EXECUTION['cuda_peak_reserved_bytes_max'],'RESUME_VRAM_CAP')
+  return {'counts':counts,'trajectory':traj,'original_plan':meta['original_plan'],'execution_plan':binding,'restored_checkpoint_receipt':plan['inputs']['checkpoint_receipt'],'restore_proof':restore_proof,'starting_cursor':512,'remaining_TRAIN_rows':305398,'fresh_initial_state_sha256':initial['model_state_sha256'],'logical_batches':len(batches),'new_optimizer_updates':counts['optimizer_steps'],'actual_optimizer_updates':512+counts['optimizer_steps'],'passes':1,'full_TRAIN_rows':354550,'whole_FINAL_score':scores['PASS1'],'final_quality':score_ref,'final_logits':capture,'final_checkpoint_receipt':final,'all_checkpoint_receipts':receipts,'allocator_boundary':boundary,'cuda_peak_reserved_bytes':int(torch.cuda.max_memory_reserved()),'TRAIN_side_fit_status':quality['all5_pooled_side_TRAIN_fit'],'later_generalization':'UNKNOWN','economic_edge':'UNKNOWN','all20_approved':False}
+ finally:
+  for hook in hooks:hook.remove()
+
+
+def run_resume(sha):
+ from gx1.contracts.gx1_capped_execution_v1 import require_native_provider_hlc_learning_resume_execution
+ began=time.monotonic()
+ def stop(*_):raise TimeoutError('PROVIDER_HLC_RESUME_SIGNAL_OR_WALL')
+ for sig in (signal.SIGALRM,signal.SIGTERM,signal.SIGINT):signal.signal(sig,stop)
+ signal.setitimer(signal.ITIMER_REAL,EXECUTION['internal_seconds'])
+ try:
+  guard=require_native_provider_hlc_learning_resume_execution(plan_sha256=sha);plan,binding,pref,live=inspect_resume(sha,True);need(guard['plan']==binding and guard['output_root']==str(RESUME_ROOT),'RESUME_GUARD_PLAN_ROOT')
+  RESUME_ROOT.mkdir(exist_ok=False);identity=core.future_cpu_process_identity();claim=pub(RESUME_ROOT,'CLAIM.json',{'plan':binding,'policy_at_claim':pref,'runtime':live,'process_identity':identity,'remaining_invocations':0,'TRAIN_diagnostic_only':True,'original_plan':plan['metadata']['original_plan'],'restored_checkpoint_receipt':plan['inputs']['checkpoint_receipt'],'starting_cursor':512})
+ except BaseException:
+  signal.setitimer(signal.ITIMER_REAL,0);raise
+ try:
+  allowed={plan['inputs'][key]['path']for key in ('feature_archive','target_arrays','original_checkpoint')};allowed|={str(RESUME_ROOT/name)for name in ['FINAL.pt','FINAL_LOGITS.npz']+['UPDATE%06d.pt'%j for j in range(768,3694,256)]}
+  def audit(event,args):
+   if event in ('socket.connect','socket.getaddrinfo','urllib.Request'):raise RuntimeError('RESUME_NETWORK_FORBIDDEN')
+   if event=='open'and isinstance(args[0],(str,bytes,os.PathLike)):
+    name=os.fsdecode(args[0])
+    if name.endswith(('.npz','.pt','.pth','.parquet','.safetensors','.pkl'))and str(Path(name).resolve())not in allowed:raise RuntimeError('RESUME_PAYLOAD_PATH_FORBIDDEN')
+  sys.addaudithook(audit);report=physical_resume(plan,binding,pref,live);check_resume_sources_inputs(plan)
+  need(ref(RESUME_PLAN)==binding and ref(POLICY)==pref,'RESUME_SAME_FROZEN_PLAN_POLICY')
+  need(core.physical_windows_boot_id()==live['physical_windows_boot_id']and Path('/proc/sys/kernel/random/boot_id').read_text().strip()==live['wsl_boot_id'],'RESUME_BOTH_BOOT_BOOKEND');need(core.common.firewall_state()['denied_attempts']==0,'RESUME_M1_FIREWALL')
+  result=pub(RESUME_ROOT,'RESULT.json',{'status':'COMPLETE_ORIGINAL_V2_EPOCH_FROM_CURSOR512','plan':binding,'claim':claim,'process_identity':identity,'report':report,'source_inputs_policy_boot_unchanged':True,'elapsed_seconds':time.monotonic()-began,'test_data_used':False})
+  terminal=pub(RESUME_ROOT,'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False});return {'result':result,'terminal':terminal}
+ except BaseException as error:
+  pub(RESUME_ROOT,'TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'plan':binding,'claim':claim,'error':type(error).__name__+':'+str(error)[:1800],'remaining_invocations':0,'relaunch_allowed':False});raise
+ finally:signal.setitimer(signal.ITIMER_REAL,0)
+
+
+def main_resume():
+ from gx1.contracts.gx1_capped_execution_v1 import require_native_provider_hlc_learning_resume_execution
+ p=argparse.ArgumentParser();p.add_argument('--resume-plan-sha256',required=True);p.add_argument('--preflight',action='store_true');a=p.parse_args()
+ need(sys.argv[1:]==['--resume-plan-sha256',a.resume_plan_sha256]+(['--preflight']if a.preflight else[]),'RESUME_EXACT_CLI')
+ if a.preflight:
+  require_native_provider_hlc_learning_resume_execution(plan_sha256=a.resume_plan_sha256);plan,binding,pref,live=inspect_resume(a.resume_plan_sha256,False)
+  print(json.dumps({'status':'PREFLIGHT_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PASS','plan':binding,'policy':pref,'starting_cursor':512,'payloads_decoded':0,'models':0,'CUDA_initialized':False,'output_created':False}))
+ else:print(json.dumps(run_resume(a.resume_plan_sha256),sort_keys=True))
+# End cursor512 resume authority.
 
 if __name__=='__main__':main()

@@ -1649,6 +1649,139 @@ def native_provider_hlc_learning_source_bridge(previous_guard_owners, *, produce
     return {"producer_commit": producer_commit, "checked_guard_owners": 2, "old_guard_routes_preserved": True, "owners": report}
 
 
+_NATIVE_PROVIDER_HLC_LEARNING_RESUME_GUARD_SHELL_ADDITIONS = (('# BEGIN GX1 PROVIDER HLC LEARNING ROUTE 20261123 001 STATE\n', 'before', '# BEGIN GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 STATE\nNATIVE_PROVIDER_HLC_LEARNING_RESUME_MODULE=gx1.audit.native_provider_hlc_learning_v1\nNATIVE_PROVIDER_HLC_LEARNING_RESUME=false\nNATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256=\n# END GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 STATE\n'), ('validate_target_command() {\n', 'before', '# BEGIN GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 MATCHERS\nmatches_bound_native_provider_hlc_learning_resume() {\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_001.json"\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1\n  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == "$NATIVE_PROVIDER_HLC_LEARNING_RESUME_MODULE" \\\n    && "$4" == --resume-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1\n  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\n\nconfigure_native_provider_hlc_learning_resume() {\n  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \\\n    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo "FATAL: provider HLC learning resume requires exact canonical trainer containment" >&2\n    exit 75\n  }\n  matches_bound_native_provider_hlc_learning_resume "$@" || {\n    echo "FATAL: provider HLC learning resume CLI/plan is not exactly bound" >&2\n    exit 75\n  }\n  local learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_001"\n  [[ ! -e "$learning_output" && ! -L "$learning_output" \\\n    && -d "${learning_output%/*}" && ! -L "${learning_output%/*}" \\\n    && "$(readlink -f "${learning_output%/*}")" == "${learning_output%/*}" ]] || {\n    echo "FATAL: provider HLC learning resume output is not fresh canonical scope" >&2\n    exit 75\n  }\n  NATIVE_PROVIDER_HLC_LEARNING_RESUME=true\n  NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$learning_output"\n  TRAINER_MAX_WALL_SECONDS=12000\n  TRAINER_MODEL_MAX_WALL_SECONDS=11970\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 MATCHERS\n\n'), ('validate_target_command() {\n', 'after', '# BEGIN GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 DISPATCH\n  local provider_learning_resume_arg provider_learning_resume_reference=false\n  for provider_learning_resume_arg in "$@"; do\n    case "$provider_learning_resume_arg" in\n      --resume-plan-sha256|--resume-plan-sha256=*)\n        provider_learning_resume_reference=true ;;\n    esac\n  done\n  if [[ "$provider_learning_resume_reference" == true ]]; then\n    configure_native_provider_hlc_learning_resume "$@"\n    return\n  fi\n# END GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 DISPATCH\n'), ('# BEGIN GX1 PROVIDER HLC LEARNING ROUTE 20261123 001 NESTED\n', 'before', '# BEGIN GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 NESTED\n  [[ "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME:-false}" == "$NATIVE_PROVIDER_HLC_LEARNING_RESUME" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256" ]] || {\n    echo "FATAL: nested provider HLC learning resume mode differs from protected parent" >&2\n    exit 75\n  }\n  if [[ "$NATIVE_PROVIDER_HLC_LEARNING_RESUME" == true ]]; then\n    [[ "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING:-false}" == false \\\n      && -z "${GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256:-}" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_REPLAY:-false}" == false \\\n      && -z "${GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256:-}" \\\n      && -z "${GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE:-}" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_INITIAL:-false}" == false \\\n      && -z "${GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256:-}" \\\n      && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE:-false}" == false \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256:-}" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE:-false}" == false \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256:-}" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-false}" == false \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-false}" == false \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" \\\n      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-false}" == false \\\n      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-false}" == false \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256:-}" \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256:-}" \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_TRAINING_LANE:-}" \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256:-}" \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_CUDA_LANE:-}" \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256:-}" \\\n      && -z "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE:-}" \\\n      && "${GX1_TRAINER_ATTENDED_STAGE_REQUIRED:-}" == false \\\n      && -z "${GX1_POWER_BENCHMARK_SCOPE_JSON:-}" \\\n      && -z "${GX1_POWER_BENCHMARK_SCOPE_SHA256:-}" \\\n      && "${GX1_TRAINER_EXECUTION_MODE:-}" == canonical \\\n      && "${GX1_TRAINER_MAX_WALL_SECONDS:-}" == 12000 \\\n      && "${GX1_TRAINER_MODEL_MAX_WALL_SECONDS:-}" == 11970 \\\n      && "${GX1_TRAINER_GPU_INDEX:-}" == 0 \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W:-}" == 250 \\\n      && "${GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS:-}" == 1 \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_DRAW_W:-}" == 250 \\\n      && "${GX1_TRAINER_GPU_MAX_CORE_TEMP_C:-}" == 75 \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C:-}" == 80 \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB:-}" == 12288 \\\n      && "${GX1_TRAINER_CPU_MAX_TEMP_C:-}" == 80 \\\n      && "${GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W:-}" == 125 \\\n      && "${GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES:-}" == 8589934592 \\\n      && "${GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES:-}" == 8589934592 ]] || {\n      echo "FATAL: nested provider HLC learning resume plan/deadline/hardware differs from protected parent" >&2\n      exit 75\n    }\n  fi\n# END GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 NESTED\n'), ('  --setenv=GX1_NATIVE_PROVIDER_HLC_LEARNING="$NATIVE_PROVIDER_HLC_LEARNING" \\\n', 'before', '  --setenv=GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME="$NATIVE_PROVIDER_HLC_LEARNING_RESUME" \\\n  --setenv=GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256="$NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256" \\\n'))
+
+
+def require_native_provider_hlc_learning_resume_execution(*, plan_sha256: str) -> dict[str, Any]:
+    """Contain only the exact cursor512 resume; its leaf owns optimizer admission."""
+    if type(plan_sha256) is not str or re.fullmatch(r"[0-9a-f]{64}", plan_sha256) is None:
+        raise RuntimeError("[GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256_INVALID]")
+    expected = {
+        "GX1_CAPPED_MEMORY_BYTES": "21474836480",
+        "GX1_CAPPED_SWAP_BYTES": "536870912",
+        "GX1_CAPPED_TASKS_MAX": "128",
+        "OMP_NUM_THREADS": "8",
+        "MKL_NUM_THREADS": "8",
+        "OPENBLAS_NUM_THREADS": "8",
+        "NUMEXPR_NUM_THREADS": "8",
+        "VECLIB_MAXIMUM_THREADS": "8",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME": "true",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256": plan_sha256,
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING": "false",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_REPLAY": "false",
+        "GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE": "",
+        "GX1_NATIVE_PROVIDER_HLC_INITIAL": "false",
+        "GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE": "false",
+        "GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT": "false",
+        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING": "false",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING_LANE": "",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION": "false",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS": "false",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_LANE": "",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE": "",
+        "GX1_TRAINER_MAX_WALL_SECONDS": "12000",
+        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": "11970",
+        "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": "false",
+        "GX1_TRAINER_GPU_INDEX": "0",
+        "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": "250",
+        "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": "250",
+        "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "75",
+        "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "80",
+        "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": "12288",
+        "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
+        "GX1_TRAINER_CPU_MAX_TEMP_C": "80",
+        "GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W": "125",
+        "GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES": "8589934592",
+        "GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES": "8589934592",
+        "GX1_POWER_BENCHMARK_SCOPE_JSON": "",
+        "GX1_POWER_BENCHMARK_SCOPE_SHA256": "",
+    }
+    for name, value in expected.items():
+        if os.environ.get(name) != value:
+            raise RuntimeError(f"[GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_ENV_INVALID] field={name}")
+    basename = "NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_001"
+    plan_path = Path(__file__).resolve().parents[2] / "configs/research" / (basename + ".json")
+    output_root = Path("/home/andre2/GX1_RUNS") / basename
+    repo = Path(__file__).resolve().parents[2]
+    if str(repo) != "/home/andre2/src/GX1_CURRENT" or Path.cwd().resolve(strict=True) != repo:
+        raise RuntimeError("[GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_CWD_INVALID]")
+    command = [str(repo / ".venv/bin/python"), "-m", "gx1.audit.native_provider_hlc_learning_v1",
+               "--resume-plan-sha256", plan_sha256]
+    if sys.orig_argv not in (command, command + ["--preflight"]) or sys.executable != command[0]:
+        raise RuntimeError("[GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_CLI_INVALID]")
+    import hashlib
+    try:
+        if (not stat.S_ISREG(plan_path.lstat().st_mode) or plan_path.resolve(strict=True) != plan_path
+                or hashlib.sha256(plan_path.read_bytes()).hexdigest() != plan_sha256):
+            raise ValueError("plan path/hash")
+        parent = output_root.parent
+        if (output_root.exists() or output_root.is_symlink() or not stat.S_ISDIR(parent.lstat().st_mode)
+                or parent.resolve(strict=True) != parent):
+            raise ValueError("output path")
+    except (OSError, ValueError) as exc:
+        raise RuntimeError("[GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_OUTPUT_INVALID]") from exc
+    proof = require_guarded_cuda_trainer_execution()
+    return {**proof, "class": "trainer", "execution_mode": "canonical", "kind": "provider_hlc_learning_resume",
+            "training_authority_granted": False, "optimizer_authority_granted": False, "read_only": False, "resource_proof_only": True,
+            "plan": {"path": str(plan_path), "sha256": plan_sha256},
+            "plan_path": str(plan_path), "output_root": str(output_root),
+            "outer_seconds": 12000, "internal_seconds": 11970, "kill_after_seconds": 10,
+            "cpu_affinity": list(range(19)), "numerical_threads": 8}
+
+
+def native_provider_hlc_learning_resume_source_bridge(previous_guard_owners, *, producer_commit="aa6f23bb6ad0d867fc23f3604b8399e89b633ed6"):
+    """Prove only this resume route differs from the stopped learning generation."""
+    import ast
+    import hashlib
+    import subprocess
+    def require(ok, reason):
+        if not ok: raise RuntimeError("[GX1_PROVIDER_HLC_LEARNING_RESUME_SOURCE_BRIDGE_" + reason + "]")
+    require(producer_commit == "aa6f23bb6ad0d867fc23f3604b8399e89b633ed6", "PRODUCER_COMMIT")
+    guards = {'gx1/contracts/gx1_capped_execution_v1.py': '2a26866baba68182d460a38f556004b043d8aef1aaaa8d21e4eaecc77c534f8c', 'scripts/gx1_capped_run.sh': '313d1848242840f99637b66df7aad46cb3847129cf8675009901ce79fc3a4b31'}
+    require(type(previous_guard_owners) is dict and previous_guard_owners == guards, "EXACT_ANCHOR_GUARDS")
+    repo = Path(__file__).resolve().parents[2];report = {}
+    functions = {"require_native_provider_hlc_learning_resume_execution", "native_provider_hlc_learning_resume_source_bridge"}
+    constant = "_NATIVE_PROVIDER_HLC_LEARNING_RESUME_GUARD_SHELL_ADDITIONS"
+    for name, digest in guards.items():
+        original = subprocess.check_output(["git", "show", producer_commit + ":" + name], cwd=repo)
+        require(hashlib.sha256(original).hexdigest() == digest, "AUTHENTIC_ANCHOR_HASH")
+        current = (repo / name).read_bytes()
+        if name.endswith(".py"):
+            old = ast.parse(original);tree = ast.parse(current)
+            names = [n.name for n in tree.body if isinstance(n, ast.FunctionDef)]
+            require(len(names) == len(set(names)) and functions <= set(names), "EXACT_NEW_FUNCTIONS")
+            nodes = [n for n in tree.body if isinstance(n, ast.Assign) and len(n.targets) == 1
+                     and isinstance(n.targets[0], ast.Name) and n.targets[0].id == constant]
+            require(len(nodes) == 1 and ast.literal_eval(nodes[0].value) == _NATIVE_PROVIDER_HLC_LEARNING_RESUME_GUARD_SHELL_ADDITIONS, "EXACT_ROUTE_CONSTANT")
+            tree.body = [n for n in tree.body if not (isinstance(n, ast.FunctionDef) and n.name in functions or n is nodes[0])]
+            normalized = ast.dump(tree, include_attributes=False)
+            require(normalized == ast.dump(old, include_attributes=False), "ALL_OLD_PYTHON_AST_UNCHANGED")
+        else:
+            text = current.decode();require(len(_NATIVE_PROVIDER_HLC_LEARNING_RESUME_GUARD_SHELL_ADDITIONS) == 5, "EXACT_FRAGMENT_COUNT")
+            for anchor, position, fragment in reversed(_NATIVE_PROVIDER_HLC_LEARNING_RESUME_GUARD_SHELL_ADDITIONS):
+                composite = fragment + anchor if position == "before" else anchor + fragment
+                require(text.count(fragment) == text.count(composite) == 1, "EXACT_NEW_SHELL_INSERTION")
+                text = text.replace(composite, anchor, 1)
+            require(text.encode() == original, "ALL_OLD_SHELL_BYTES_UNCHANGED");normalized = text
+        report[name] = {"original_sha256": digest, "current_sha256": hashlib.sha256(current).hexdigest(),
+                        "normalized_sha256": hashlib.sha256(normalized.encode()).hexdigest()}
+    return {"producer_commit": producer_commit, "checked_guard_owners": 2, "old_guard_routes_preserved": True, "owners": report}
+
+
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")
     operation = parser.add_mutually_exclusive_group(required=True)

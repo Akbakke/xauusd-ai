@@ -385,7 +385,7 @@ Ny plan låser TRAIN-sidekvalitet mot samme v2-prior: pooled hverTF og
 årlig/old-newD1-støtte rapporteres, AUC/NLL/Brier og begge argmaxretninger
 holdes atskilt. Ingen klassekvote, terskelsøk eller skjult priortilpasning.
 250W/75C-GPU,80C-minne,20G/512M og CPU/minne/hostvakter beholdes.
-V1referanse5664s gjelder annen driver/300W; ingen matchet ny ETA er målt.
+Før001varv1referanse5664s påannen driver/300W; ny prefixmåling er nedenfor.
 
 Faktisk001-plan68dd2bf3...86860c ble innrømmet separat etter canonical
 preflight og fersk signert host. Kode3bd2cde10/76eiere/ferskINITIAL-funksjon.
@@ -405,14 +405,30 @@ F_FULLFSYNC-sikret på Macdisk, manifeste3f17ec0...d6e55ec. Originalene
 beholdes; ingen001relansering eller start på nytt. REVIEW015 beholder
 historisk13PASS/3FAIL/4UNKNOWN; all20/edge/generalisering er ikke oppnådd.
 
-Neste:PROVIDER_HLC_RESUME512_SCOPE001 avgrenser minste additive resume i
-samme HLC-eier med egen eksakt plan/stage/output/guard. Originaltrajectory
-og numeric AST/recipe/model/input/target/norm beholdes; strict_restore
-validerer alle10proofs før model/AdamW/RNG/cursor512 videreføres.
+RESUME512-kilden er nå kvalifisert, ikke innrømmet eller kjørt.
+Additivrute i samme HLC-eier bevarer alle16gamlefunksjoner unntatt smal
+CLI-dispatch i main. Originaltrajectory/recipe/model/input/target/norm
+beholdes; ny source/guard/admisjon er separat. Gamle001gjenåpnes aldri.
+
+PROVIDER_HLC_RESUME512_SOURCE_QUALIFICATION001:224fokuserte cases PASS og
+faktisk metadatabuilder med payload/modell/optimizer/CUDA blokkert PASS,
+78eiere. Ektekvittering avdekket kun observed_utc-forskjell mellom plan
+og producer; minimalrettelsen gjenbruker canonical runtime_matches som
+krever alleandre felt like. Producer/CLAIM er fortsatt eksakt like.
+7nye cases dekker dette. Originalfeil/logg bevart,0CLAIM eller modell.
+Scopepath-erratum binder samme gamle plan absolutt; tall/scope uendret.
+
+17kilde-/kvalifikasjonsfiler/2454877B er separatMacdisk-SHA/F_FULLFSYNC/
+readback-sikret, manifest20e18e80...d62a56c. OriginalCP512/allekvitteringer
+er fortsatt sikret som ovenfor. Faktisk512tensorrestore er uutført; ny
+RESTORE512_PROOF skal publiseres etter strict_restore før nyforward.
 Resten er3182updates/305398TRAIN-rader,1385fullFINAL-FW og13nyeCPs.
 256til512 målte1,2959s/update; restreferanse~83min inkl gammel fullFINAL-
 forwardtid, før fersk oppstart/restore/usikkerhet. Caps12000/11970 beholdes.
-Ingen nyINITIAL eller ny epoke. Før kjøring: fokuserte kilde-/metadata-/
-preflightgater og fersk signert maintenance/CBS/WU=false samt separat
-engangsadmisjon. Kalender/firstvintage/representativitet/læring/TEST
-og senere generalisering/edge-grenser består.
+
+Neste:fersk committet source/runtime/eksakt resumeplan, canonicalreadonly
+preflight med ekte512proofer og fysiskfeature/normbinding, deretter fersk
+signert maintenance/CBS/WU=false og separatengangsadmisjon før én suffix.
+Alle fem globale porter/ny stage er stengt; ingen nyINITIAL eller epoke.
+Kalender/firstvintage/representativitet/læring/TEST og seneregeneralisering/
+edge-grenser består; hovedmålet/all20 er ikke oppnådd.
