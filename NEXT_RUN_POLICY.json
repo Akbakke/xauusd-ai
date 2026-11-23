@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-23T10:59:35.510538+00:00",
+  "observed_utc": "2026-11-23T11:09:42.396008+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "TWENTY_STEP_REVIEW_COMPLETE_QUALIFICATION_INCOMPLETE",
+  "status": "OBSERVATION_PREFIX_PREPARATION_ALL_TRAINING_CLOSED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -4797,7 +4797,7 @@
       "native_terminal_present": true
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Exact61macro sourcekey census completed; allread-onlygatesclosed and trainingfalse. Secure/publish evidence then bounded07prefix exclusion witness and selective vintageauthority qualification.",
+    "current_activity": "Prefixsource16tests+actualmetadataPASS; Treasuryphysicalreference sourcepreparation, no payload/nativejob admitted or running.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -99174,7 +99174,7 @@
     }
   },
   "native_twenty_step_qualification_20261123_001": {
-    "status": "TWENTY_STEPS_REVIEWED_13_PASS_3_FAIL_4_UNKNOWN",
+    "status": "PREFIX_AND_TREASURY_REFERENCE_SOURCES_QUALIFIED_PLANS_PENDING",
     "goal_thread_id": "01a20035-2836-7f62-bb88-9e24603a51a5",
     "requirements": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_QUALIFICATION_20_STEPS.json",
@@ -99383,6 +99383,10 @@
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/MACRO_SOURCE_KEY_ACCEPTANCE001.json",
             "sha256": "3f953eba5ea22200a5523134a99f0a6b5c923f47aa73840fb5b9446a14642a69"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_TREASURY_METADATA_ROUTE002.json",
+            "sha256": "7deef3bbe57282ecdc5f4cd2fda2259f702aad9f2cfdc7c1e6a3df27e3d1c6a3"
           }
         ],
         "scope": "UNKNOWN historicalfirstvintage/revision/releasecoverage. Exactsource dependencies nowqualified for all61fields/122surfaces on354550ctx and354645signalhistory rows,21060keys. Treasuryoriginrecovered; no current-support=>historicalavailability inference."
@@ -99552,7 +99556,7 @@
         "scope": "Current declared forecast function; numerical/contract/routing evidence does not establish predictive quality or independent generalization."
       },
       "20": {
-        "status": "PASS",
+        "status": "REVIEWING",
         "evidence": [
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/FIRST_REVIEW_ROOT001.json",
@@ -99571,7 +99575,7 @@
             "sha256": "4c8b64acd50bde47143096dbc5fa3609be7118d15f20775d6ac18c395cd63afc"
           }
         ],
-        "scope": "PASS administrativecontrols only fornewkeycensuswave: all20 explicit, sourcepublishedclean, focusedtests/actualpreflight/timeout/host/processexit/sourcebookends verified, immutableevidence and independentSHA/fsyncbackup.3FAIL/4UNKNOWN remainopen."
+        "scope": "Priorreview007administrativePASS preserved; newboundedprefixaudit source/evidencewave requires freshfocusedqualification,actualrunproof,backupandpublication. All3FAIL/4UNKNOWNremainopen."
       }
     },
     "review_source_commit": "cdeabb453e03f973b9c0e4060f641d1418a948ed",
@@ -99818,6 +99822,42 @@
     "evidence_backup_after_macro_source_keys": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/MAC_EVIDENCE_BACKUP006.json",
       "sha256": "bb1b9182665ad48410f728f2039f977f3b222e226b39efc084631ceb415a82e8"
+    },
+    "observation_prefix_witness_design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OBSERVATION_PREFIX_WITNESS_DESIGN002.json",
+      "sha256": "3c17acf72811011bb49ff9775b86914b8c5fc8d8878d2352905b6efb8a7e5964"
+    },
+    "alfred_treasury_metadata_route": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_TREASURY_METADATA_ROUTE002.json",
+      "sha256": "7deef3bbe57282ecdc5f4cd2fda2259f702aad9f2cfdc7c1e6a3df27e3d1c6a3"
+    },
+    "observation_prefix_witness_design001_retired": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OBSERVATION_PREFIX_WITNESS_DESIGN001.json",
+      "sha256": "c60eb36cadb01d47b1839418ce402deaa9b89a31e7d606bff37f2b1c7389b394"
+    },
+    "observation_prefix_bootstrap_erratum": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OBSERVATION_PREFIX_BOOTSTRAP_ERRATUM001.json",
+      "sha256": "d1bff08f5aabf1b980cc0e4951845639f0166b40c45c9071bf405ac42f4818ee"
+    },
+    "alfred_download_form_inventory": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_DOWNLOAD_FORM_INVENTORY003.json",
+      "sha256": "a58593113ea9603aba1338f135c16a2e112aa84f2c95e6b309e5b928baede993"
+    },
+    "treasury_initial_release_reference_manifest": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_INITIAL_RELEASE_REFERENCE_MANIFEST001.json",
+      "sha256": "bec6075acba9c62c2c3ef2f6c70935493b3c94d1cdf97e75439796a987dc4413"
+    },
+    "treasury_initial_release_source_design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_INITIAL_RELEASE_SOURCE_DESIGN001.json",
+      "sha256": "f69d9292f5d0e3f724be69b8d150a399ec3bf69c1d1d36bef27f0ad1443bbc70"
+    },
+    "observation_prefix_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OBSERVATION_PREFIX_SOURCE_QUALIFICATION001.json",
+      "sha256": "5b2f807178418d321187b91c2577a245924edf91ae6d3457d99bfa7404aef9fd"
+    },
+    "treasury_initial_release_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_INITIAL_RELEASE_SOURCE_QUALIFICATION001.json",
+      "sha256": "81d6adc05db08d27385ca8ccae8ff27922c6eb6a24fd6b31ab86a2200ac06148"
     }
   },
   "native_raw_feed_clock_qualification_20261123_001": {

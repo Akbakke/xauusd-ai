@@ -2,241 +2,142 @@
 
 Arbeidssted `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 GX1_RULES.md er lest helt og uendret: SHA2c7f0fc9...683a58.
-NEXT_RUN_POLICY.json er eneste arbeidsstatus. Faktiske prosesser og
-terminalkvitteringer overstyrer prosa. Ingen gamle planer skal relanseres.
+NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
+terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
-## Aktivt mål og uendrede grenser
+## Aktivt mål og grenser
 
-Brukeren23.11 bestilte et nytt mål med20kvalifikasjonssteg og rettelser.
-Goalen i chat01a20035-2836-7f62-bb88-9e24603a51a5 er ACTIVE, uten tokenbudsjett.
+Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
+01a20035-2836-7f62-bb88-9e24603a51a5 er ACTIVE uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
-Status/evidens persteg: native_twenty_step_qualification_20261123_001 i policy.
-Steg05 er PASS mot uendret analytiskUTC-kriterium. REVIEW_CHECKPOINT007
-binder alle20krav:13PASS/3FAIL/4UNKNOWN etter nyekildecensus. Administrative20
-er PASS etter denne bølgens kilde-/test-/prosess-/backup-/publiseringskontroll;
-samlet kvalifikasjon er fortsatt false, hovedmålet ONGOING_NOT_MET.
-Kildeclean vises separat fra20stegsstatus og gir ingen prognosegodkjenning.
+Status: native_twenty_step_qualification_20261123_001 i policy.
+Forrige sikrede REVIEW_CHECKPOINT007:13PASS/3FAIL/4UNKNOWN. Ny prefix-/
+referansekildebølge er under kvalifisering; administrative20 er REVIEWING
+inntil nye kontroller/sikring/publisering. Samlet godkjenning er false.
 
-Hovedmålet i docs/ORIGINAL_PROJECT_GOAL.md består: nyttige framtidige prognoser
-for begge retninger og FLAT, alle aktive genuine indikatorer/åtte familier,
-M5utstedelse med M15/H1/H4/D1 og D1/makro. Senere LONG/SHORT/Entry/Exit med
-liten MAE før MFE, kvalitet før antall. Hovedmålstatus er ONGOING_NOT_MET.
-GC/orderbok er utsatt, ikke fjernet. M30 trenger egen verdikvalifisering.
-M1 brukes aldri til retning/fasit/normalisering/utvalg.
+Hovedmålet er fortsatt ONGOING_NOT_MET: nyttige framtidige tosidige prognoser,
+alle aktive genuine indikatorer/åtte familier, M5utstedelse med M15/H1/H4/D1
+og D1/makro; senere LONG/SHORT/Entry/Exit med liten MAE før MFE.
+GC/orderbok er utsatt, ikke slettet; M30 trenger egen verdikvalifisering.
+M1 brukes aldri til retning/fasit/normalisering/utvalg. TEST er forseglet.
+Ingen live/paper, broker, ordre, spending eller promotion.
 
-Alle fem globale treningsporter er false. RAW001/inputobservasjon001/
-fullsource001/batchrisk001/projectionmoment002 er COMPLETE_CONSUMED og stengt.
-Projectionmoment001 ble aldri claimed og er UNCLAIMED_PREFLIGHT_REFUSED_CLOSED.
-Ingen automatisk epokeserie, fit, fullVAL, TEST, broker/API-kall, spending,
-handel eller promotion følger av20stegsrevisjonen. Én tung CURRENT-jobb
-via scripts/gx1_capped_run.sh, eksisterende låser og maskinvarevakter.
-Ingen source-/policyendring under en fryst jobb. Stabile langkjøringer sjekkes
-15–30minutter; ingen minuttvise modellrunder eller fyllarbeid.
+Alle fem globale treningsporter er false. Ingen ny epoke er innrømmet.
+Én tung CURRENT-jobb via scripts/gx1_capped_run.sh, lås og eksisterende
+kapasitets-/temperatur-/effekt-/hostvakter. Ingen kilde-/policyendring under
+bundet kjøring. Stabile langjobber sjekkes15–30minutter, ikke minuttvis.
+Alle tidligere RAW/inputcensus/fullsource/batchrisk/projectionmoment002/
+macrokeys001 er COMPLETE_CONSUMED og stengt. Projectionmoment001 ble aldri
+claimed: gammelGPU-entrypoint ble korrekt nektet; ingen vakt ble svekket.
 
 ## Gjort og målt
 
-Alle nye bevis under
-/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001.
-Originale kvitteringer, caches, normalisering og vekter er uendret.
+Bevisrot: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001.
+Originale inputs, normalisering, mål, prior, vekter og checkpoints er bevart.
 
-- RAW001:122arkiverte practice-svar,354550TRAIN-bars,4,825s. Alle timestamp
-  stemmer med capture minus300s. Alle17870manglende weekly-only expected-open
-  slots mangler også i råsvarene;0lokale dropp/ekstra/duplikat/overlapp.
-  994man–tor17–18NY-gap og ett særskilt søndagsgap21.11.2021 kl18–19 er avstemt.
-- Fullsource001: eksisterende validate_canonical_native_source_bundle gjenbrukt,
- 416svar/53,940,454gzipbytes/1,216,924completecandles,18årparts2009–2026 og
- 13numericfelt+tid.1,215,514canonicalrader reproduksjonsavstemt på53,558s,
- peakRSS316392KiB.1410råbarer fjernes av deklarert ukesfilter utenforTRAIN;
- dette er forklart reproduksjon, ikke historisk kalendergodkjenning.
- Siste candle starter30.06.2026 kl23:55UTC og blir tilgjengelig vedcutoff;
- den ene raden forblir utenfor1,215,513aktive inputrader. Hele kildecontaineren
- ble integritetskontrollert;0nativeTEST-split/etter-seal-barstart,0modell/fit/FW/
- target/score/HTTP/nycache. FULL_SOURCE_INTEGRITY_ACCEPTANCE001 binder alt.
-- Inputobservasjon001: én eksisterende27-arraycache fysisk dekodet
- (1,433,216,758ndarraybytes inkl beholdteDEV-feltverdier), barecapture.source_rows.
- Kun eksaktewholeTRAIN-konsumunioner undersøkt.1730floatfelt+1kategorisk felt,
- 86navngitte verdi-/predikatrelasjoner,0brudd/NaN/normaliseringsfeil.
- 76fraværsbetingelser er utøvd,10er ikkeutøvd; dette gjøres ikke generelt PASS.
- Contextmicro har98udefinerte nuller og10719gyldigepresente nuller.
- Range-hardnull gjelder bare canonicalmaskkontrakten.28,649s;
- cgrouppeak2,39654GiB under4GiB, RSSpeak2620428KiB.
- INPUT_OBSERVATION_ACCEPTANCE001 bevarer kildeobserverbarhet som UNKNOWN.
-- FIELD_CONTRACTS001:19produsentgrupper/388formelregler/1731feltforekomster.
- Alle deklarerte enhets-/warmup-/undefined-kontrakter er avstemt;
- FIELD_UNIT_AUTHORITY002 løser seks tidligere realrate-/breakeven-enheter.
- 22relevante Python-kildehasher og tidligere numeriske bevis er ferskverifisert.
- Numerisk modell-/featurekode er ikke endret. To misvisende inlinekommentarer
- er fortolket korrekt i FEATURE_AUDIT; originalprodusentbytes er bevart.
-- Nyhandoverkontroll binder20kriterier/status/PASS-kvitteringer og avviser
- falskfullføring. FEATURE_AUDITs tidligere finite=observed-/1731-påstand er rettet.
- 107avgrensede syntetiske cases PASS:15handover+56RAW+36inputobservasjon.
- Faktiske CLI-preflights og lesende kjøringer PASS; ingen gjentatt fullsuite.
- CPU4G/512M/1numerisktråd og fersk signert hostadmission før hver datakjøring.
+- RAW001 avstemte354550TRAIN-bars mot122practice-råsvar:0lokale dropp/ekstra/
+  duplikater/overlapp. Alle17870weekly-only expected-open hull finnes også i rå.
+  Fullsource001 gjenbrukte validatoren for416svar/18årparts/13tallfelt+tid;
+  1215514canonicalrader avstemt, én cutoff-grensebar utenfor1215513aktive.
+  Dette kvalifiserer reproduksjon, ikke historiske markedsstenginger.
+- FIELD_CONTRACTS001/FIELD_UNIT_AUTHORITY002 binder388formelregler/1731felt,
+  navngitte eiere/enheter/warmup. Uendrede numeriske bevis er gjenbrukt.
+  INPUT_OBSERVATION_ACCEPTANCE001 målte hele konsumunionen og86navngitte
+  verdi-/predikatpar:0brudd;76fraværstilfeller utøvd,10ikkeutøvd.
+  Micro-range hadde98udefinerte og10719gyldige presente nuller i kontekst.
+  Observed=isfinite er en numerisk maske, ikke selvstendig source-known.
+- Alle318signal/132ctx_cont/1ctx_cat/256MTF-perTF rutes, inkludert220pris-/
+  trendlinjefelt påalle5TF. Alle8familier og D1/makro beholdes. Ruting er
+  ikke lært nytte; aliaser er ikke selvstendige indikatorformler.
+- TF_CLOCK_CRITERION_RECONCILIATION002 kvalifiserer uendret analytisk UTC22-
+  D1/H4UTC02-fase med uavhengig orakel og faktisk kausalt TRAIN-konsum.
+  En ekstra NY-brokerdagsavhengighet var unødvendig;03kalender er separat.
+- Biasdiagnostikk bruker conditionalq=P(UP|activity). D1q steg9,70806pp;
+  scalarbias kan bidra høyst0,180284pp. Batchrisk001 fant konstante
+  mean-batch/row-referanser innen0,06544pp: ingen tapsnormaliseringsrettelse
+  begrunnet. D1har2025knownUP70,968prosent motq63,886, altsåUNDER-UP7,082pp;
+  2021–24over-UP. Ingen global intercept-/klassekvotefiks er kvalifisert.
+- PROJECTION_MOMENT_ACCEPTANCE002: fixed-h hypotetiskg0 ved originalFINAL
+  redusererD1/H4/H1UP og økerM5/M15UP; ingen universell OPP-momentumårsak
+  eller generellreset/frys.4,102sCPU,0modell/FW/update/fit. OriginalCPuendret.
+- MACRO_SOURCE_KEY_ACCEPTANCE001: alle61felt/122feltflater støttet i faktisk
+  TRAIN-input:354645signalhistorikkrader/354550ctx,21060/21044kildenøkler,
+ 16historikkekstra,0ukjente avhengigheter/ugyldige konsumerte primitiver.
+  SOURCE_KEYS.json binder hele nøkkellisten.67containere/116879913filbytes
+  hashavstemt;4aksearrays/18513536bytes dekodet,27345primitive presenceceller.
+ 0indikatorrekonstruksjon/modell/FW/fit/CP/API/TEST.16,918s, peakRSS346796KiB.
+  Eksakte kildenøkler er ikke historisk førstevintage eller fullmarkedsdekning.
 
-Alle318signal/132ctx_cont/1ctx_cat/256MTF perTF rutes, inkludert220pris-/
-trendlinjefelt påalle5TF. Alle8spesialister og D1/makro beholdes. Alias er ikke
-selvstendige indikatorformler, og ruting er ikke per-felt lært nytte.
+## Nåværende prefix-/kildebølge
 
-## Gjenstående krav og riktig neste grense
+07kildereview: OBSERVATION_SEMANTIC_PARTITION001 avstemmer28blokker,
+388/388regler eksaktén gang og1731/1731felt. Tolv recurrence- og seks
+squeeze-ageforekomster har navngitte førsteanker-/venstresensurgrenser.
+Ingen egen vendorfeed per avledet indikator eller ny inputbit er begrunnet.
 
-03UNKNOWN: ukesfilter og råfravær beviser ikke historisk samme-feed
-åpning/stenging/helligdager. Nåværende nettside er ikke kalenderen2021–25.
-Daglig lukking skal ikke gjettes fra hull eller fylles med oppdiktede priser.
-HISTORICAL_CALENDAR_EXTERNAL_EVIDENCE_REQUEST001 spesifiserer nødvendig
-gyldighetsdatert practice-feed-autoritet.11928slots i994daglige gap,12slots
-i søndagsgapet og5930slots i86andre gap holdes atskilt. Forespørselen er
-klargjort som beviskrav, ikke sendt; ingen nye broker/API-kall følger av den.
+OBSERVATION_PREFIX_WITNESS_DESIGN002 er aktiv: én2009part,15radgrupper,
+42471rader/1667359diskbytes, cutoff2010-01-01UTC;14aksearrays/27510800bytes.
+Faktiske96M5-/252D1-historikkgrenser skal måles mot originalnormalisering.
+Samme frosne registry-/squeezeparametre, bare5TFtilstandsreplays/ATR14,
+ingen helTRAIN-replay eller modell. FørsteCREATE perbirth_side må være
+permanent expired/expired ELLER broken/failed før konsumhistorikken;
+flip/TTLfra fødsel er ikke bevis. Første ekte squeeze-release må være målt.
+Manglende vitne ved grensen forblir UNKNOWN; ingen automatisk2010-utvidelse.
 
-05PASS: fastUTC22 for D1 ogUTC02/06/10/14/18/22 for H4 er eksplisitt
-analytisk klokke, ikke en NY-brokerdags-påstand. Uavhengig heltallsfase-/OHLC-
-orakel, uendrede20TFarraydeskriptorer og faktisk kausalt konsum avalle354550
-TRAIN-rader kvalifiserer uendret05kriterium. TF_CLOCK_CRITERION_RECONCILIATION002
-binder beviset;03kalender/07observerbarhet/09vintage/15læring er ikke oppgradert.
+DESIGN001 ble pensjonert før plan/payload: den forvekslet råresamplerens
+første delvise bin med faktisk serving. BOOTSTRAP_ERRATUM001 binder feilen.
+Produksjonen velger FULL build_multi_tf_v4_closed_timestamp_indices FØR
+compute_per_bar_features_v4. Dermed droppes første delviseH4/D1. Prefixet
+velger fullservingaksens nominalend<cutoff; siste observerte2009quote skal
+ikke feilaktig definere en annen servinghale. ATR-NaN-prefix/carry beholdes.
+Ny auditor/test:16syntetiske cases PASS; faktisk metadatabuilder medNPZ/
+råleser/publisering/Torch-import blokkert PASS,56kildeeiere,0payload/CLAIM.
+OBSERVATION_PREFIX_SOURCE_QUALIFICATION001 binder dette; faktisk jobb er
+ennå ikke innrømmet/kjørt.
 
-07UNKNOWN: source-known, finitthet, strukturelt fravær og udefinert verdi er
-forskjellige.86par er målt; observed==isfinite(signal) er korrekt deklarert
-numerisk maske, ikke alene en påvist beregningsfeil. OBSERVATION_ENCODING_
-SCOPE_REVIEW002 retter det for brede kravet om egen vendorobservasjon for
-hver avledet indikator.12level-recurrencefelt og6squeeze-release-agefelt
-har konkrete førsteanker-/venstresensurgrenser. Faktisk konsum eller
-eksklusjon er ennå ikke målt; ingen ny modellbit eller numerisk endring
-er begrunnet. OBSERVATION_SEMANTIC_PARTITION001 kryssjekker28blokker,
-388/388regler eksaktén gang og1731/1731felt. Et autentisert tidligprefix-
-vitne kan utelukke de førsteankrene og squeeze-sensur uten fullTRAINreplay;
-dette vitnet er ennå ikke kjørt. OBSERVATION_PREFIX_WITNESS_SCOPE001 binder
-femTFstrømmer, sammefrosneparametre og ektecarry. Permanent retest_fail
-er også gyldig terminalt vitne; ikke krev oppdiktetexpiry. Tidligste
-96M5-/252D1-konsumhistorikk må måles, ikke gjettes fra førsteTRAINutstedelse.
-Kalender03 og vintage09 er separate beviskrav.
+09referansesti: ALFRED_DOWNLOAD_FORM_INVENTORY003 binder faktiske offentlige
+DGS2/DGS10/DFII10-former og option4 InitialReleaseOnly. Tilbudte vintagedatoer
+er ikke per-observasjonspublisering. Mandags-FRED-førstegang kan ikke gjøres
+kjent for søndagsprognose via tidligere Treasury-observasjonsdato.
+TREASURY_INITIAL_RELEASE_REFERENCE_MANIFEST001 / SOURCE_DESIGN001 klargjør
+høyst3gratis offentlige POST-nedlastinger,2020-11-30..2025-12-29,ZIP-only,
+1MiB/20s hver,0redirect/retry/token/cookies. Dette er fysisk karantene/
+ZIP-headerinventar,0observasjonsrader/tallkonvertering og ingen nativeFRED-
+innføring. Ny auditor/test har21fokuserte cases og faktisk metadatabuilder
+mednett/NPZ/publisering/Torchblokkert PASS;0data-POST eller payloadadmisjon.
+Råbytes/HTML/ZIP blir iRUNS/separatdisk, aldri Git. Hver jobb må ha egen
+nøyaktig plan/preflight, fersk signertCPUhostadmisjon og avsluttes før neste.
 
-09UNKNOWN: makro-asof/utgivelseslag er eksplisitt, historisk førstevintage og
-full release-/revisjonsdekning er ikke bevist. MACRO_ORIGIN_VINTAGE_PATH_REVIEW001
-retter opprinnelsesgrensen:alle36Treasury registrerte råhasher matcher originale
-DIRECT_HTTPS-kvitteringer(34relay+2direkte2026).Alle18COT-identiteter er sporet
-til originale offisielle kildekvitteringer; ingen oppdiktetTLS-attestasjon.
-Dette er fersk metadataavstemming, ikke ny råpayloadrehash eller førstevintage.
-ALFRED initial-release er en konkret rentesti; OANDA/CBOE/GLD-vintager og
-historisk releaseklokke krever fortsatt særskilt bevis. Alle61felt beholdes.
+## Åpne krav
 
-11/12FAIL: gjeldende targetmasker/coverage er mekanisk gjenskapt, men har svak
-representativitet. D1har234/1289modnekomplettevinduer,0slutttirs–tors og bare
-162unikekjentesidemål. Ikke reparer dette ved å omdøpe hull til stengt.
+03UNKNOWN: sammepractice-feed historisk markedskalender mangler autoritet.
+HISTORICAL_CALENDAR_EXTERNAL_EVIDENCE_REQUEST001 er klargjort, ikke sendt.
+994man–tor17–18NY-gap=11928slots; søndag21.11.2021=12;86andre gap=5930.
+Ingen hull omdøpes til stengt eller fylles med oppdiktede priser. Brukeren er
+spurt om eksisterende offisiell kilde; ingen svar/kilde er lagt til grunn.
+07UNKNOWN: intern18eksklusjon skal måles; underliggende kilde/asof-tilgang
+krever fortsatt selvstendig vurdering. Finitthet er ikke historisk known.
+09UNKNOWN: Treasuryoriginal36DIRECTHTTPS-kjede er gjenfunnet;18COT-offisielle
+kildeidentiteter avstemt. Dette er ikke førstevintage/revisjons-/releasebevis.
+OANDA/Cboe/GLD og Treasury/COT tidsdomener beholdes uavklarte der bevis mangler.
+11/12FAIL: målmaskenes mekanikk er avstemt, representativitet er svak:
+D1kun234/1289modnekomplettevinduer,0slutttirs–tors og162unikekjentesidemål.
+15FAIL: egenfasit side-Brier/NLL verre enn frossen matchet prior alle5TF.
+TRAIN-AUC0,5300/0,5317/0,5248/0,5058/0,5239 er ingen senere edge.
+Varslingsaudit slo ikke alltidOPP på samme varslingstider;0varsler/UNKNOWN/
+missed er bevart.19UNKNOWN: nåværendeFINAL har ingen kvalifisert senereDEV-
+evaluering; TRAIN-år er ikkeOOF, wholeTRAIN-stats ikke prefix-OOF.
 
-15FAIL: egenfasit-alignment7c166426...3cd127 viser side-Brier/NLL verre enn
-frossen matchet prior alle5TF. AUC0,5300/0,5317/0,5248/0,5058/0,5239 er TRAIN,
-ikke senere edge. Høyere OPP-sannsynlighet er ikke riktig markedsforståelse.
-Varslingsaudit001 slo ikke alltidOPP på samme varslingstider i noen celle;
-13nullvarselsceller/UNKNOWN/oversette bevegelser er bevart.1ATR-piloten er
-ikke modellens låste0,5ATR-fasit; målmisforhold forklarer ikke egenfasitsvikten.
+## Sikring og neste kontroll
 
-SIDE_LOGIT_PARAMETER_ATTRIBUTION001 bruker eksisterende metadata, ingen CP/
-array/FW: fullTRAIN conditionalq=P(UP|activity) steg for D1 med9,70806pp fra
-initialen, mens faktisk scalarbiasdrift kan bidra høyst0,180284pp. Samlet w·h-
-bidrag er minst9,52778pp ved definert b0-kontrafaktisk; dette separerer ikke w
-og h. Eksisterende CP256/FINAL-swaps på20727kohorten viser positivt headbidrag
-og negative hidden-/interactionbidrag; ingen ny swap/FW er nødvendig.
-Dette er ikke jointa*q eller identifikasjon av faktisk Adam/treningshistorie.
-
-Batchrisk001 er COMPLETE_CONSUMED,1,119s, RESULT613d676a...6e430.
-Alle3694originaleB96akser/support/D_b og globaleFINAL-deriverte er eksakte.
-D_b er alleTFkjentaktivitet, ikke perTFsidecount. Konstante mean-batch-
-referanser avviker høyst0,06544pp fra row-risiko; D1avvik0,06128pp.
-FINALinterceptderivert er positiv under begge risikoer alle5TF. Dette gir
-ikke grunnlag for en tapsnormaliseringsrettelse og beviser ingen Adamhistorie.
-BATCH_RISK_ACCEPTANCE001 bevarer alle resultater. Første hostprøve timetut
-føradmisjon/CLAIM; ny selvstendig signertmåling passerte medCPU30C/9,46W og
-60,7GBledig. Ingenvakt ble svekket; bareén faktiskCPU-analyse blekjørt.
-
-SIDE_YEAR_CALIBRATION_PROFILE001 avleder fra eksisterende alignmentmetadata:
-D1har2025knownUP70,968prosent mot meanq63,886, altså7,082pp UNDER-UP, mens
-2021–24er over-UP. D1yearmeanq varierer1,169pp mot observerte24,548pp.
-Dette er ikke OOF eller bevis på at hvertfelt ignoreres; ikke korriger globalt
-intercept eller tving klassekvoter som om det ga stabil framtidig kalibrering.
-
-Projectionmoment002 er COMPLETE_CONSUMED; PROJECTION_MOMENT_ACCEPTANCE002
-binder én faktisk lesende CPU-jobb på4,102s. OriginalFINAL weights_onlyCPU og
-10komponentproof før/etter, samme20727TRAIN-kohorthidden/side-logits og
-4targetmembers;54,118,197ndarraybytes. Native separate side_heads perTF var
-allerede implementert. Analytisk hypotetiskg=0-steg3695 bruker faktisk lagret
-lr0,0001/m/v/step/betas/eps/decay og fixedh. Faktisk neste trenings-LR er
-UNDEFINED; ingen optimizer/model/readout-FW, konstruksjon, updates eller fit.
-Originalt mot nullstilt første moment reduserer D1conditionalUP med0,036713pp,
-H4med0,010882pp og H1med0,014223pp; M5/M15øker0,018664/0,033143pp.
-D1/H4/H1NLLbedres i dette smale kontrafaktiske. Ingen universell OPP-momentum
-eller grunnlag for generell momentreset/frys; full historisk treningsårsak
-og sharedbackboneeffekter er ikke identifisert.
-
-Plan001 ble aldri claimed: gammel FrozenGPU-entrypoint ble korrekt nektet
-av eksisterende vakt. Frozenowner/test er gjenopprettet eksakt; cappedvakt
-uendret. Ny separat plan002 brukte eksisterende CPUalignmentowner og69eiere.
-CPUport15cases og deretter2namespace/directcases PASS; faktisk metadata-
-preflight med deserialisering/publisering blokkert PASS,0CP-/arrayloads.
-Første hostprobe føradmisjon timetut; ny signertprøve passerte uten vaktendring.
-Closehelperens gamle prosessfilter pekte fortsatt på coveragemodulen, ikke
-alignmentowner. Originalkvittering bevares; PROCESS_OBSERVER_ERRATUM002
-korrigerer bevisgrensen med fersk faktisk /proc-argv-kontroll,0CURRENTjobber.
-Wrapper/TERMINALexit0 er bevart. Ingen historisk prosessobservasjon oppdiktes.
-Samme kjente kohort er tilstrekkelig for smale taps-/mekanikkspørsmål;
-kalender/vintage kvalifiseres separat. Ingen nyCP eller parametere er skrevet.
-
-MACRO_SOURCE_KEY_DESIGN001 binder konkret intern blokkering før vintages:
-ingen komplett consumed-source-keymanifest finnes i undersøkte metadata.
-Ny isolert CPU-auditor/testeier er kildekvalifisert:18syntetiske cases PASS
-og faktisk metadatabuilder med deserialisering/publisering blokkert PASS,
-54kildeeiere. Plan001 er nå én gang COMPLETE_CONSUMED og stengt.
-Planbudsjettet skal navngi67eksisterende råcontainere/116879913filbytes og
-bare2capture-/2featureklokke-arraymembers,18513536ndarraybytes. Ingen
-signal/ctx/TF-featureverdier, CP, modeller, forwards, fits eller API-kall.
-Drivers krever ærlig tilgang til5primitive kolonner med tilgjengelighet
-før2026 for presence;
-datoaksen alene holder ikke. notna/ffill beholdes, ogsåallmissingdaterader.
-MACRO_SOURCE_KEY_ACCEPTANCE001: faktisk16,918s, peakRSS346796KiB.
-Alle122felt/flater har støtte,0ukjente avhengigheter/ugyldige konsumerte
-primitiver. Signal354645rader bruker21060unike kildenøkler; context354550
-bruker21044, alle er nåbare i signal.16ekstra gjelder signalhistorikken.
-SOURCE_KEYS.json binder full nøkkelliste; ingen tallverdier er skrevet ut.
-27345eligible primitiver er konvertert for presence,0indikatorrekonstruksjon,
-modell/FW/fit/CP/API/TEST. Første hostprobe timetut føradmisjon; en ny
-signert prøve passerteCPU30C/10,11W og59,3GBledig utenvaktendring.
-Dette er kildenøkkelregnskap, ikke kvalifisert historisk førstevintage.
- COTtrenger lag4 observerte rapporter, panelet
-21observerteD1-closekeys, drivers lag1/5/21 påoutermergeddategrid oghver
-series sistefaktiske gyldigeforgjenger. Datokolonne alene identifiserer ikke
-ffill-kilder; egen date/presence-kvalifikasjon trengs. Ikke lastned hele
-2009–2026arkiver ukritisk eller anta95×5minutters forhistorie.
-
-19UNKNOWN: ingen senere evaluering av nåværende FINAL-funksjon er kvalifisert.
-TRAIN-årstabeller er in-sample; wholeTRAIN-stats er ikke prefix-OOF.
-Historisk kalender/vintage må kvalifiseres før de relevante mål-/input-
-funksjonene kan godkjennes. Den deklarerte klokken er kvalifisert i05. Endret ONLINE-funksjon krever fersk initialbaseline og egen admisjon.
-TEST forblir forseglet; ingen nedjustering av krav for å få20grønne bokser.
-
-## Sikring og sluttkontroll
-
-Originale MAIN/003/004-checkpoints er bevart og separat diskverifisert.
-Fullcapturebackup812be0eb...ccb7b94; varslingsaudit686a18fe...a52d74;
-alignmente20efd8a...6ddfe6; clock/matrise5336062d...658418.
-Første nye20stegskopi:21artefakter/26,432,089bytes, manifest5d793ed5...d5ae4.
-MAC_EVIDENCE_BACKUP001 binder kopien. MAC_EVIDENCE_BACKUP002 binder også
-35nye artefakter/41,837,412bytes, separatdiskmanifest e6cec6e7...1cba8.
-MAC_EVIDENCE_BACKUP004 binder53nye artefakter/50,204,455bytes og faktisk
-MacdiskSHA/F_FULLFSYNC/readback; manifestf7bf54eb...60b5d. Tidligere tre
-sikrede bølger og alle originale checkpoints beholdes uendret.
-Tidligere107cases gjenbrukes; ny batchrisktest13cases, momentCPUport15og
-namespace/direct2er bestått. Ingen gjentatt fullsuite eller ONLINE-endring.
-Nåværende bølges syntaks/stale-path/diff/handover og autorisert cleanpush
-er verifisert i ADMINISTRATIVE_FINAL_READINESS002. REVIEW_CHECKPOINT006
-og avsluttende policy/overlevering er separatdiskverifisert i
-MAC_EVIDENCE_BACKUP005:14artefakter/10529954bytes, manifest1896f87e...7b0f5.
-Makronøkkelbølgen er sikret/publisert; ADMINISTRATIVE_FINAL_READINESS003
-binder nyadministrativPASS. REVIEW_CHECKPOINT007/avsluttendepolicy sikres
-i samme bølge. IngenDATA/RUNS-rydding.
-Root eier policy/launch/samlet kontroll. Alle20er undersøkt, hovedmålet og
-samlet kvalifikasjon forblir åpne ved3FAIL/4UNKNOWN. Ingen nye epoker startes.
-
-Makronøkkelbølgens30nye artefakter/28497277bytes er separatdiskverifisert i
-MAC_EVIDENCE_BACKUP006; manifestde715ff4...356feb. SOURCE_KEYS.json beholdes
-iRUNS/Mac-sikring, og råverdier/vekter er ikke publiseringsinnhold.
-OpprinneligMAIN har59/62helfilhasher identiske medCURRENT; tre senere
-vakt-/eksaktgjenopptakelsesutvidelser er eksplisitt avstemt. Denne bølgen
-endrer ingen av disse eksisterende kildefilene eller ONLINE-beregningen.
+OriginalMAIN16CP/003/004 er bevart og separatdiskverifisert; ingen rydding.
+Eksisterende fullcapture/alignment/clock/move-backuper og beståtte tester
+beholdes. Seneste makronøkkelbackup006:30artefakter/28497277bytes,
+manifestde715ff4...356feb; sluttbackup007:11artefakter/10540711bytes,
+manifeste9f1c697...8d0ad1. Begge MacSHA/F_FULLFSYNC/readback PASS.
+Siste rene publiserteHEAD6bf3cd772, FINAL_POST_PUSH_CONTROL003.
+OriginalMAIN59/62helfilhasher likeCURRENT;3historiske vakt-/eksaktgjen-
+opptakelsesutvidelser er eksplisitt avstemt, ikke endret i denne bølgen.
+Root eier policy/launch/samlet kontroll. Fullfør kildetester/metadatasmoke,
+frys kode, kjør prefix og fysiskreferanse hverforseg, sikre/push/opphavskontroll
+og oppdater20stegsstatus uten å oppgradere åpne lærings-/datakrav.
