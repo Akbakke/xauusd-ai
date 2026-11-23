@@ -121,18 +121,44 @@ og h. Eksisterende CP256/FINAL-swaps på20727kohorten viser positivt headbidrag
 og negative hidden-/interactionbidrag; ingen ny swap/FW er nødvendig.
 Dette er ikke jointa*q eller identifikasjon av faktisk Adam/treningshistorie.
 
-Neste minimale falsifisering er BATCH_RISK_ACCOUNTING_DESIGN001:
-originalB96/3694batcher, siste22, samme354550TRAIN-rader/targets. Native loss
-deler sum aktivitet+kjentside på D_b=alleTFkjentaktivitet; ikke perTFsidecount.
-Undersøk mean-batch versus globalrisiko og konstante referanser uten å endre
-modellen/prioren. Metadata-builder PASS,13fokuserte cases PASS(12nye+1berørt),
-alle14gamlefunksjoner unntattCLI og alle gamle testbytes bevart.
-Kun CAPTURE3+TARGETS4=20,918,450ndarraybytes;0features/priser/CP/FW/autograd/
-optimizer/fit/nye labels/VAL/TEST. CPU4G/512M/1tråd/600souter570sintern.
-Egen eksakt plan/preflight/signert hostadmission/engangskjøring gjenstår.
-Samme gamle kjente kohort er tilstrekkelig for denne smale tapundersøkelsen;
-kalender-/vintagebevis er ikke en nødvendig forutsetning for akkurat den.
-Ingen faktisk analysepayload er kjørt. Alle tidligere engangsplaner er stengt.
+Batchrisk001 er COMPLETE_CONSUMED,1,119s, RESULT613d676a...6e430.
+Alle3694originaleB96akser/support/D_b og globaleFINAL-deriverte er eksakte.
+D_b er alleTFkjentaktivitet, ikke perTFsidecount. Konstante mean-batch-
+referanser avviker høyst0,06544pp fra row-risiko; D1avvik0,06128pp.
+FINALinterceptderivert er positiv under begge risikoer alle5TF. Dette gir
+ikke grunnlag for en tapsnormaliseringsrettelse og beviser ingen Adamhistorie.
+BATCH_RISK_ACCEPTANCE001 bevarer alle resultater. Første hostprøve timetut
+føradmisjon/CLAIM; ny selvstendig signertmåling passerte medCPU30C/9,46W og
+60,7GBledig. Ingenvakt ble svekket; bareén faktiskCPU-analyse blekjørt.
+
+SIDE_YEAR_CALIBRATION_PROFILE001 avleder fra eksisterende alignmentmetadata:
+D1har2025knownUP70,968prosent mot meanq63,886, altså7,082pp UNDER-UP, mens
+2021–24er over-UP. D1yearmeanq varierer1,169pp mot observerte24,548pp.
+Dette er ikke OOF eller bevis på at hvertfelt ignoreres; ikke korriger globalt
+intercept eller tving klassekvoter som om det ga stabil framtidig kalibrering.
+
+Neste avgrensede falsifisering er PROJECTION_MOMENT_DESIGN001:
+originalFINAL98MB weights_onlyCPUlesing med komplett10komponentproof før/etter
+småkopier av de faktiske sidehead-parametrene/Adam-momentene. Samme lagrede
+20727TRAIN-kohorthidden/side-logits og4targetmembers,54,118,197ndarraybytes.
+Alle5TF: analytisk g=0-steg med originalt mot nullstilt første moment, samme
+v/step/recordedlr/betas/eps/decay og fixedh. Terminal faktisknextLR er UNDEFINED;
+ingen nytrening følger av en hypotetisk beregning. Bare hashes/aggregater ut.
+0model/readoutFW/optimizerkonstruksjon/optimizerstep/appliedupdate/fit/pris/
+features/nye labels/VAL/TEST.4G/512M/1tråd/300souter270sintern.
+14nyefokuserte cases PASS; alle12gamlefunksjoner unntattCLI oggamle testbytes
+bevart. Metadata-builder PASS67kildeeiere,0CP-/arraydeserialisering.
+Egen nøyaktig plan/preflight/signert hostadmisjon/engangskjøring gjenstår.
+Samme gamle kjente kohort er tilstrekkelig for disse smale tap-/mekanikkspørsmål;
+kalender/vintage kvalifiseres separat. Ingen nyCP er produsert eller eksisterende
+parametere endret. Tidligereengangsplaner forblir stengt.
+
+Makrovintage før ny innhenting: ingen komplett consumed-source-keymanifest
+finnes i undersøkte metadata. COTtrenger lag4 observerte rapporter, panelet
+21observerteD1-closekeys, drivers lag1/5/21 påoutermergeddategrid oghver
+series sistefaktiske gyldigeforgjenger. Datokolonne alene identifiserer ikke
+ffill-kilder; egen date/presence-kvalifikasjon trengs. Ikke lastned hele
+2009–2026arkiver ukritisk eller anta95×5minutters forhistorie.
 
 19UNKNOWN: ingen senere evaluering av nåværende FINAL-funksjon er kvalifisert.
 TRAIN-årstabeller er in-sample; wholeTRAIN-stats er ikke prefix-OOF.
