@@ -1271,7 +1271,7 @@ configure_native_provider_hlc_learning() {
 
 # BEGIN GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 MATCHERS
 matches_bound_native_provider_hlc_learning_resume() {
-  local expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_002.json"
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_003.json"
   if [[ $# -eq 6 ]]; then
     [[ "$6" == --preflight ]] || return 1
     set -- "${@:1:5}"
@@ -1296,7 +1296,7 @@ configure_native_provider_hlc_learning_resume() {
     echo "FATAL: provider HLC learning resume CLI/plan is not exactly bound" >&2
     exit 75
   }
-  local learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_002"
+  local learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_003"
   [[ ! -e "$learning_output" && ! -L "$learning_output" \
     && -d "${learning_output%/*}" && ! -L "${learning_output%/*}" \
     && "$(readlink -f "${learning_output%/*}")" == "${learning_output%/*}" ]] || {
