@@ -1,0 +1,366 @@
+{
+  "budget": {
+    "ANN_forwards": 0,
+    "capture_arrays": 3,
+    "capture_ndarray_bytes": 17018400,
+    "model_or_feature_or_CP_loads": 0,
+    "native_TEST_files": 0,
+    "network_calls": 0,
+    "normalization_or_prior_fits": 0,
+    "old_support_arrays": 2,
+    "old_support_ndarray_bytes": 3545500,
+    "optimizer_updates": 0,
+    "v2_truth_arrays": 14,
+    "v2_truth_ndarray_bytes": 50700650
+  },
+  "capture_array_headers": {
+    "activity_logits": {
+      "dtype": "<f4",
+      "sha256": "0d0f3dd4c91c4cd1fb5f27e93f09fd826c8ababefab0bfb9887177993c850ee7",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "issue_ns": {
+      "dtype": "<i8",
+      "sha256": "c0805f39affb9bd80e679e0b41f69a558ea975d0e479ddeee815c7dd370997ea",
+      "shape": [
+        354550
+      ]
+    },
+    "selected_positions": {
+      "dtype": "<i8",
+      "sha256": "9fa3aabd86cc726c0dca3e1ac9b6629bc549f3f2524626d69075fa255f382cae",
+      "shape": [
+        354550
+      ]
+    },
+    "side_logits": {
+      "dtype": "<f4",
+      "sha256": "08c0a3c3e5f19aed67a7107f1929ee1dbced1b9fc0cbda6337b363435abc8da6",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "source_rows": {
+      "dtype": "<i8",
+      "sha256": "9fa3aabd86cc726c0dca3e1ac9b6629bc549f3f2524626d69075fa255f382cae",
+      "shape": [
+        354550
+      ]
+    }
+  },
+  "execution": {
+    "class": "audit",
+    "internal_seconds": 570,
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "numerical_threads": 1,
+    "outer_seconds": 600,
+    "swap": "512M"
+  },
+  "fixed_panels": {
+    "D1_target_year": [
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "all_TF": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "argmax_probability": 0.5,
+    "argmax_ties": "DOWN/False",
+    "equal_target_weighting": "score rows first,mean per target_start,then equal mean across targets; no independence claim",
+    "support_strata": [
+      "all",
+      "old_known",
+      "newly_known"
+    ]
+  },
+  "inputs": {
+    "base_dataset": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/FUTURE_STATE_DATASET001.json",
+      "sha256": "109a2738abf020a528765bac95b7cf73e145a88644dda58a0bc8f95c252ffe30"
+    },
+    "base_targets": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/FUTURE_STATE_TARGETS001.npz",
+      "sha256": "d21b7edd8fbce2afcaecbc7d16ea764d259cf4ed1db219ebb661857acb32f851"
+    },
+    "capture": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001/CAPTURE.npz",
+      "sha256": "5349c1d6af1696541e5cef2bb201e539155e4ae476c5d9197825fff6909bc98b"
+    },
+    "capture_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001.json",
+      "sha256": "638c32e0e90c6da439eec4db3fb79c70be36bc2689140abe66f7d127ba54717f"
+    },
+    "capture_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_20261122_001/RESULT.json",
+      "sha256": "ce287ed654746281e679ba847a3f01c1a0df0244e8684d950caeacfa5f68e89a"
+    },
+    "comparison_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_OANDA_D1_COMPARE_20261123_001/RESULT.json",
+      "sha256": "0f7635b911a7e4003e7873b1cc247ec3703b1c34d71ad98c0a903ca427d6a286"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_CROSSGEN_CONTROL001.py",
+      "sha256": "354601a7e9a8eb8ac99fcb4e43cb4e402f7930da45d0ce8160592fd250703bd7"
+    },
+    "matched_TRAIN_prior": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_PROVIDER_HLC_TARGET_QUALIFICATION_20261123_001/MATCHED_TRAIN_PRIOR001.json",
+      "sha256": "78b3766212e480c6eac9066b7f15fc174c9da55ee4f755b3286653d858051266"
+    },
+    "native_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca"
+    },
+    "original_MAIN_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001.json",
+      "sha256": "c3e769fc5468739b576144f2cb2e5bf572d6b662a3c490ee56d8641fde1dd561"
+    },
+    "original_MAIN_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001/RESULT.json",
+      "sha256": "dcc87287713ba1fb93095cb19026ad4d2cfc08b71229de63d46152bcf79446ef"
+    },
+    "original_MAIN_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_STATE_ONE_EPOCH_20261121_001/TERMINAL.json",
+      "sha256": "33208cabd2448a67130d4121d9cb246b7671df123fe641163d6eccfd489d4353"
+    },
+    "reference_raw": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_OANDA_D1_REFERENCE_20261123_001/response-01.canonical.json",
+      "sha256": "c7181d30878746126afeb321406f43d2f5dde8c0f208194191c13c5975694cbe"
+    },
+    "reference_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_OANDA_D1_REFERENCE_20261123_001/RESULT.json",
+      "sha256": "ac590829996631664b7b67d5a36b2d9b417046e9dab2ec6feee38918e7693af9"
+    },
+    "runner": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_CROSSGEN_RUNNER001.py",
+      "sha256": "215c3d6e88a8484f274314345d504b30a1bbf4ed4a96f61b92c1e507550350e4"
+    },
+    "target_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_TARGET_ACCEPTANCE001.json",
+      "sha256": "f20b79e2d37f3315157cd89ca74b2a12cb0e3c520a5a9bf3347ffbee7568981c"
+    },
+    "target_arrays": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_PROVIDER_HLC_TARGET_QUALIFICATION_20261123_001/FUTURE_STATE_HLC_TARGETS001.npz",
+      "sha256": "2d1280e8f3cc58685db1eab650409262d5e75afbaa091c873d82ecf7a5043b6e"
+    },
+    "target_certificate": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_PROVIDER_HLC_TARGET_QUALIFICATION_20261123_001/PROVIDER_HLC_CERTIFICATE001.json",
+      "sha256": "2e50b9616c29bd458d812bd977532cc9fc65c757ecb1762567628a2a8168dbd1"
+    },
+    "target_dataset": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_PROVIDER_HLC_TARGET_QUALIFICATION_20261123_001/FUTURE_STATE_HLC_DATASET001.json",
+      "sha256": "b7727cddf8bba2f92caa9b8979995478b641518ddb768670b0ec6c0c8152bfc3"
+    },
+    "target_join_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_OANDA_D1_TARGET_JOIN_20261123_001/RESULT.json",
+      "sha256": "0fd10d8c20ee14ec329a5e105b44109e9ce256e45b8dc386d6bd24367c72e176"
+    },
+    "target_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_PROVIDER_HLC_TARGET_QUALIFICATION_20261123_001/RESULT.json",
+      "sha256": "55c5e38c904b99f8a44fd3730ebd0b36923ca07b606c737447d6be9879804652"
+    },
+    "target_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_PROVIDER_HLC_TARGET_QUALIFICATION_20261123_001/TERMINAL.json",
+      "sha256": "79049a7dd9235e682986b1035258b42cf68d9555080514dac3d90b8f9feceaf1"
+    },
+    "target_window_ledger": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_OANDA_D1_TARGET_JOIN_20261123_001/D1_WINDOW_LEDGER.json",
+      "sha256": "8aef2a2b8264a77e783ac324df2559b2315a7f5d1e77ae7213e1ca41bdea9b31"
+    }
+  },
+  "output_root": "/home/andre2/GX1_RUNS/NATIVE_D1_PROVIDER_HLC_CROSSGEN_SCORE_20261123_001",
+  "qualification_scope": "Frozen v1-trained originalFINAL savedTRAIN outputs scored against authenticatedv2 targets; not v2model,initialbaseline,learning,OOF,generalization,edge or trading authority.",
+  "runner": {
+    "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_CROSSGEN_RUNNER001.py",
+    "sha256": "215c3d6e88a8484f274314345d504b30a1bbf4ed4a96f61b92c1e507550350e4"
+  },
+  "schema_version": "gx1_d1_hlc_cross_generation_saved_logit_score_plan_v1",
+  "source_commit": "27b285c4d841298415984ee0ec6b320c3e24780b",
+  "source_files": [
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/native_future_state_provider_hlc_v1.py",
+      "sha256": "47b846c6aadce6916dc6c1409a90679623728959306836550403f7b9070e4f8c"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_native_m5_targets_v1.py",
+      "sha256": "1d83e4c04a1e14f067b72a6c4ac2a81af245c77dcb82c3e6320fcbee113c9d4e"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_integrated_objective_v1.py",
+      "sha256": "dbf2a76217b0694f94651357a7c11d9e8166176473eea917c660f9556159f9e8"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_integrated_model_v1.py",
+      "sha256": "b3849e19c186e0f390d2a4a18d2da7a72e93dbdc80be048fbbda07c5eafe22c9"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/native_future_state_training_v1.py",
+      "sha256": "bb57cbc09f3763066002b1ef772195f630254a7e8174abbb3184d7c5538dff12"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "3a785511650592f990e644759f13d54da615313272bc1b6a4d6be89434b35563"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/native_m5_direction_io_firewall_v1.py",
+      "sha256": "4ebe5d7a49a8fd719e82f62a5d04ca45489af1dfdc1022475e6044723c170739"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "0c97154564fdc6cbb9759b989e825ed0776033ba357de22b01ff13bfdf93d1e4"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_future_state_provider_hlc_v1.py",
+      "sha256": "aebae1115c29694729fb897e3ceb2be9a207e2d568a8843b7c267a6ccf532d3d"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_native_future_state_provider_hlc_consumers_v1.py",
+      "sha256": "8b7c5b62f7a5b4a503e9f8cb9b2230054e0daf3e1d0579478b80b61b0c3d652a"
+    }
+  ],
+  "stage": "native_d1_provider_hlc_crossgen_score_20261123_001",
+  "target_contract": {
+    "activity_known": "mature_and_observed_HLC_or_explicit_partial_positive_range_certificate",
+    "activity_rule": "positive_observed_range_ge_scale_proves_ACTIVE_complete_range_below_scale_or_exact_zero_proves_FLAT",
+    "activity_scale": "0.5_times_TF_Wilder_ATR14_last_closed_at_issue_no_future_scale",
+    "ambiguous_side": "both_or_neither_material_endpoint_excursions_remain_unknown_no_extrema_order_assumed",
+    "base_state_contract_sha256": "f680c6972ebb9b920770cfc68db7ae717b1ea48149fddf061f17f29f193dad5f",
+    "class_order": [
+      "DOWN",
+      "FLAT",
+      "UP"
+    ],
+    "contract_sha256": "4695c0ac9caeaa001d69d2c10b8a0c3111e3d09122592993b1cd7013720e459c",
+    "coverage_owner": "gx1.contracts.xau_tape_provenance_v1.scheduled_weekly_closure_mask",
+    "future_bar_contract_sha256": "104cb5991b2f3ec65835e6d3e029c1e51164ed63d157e3b07f1b9852afd926d9",
+    "local_window": "high_low_of_next_entirely_future_TF_bar_operator_choice_20261121",
+    "missing_ATR": "nonzero_range_unknown_no_guessed_scale",
+    "nominal_complete": "retained_strict_calendar_clock_fact_never_overwritten",
+    "observation_fields": [
+      "activity_known",
+      "activity",
+      "side_known",
+      "side_up",
+      "provider_hlc_observed",
+      "state_hlc_observed"
+    ],
+    "partial_range_active": "unchanged_ACTIVE_and_not_state_window_complete_M5_clock_fact_not_HLC_unknown",
+    "probability_limits": "proper_scores_on_observed_support_do_not_establish_unconditional_calibration_or_utility",
+    "production_training_admitted": false,
+    "provider_close": "last_reported_provider_bar_close_no_nominal_end_second_or_publication_time_assertion",
+    "provider_hlc_certificate_schema": "gx1_native_D1_provider_hlc_certificate_v1",
+    "provider_hlc_design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_DESIGN001.json",
+      "sha256": "cd97abfec7c512364c21c9608c41352ee70dac9593e1dfd28a5527713734f172"
+    },
+    "provider_hlc_limits": "no_allquotehistory_calendar_firstvintage_firsthitorder_inputchange_or_learning_claim",
+    "provider_hlc_scope": "TRAIN_mature_D1_UTC22_exact_parent_HLC_only_no_other_TF_promotion",
+    "provider_hlc_source_binding_sha256": "b23ae993a754996adbfee56f0793758e18d10cdf1972af88b0074373905e7a17",
+    "qualification": "D1_provider_relative_HLC_observation_only_requires_separate_generation_and_initial_baseline",
+    "schema_version": "gx1_native_m5_fully_future_state_dataset_v2_provider_hlc",
+    "side_boundary": "positive_scale_ge_is_material_zero_scale_requires_strict_positive_excursion",
+    "side_certificate": "observed_HLC_unique_material_endpoint_excursion_C_minus_L_vs_H_minus_C_same_scale",
+    "side_known": "requires_known_ACTIVE_observed_HLC_and_exclusive_endpoint_excursion_certificate",
+    "source_closure_contract": "oanda_complete_true_scheduled_weekly_closure_excluded_v2",
+    "state_endpoint": "complete_window_last_expected_open_M5_close_incomplete_window_last_observed_close_only_no_invented_nominal_end_price",
+    "state_hlc_observed": "state_window_complete_OR_authenticated_provider_hlc_observed",
+    "state_window_complete": "every_expected_M5_start_outside_declared_weekly_closure_present_no_other_missing_bar_excused",
+    "target_arrays_and_metadata_as_model_input": false,
+    "tf_duration_ns": {
+      "D1": 86400000000000,
+      "H1": 3600000000000,
+      "H4": 14400000000000,
+      "M15": 900000000000,
+      "M5": 300000000000
+    },
+    "tf_origin_ns": {
+      "D1": 79200000000000,
+      "H1": 0,
+      "H4": 7200000000000,
+      "M15": 0,
+      "M5": 0
+    },
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "unknown_storage": "false_boolean_payload_is_not_an_observed_class",
+    "zero_range": "observed_HLC_exact_zero_is_FLAT_even_zero_or_missing_ATR_no_epsilon"
+  },
+  "v1_producer_target_contract": {
+    "activity_known": "mature_and_complete_or_explicit_partial_positive_range_certificate",
+    "activity_rule": "positive_observed_range_ge_scale_proves_ACTIVE_complete_range_below_scale_or_exact_zero_proves_FLAT",
+    "activity_scale": "0.5_times_TF_Wilder_ATR14_last_closed_at_issue_no_future_scale",
+    "ambiguous_side": "both_or_neither_material_endpoint_excursions_remain_unknown_no_extrema_order_assumed",
+    "class_order": [
+      "DOWN",
+      "FLAT",
+      "UP"
+    ],
+    "contract_sha256": "f680c6972ebb9b920770cfc68db7ae717b1ea48149fddf061f17f29f193dad5f",
+    "coverage_owner": "gx1.contracts.xau_tape_provenance_v1.scheduled_weekly_closure_mask",
+    "future_bar_contract_sha256": "104cb5991b2f3ec65835e6d3e029c1e51164ed63d157e3b07f1b9852afd926d9",
+    "local_window": "high_low_of_next_entirely_future_TF_bar_operator_choice_20261121",
+    "missing_ATR": "nonzero_range_unknown_no_guessed_scale",
+    "nominal_complete": "retained_strict_calendar_clock_fact_never_overwritten",
+    "observation_fields": [
+      "activity_known",
+      "activity",
+      "side_known",
+      "side_up"
+    ],
+    "partial_range_active": "positive_observed_range_is_lower_bound_only_ACTIVE_can_be_certified_without_complete_window",
+    "probability_limits": "proper_scores_on_observed_support_do_not_establish_unconditional_calibration_or_utility",
+    "production_training_admitted": false,
+    "qualification": "defined_candidate_requires_genuine_coverage_qualification_no_fit_admission",
+    "schema_version": "gx1_native_m5_fully_future_state_dataset_v1",
+    "side_boundary": "positive_scale_ge_is_material_zero_scale_requires_strict_positive_excursion",
+    "side_certificate": "complete_window_unique_material_endpoint_excursion_C_minus_L_vs_H_minus_C_same_scale",
+    "side_known": "requires_known_ACTIVE_complete_window_and_exclusive_endpoint_excursion_certificate",
+    "source_closure_contract": "oanda_complete_true_scheduled_weekly_closure_excluded_v2",
+    "state_endpoint": "complete_window_last_expected_open_M5_close_incomplete_window_last_observed_close_only_no_invented_nominal_end_price",
+    "state_window_complete": "every_expected_M5_start_outside_declared_weekly_closure_present_no_other_missing_bar_excused",
+    "target_arrays_and_metadata_as_model_input": false,
+    "tf_duration_ns": {
+      "D1": 86400000000000,
+      "H1": 3600000000000,
+      "H4": 14400000000000,
+      "M15": 900000000000,
+      "M5": 300000000000
+    },
+    "tf_origin_ns": {
+      "D1": 79200000000000,
+      "H1": 0,
+      "H4": 7200000000000,
+      "M15": 0,
+      "M5": 0
+    },
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "unknown_storage": "false_boolean_payload_is_not_an_observed_class",
+    "zero_range": "complete_exact_zero_is_FLAT_even_zero_or_missing_ATR_no_epsilon"
+  }
+}

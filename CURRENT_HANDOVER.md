@@ -237,3 +237,28 @@ source/diskSHA,F_FULLFSYNC/readback PASS. D1_PROVIDER_HLC_BACKUP001 og
 REVIEW_CHECKPOINT010 binder sikring og administrativ20PASS. Vitenskapelige
 03/07/09/19UNKNOWN,11/12/15FAIL gjelder fortsatt; v2NN-baseline/læring/
 generalisering/edgeUNKNOWN. Nytt mål forblir ACTIVE, ingen treningsadmisjon.
+
+D1-v2 saved-logitdiagnose: NATIVE_D1_PROVIDER_HLC_CROSSGEN_SCORE_20261123_001
+er COMPLETE_CONSUMED_CLOSED,0/false.6,128sCPU,4G/512M/1tråd;3capture-/
+14v2truth-/2gamlemaskearrays=71264550logiske bytes.0modell/CP/features/
+ANNforward/optimizer/fit/TEST. SOURCE/POLICY/WSLbootbookendsPASS. Preflight
+0payload/CLAIM;7syntetiskecasesPASS. Førstehostquery2stimeoutføradmisjon;
+fersksample002PASS. Close ble først nektet mens launch-wrapperens Python
+fortsatt haddeCURRENTcwd; bareclose0ble gjentatt etter wrapperexit. Ingen
+jobb eller vakt ble endret/relansert.
+
+CROSSGEN_ACCEPTANCE001: gammel v1FINAL vurdert mot nyev2TRAINfasiter.
+ALLE5TFsideBrier/NLLverreenn matchetv2prior;D1q64,125%motUP54,492%,
+Brier0,258285mot0,247982. Både gammel162-/ny713-sidemålsstøttefeiler
+ogsåmedlikmålvekt.2025heleutvidedesidestøtten q63,827%motUP63,795%;
+alleskåredeD1sider velger likevelUP. Årsprevalens erikke tosidigprognoseevne.
+354274modneårsrader+276umodneutenfor2021–25avstemt; ukjentforblirukjent.
+Detteutpekerikkeenunik treningsårsak ellerresultatet av v2retrening.
+
+25nye artefakter/20935326bytes erverifisert på separatMac-disk; manifest
+3efa5098...0439ba,SHA/F_FULLFSYNC/readbackPASS. Gamle checkpoints urørt.
+Neste er fersk v2initialbaseline via minste eksplisitte context/packet/score-
+adapter medmetadatautenforNNinput; gamleworkersuendret,0v1CP/resume.
+Bind seed,inputs/norm/prior,scope/batches/ressursvakterførANNforward; ingen
+automatiskfit. V2læring/generalisering/edgeUNKNOWN;20-stegs13PASS/3FAIL/
+4UNKNOWNbeholdes. Målet erACTIVE, alle5globaleporterfalse.

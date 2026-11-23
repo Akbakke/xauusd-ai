@@ -127,6 +127,15 @@ beholdes. Dette beviser ikke alle quotes, historisk kalender eller inputenes
 førstevintage. Ny mål-/prior-/loss-/score-identitet krever egen kandidat-
 kvalifisering og fersk initialbaseline før en ny, separat innrømmet fit.
 
+Lagrede v1-prediksjoner kan skåres mot v2-fasit som eksplisitt
+generasjonskrysset TRAIN-diagnostikk. Det er ingen v2-initialbaseline,
+v2-læring eller senere generalisering. En fersk v2-baseline trenger egen
+context/packet/score-adapter:14fasitarrays slices/akkumuleres, mens den
+autentiserte sertifikatreferansen føres separat og aldri inn i NN-forward.
+Modell/input/normalisering/prior,seed og eksakte maskinvare-/scopegrenser
+bindes før nye forwards. Gamle workers og v1-checkpoints gjenbrukes ikke
+som v2-kjøringsautoritet; ingen automatisk fit eller epokeserie følger.
+
 ACTIVE og UP|ACTIVE gir DOWN=a(1−s), FLAT=1−a, UP=as. Kjent aktivitets-BCE og
 sertifisert side-BCE deles på kjente aktivitetsceller. Ukjent side gir null
 direkte sidehodegradient med bevart aktivitetsgradient; helt ukjent celle er
