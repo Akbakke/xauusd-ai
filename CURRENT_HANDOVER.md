@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT052:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT058:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -29,11 +29,13 @@ GC/orderbok er utsatt, ikke slettet; M30 trenger egen verdikvalifisering.
 M1 brukes aldri til retning/fasit/normalisering/utvalg. TEST er forseglet.
 Ingen live/paper, broker, ordre, spending eller promotion.
 
-Alle fem globale treningsporter er false. Main002 og alle tre recoveryprodusenter
-er consumed0/false; siste prosess er bekreftet stoppet. None-kjøringen har
-3584/3694 varig sikrede oppdateringer,344064/354550TRAINrader. Den ble stoppet
-av Windows-vedlikehold under fullFINAL; ingen komplett NoneRESULT/FINAL.
-Opprinnelig M5-primaryv2-epoke er fullført og beholdes som referanse.
+Alle fem globale treningsporter er false. Main002 og alle recoveryprodusenter
+er consumed0/false. None-epoken er fullført:3694retainedlogiskeupdates,
+354550TRAINrader og fullFINAL1385batcher. Kjøringen avsluttet medexit0.
+TRAIN_END ble faktisk skrevet/readback før scoring; FINAL etterfullscore.
+Alle9ikke-scoreproofs eridentiske mellomTRAIN_END/FINAL.
+Paret review002 bekrefter høyere NLL/Brier påalle5TF enn egenINITIAL,
+frossenprior OG beholdtM5-kontroll. Sluttartefakter er separatdiskverifisert.
 Stortrening er ikke kvalifisert.
 Én tung CURRENT-jobb via scripts/gx1_capped_run.sh, lås og eksisterende
 kapasitets-/temperatur-/effekt-/hostvakter. Ingen kilde-/policyendring under
@@ -48,9 +50,10 @@ binder før/etter-feltene mot originale akseptkvitteringer. Feltene ble da
 avstemt mot cold-replay; nyeste CPU-terminal/resultat/runtime følger policy.
 Tidligere avsnitt om001/002 og gamle baseline-/replaygap gjelder de navngitte
 historiske fasene; de er ikke nåværende mangler. Historisk training_started
-gjelder beholdt M5-primary-epoke; None002 og tre recoveryer startet;3584updates er varig sikret før siste stopp under fullFINAL.
+gjelder beholdt M5-primary-epoke. Nå er også None002 medfire recoveryer
+fullført:3694retainedlogiskeupdates/fullFINAL; review002 underkjenneralle5TF.
 Stortrening er fortsatt ikke kvalifisert:13PASS/3FAIL/4UNKNOWN.
-002 er consumed; separat kvalifisert recovery kreves for resten av samme epoke.
+Main002 og allefire recoveryer er consumed0/false; ingen viderefit er innrømmet.
 Statusleseren skiller nå aktiv20stegskvalifikasjon fra gammelEntry-readiness.
 Den nyeste kaldreplay-terminalens manglende direkte source-/TEST-felt må
 bevises fra bundet originalRESULT og lukket stage/aksept; ingen felt gjettes.
@@ -129,8 +132,9 @@ binder riktig childlogg,5syntetiske rapportcases,0omkjøring. Fersk signert
 vertsmåling200W/CPU31C/10,79W/GPU32/40C/21,80W/79MiB/59,66GB ledig PASS.
 Separat planbackup19filer6719040B er MacSHA/F_FULLFSYNC/fsync-verifisert,
 og fersk signert host/boot/idle er kontrollert før eksakt engangsadmisjon.
-Firetrainflagg ertrue bareforrecovery2560; fullVAL/ekstraepoker/TEST/handel fortsattstengt. Bevar HEAD903964692; nye plan-/policyfiler committes
-først etter kjøringslukking. Original001/feillogger beholdes stengt.
+Tidligere recovery2560 er consumed0/false; historiske preflight-/backupbevis ovenfor beholdes.
+Recovery3584/plan2e43b9ff er nå COMPLETE_CONSUMED; alle5flaggfalse.
+Kildef111b32ac/policyd54e85a5/handover var fryst gjennom faktisk exit0.
 002 er stoppet etter claim; ingen baseline-/recipe-/targetendring.
 Én TRAIN-diagnostikk med256-stegs atomiske checkpoints; ikke ekstraepoke,
 ikkeOOF ellerutvalg påTEST; kalender/vintage/generalisering/edge fortsattåpent.
@@ -1190,6 +1194,26 @@ cases gjenbrukt fra002 og37nye fra003, allePASS. To testfixturefeil er
 rettet uten produksjonsendring; originale feilbevis er bevart. V1-numerikk, gamle eiere og begge eksisterende
 testfiler er bytebevart. SOURCE_IMPLEMENTATION001 og SOURCE_QUALIFICATION001 binder fryst kilde.
 Eksisterende INITIAL003/replay og numeriske eiere skal gjenbrukes uendret.
-Neste er kildepublisering, faktisk v2-inputmetadata og eksakt
-preflight/vertskontroll før én ny fortsettelse fra3584. Alle porter er false.
-Ingen nyINITIAL/ekstraepoke/TEST eller None-FINAL-/edgepåstand.
+Kilde f111b32ac er committed/pushet; obligatorisk precommittest PASS.
+Faktisk v2-metadatabygger har validert80eiere og input/norm uten payload,
+modell, checkpointload ellerCUDA. Plan2e43b9ff er COMPLETE_CONSUMED/exit0. Suffix110updates/fullFINAL fullførte
+på1168,635s. Faktisk restore3584 og alle source/input/policy/handover/beggeboot-
+bookends PASS. TRAIN_END97333527B/SHAa05bf9f7 og FINAL97916887B/SHAce2571d8
+er råSHA-/statkontrollert, uten deserialisering. Alle9ikke-scoreproofs er
+identiske; INITIAL-onlyTRAIN_END og fullPASS1-FINAL er hver korrektbundet.
+GPUpeak62/70C190,77W9798MiB; CPU44C32,07W; minst55,41GBhostledig.
+Ingen ressursgrense brutt. Ingen Windows-/vaktendring eller ekstraepoke.
+COMPLETED_BOOKEND001 og NONE_FULL_EPOCH_COMPLETION001 binder originalene.
+Paret review002: bådeNLL/Brier erverre enn egenINITIAL/prior/retainedM5 påalle5TF.
+D1 meanqUP71,997% mot faktisk54,492%; H4/D1 har100%UP-argmax. Positive
+TRAIN-AUC påM5/M15/H1 ogfiregode2025celler opphever ikke pooledFAIL.
+Alle25årspaneler ogbeggeD1støttegrupper er rapportert medavstemtecounts.
+Første reviewprojeksjon hadde tomD1grupperapport;002retter kunrapporten,
+bevarerprimærtabellen ogoriginal001. Ingenkjørings-/metrikkomskriving.
+Sluttbackup:18originalfiler211933951B, alleartefakter/diagnostic/stderr/manifest
+uavhengigMacSHA/F_FULLFSYNC/fsync-verifisert. BeggeCP/alleoutputs erbeholdt.
+Neste konkrete spørsmål gjelderkronologisk kalibreringsdrift oglagrede
+steg-/support-/momentbevis; eksisterende audit-eier skal gjenbrukes før
+nyNN/fit vurderes. Ingen entydigårsak ellervalgtfix erbevist.
+Score-only3694 er kildetestet, men ble ikke fysisk kjørt sidenfullFINALlyktes.
+Alle5porterfalse;13PASS/3FAIL/4UNKNOWN. Ingen størretrening/TEST/handel.
