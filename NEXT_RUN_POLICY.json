@@ -101173,14 +101173,19 @@
     },
     "v2_all_TF_CPU_gradient_contrast_scope_review": "PASS: read-only source/identity review confirms explicitNone path and candidate-owned strict state with sole computed model-identity buffer difference; seven independent components plus canonical; no execution or fit authority.",
     "v2_all_TF_CPU_gradient_contrast_source_qualification": {
-      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_ALL_TF_CPU_GRADIENT_CONTRAST_SOURCE_QUALIFICATION001.json",
-      "sha256": "98847a5a6a580a4f7441a8cc05607aedf2ee175b91899e88a4f966f648fd93c5",
-      "bytes": 8282
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_ALL_TF_CPU_GRADIENT_CONTRAST_SOURCE_QUALIFICATION002.json",
+      "bytes": 8936,
+      "sha256": "36677a636f280789a06b7cc0785971035cb30c8651c390e0830bba08dc57a0ab"
     },
     "v2_all_TF_CPU_gradient_contrast_reference_fix": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_ALL_TF_CPU_GRADIENT_CONTRAST_PREPUBLICATION_REFERENCE_FIX001.json",
       "sha256": "c0a9dece2759d6e0c7d76f2cdd061601c9b6f295c6f93d3f4ef654254b9192be",
       "bytes": 1760
+    },
+    "v2_all_TF_CPU_gradient_contrast_controller_compile_fix": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_ALL_TF_CPU_GRADIENT_CONTRAST_CONTROLLER_COMPILE_FIX001.json",
+      "bytes": 1478,
+      "sha256": "9775cd9e228e7256a7d1f1ac840d933a5216843b6d13d6f3fcca1cbf5c4c6386"
     }
   },
   "native_raw_feed_clock_qualification_20261123_001": {

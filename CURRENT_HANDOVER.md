@@ -845,7 +845,13 @@ null der byte-likhet kreves. Planen peker på sikret CPU-baseline medSHA,
 i stedet for å kopiere hele den radvise prognosefilen. Matematikk/budsjett/
 porter er uendret. Faktisk blokkert metadata002 bestod med86eiere og null
 modell/checkpoint/feature- eller målarraydekoding/forward/autograd/claim.
-SOURCE_QUALIFICATION001 og uavhengig kilde/controller-review binder dette.
+SOURCE_QUALIFICATION002 og uavhengig kilde/controller-review binder dette.
 Koden må committes/pushes, og eksakt preflight, separat kilde-/planbackup,
 fersk maskinvarekontroll og engangsadmisjon må bestå før kjøring.
 Alle fem treningsporter er false; aktuell CPU-admisjon eies av policy.
+
+Faktisk prepare001 stoppet ved Python-kompilering før import/plan/claim:
+21 patch-kontekster overskred grensen for statisk nestede blokker.
+CONTROL002 bruker ExitStack med de samme21 vaktene. Kompilering med eksakt
+venv-interpreter bestod; original CONTROL001/logg og COMPILE_FIX001 bevares.
+Ingen modelljobb eller engangsplan er konsumert av dette forberedelsesforsøket.
