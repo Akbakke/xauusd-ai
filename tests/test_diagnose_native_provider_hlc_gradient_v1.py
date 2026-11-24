@@ -829,7 +829,7 @@ def test_batch_geometry_addition_preserves_old_authorities_and_first_parity_pars
     import subprocess
     anchor = '1eae0a9710da279a9a8b81a7cc1147ec86126083'
     before = subprocess.check_output(['git', 'show', anchor + ':' + m.SELF], cwd=m.REPO, text=True)
-    after = Path(m.__file__).read_text()
+    after = cpu_conditional_strip_source(Path(m.__file__).read_text())
     old_tree, new_tree = ast.parse(before), ast.parse(after)
     old_functions = {node.name: node for node in old_tree.body if isinstance(node, ast.FunctionDef)}
     new_functions = {node.name: node for node in new_tree.body if isinstance(node, ast.FunctionDef)}
@@ -1214,3 +1214,422 @@ def test_batch_geometry_builder_binds_descriptive_pointer_separately_from_actual
     d['original_score_batch']['JSON_pointer'] = pointer
     first['output_sha256']['activity_logits'] = '0'*64
     with pytest.raises(ValueError, match='BATCH_GEOMETRY_ORIGINAL_SCORE_BATCH'): exec(code, environment)
+
+
+# CPU-conditional gradient tests; all other earlier cases retain their source.
+def cpu_conditional_strip_source(source):
+    begin = '# CPU-conditional B96 gradients; saved-CUDA gate remains failed.\n'
+    end = '# End CPU-conditional B96 gradients.\n\n'
+    dispatch = "    if sys.argv[3:4]==['--cpu-conditional-gradient']:\n        return main_cpu_conditional()\n\n"
+    assert source.count(begin) == source.count(end) == 1
+    first, tail = source.split(begin)
+    _, last = tail.split(end)
+    assert last.count(dispatch) == 1
+    return first + last.replace(dispatch, '', 1)
+
+
+def test_cpu_conditional_source_addition_strips_to_exact_frozen_prior_owner():
+    import subprocess
+    before = subprocess.check_output(['git', 'show', 'f9c825571a0ba291364527f1754818fe8e0ab6a7:' + m.SELF], cwd=m.REPO, text=True)
+    after = Path(m.__file__).read_text()
+    assert cpu_conditional_strip_source(after) == before
+
+
+def cpu_conditional_lifecycle(monkeypatch, tmp_path):
+    plan, _, pref, hooks, timers, _ = batch_geometry_lifecycle(monkeypatch, tmp_path)
+    monkeypatch.setattr(m, 'CPU_ROOT', tmp_path / 'CPU_OUT')
+    monkeypatch.setattr(m, 'CPU_PLAN', tmp_path / 'CPU_PLAN.json')
+    m.CPU_PLAN.write_text('{"synthetic_cpu_conditional":true}')
+    binding = m.ref(m.CPU_PLAN)
+    monkeypatch.setattr(m, 'inspect_cpu_conditional', lambda *a, **k: (plan, binding, pref))
+    monkeypatch.setattr(m, 'calculate_cpu_conditional', lambda *a, **k: {'original_saved_CUDA_gate': 'FAILED'})
+    return plan, binding, pref, hooks, timers
+
+
+def test_cpu_conditional_exact_opt_in_preflight_has_zero_derivatives_and_no_baseline(monkeypatch, tmp_path, capsys):
+    _, binding, _, hooks, _ = cpu_conditional_lifecycle(monkeypatch, tmp_path)
+    def forbidden(*a, **k): raise AssertionError('NO_CPU_CONDITIONAL_PAYLOAD_IN_PREFLIGHT')
+    monkeypatch.setattr(m, 'calculate_cpu_conditional', forbidden)
+    monkeypatch.setattr(torch, 'load', forbidden); monkeypatch.setattr(np, 'load', forbidden)
+    monkeypatch.setattr(sys, 'argv', ['audit', '--first-parity-plan-sha256', binding['sha256'], '--cpu-conditional-gradient', '--preflight'])
+    m.main(); result = json.loads(capsys.readouterr().out)
+    assert result['plan'] == binding and result['claim_created'] is False
+    assert all(result[key] == 0 for key in ('NN_forwards', 'autograd_calls', 'checkpoint_deserializations', 'NPZ_arrays_decoded', 'models'))
+    assert result['CUDA_initialized'] is False and hooks == []
+    assert not any(root.exists() for root in (m.CPU_ROOT, m.BATCH_ROOT, m.PARITY_ROOT, m.ROOT))
+    monkeypatch.setattr(sys, 'argv', sys.argv + ['--cpu-conditional-gradient'])
+    with pytest.raises(ValueError, match='EXACT_CLI'): m.main()
+    monkeypatch.setattr(sys, 'argv', ['audit', '--first-parity-plan-sha256', binding['sha256'], '--preflight', '--cpu-conditional-gradient'])
+    with pytest.raises(SystemExit): m.main()
+
+
+@pytest.mark.parametrize('failure', [False, True])
+def test_cpu_conditional_lifecycle_retains_baseline_and_failed_GPU_gate_without_relaunch(monkeypatch, tmp_path, failure):
+    _, binding, pref, _, timers = cpu_conditional_lifecycle(monkeypatch, tmp_path)
+    def calculate(plan, *, progress):
+        baseline = m.cpu_conditional_publish('CPU_BASELINE.json', {
+            'status': 'CPU_BASELINE_COMPLETE_BEFORE_DERIVATIVES', 'counts': {'NN_forwards': 96, 'autograd_calls': 0}})
+        progress.update(cpu_baseline=baseline, second_pass_rows=[{'index': 3, 'paired_gate': False}],
+                        counts={'NN_forwards': 100, 'autograd_calls': 12})
+        if failure: raise ValueError('SYNTHETIC_LATE_CPU_PAIR_FAILURE')
+        return {'cpu_baseline': baseline, 'original_saved_CUDA_gate': 'FAILED',
+                'full96_gradient_qualification': False, 'actual_training_cause': 'UNKNOWN'}
+    monkeypatch.setattr(m, 'calculate_cpu_conditional', calculate)
+    if failure:
+        with pytest.raises(ValueError, match='SYNTHETIC_LATE_CPU_PAIR_FAILURE'):
+            m.run_cpu_conditional(binding['sha256'])
+    else:
+        outputs = m.run_cpu_conditional(binding['sha256'])
+        assert outputs['result'] == m.ref(m.CPU_ROOT / 'RESULT.json')
+        result = json.loads((m.CPU_ROOT / 'RESULT.json').read_text())
+        assert result['report']['original_saved_CUDA_gate'] == 'FAILED'
+        assert result['report']['full96_gradient_qualification'] is False
+        assert result['test_data_used'] is result['economic_edge_proven'] is False
+    terminal = json.loads((m.CPU_ROOT / 'TERMINAL.json').read_text())
+    claim = json.loads((m.CPU_ROOT / 'CLAIM.json').read_text())
+    baseline = json.loads((m.CPU_ROOT / 'CPU_BASELINE.json').read_text())
+    assert baseline['counts'] == {'NN_forwards': 96, 'autograd_calls': 0}
+    assert terminal['status'] == ('FAILED_CONSUMED' if failure else 'COMPLETE')
+    assert terminal['stage'] == claim['stage'] == m.CPU_STAGE
+    assert terminal['exit_code'] == int(failure) and terminal['remaining_invocations'] == 0
+    assert terminal['relaunch_allowed'] is claim['training_authorized'] is False
+    assert claim['policy_at_claim'] == pref and terminal['plan'] == binding
+    assert (m.CPU_ROOT / 'RESULT.json').exists() is (not failure)
+    assert not any(root.exists() for root in (m.BATCH_ROOT, m.PARITY_ROOT, m.ROOT))
+    if failure:
+        assert terminal['result'] is None
+        assert terminal['progress']['cpu_baseline'] == m.ref(m.CPU_ROOT / 'CPU_BASELINE.json')
+        assert terminal['progress']['counts'] == {'NN_forwards': 100, 'autograd_calls': 12}
+    assert timers[-1] == (m.signal.ITIMER_REAL, 0)
+    with pytest.raises(FileExistsError): m.run_cpu_conditional(binding['sha256'])
+
+
+@pytest.mark.parametrize('admitted', [False, True])
+def test_cpu_conditional_one_use_gate_keeps_all_training_and_retry_closed(admitted):
+    binding = {'path': '/synthetic/CPU_CONDITIONAL.json', 'sha256': 'e'*64}
+    gate = m.gate_cpu_conditional_expected(binding, admitted)
+    assert gate['plan'] == binding and gate['execution_authorized'] is admitted
+    assert gate['remaining_invocations'] == int(admitted)
+    assert gate['relaunch_allowed'] is gate['training_authorized'] is gate['test_authorized'] is False
+
+
+def test_cpu_conditional_panel_comparison_retains_96_rows_and_fixed_zero_reference_rules():
+    reference = np.ones((96, 5), np.float32); reference[0, 0] = 0.
+    candidate = reference.copy(); candidate[0, 0] = 1.; candidate[95, 4] += 2e-5
+    result = m.cpu_conditional_compare(reference, candidate, tolerance=TOLERANCES['saved_FINAL_logits'])
+    delta = np.abs(candidate.astype(np.float64) - reference.astype(np.float64))
+    assert result['rows'] == len(result['per_row']) == 96
+    assert result['passed_cells'] == 478 and result['failed_cells'] == 2
+    assert result['all_within_original_tolerance'] is False
+    assert result['max_absolute_delta'] == float(delta.max())
+    assert result['per_TF_max_absolute_delta'] == delta.max(axis=0).tolist()
+    assert result['per_row'][0]['zero_reference_relative_status'][0] == 'INFINITE'
+    assert result['per_row'][95] == m.first_parity_compare(reference[95:], candidate[95:], tolerance=TOLERANCES['saved_FINAL_logits'])
+    json.dumps(result, allow_nan=False)
+
+
+@pytest.mark.parametrize('bad', ['shape', 'dtype', 'nan', 'tolerance'])
+def test_cpu_conditional_panel_comparison_rejects_changed_domain_or_tolerance(bad):
+    reference, candidate = np.zeros((96, 5), np.float32), np.zeros((96, 5), np.float32)
+    tolerance = copy.deepcopy(TOLERANCES['saved_FINAL_logits'])
+    if bad == 'shape': candidate = candidate[:95]
+    elif bad == 'dtype': reference = reference.astype(np.float64)
+    elif bad == 'nan': candidate[95, 4] = np.nan
+    else: tolerance['atol'] = .1
+    with pytest.raises(ValueError): m.cpu_conditional_compare(reference, candidate, tolerance=tolerance)
+
+
+def cpu_conditional_calculation(monkeypatch, tmp_path, *, mismatch_row=None, wrong_anchor=False):
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    plan, capture, models = synthetic_calculation(monkeypatch)
+    packet = m.adapter.packet(None, np.arange(96, dtype=np.int64))
+    for j, tf in enumerate(('m5', 'm15', 'h1', 'h4', 'd1')):
+        packet['features']['seq_' + tf] = packet['features'].pop('dummy' + str(j))
+    def record(array):
+        return {'values': array.astype(np.float64).tolist(), 'shape': list(array.shape),
+                'dtype': array.dtype.str, 'sha256': m.core.digest(array)}
+    baseline = {head: capture[head].copy() for head in ('activity_logits', 'side_logits')}
+    row0 = {key: {'shape': list(value[:1].shape), 'dtype': str(value.dtype),
+                 'sha256': m.core.digest(value[:1].numpy())} for key, value in packet['features'].items()}
+    anchor = {'name': 'CPU_GRAD_ENABLED_UNMERGED', 'requested': copy.deepcopy(FIRST_PARITY_ROUTES[2]),
+              'activation': {'batch_eval_active': False, 'model_training': False, 'grad_enabled': True,
+                  'scope_enabled': False, 'eligible_equal_length_TF_groups': {'1': ['M5', 'M15', 'H1', 'H4', 'D1']}},
+              'logits': {head: {**record(array[:1]), 'values': array[0].astype(np.float64).tolist()}
+                         for head, array in baseline.items()}}
+    if wrong_anchor:
+        bad = np.array([anchor['logits']['side_logits']['values']], np.float32); bad[0, 4] += .1
+        anchor['logits']['side_logits'] = {**record(bad), 'values': bad[0].astype(np.float64).tolist()}
+    plan.update(prior_CPU_anchor={'route': anchor, 'selected_issue_ns': int(capture['issue_ns'][0]),
+                                 'selected_source_row': 0, 'feature_proof': row0},
+                fixed_original_tolerance=copy.deepcopy(TOLERANCES['saved_FINAL_logits']),
+                route=copy.deepcopy(m.CPU_ROUTE))
+    plan['budget'].update(NN_forwards_max=192, autograd_calls_max=384)
+    for head in baseline: capture[head][:] -= np.float32(.01)
+    monkeypatch.setattr(m, 'CPU_ROOT', tmp_path / 'CPU_CLAIMED')
+    monkeypatch.setattr(m, 'CPU_PLAN', tmp_path / 'CPU_PLAN.json')
+    monkeypatch.setattr(m, 'POLICY', tmp_path / 'POLICY.json')
+    m.CPU_ROOT.mkdir()
+    m.CPU_PLAN.write_text(json.dumps(plan, sort_keys=True, allow_nan=False))
+    plan_ref = m.ref(m.CPU_PLAN)
+    policy = dict.fromkeys(m.saved.FLAGS, False)
+    policy[m.CPU_STAGE] = m.gate_cpu_conditional_expected(plan_ref, True)
+    m.POLICY.write_text(json.dumps(policy, sort_keys=True, allow_nan=False))
+    policy_ref = m.ref(m.POLICY)
+    claim = {'stage': m.CPU_STAGE, 'plan': plan_ref, 'policy_at_claim': policy_ref,
+             'remaining_invocations': 0, 'relaunch_allowed': False,
+             'training_authorized': False, 'test_data_used': False}
+    claim_path = m.CPU_ROOT / 'CLAIM.json'
+    claim_path.write_text(json.dumps(claim, sort_keys=True, allow_nan=False))
+    execution_refs = {'plan': plan_ref, 'claim': m.ref(claim_path), 'policy_at_claim': policy_ref}
+    calls, publications, grad_rows, paired_gates, scales, proof_calls = [], [], [], [], [], []
+    baseline_ref = {'path': str(m.CPU_ROOT / 'CPU_BASELINE.json'), 'sha256': 'f'*64}
+    original_compare, original_grad = m.first_parity_compare, torch.autograd.grad
+    original_scaling, original_report = m.scaled_canonical_loss, m.gradient_report
+    def helper(model, features, *, grouped, equal_tf, capture):
+        assert grouped is True and equal_tf is capture is False
+        assert torch.is_grad_enabled() is True and model.training is False
+        assert all(value.shape[0] == 1 for value in features.values())
+        assert body._BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False and body._MODEL_FINITE_CHECK_SCOPE.get() is None
+        assert len(model._forward_pre_hooks) == 1
+        assert all(not child._forward_hooks and not child._forward_pre_hooks
+                   for child in model.modules() if child is not model)
+        index = len(calls); calls.append(index)
+        with body.model_finite_check_scope('grouped'):
+            output = model(**features)
+        if index >= 96 and index-96 == mismatch_row:
+            output['side_logits'] = output['side_logits'] + .02
+        return output, None, copy.deepcopy(anchor['activation'])
+    def compare(reference, candidate, *, tolerance):
+        result = original_compare(reference, candidate, tolerance=tolerance)
+        if len(calls) > 96:
+            head = 'activity_logits' if candidate[0, 0] > 0 else 'side_logits'
+            paired_gates.append((len(calls)-97, head, result['all_within_original_tolerance']))
+        return result
+    def publish(name, artifact):
+        assert name == 'CPU_BASELINE.json' and len(calls) == 96 and grad_rows == []
+        assert artifact['status'] == 'CPU_BASELINE_COMPLETE_BEFORE_DERIVATIVES'
+        publications.append(copy.deepcopy(artifact)); return baseline_ref.copy()
+    def gradient(*args, **kwargs):
+        row = len(calls)-97
+        assert len(publications) == 1 and 0 <= row < 96
+        assert {head for index, head, passed in paired_gates if index == row and passed} == {'activity_logits', 'side_logits'}
+        grad_rows.append(row)
+        return original_grad(*args, **kwargs)
+    def scale(loss, chunk_denominator, full_denominator):
+        assert chunk_denominator == 5 and full_denominator == 480
+        scales.append((chunk_denominator, full_denominator))
+        return original_scaling(loss, chunk_denominator, full_denominator)
+    def proof(*vectors, **kwargs):
+        assert len(vectors) == 4
+        assert all(value is None or value.dtype == torch.float64 for vector in vectors for value in vector)
+        proof_calls.append(True); return original_report(*vectors, **kwargs)
+    monkeypatch.setattr(m.core, 'future_cuda_forward', helper)
+    monkeypatch.setattr(m, 'first_parity_compare', compare)
+    monkeypatch.setattr(m, 'cpu_conditional_publish', publish)
+    monkeypatch.setattr(torch.autograd, 'grad', gradient)
+    monkeypatch.setattr(m, 'scaled_canonical_loss', scale)
+    monkeypatch.setattr(m, 'gradient_report', proof)
+    trace = {'calls': calls, 'publications': publications, 'grad_rows': grad_rows, 'paired_gates': paired_gates,
+             'scales': scales, 'proof_calls': proof_calls, 'baseline_ref': baseline_ref, 'execution_refs': execution_refs}
+    return plan, capture, baseline, models, trace
+
+
+def cpu_conditional_counts():
+    counts = completed_counts()
+    del counts['parity_forwards']
+    counts.update(baseline_forwards=96, gradient_forwards=96, NN_forwards=192, autograd_calls=384,
+                  canonical_loss_calls=96, independent_BCE_calls=192, baseline_artifact_writes=1,
+                  grad_enabled_forward_calls=192, no_grad_forward_calls=0)
+    return counts
+
+
+def test_cpu_conditional_count_proof_requires_complete_paired_measurement_and_zero_updates():
+    assert m.cpu_conditional_validate_counts(cpu_conditional_counts(), {'NN_forwards_max': 192, 'autograd_calls_max': 384}) is True
+    for field in ('baseline_forwards', 'gradient_forwards', 'autograd_calls', 'baseline_artifact_writes',
+                  'no_grad_forward_calls', 'optimizer_updates'):
+        counts = cpu_conditional_counts(); counts[field] += 1
+        with pytest.raises(ValueError):
+            m.cpu_conditional_validate_counts(counts, {'NN_forwards_max': 192, 'autograd_calls_max': 384})
+    counts = cpu_conditional_counts(); counts['checkpoint_deserializations'] = True
+    with pytest.raises(ValueError):
+        m.cpu_conditional_validate_counts(counts, {'NN_forwards_max': 192, 'autograd_calls_max': 384})
+
+
+def test_cpu_conditional_baseline_precedes_every_derivative_and_reuses_original_Dfull_and_F64(monkeypatch, tmp_path):
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    plan, capture, baseline, models, trace = cpu_conditional_calculation(monkeypatch, tmp_path)
+    refs = trace['execution_refs']
+    progress = {'execution_refs': refs}; ambient = torch.is_grad_enabled()
+    report = m.calculate_cpu_conditional(plan, progress=progress)
+    assert report['counts'] == cpu_conditional_counts()
+    assert len(trace['calls']) == 192 and trace['grad_rows'] == [row for row in range(96) for _ in range(4)]
+    assert trace['scales'] == [(5, 480)]*96 and trace['proof_calls'] == [True]
+    assert len(trace['publications']) == 1
+    artifact = trace['publications'][0]
+    assert {role: artifact[role] for role in refs} == refs
+    assert artifact['counts']['NN_forwards'] == artifact['counts']['baseline_forwards'] == 96
+    assert artifact['counts']['autograd_calls'] == artifact['autograd_calls_before_publication'] == 0
+    assert artifact['bookends_passed'] is True and artifact['original_saved_CUDA_gate'] == 'FAILED'
+    assert report['cpu_baseline'] == progress['cpu_baseline'] == trace['baseline_ref']
+    assert report['baseline_counts']['NN_forwards'] == 96 and report['baseline_counts']['autograd_calls'] == 0
+    assert report['known_activity_denominator_full_B96'] == 480
+    assert report['original_saved_CUDA_gate'] == 'FAILED'
+    assert report['saved_CUDA_comparison_is_informational'] is True
+    assert report['full96_gradient_qualification'] is False
+    assert report['CPU_baseline_published_before_derivatives'] is report['CPU_conditional_local_interaction_only'] is True
+    for head in ('activity_logits', 'side_logits'):
+        expected = {'values': baseline[head].astype(np.float64).tolist(), 'shape': [96, 5],
+                    'dtype': np.dtype('float32').str, 'sha256': m.core.digest(baseline[head])}
+        assert artifact['outputs'][head] == report['cpu_baseline_outputs'][head] == expected
+        assert report['cpu_replay_outputs'][head] == expected
+        assert report['cpu_replay_comparison'][head]['all_within_original_tolerance'] is True
+        assert report['cpu_replay_comparison'][head]['failed_cells'] == 0
+        assert report['saved_CUDA_comparison'][head]['failed_cells'] == 480
+        assert artifact['saved_CUDA_comparison'][head] == report['saved_CUDA_comparison'][head]
+    assert len(progress['second_pass_rows']) == 96 and progress['second_pass_rows'][-1]['index'] == 95
+    assert all(comparison['all_within_original_tolerance']
+               for row in progress['second_pass_rows'] for comparison in row['vs_CPU_baseline'].values())
+    assert report['gradient_proof']['component_gradient_contract_verified'] is True
+    assert report['gradient_proof']['actual_auxiliary_shared_gradient_zero'] is True
+    assert report['gradient_proof']['local_verdict'] == 'NOT_LOCAL_CONFLICT'
+    assert report['parameter_axis']['aggregation_dtype'] == 'float64'
+    assert report['model_state_and_local_RNG_bookend_passed'] is report['retained_B96_packet_unmutated'] is True
+    assert body._BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False and body._MODEL_FINITE_CHECK_SCOPE.get() is None
+    assert torch.is_grad_enabled() is ambient
+    assert len(models) == 1 and models[0].backbone.weight.item() == .25 and models[0].backbone.weight.grad is None
+    assert not models[0]._forward_pre_hooks
+    assert report['actual_training_cause'] == report['selected_causal_fix'] == report['economic_edge'] == 'UNKNOWN'
+    assert progress['phase'] == 'COMPLETE_CPU_CONDITIONAL_GRADIENT_MEASUREMENT'
+    json.dumps(report, allow_nan=False)
+
+
+def test_cpu_conditional_first_row_anchor_failure_blocks_baseline_publication_and_derivatives(monkeypatch, tmp_path):
+    plan, _, _, models, trace = cpu_conditional_calculation(monkeypatch, tmp_path, wrong_anchor=True)
+    progress = {'execution_refs': trace['execution_refs']}
+    with pytest.raises(ValueError, match='PRIOR_CPU_ANCHOR_MISMATCH'):
+        m.calculate_cpu_conditional(plan, progress=progress)
+    assert trace['calls'] == [0] and trace['publications'] == trace['grad_rows'] == trace['proof_calls'] == []
+    assert progress['counts']['autograd_calls'] == 0 and progress['counts']['baseline_artifact_writes'] == 0
+    assert progress['prior_CPU_anchor_comparison']['side_logits']['all_within_original_tolerance'] is False
+    assert models[0].backbone.weight.grad is None and not models[0]._forward_pre_hooks
+
+
+def test_cpu_conditional_late_row_mismatch_keeps_baseline_but_blocks_that_rows_derivatives_and_verdict(monkeypatch, tmp_path):
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    plan, _, _, models, trace = cpu_conditional_calculation(monkeypatch, tmp_path, mismatch_row=3)
+    progress = {'execution_refs': trace['execution_refs']}; ambient = torch.is_grad_enabled()
+    with pytest.raises(ValueError, match='REPLAY_MISMATCH_BEFORE_DERIVATIVES'):
+        m.calculate_cpu_conditional(plan, progress=progress)
+    assert len(trace['calls']) == 100 and trace['grad_rows'] == [row for row in range(3) for _ in range(4)]
+    assert len(trace['publications']) == 1 and trace['publications'][0]['counts']['autograd_calls'] == 0
+    assert progress['cpu_baseline'] == trace['baseline_ref']
+    assert progress['counts']['NN_forwards'] == 100 and progress['counts']['autograd_calls'] == 12
+    assert len(progress['second_pass_rows']) == 4
+    failed = progress['second_pass_rows'][-1]
+    assert failed['index'] == 3 and set(failed['outputs']) == {'activity_logits', 'side_logits'}
+    assert failed['vs_CPU_baseline']['activity_logits']['all_within_original_tolerance'] is True
+    assert failed['vs_CPU_baseline']['side_logits']['all_within_original_tolerance'] is False
+    assert trace['proof_calls'] == [] and len(trace['scales']) == 3
+    assert 'gradient_proof' not in progress
+    assert not models[0]._forward_pre_hooks and models[0].backbone.weight.grad is None
+    assert body._BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False and body._MODEL_FINITE_CHECK_SCOPE.get() is None
+    assert torch.is_grad_enabled() is ambient
+    json.dumps(progress, allow_nan=False)
+
+
+def test_cpu_conditional_inspection_rejects_old_SHA_and_keeps_every_previous_plan_consumed(monkeypatch, tmp_path):
+    planfile, policyfile = tmp_path / 'CPU_PLAN.json', tmp_path / 'POLICY.json'
+    monkeypatch.setattr(m, 'CPU_PLAN', planfile); monkeypatch.setattr(m, 'POLICY', policyfile)
+    monkeypatch.setattr(m, 'CPU_ROOT', tmp_path / 'CPU_OUT'); monkeypatch.setattr(m, 'REPO', Path.cwd())
+    inputs = {role: {'path': '/synthetic/' + role + '.json', 'sha256': digit*64}
+              for role, digit in (('failed_gradient_plan', 'a'), ('first_parity_plan', 'b'), ('batch_geometry_plan', 'c'))}
+    plan = {'source_base_commit': '1'*40, 'inputs': inputs}
+    planfile.write_text(json.dumps(plan)); binding = m.ref(planfile)
+    policy = dict.fromkeys(m.saved.FLAGS, False)
+    for stage, role in ((m.STAGE, 'failed_gradient_plan'), (m.PARITY_STAGE, 'first_parity_plan'), (m.BATCH_STAGE, 'batch_geometry_plan')):
+        policy[stage] = {'plan': inputs[role], 'execution_authorized': False, 'remaining_invocations': 0,
+                        'relaunch_allowed': False, 'training_authorized': False, 'test_authorized': False}
+    policy[m.CPU_STAGE] = m.gate_cpu_conditional_expected(binding, False)
+    monkeypatch.setattr(m, 'build_cpu_conditional_plan', lambda **k: plan)
+    monkeypatch.setattr(m, 'source_clean', lambda value: True)
+    def inspect():
+        policyfile.write_text(json.dumps(policy)); return m.inspect_cpu_conditional(binding['sha256'], admitted=False)
+    assert inspect()[0] == plan and not m.CPU_ROOT.exists()
+    with pytest.raises(ValueError): m.inspect_cpu_conditional(inputs['batch_geometry_plan']['sha256'], admitted=False)
+    for key in m.saved.FLAGS:
+        policy[key] = True
+        with pytest.raises(ValueError, match='ONE_USE_FLAGS'): inspect()
+        policy[key] = False
+    for stage in (m.STAGE, m.PARITY_STAGE, m.BATCH_STAGE):
+        policy[stage]['remaining_invocations'] = 1
+        with pytest.raises(ValueError, match='OLD_PLANS_CLOSED'): inspect()
+        policy[stage]['remaining_invocations'] = 0
+        for key in ('execution_authorized', 'training_authorized', 'test_authorized', 'relaunch_allowed'):
+            policy[stage][key] = True
+            with pytest.raises(ValueError, match='OLD_PLANS_CLOSED'): inspect()
+            policy[stage][key] = False
+    policy[m.CPU_STAGE]['training_authorized'] = True
+    with pytest.raises(ValueError, match='ONE_USE_FLAGS'): inspect()
+    policy[m.CPU_STAGE]['training_authorized'] = False; m.CPU_ROOT.mkdir()
+    with pytest.raises(ValueError, match='FRESH_ROOT'): inspect()
+
+
+def test_cpu_conditional_missing_null_or_wrong_execution_refs_fail_before_payload_loading(monkeypatch, tmp_path):
+    plan, _, _, models, trace = cpu_conditional_calculation(monkeypatch, tmp_path)
+    def forbidden(*a, **k): raise AssertionError('NO_PAYLOAD_BEFORE_EXECUTION_REF_AUTHENTICATION')
+    monkeypatch.setattr(m.adapter, 'load_context', forbidden)
+    invalid = [{}, {'execution_refs': None}]
+    wrong = copy.deepcopy(trace['execution_refs'])
+    wrong['plan'] = wrong['policy_at_claim'].copy()
+    invalid.append({'execution_refs': wrong})
+    for progress in invalid:
+        with pytest.raises(ValueError, match='EXECUTION_REF'):
+            m.calculate_cpu_conditional(plan, progress=progress)
+    assert models == trace['calls'] == trace['grad_rows'] == trace['publications'] == []
+
+
+def test_cpu_conditional_builder_uses_only_CPU_limits_and_preserves_gradient_budget():
+    tree = ast.parse(Path(m.__file__).read_text())
+    builder = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                   and node.name == 'build_cpu_conditional_plan')
+    assignment = lambda name: next(node for node in builder.body if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == name for target in node.targets))
+    budget_statement = assignment('budget')
+    budget_delete = next(node for node in builder.body if isinstance(node, ast.Delete)
+        and any(isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name)
+                and target.value.id == 'budget' for target in node.targets))
+    plan_expression = assignment('plan').value
+    assert isinstance(plan_expression, ast.Dict)
+    expressions = {key.value: value for key, value in zip(plan_expression.keys, plan_expression.values)
+                   if isinstance(key, ast.Constant) and key.value in ('limits', 'budget')}
+    assert set(expressions) == {'limits', 'budget'}
+    scope = {'why_new_scope': 'CPU-conditional local risk; saved-CUDA gate stays FAILED.',
+             'decision_before_run': {'both_outcomes': 'Historical AdamW cause and a selected fix remain UNKNOWN.'},
+             'resource_budget': {'actual_full96_gradient_peak': 'CPU gradient peak UNMEASURED; no-grad memory is no gradient qualification.'}}
+    stale_limits = ['No autograd', '169086976 B256-onlypacket']
+    environment = {'scope': scope, 'resources': scope['resource_budget'],
+        'base': {'limits': stale_limits, 'budget': {'NN_forwards_max': 1, 'autograd_calls_max': 0,
+                                                   'packet_feature_bytes': 169086976}},
+        'original_design': {'budget': {'NN_forwards_max': 192, 'autograd_calls_max': 384,
+            'packet_feature_bytes': 63407616, 'original_packet_rows': 96, 'panel_rows': 96, 'parity_forwards': 96}}}
+    statements = ast.Module(body=[copy.deepcopy(budget_statement), copy.deepcopy(budget_delete)], type_ignores=[])
+    exec(compile(ast.fix_missing_locations(statements), '<actual_CPU_budget_expression>', 'exec'), environment)
+    selected = ast.Expression(body=ast.Dict(keys=[ast.Constant('limits'), ast.Constant('budget')],
+        values=[copy.deepcopy(expressions['limits']), copy.deepcopy(expressions['budget'])]))
+    result = eval(compile(ast.fix_missing_locations(selected), '<actual_CPU_limits_and_budget>', 'eval'), environment)
+    limits = result['limits']
+    assert len(limits) == 4
+    assert limits[:3] == [scope['why_new_scope'], scope['decision_before_run']['both_outcomes'],
+                          scope['resource_budget']['actual_full96_gradient_peak']]
+    assert all(stale not in '\n'.join(limits) for stale in stale_limits)
+    own_limit = limits[3]
+    assert 'Original B96 CPU-eval local interaction only' in own_limit
+    assert '192 forwards/384 autograd calls' in own_limit
+    for prohibition in ('no backward()', 'optimizer or parameter update', 'checkpoint RNG restoration',
+                        'refit', 'new source HTTP', 'selected VAL/TEST', 'Entry/Exit', 'trading'):
+        assert prohibition in own_limit
+    assert {key: result['budget'][key] for key in ('NN_forwards_max', 'autograd_calls_max', 'packet_feature_bytes',
+                                                   'original_packet_rows', 'panel_rows')} == {
+        'NN_forwards_max': 192, 'autograd_calls_max': 384, 'packet_feature_bytes': 63407616,
+        'original_packet_rows': 96, 'panel_rows': 96}
+    assert 'parity_forwards' not in result['budget']

@@ -684,7 +684,245 @@ def main_batch_geometry():
     else:print(json.dumps(run_batch_geometry(args.first_parity_plan_sha256),sort_keys=True))
 # End single B256 geometry measurement.
 
+# CPU-conditional B96 gradients; saved-CUDA gate remains failed.
+CPU_NAME='NATIVE_PROVIDER_HLC_CPU_CONDITIONAL_GRADIENT_20261124_001'; CPU_STAGE=CPU_NAME.lower()
+CPU_PLAN=REPO/'configs/research'/(CPU_NAME+'.json'); CPU_ROOT=Path('/home/andre2/GX1_RUNS')/CPU_NAME
+CPU_SCOPE={'path':'/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_CPU_CONDITIONAL_GRADIENT_SCOPE001.json','sha256':'a97f2676fc49d0c30c56ce3a9a0df9b966cce0c2d8c54c488154a67663c211ce'}
+CPU_PARENT='f9c825571a0ba291364527f1754818fe8e0ab6a7'; CPU_EXECUTION=dict(EXECUTION)
+CPU_ROUTE={'name':'CPU_GRAD_ENABLED_UNMERGED','capture':False,'device':'cpu','equal_tf':False,'grad_enabled':True,'grouped':True,'model_training':False,
+           'helper':'core.future_cuda_forward under torch.enable_grad; same canonical route as the completed first-row CPU control.'}
+CPU_EVIDENCE={
+    'batch_geometry_acceptance':{'path':'/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_BATCH_GEOMETRY_ACCEPTANCE001.json','sha256':'fb8a2ae908f88062ba7f1826b0942ae3b5c10b2e9c95a1878221e6d45f754735'},
+    'batch_geometry_result_backup':{'path':'/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_BATCH_GEOMETRY_BACKUP001.json','sha256':'d844a4793d25d9552742400d9865b781b7c57e3e5e5c80fc03a1933323857058'},
+    'batch_geometry_source_plan_backup':{'path':'/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_BATCH_GEOMETRY_SOURCE_PLAN_BACKUP001.json','sha256':'2a4964c22327d70bcc5ef595e634eb1971a8c211312b3bc9a3f4664b1509bdcd'}}
+
+
+def build_cpu_conditional_plan(*,source_base_commit=None):
+    scope=read(CPU_SCOPE); resources=scope['resource_budget']
+    need(scope['schema_version']=='gx1_provider_hlc_CPU_conditional_gradient_scope_v1' and scope['proposed_plan_name']==CPU_NAME and scope['implementation_owner']==SELF
+         and scope['execution_authorized']is False and scope['new_model_or_autograd_execution_authorized']is False and scope['training_authorized']is False and scope['test_authorized']is False
+         and scope['parity_mini_series_stopped']is True and scope['all20_approved']is False and scope['route']==CPU_ROUTE
+         and resources['NN_forwards_max']==192 and resources['autograd_calls_max']==384 and resources['model_constructions']==resources['checkpoint_deserializations']==1
+         and resources['class']=='audit' and resources['memory']=='4G' and resources['swap']=='512M' and resources['numerical_threads']==1 and resources['pids']==64
+         and resources['outer_timeout_seconds']==900 and resources['inner_timeout_seconds']==870 and resources['kill_after_seconds']==10 and resources['fallback_or_budget_extension']is False
+         and all(resources[key]==0 for key in ('backward_calls','optimizer_constructions','optimizer_restores','optimizer_updates','fits','new_source_HTTP_calls','VAL_TEST_selected_rows')),'CPU_CONDITIONAL_LOCKED_SCOPE')
+    base=build_batch_geometry_plan(source_base_commit=source_base_commit)
+    for binding in CPU_EVIDENCE.values():reference(binding)
+    accepted=read(CPU_EVIDENCE['batch_geometry_acceptance']); result=read(scope['final_batch_geometry_result']); report=result['report']; old=read(accepted['plan']); terminal=read(accepted['terminal'])
+    need(accepted['schema_version']=='gx1_provider_hlc_batch_geometry_acceptance_v1' and accepted['result']==scope['final_batch_geometry_result'] and accepted['all20_approved']is False
+         and result['status']=='COMPLETE_CONDITIONAL_PROVIDER_HLC_BATCH_GEOMETRY_MEASUREMENT' and result['source_unchanged']is True and result['test_data_used']is False
+         and result['plan']==terminal['plan']==accepted['plan'] and terminal['status']=='COMPLETE' and terminal['exit_code']==0 and terminal['result']==accepted['result']
+         and terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False and report['all_256_within_saved_original_tolerance']is False
+         and report['full96_gradient_qualification']is False and report['stop_parity_series_after_this_comparison']is True,'CPU_CONDITIONAL_COMPLETED_BATCH_EVIDENCE')
+    batch_geometry_validate_counts(report['counts'],old['budget'])
+    need(old['inputs']==base['inputs'] and all(old[key]==base[key]for key in ('metadata','model_contract','target_contract','truth_sha256','TRAIN_issue_ns_sha256','budget','panel','route','fixed_original_tolerance','cache_scope'))
+         and scope['first_CPU_control_result']==base['inputs']['first_parity_result'] and scope['original_failed_gradient_plan']==base['inputs']['failed_gradient_plan']
+         and scope['parent_post_readout_scope']==base['inputs']['post_readout_scope'],'CPU_CONDITIONAL_SAME_FUNCTION_AND_FAILED_GATE')
+    for name,digest in old['source_owners'].items():
+        if name not in (SELF,TEST):need(saved.native.sha(REPO/name)==digest,'CPU_CONDITIONAL_PREVIOUS_OWNER_UNCHANGED')
+    need(read(CPU_EVIDENCE['batch_geometry_result_backup'])['status']=='ALL30_FILES_SEPARATE_MAC_DISK_SHA_FULLFSYNC_READBACK_VERIFIED'
+         and read(CPU_EVIDENCE['batch_geometry_source_plan_backup'])['status']=='ALL15_FILES_SEPARATE_MAC_DISK_SHA_FULLFSYNC_READBACK_VERIFIED','CPU_CONDITIONAL_BACKUPS')
+    control=read(scope['first_CPU_control_result'])['report']; anchors=[record for record in control['routes']if record['name']==CPU_ROUTE['name']]
+    need(len(anchors)==1 and anchors[0]['requested']==PARITY_ROUTES[2] and control['model_state_and_local_RNG_bookend_passed']is True and control['all_parameter_grad_fields_None']is True,'CPU_CONDITIONAL_PRIOR_CPU_ANCHOR')
+    original_design=read(DESIGN); budget={**original_design['budget'],'baseline_forwards':96,'baseline_artifact_writes':1,'canonical_loss_calls':96,'independent_BCE_calls':192,'grad_enabled_forward_calls':192,'no_grad_forward_calls':0}
+    del budget['parity_forwards']
+    inputs={**base['inputs'],'batch_geometry_design':base['inputs']['design'],**CPU_EVIDENCE,'batch_geometry_plan':accepted['plan'],'batch_geometry_result':accepted['result'],'batch_geometry_terminal':accepted['terminal'],
+            'scope':CPU_SCOPE,'parent_post_readout_scope':scope['parent_post_readout_scope']}
+    plan={**base,'schema_version':'gx1_provider_hlc_CPU_conditional_gradient_plan_v1','stage':CPU_STAGE,'plan_path':str(CPU_PLAN),'output_root':str(CPU_ROOT),'inputs':inputs,
+          'execution':CPU_EXECUTION,'budget':budget,'panel':original_design['panel'],'route':CPU_ROUTE,'scope':scope,'question':scope['question'],'source_parent_commit':CPU_PARENT,
+          'prior_CPU_anchor':{'route':anchors[0],'selected_issue_ns':control['selected_issue_ns'],'selected_source_row':control['selected_source_row'],'feature_proof':control['first_row_feature_proof']},
+          'tolerances':TOLERANCES,'fixed_original_tolerance':TOLERANCES['saved_FINAL_logits'],'original_saved_CUDA_gate':'FAILED','full96_gradient_qualification':False,
+          'method':{'CPU_scope':scope,'component_contract':original_design['method']},'limits':[scope['why_new_scope'],scope['decision_before_run']['both_outcomes'],resources['actual_full96_gradient_peak'],
+                    'Original B96 CPU-eval local interaction only: at most192 forwards/384 autograd calls; no backward(), optimizer or parameter update, checkpoint RNG restoration, refit, new source HTTP, selected VAL/TEST, Entry/Exit or trading.']}
+    checked_inputs(plan); return plan
+
+
+def gate_cpu_conditional_expected(binding,admitted):
+    return {'status':'ADMITTED_EXACT_CPU_CONDITIONAL_PROVIDER_HLC_GRADIENT'if admitted else'PREPARED_NOT_ADMITTED','plan':binding,'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':False,'test_authorized':False}
+
+
+def inspect_cpu_conditional(sha,*,admitted):
+    need(Path.cwd().resolve()==REPO and type(sha)is str and len(sha)==64 and all(c in '0123456789abcdef'for c in sha),'CPU_CONDITIONAL_CWD_SHA')
+    binding={'path':str(CPU_PLAN),'sha256':sha}; plan=read(binding)
+    need(plan==build_cpu_conditional_plan(source_base_commit=plan['source_base_commit']) and source_clean(plan),'CPU_CONDITIONAL_EXACT_PLAN_SOURCE')
+    pref=ref(POLICY); policy=read(pref)
+    need(all(policy.get(key)is False for key in saved.FLAGS) and policy[CPU_STAGE]==gate_cpu_conditional_expected(binding,admitted),'CPU_CONDITIONAL_ONE_USE_FLAGS')
+    for stage,role in ((STAGE,'failed_gradient_plan'),(PARITY_STAGE,'first_parity_plan'),(BATCH_STAGE,'batch_geometry_plan')):
+        old=policy[stage]
+        need(old['plan']==plan['inputs'][role] and old['execution_authorized']is False and old['remaining_invocations']==0 and old['relaunch_allowed']is False
+             and old['training_authorized']is False and old['test_authorized']is False,'CPU_CONDITIONAL_OLD_PLANS_CLOSED')
+    need(not CPU_ROOT.exists() and not CPU_ROOT.is_symlink(),'CPU_CONDITIONAL_FRESH_ROOT'); return plan,binding,pref
+
+
+def cpu_conditional_compare(reference_value,candidate,*,tolerance):
+    need(all(isinstance(value,np.ndarray)and value.dtype==np.float32 and value.shape==(96,5)and np.isfinite(value).all()for value in (reference_value,candidate)),'CPU_CONDITIONAL_COMPARISON_DOMAIN')
+    rows=[first_parity_compare(reference_value[index:index+1],candidate[index:index+1],tolerance=tolerance)for index in range(96)]; passed=sum(sum(row['passed_mask'])for row in rows)
+    return {'rows':96,'per_row':rows,'max_absolute_delta':max(row['max_absolute_delta']for row in rows),'per_TF_max_absolute_delta':[max(row['absolute_delta'][j]for row in rows)for j in range(5)],
+            'passed_cells':passed,'failed_cells':480-passed,'all_within_original_tolerance':passed==480}
+
+
+def cpu_conditional_validate_counts(counts,budget):
+    expected={'full_feature_archive_loads':1,'feature_arrays_decoded':27,'target_archive_loads':1,'target_arrays_decoded':14,'capture_archive_loads':1,'capture_arrays_decoded':3,
+              'checkpoint_deserializations':1,'model_constructions':1,'model_state_install_calls':1,'baseline_forwards':96,'gradient_forwards':96,'NN_forwards':192,'autograd_calls':384,
+              'backward_calls':0,'optimizer_constructions':0,'optimizer_restores':0,'optimizer_updates':0,'checkpoint_RNG_restore_calls':0,'fits':0,'prior_refits':0,'new_source_HTTP_calls':0,
+              'canonical_loss_calls':96,'independent_BCE_calls':192,'baseline_artifact_writes':1,'grad_enabled_forward_calls':192,'no_grad_forward_calls':0}
+    need(counts==expected and all(type(value)is int for value in counts.values()) and budget['NN_forwards_max']==192 and budget['autograd_calls_max']==384,'CPU_CONDITIONAL_EXACT_COUNTS'); return True
+
+
+def calculate_cpu_conditional(plan,*,progress=None):
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    torch.set_num_threads(1); need(torch.get_num_threads()==1 and not torch.cuda.is_initialized(),'CPU_CONDITIONAL_THREADS_CUDA')
+    progress={}if progress is None else progress; refs=progress.get('execution_refs')
+    need(type(refs)is dict and set(refs)=={'plan','claim','policy_at_claim'} and all(type(value)is dict and set(value)=={'path','sha256'}for value in refs.values()),'CPU_CONDITIONAL_EXECUTION_REFS')
+    need(refs['plan']['path']==str(CPU_PLAN) and refs['claim']['path']==str(CPU_ROOT/'CLAIM.json') and refs['policy_at_claim']['path']==str(POLICY),'CPU_CONDITIONAL_EXECUTION_REF_PATHS')
+    for value in refs.values():reference(value)
+    need(read(refs['plan'])==plan,'CPU_CONDITIONAL_EXECUTION_PLAN_BINDING')
+    claim=read(refs['claim']); policy=read(refs['policy_at_claim'])
+    need(claim['stage']==CPU_STAGE and claim['plan']==refs['plan'] and claim['policy_at_claim']==refs['policy_at_claim'] and claim['remaining_invocations']==0 and claim['relaunch_allowed']is False
+         and all(policy.get(key)is False for key in saved.FLAGS) and policy[CPU_STAGE]==gate_cpu_conditional_expected(refs['plan'],True),'CPU_CONDITIONAL_EXECUTION_CLAIM_POLICY_BINDING')
+    budget=plan['budget']; counts=dict.fromkeys(('full_feature_archive_loads','feature_arrays_decoded','target_archive_loads','target_arrays_decoded','capture_archive_loads','capture_arrays_decoded','checkpoint_deserializations','model_constructions','model_state_install_calls','baseline_forwards','gradient_forwards','NN_forwards','autograd_calls','backward_calls','optimizer_constructions','optimizer_restores','optimizer_updates','checkpoint_RNG_restore_calls','fits','prior_refits','new_source_HTTP_calls','canonical_loss_calls','independent_BCE_calls','baseline_artifact_writes','grad_enabled_forward_calls','no_grad_forward_calls'),0)
+    progress.update(phase='CPU_CONDITIONAL_CANONICAL_CONTEXT_B96',counts=counts,second_pass_rows=[])
+    context=adapter.load_context(plan['metadata']['adapter_metadata']); counts.update(full_feature_archive_loads=1,feature_arrays_decoded=27,target_archive_loads=1,target_arrays_decoded=14)
+    need(bool(np.all(context['provider'].bar_start_ns<1782864000000000000)),'CPU_CONDITIONAL_PRETEST_SOURCE_CUTOFF')
+    take=np.arange(96,dtype=np.int64); packet=adapter.packet(context,take); selected_source_row=int(context['source_rows'][0])
+    need(len(packet['truth']['issue_ns'])==96 and core.digest(packet['truth']['issue_ns'])==plan['panel']['issue_ns_sha256'] and core.digest(context['source_rows'][take])==plan['panel']['source_rows_sha256']
+         and bool(np.all((packet['truth']['issue_ns']>=train.START)&(packet['truth']['issue_ns']<train.UPPER))) and len(packet['features'])==9
+         and sum(v.numel()*v.element_size()for v in packet['features'].values())==budget['packet_feature_bytes'],'CPU_CONDITIONAL_EXACT_B96_PACKET')
+    normalization=context['normalization']; prior=context['prior']; binding=context['input_binding']; target=context['target_contract']; del context; gc.collect()
+    row0_proof={key:{'shape':list(value[:1].shape),'dtype':str(value.dtype),'sha256':core.digest(value[:1].detach().cpu().numpy())}for key,value in packet['features'].items()}
+    anchor=plan['prior_CPU_anchor']; need(row0_proof==anchor['feature_proof'] and int(packet['truth']['issue_ns'][0])==anchor['selected_issue_ns'] and selected_source_row==anchor['selected_source_row'],'CPU_CONDITIONAL_PRIOR_INPUT_IDENTITY')
+    progress['phase']='CPU_CONDITIONAL_CONTEXT_RELEASED_CAPTURE3'; capture=saved.load_fields(plan['inputs']['capture'],CAPTURE,plan['capture_array_headers']); counts.update(capture_archive_loads=1,capture_arrays_decoded=3)
+    need(sum(v.nbytes for v in capture.values())==budget['capture_ndarray_bytes_decoded'] and core.digest(capture['issue_ns'])==plan['TRAIN_issue_ns_sha256'] and np.array_equal(capture['issue_ns'][:96],packet['truth']['issue_ns']),'CPU_CONDITIONAL_SAVED_CLOCK_BYTES')
+    gpu={key:np.ascontiguousarray(capture[key][:96]).copy()for key in CAPTURE[1:]}; del capture; gc.collect()
+    progress['phase']='CPU_CONDITIONAL_FACTORY_STRICT_FINAL'
+    model=model_owner.build_native_future_state_model(input_normalization=normalization,input_binding=binding,architecture=plan['metadata']['original_epoch_plan']['metadata']['architecture'],device=torch.device('cpu'),train_prior=prior,target_contract=target,backbone_gradient_policy='M5_primary'); counts['model_constructions']+=1
+    cp=safe_load_final(plan); counts['checkpoint_deserializations']+=1; model.load_state_dict(cp['model_state'],strict=True); counts['model_state_install_calls']+=1
+    need(core.state_sha(model.state_dict())==plan['metadata']['final_receipt']['proof']['model_state'],'CPU_CONDITIONAL_INSTALLED_FINAL_MODEL_PROOF'); del cp; gc.collect(); model.eval()
+    state_before=core.state_sha(model.state_dict()); rng_before=core.shared_gradient_rng(); packet_before=core.state_sha(packet); ambient_grad=torch.is_grad_enabled()
+    need(all(p.grad is None and p.device.type=='cpu'and p.dtype==torch.float32 for p in model.parameters()),'CPU_CONDITIONAL_PARAMETER_GRAD_NONE')
+    denominator=int(packet['truth']['activity_known'].sum()); need(denominator>0,'CPU_CONDITIONAL_FULL_B96_DENOMINATOR')
+    identity={'issue_ns_sha256':core.digest(packet['truth']['issue_ns']),'source_rows_sha256':plan['panel']['source_rows_sha256'],'packet_sha256':packet_before,'row0_feature_proof':row0_proof}
+    baseline={key:np.empty((96,5),np.float32)for key in CAPTURE[1:]}; replay={key:np.empty((96,5),np.float32)for key in CAPTURE[1:]}; phase='baseline_forwards'
+    def record_array(value):return {'values':value.astype(np.float64).tolist(),'shape':list(value.shape),'dtype':value.dtype.str,'sha256':core.digest(value)}
+    def context_bookend():need(body._BATCH_EQUAL_LENGTH_MTF_EVAL.get()is False and body._MODEL_FINITE_CHECK_SCOPE.get()is None and torch.is_grad_enabled()==ambient_grad,'CPU_CONDITIONAL_CONTEXT_RESTORE')
+    def books():
+        context_bookend(); measurement_bookend(model,state_before,rng_before); need(core.state_sha(packet)==packet_before,'CPU_CONDITIONAL_PACKET_MUTATION'); return True
+    def count_forward(*_):
+        counts['NN_forwards']+=1; counts[phase]+=1; counts['grad_enabled_forward_calls'if torch.is_grad_enabled()else'no_grad_forward_calls']+=1
+        need(counts['NN_forwards']<=budget['NN_forwards_max'],'CPU_CONDITIONAL_FORWARD_BUDGET')
+    def chunk(index):return {'features':{key:value[index:index+1]for key,value in packet['features'].items()},'truth':train.slice_provider_hlc_truth(packet['truth'],np.array([index],np.int64),target_contract=target)}
+    def forward(current):
+        output,hidden,activation=core.future_cuda_forward(model,current['features'],grouped=True,equal_tf=False,capture=False)
+        groups={}
+        for tf in train.TF:groups.setdefault(str(current['features']['seq_'+tf.lower()].shape[1]),[]).append(tf)
+        need(hidden is None and set(output)==set(CAPTURE[1:]) and activation=={'batch_eval_active':False,'model_training':False,'grad_enabled':True,'scope_enabled':False,'eligible_equal_length_TF_groups':groups},'CPU_CONDITIONAL_ACTUAL_ROUTE')
+        need(all(value.dtype==torch.float32 and value.device.type=='cpu'and tuple(value.shape)==(1,5)and bool(torch.isfinite(value).all())for value in output.values()),'CPU_CONDITIONAL_FINITE_HEADS'); return output
+    context_bookend(); hook=model.register_forward_pre_hook(count_forward); anchor_comparison={}
+    try:
+        progress['phase']='CPU_CONDITIONAL_FULL_BASELINE_BEFORE_DERIVATIVES'
+        try:
+            with torch.enable_grad():
+                for index in range(96):
+                    current=chunk(index); output=forward(current)
+                    for key,value in output.items():baseline[key][index:index+1]=value.detach().cpu().numpy()
+                    if index==0:
+                        for key in CAPTURE[1:]:
+                            record=anchor['route']['logits'][key]; reference_value=np.array([record['values']],np.float32)
+                            need(core.digest(reference_value)==record['sha256'] and list(reference_value.shape)==record['shape']==[1,5] and reference_value.dtype.str==record['dtype'],'CPU_CONDITIONAL_ANCHOR_LOGIT_SHA')
+                            anchor_comparison[key]=first_parity_compare(reference_value,baseline[key][:1],tolerance=plan['fixed_original_tolerance'])
+                        progress['prior_CPU_anchor_comparison']=anchor_comparison
+                        need(all(cell['all_within_original_tolerance']for cell in anchor_comparison.values()),'CPU_CONDITIONAL_PRIOR_CPU_ANCHOR_MISMATCH')
+                    del output,current
+        finally:context_bookend()
+        books(); need(counts['NN_forwards']==counts['baseline_forwards']==96 and counts['autograd_calls']==0,'CPU_CONDITIONAL_BASELINE_BEFORE_GRADIENTS')
+        gpu_comparison={key:cpu_conditional_compare(gpu[key],value,tolerance=plan['fixed_original_tolerance'])for key,value in baseline.items()}
+        baseline_counts=dict(counts)
+        artifact={'status':'CPU_BASELINE_COMPLETE_BEFORE_DERIVATIVES','stage':CPU_STAGE,'plan':refs['plan'],'claim':refs['claim'],'policy_at_claim':refs['policy_at_claim'],'scope':CPU_SCOPE,
+                  'route':plan['route'],'panel':plan['panel'],'counts':baseline_counts,'outputs':{key:record_array(value)for key,value in baseline.items()},'saved_CUDA_comparison':gpu_comparison,
+                  'prior_CPU_anchor_comparison':anchor_comparison,'input_identity':identity,'known_activity_denominator_full_B96':denominator,'model_state_sha256':state_before,
+                  'local_RNG_sha256':core.state_sha(rng_before),'bookends_passed':True,'original_saved_CUDA_gate':'FAILED','full96_gradient_qualification':False,'autograd_calls_before_publication':0}
+        baseline_ref=cpu_conditional_publish('CPU_BASELINE.json',artifact); counts['baseline_artifact_writes']+=1; progress.update(cpu_baseline=baseline_ref,baseline_counts=baseline_counts,phase='CPU_CONDITIONAL_REPLAY_AND_COMPONENT_GRADIENTS')
+        named=tuple((name,p)for name,p in model.backbone.named_parameters()if p.requires_grad); params=tuple(p for _,p in named); need(bool(params),'CPU_CONDITIONAL_PARAMETER_AXIS')
+        sums={term:[None]*len(params)for term in TERMS}; losses={term:0. for term in TERMS}; phase='gradient_forwards'
+        try:
+            with torch.enable_grad():
+                for index in range(96):
+                    current=chunk(index); output=forward(current); comparisons={}
+                    for key,value in output.items():
+                        replay[key][index:index+1]=value.detach().cpu().numpy(); comparisons[key]=first_parity_compare(baseline[key][index:index+1],replay[key][index:index+1],tolerance=plan['fixed_original_tolerance'])
+                    progress['second_pass_rows'].append({'index':index,'issue_ns':int(current['truth']['issue_ns'][0]),'outputs':{key:record_array(value[index:index+1])for key,value in replay.items()},'vs_CPU_baseline':comparisons})
+                    need(all(cell['all_within_original_tolerance']for cell in comparisons.values()),'CPU_CONDITIONAL_REPLAY_MISMATCH_BEFORE_DERIVATIVES')
+                    canonical=objective.native_future_state_loss(model_output=output,truth=current['truth'],fold_upper_ns=train.UPPER,target_contract=target); counts['canonical_loss_calls']+=1
+                    values={}
+                    for name,key,label,mask in (('activity','activity_logits','activity','activity_known'),('side','side_logits','side_up','side_known')):
+                        y=torch.as_tensor(current['truth'][label].copy(),dtype=output[key].dtype); known=torch.as_tensor(current['truth'][mask].copy(),dtype=torch.bool)
+                        bce=torch.nn.functional.binary_cross_entropy_with_logits(output[key],y,reduction='none'); counts['independent_BCE_calls']+=1; values[name]=torch.where(known,bce,torch.zeros_like(bce))
+                    terms=(scaled_canonical_loss(canonical['loss'],canonical['count'],denominator),values['activity'][:,0].sum()/denominator,values['side'][:,0].sum()/denominator,(values['activity'][:,1:].sum()+values['side'][:,1:].sum())/denominator)
+                    for j,(name,loss)in enumerate(zip(TERMS,terms)):
+                        need(bool(torch.isfinite(loss)),'CPU_CONDITIONAL_FINITE_COMPONENT_LOSS'); gradients=torch.autograd.grad(loss,params,retain_graph=j<3,allow_unused=True); counts['autograd_calls']+=1
+                        need(counts['autograd_calls']<=budget['autograd_calls_max'],'CPU_CONDITIONAL_AUTOGRAD_BUDGET'); accumulate_gradients(sums[name],gradients); losses[name]+=float(loss.detach()); del gradients
+                    del output,current,canonical,values,terms,loss
+        finally:context_bookend()
+        proof=gradient_report(*(sums[name]for name in TERMS),tolerances=plan['tolerances']); del sums
+        bookend=books(); cpu_conditional_validate_counts(counts,budget)
+    finally:hook.remove()
+    progress['phase']='COMPLETE_CPU_CONDITIONAL_GRADIENT_MEASUREMENT'
+    return {'payload_budget':budget,'counts':counts,'route':plan['route'],'cpu_baseline':baseline_ref,'baseline_counts':baseline_counts,'cpu_baseline_outputs':artifact['outputs'],
+            'cpu_replay_outputs':{key:record_array(value)for key,value in replay.items()},'cpu_replay_comparison':{key:cpu_conditional_compare(baseline[key],value,tolerance=plan['fixed_original_tolerance'])for key,value in replay.items()},
+            'saved_CUDA_comparison':gpu_comparison,'original_saved_CUDA_gate':'FAILED','saved_CUDA_comparison_is_informational':True,'full96_gradient_qualification':False,
+            'gradient_proof':proof,'known_activity_denominator_full_B96':denominator,'normalized_loss_components':losses,'per_TF_support':{'activity':packet['truth']['activity_known'].sum(axis=0).astype(int).tolist(),'side':packet['truth']['side_known'].sum(axis=0).astype(int).tolist()},
+            'parameter_axis':{'names':[name for name,_ in named],'tensors':len(named),'aggregation_dtype':'float64','None_is_mathematical_zero_only':True},'input_identity':identity,'prior_CPU_anchor_comparison':anchor_comparison,
+            'CPU_baseline_published_before_derivatives':True,'old_context_released_before_model_construction':True,'final_all_ten_checkpoint_proofs_verified':True,'strict_FINAL_model_state_installed':True,
+            'model_state_and_local_RNG_bookend_passed':bookend,'context_bookends_passed':True,'ambient_grad_mode_restored':True,'all_parameter_grad_fields_None':True,'retained_B96_packet_unmutated':True,
+            'local_RNG_bookend_scope':['python','numpy','torch_cpu'],'measurement_completed':True,'CPU_conditional_local_interaction_only':True,'actual_training_cause':'UNKNOWN','selected_causal_fix':'UNKNOWN','later_generalization':'UNKNOWN','economic_edge':'UNKNOWN','all20_approved':False,'limits':plan['limits']}
+
+
+def cpu_conditional_publish(name,value):
+    path=CPU_ROOT/name; saved._publish_bytes(path,(json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n').encode()); return ref(path)
+
+
+def run_cpu_conditional(sha):
+    began=time.monotonic(); cap=require_capped_cpu_audit_execution(); lock=require_capped_lock_ancestry()
+    need(cap['memory_max']==cap['memory_high']==4*1024**3 and cap['swap']==512*1024**2 and cap['numerical_threads']==1 and cap['pids']==64
+         and lock['scope']==cap['cgroup_path'][len('/sys/fs/cgroup'):],'CPU_CONDITIONAL_CAPS')
+    plan,binding,pref=inspect_cpu_conditional(sha,admitted=True); checked_inputs(plan); boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip(); CPU_ROOT.mkdir(parents=True,exist_ok=False)
+    handlers={sig:signal.getsignal(sig)for sig in (signal.SIGALRM,signal.SIGTERM,signal.SIGINT)}; claim=result=None; progress={'phase':'CLAIM'}
+    try:
+        def expired(*_):raise TimeoutError('PROVIDER_HLC_CPU_CONDITIONAL_WALL')
+        def stopped(sig,*_):raise InterruptedError('PROVIDER_HLC_CPU_CONDITIONAL_SIGNAL_'+str(sig))
+        signal.signal(signal.SIGALRM,expired); signal.signal(signal.SIGTERM,stopped); signal.signal(signal.SIGINT,stopped)
+        claim=cpu_conditional_publish('CLAIM.json',{'stage':CPU_STAGE,'plan':binding,'policy_at_claim':pref,'boot_id':boot,'remaining_invocations':0,'relaunch_allowed':False,'training_authorized':False,'test_data_used':False}); progress['execution_refs']={'plan':binding,'claim':claim,'policy_at_claim':pref}
+        remaining=CPU_EXECUTION['internal_seconds']-(time.monotonic()-began); need(remaining>0,'CPU_CONDITIONAL_TIME_BEFORE_DECODE'); signal.setitimer(signal.ITIMER_REAL,remaining)
+        allowed={plan['inputs'][role]['path']for role in ('feature_archive','capture','target_arrays','final_checkpoint')}
+        def audit(event,args):
+            if event in ('socket.connect','socket.getaddrinfo','urllib.Request'):raise RuntimeError('PROVIDER_HLC_CPU_CONDITIONAL_NETWORK_FORBIDDEN')
+            if event=='open'and isinstance(args[0],(str,bytes,os.PathLike)):
+                name=os.fsdecode(args[0])
+                if name.endswith(('.npz','.pt','.pth','.parquet','.safetensors','.pkl'))and str(Path(name).resolve())not in allowed:raise RuntimeError('PROVIDER_HLC_CPU_CONDITIONAL_PAYLOAD_FORBIDDEN')
+        sys.addaudithook(audit); report=calculate_cpu_conditional(plan,progress=progress); checked_inputs(plan)
+        need(source_clean(plan)and ref(POLICY)==pref and ref(CPU_PLAN)==binding and Path('/proc/sys/kernel/random/boot_id').read_text().strip()==boot,'CPU_CONDITIONAL_SOURCE_INPUT_PLAN_POLICY_BOOT_BOOKEND')
+        result=cpu_conditional_publish('RESULT.json',{'status':'COMPLETE_CONDITIONAL_PROVIDER_HLC_CPU_GRADIENT_MEASUREMENT','stage':CPU_STAGE,'plan':binding,'claim':claim,'policy_at_claim':pref,'boot_id':boot,'report':report,'source_unchanged':True,'test_data_used':False,'economic_edge_proven':False,'elapsed_seconds':time.monotonic()-began})
+        terminal=cpu_conditional_publish('TERMINAL.json',{'status':'COMPLETE','exit_code':0,'stage':CPU_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'source_unchanged':True,'test_data_used':False}); return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        signal.setitimer(signal.ITIMER_REAL,0); cpu_conditional_publish('TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'stage':CPU_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'progress':progress,'error':type(error).__name__+':'+str(error)[:2000],'test_data_used':False}); raise
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0)
+        for sig,handler in handlers.items():signal.signal(sig,handler)
+
+
+def main_cpu_conditional():
+    parser=argparse.ArgumentParser(); parser.add_argument('--first-parity-plan-sha256',required=True); parser.add_argument('--cpu-conditional-gradient',action='store_true',required=True); parser.add_argument('--preflight',action='store_true'); args=parser.parse_args()
+    need(sys.argv[1:]==['--first-parity-plan-sha256',args.first_parity_plan_sha256,'--cpu-conditional-gradient']+(['--preflight']if args.preflight else[]),'CPU_CONDITIONAL_EXACT_CLI')
+    if args.preflight:
+        plan,binding,pref=inspect_cpu_conditional(args.first_parity_plan_sha256,admitted=False)
+        print(json.dumps({'status':'PREFLIGHT_PROVIDER_HLC_CPU_CONDITIONAL_GRADIENT_PASS','plan':binding,'policy':pref,'claim_created':False,'checkpoint_deserializations':0,'NPZ_arrays_decoded':0,'models':0,'NN_forwards':0,'autograd_calls':0,'CUDA_initialized':False}))
+    else:print(json.dumps(run_cpu_conditional(args.first_parity_plan_sha256),sort_keys=True))
+# End CPU-conditional B96 gradients.
+
 def main_first_parity():
+    if sys.argv[3:4]==['--cpu-conditional-gradient']:
+        return main_cpu_conditional()
+
     if sys.argv[3:4]==['--batch-geometry']:
         return main_batch_geometry()
 

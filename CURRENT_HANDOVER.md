@@ -817,3 +817,14 @@ all-TF-bias eller generalisering. Den gamle CUDA-paritetsgaten forblir FAIL.
 Ny kilde, tester, faktisk metadata, preflight, backup, hostkontroll og eksakt
 engangsadmisjon må kvalifiseres før utførelse. Ingen modell-, autograd- eller
 treningsadmisjon finnes nå. Alle fem globale treningsporter er false.
+
+CPU-betinget gradientdiagnose er kildekvalifisert: 18 fokuserte tester og
+én ny limits-regresjon bestod. Faktisk blokkert metadatakontroll002 bestod
+med 86 eiere og null modell/CP/NPZ/forward/autograd/claim. Før modellstart
+fant review to feil: et funksjonsnavn i privat controller og arvede B256-
+begrensninger i CPU-planen. Begge er rettet; originaler og kvitteringer er
+bevart i PRELAUNCH_CORRECTION001. Modellmatematikk/budsjett er uendret.
+SOURCE_QUALIFICATION001 binder fryst kilde og godkjent CONTROL002.
+Koden må committes/pushes, og eksakt preflight, separat kilde-/planbackup,
+fersk maskinvarekontroll og engangsadmisjon må bestå før kjøring.
+Alle fem treningsporter er false; gjeldende CPU-admisjon eies av policy.
