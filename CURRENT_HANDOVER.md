@@ -947,6 +947,13 @@ tardeler er separatdiskkopiert/uavhengigSHA-verifisert med F_FULLFSYNC/fsync.
 Original INITIAL ble gjenbrukt etter faktisk39177848B-SHA-lesing fra Mac-disk;
 FULL_BACKUP001 binder manifestet. OriginalCP og alle deler bevares.
 
+Private ALLTF-prepare/control er kildekvalifisert:12syntetiske close/admit-
+cases PASS, inkludert lukking før auditpublisering ved publiseringsfeil.
+Faktisk blokkert replay-metadatabuilder PASS/73eiere/0modell/payload/CUDA.
+Metadata-preview779aa er ingen kjøreplan; config/warm/coldrøtter er ikke
+opprettet/claimed. Ingen produksjons-/tap-/recipe-/guard-/restorekode endret.
+SOURCE_QUALIFICATION001 binder kilder/logger; alle5flaggfalse.
+
 Neste: FERSK replayruntime/plan fra committet metadataavslutning etter fullbackup.
 FINAL_CONTROL002 binder avslutningen ved historisk modellkilde9168d84dd. Egen3warmB96/C2/kaldtsteg3 med seed20260911/AdamW1e-4/clip1/
 ingen scheduler må kvalifiseres og innrømmes separat. Kun to tekniske
