@@ -705,3 +705,33 @@ blokkert metadatabuilder PASS/86kildeeiere/0payload/0NN/0autograd.
 SOURCE_QUALIFICATION001 binder originale logger/hjelper/preview og fryste
 kildehashes. Alle tidligere gx1/scripts/tests uendret. Faktisk4GiB og
 CPU/lagretCUDA-paritet er fortsatt UNMEASURED. Ingen payloadadmisjon.
+
+## Faktisk gradientforsøk001: parityfeil før autograd
+
+001 er FAILED_CONSUMED/exit1 og stengt0/ingen relaunch. FørsteCPU B1
+grad-enabled evalforward feilet fast aktivitet-logitparitet1e-6/1e-5 mot
+lagretCUDA FINAL. 1FW/0autograd/0updates; side/full96paritet og gradient-
+konklusjon er IKKE målt. Eksaktfeilcelle/vektorer/delta ble ikke persistert;
+dette er en konkret observabilitetsmangel, ikke bevis for FP-støy.
+Helecache/target/capture/FINALproof og eksakt B96akse var validert førFW.
+Post-feil source/allebundneinputbytes uendret,0nydecode. Målingens lokale
+modell/RNG-sluttbookend ble ikke nådd. Full96/gradient4GiB er uavklart.
+
+REVIEW022 og FAILED_REVIEW001 binder originalfeilen. 13PASS/3FAIL/4UNKNOWN,
+alle5treningsporterfalse. Neste er NY separatparity-onlyplan for sammeførste
+issue/FINAL: CPU no_grad+TFmerge, no_grad utenmerge, grad-enabled utenmerge.
+Maks3FW/0autograd/update; beggefemlogitvektorer+feilmål+bookends må lagres.
+Ingen interne encoderhooks: de kan endre PyTorchfastpath. Gammel001 og
+toleransen endres ikke; dette erstatter ikke fullB96gradientkvalifisering.
+
+Feilbackup:22originalfiler/22616493B separatMacdisk SHA/F_FULLFSYNC/readback
+verifisert. Runtimekilde49f514173 er bevart i source/planbackup før forsøket.
+Målt observabilitetsmangel rettes minimalt for senere feilrapportering; gamle
+001vektorer kan ikke rekonstrueres eller omskrives, og ingen relaunch åpnes.
+
+Konkret loggefeil rettet etter avsluttet001:9additivelinjer i calculate
+lagrer rad/issue/head/alle5logits/delta/passmask/toleranse før uendretstopp.
+NaN/Inf serialiseres eksplisitt. 2målrettede regresjoner PASS;51uendrede
+tidligerePASS gjenbrukt. Model-/gradient-/guard-/toleransebudsjett uendret.
+LOGGING_FIX001 binderfør/etterkilde og testlogg. Ingen nye nativeFW; gamle
+001manglendevektorer er fortsatt UNKNOWN. Ny eksakt plan kreves.

@@ -425,14 +425,43 @@ def test_full96_synthetic_path_preserves_Dfull_components_F64_counts_and_state(m
     assert progress['phase'] == 'COMPLETE_FROZEN_FULL_B96_GRADIENT'
 
 
-def test_saved_parity_failure_precedes_every_derivative_and_cannot_relax_tolerance(monkeypatch):
+@pytest.mark.parametrize('nonfinite', [False, True])
+def test_saved_parity_failure_precedes_every_derivative_and_cannot_relax_tolerance(monkeypatch, tmp_path, nonfinite):
     plan, capture, models = synthetic_calculation(monkeypatch)
-    capture['side_logits'][95, 4] += .01
+    observed = capture['side_logits'][95].astype(np.float64).copy()
+    if nonfinite: capture['side_logits'][95, 4] = np.nan
+    else: capture['side_logits'][95, 4] += .01
+    expected = capture['side_logits'][95].astype(np.float64)
+    absolute_delta = np.abs(observed - expected)
+    expected_values = expected[:4].tolist() + ['nan'] if nonfinite else expected.tolist()
+    delta_values = [0., 0., 0., 0., 'nan'] if nonfinite else absolute_delta.tolist()
+    max_delta = 'nan' if nonfinite else float(absolute_delta.max())
+    failure = {'index': 95, 'issue_ns': int(capture['issue_ns'][95]), 'head': 'side_logits',
+        'timeframes': ['M5', 'M15', 'H1', 'H4', 'D1'],
+        'observed_logits': observed.tolist(), 'expected_logits': expected_values,
+        'absolute_delta': delta_values, 'max_absolute_delta': max_delta, 'nonfinite_values': nonfinite,
+        'fixed_tolerance': TOLERANCES['saved_FINAL_logits'], 'passed_mask': [True, True, True, True, False]}
+    calculate_owner = m.calculate
+    lifecycle_plan, planref, _, _, _ = lifecycle(monkeypatch, tmp_path)
+    plan['inputs'].update(lifecycle_plan['inputs'])
+    monkeypatch.setattr(m, 'inspect', lambda *a, **k: (plan, planref, m.ref(m.POLICY)))
+    seen_progress = []
+    def calculate(bound_plan, *, progress):
+        seen_progress.append(progress)
+        return calculate_owner(bound_plan, progress=progress)
     def forbidden(*args, **kwargs): raise AssertionError('NO_DERIVATIVE_BEFORE_FULL96_PARITY')
+    monkeypatch.setattr(m, 'calculate', calculate)
     monkeypatch.setattr(torch.autograd, 'grad', forbidden)
-    progress = {}
     with pytest.raises(ValueError, match='SAVED_FINAL_LOGIT_PARITY:side_logits'):
-        m.calculate(plan, progress=progress)
+        m.run(planref['sha256'])
+    progress = seen_progress[0]
+    terminal = json.loads((m.ROOT / 'TERMINAL.json').read_text())
+    assert progress['parity_failure'] == failure
+    assert json.loads(json.dumps(progress, allow_nan=False)) == progress
+    assert terminal['progress'] == progress
+    assert terminal['progress']['parity_failure'] == failure
+    assert terminal['status'] == 'FAILED_CONSUMED' and terminal['result'] is None
+    assert not (m.ROOT / 'RESULT.json').exists()
     assert progress['counts']['parity_forwards'] == 96
     assert progress['counts']['autograd_calls'] == progress['counts']['gradient_forwards'] == 0
     assert models[0].backbone.weight.grad is None

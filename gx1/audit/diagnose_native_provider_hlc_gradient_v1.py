@@ -209,6 +209,15 @@ def calculate(plan,*,progress=None):
                 small=chunk(index); output=model(**small['features']); counts['parity_forwards']+=1
                 for key in CAPTURE[1:]:
                     value=output[key].detach().cpu().numpy(); wanted=expected[key][index:index+1]; delta=float(np.max(np.abs(value-wanted)))
+                    passed_mask=np.isclose(value,wanted,atol=TOLERANCES['saved_FINAL_logits']['atol'],rtol=TOLERANCES['saved_FINAL_logits']['rtol'])
+                    if not bool(passed_mask.all()):
+                        absolute_delta=np.abs(value.astype(np.float64)-wanted.astype(np.float64))
+                        json_number=lambda number:float(number)if np.isfinite(number)else str(float(number))
+                        progress['parity_failure']={'index':index,'issue_ns':int(small['truth']['issue_ns'][0]),'head':key,'timeframes':list(train.TF),
+                            'observed_logits':[json_number(number)for number in value[0]],'expected_logits':[json_number(number)for number in wanted[0]],
+                            'absolute_delta':[json_number(number)for number in absolute_delta[0]],'max_absolute_delta':json_number(absolute_delta.max()),
+                            'nonfinite_values':not bool(np.isfinite(value).all()and np.isfinite(wanted).all()),
+                            'fixed_tolerance':dict(TOLERANCES['saved_FINAL_logits']),'passed_mask':passed_mask[0].tolist()}
                     parity[key]=max(parity[key],delta); need(np.allclose(value,wanted,atol=TOLERANCES['saved_FINAL_logits']['atol'],rtol=TOLERANCES['saved_FINAL_logits']['rtol']),'SAVED_FINAL_LOGIT_PARITY:'+key)
                 del output,small
             measurement_bookend(model,state_before,rng_before)
