@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT027:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT028:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -53,6 +53,39 @@ Den nyeste kaldreplay-terminalens manglende direkte source-/TEST-felt må
 bevises fra bundet originalRESULT og lukket stage/aksept; ingen felt gjettes.
 ACTIVE_STATUS_DISPLAY_QUALIFICATION001:36fokuserte casesPASS (12nye),
 faktisk handoverPASS; launch-gaten og alle øvrige gamle funksjoner er byteuendret.
+
+## Gjeldende hele-TRAIN støttekontroll
+
+NATIVE_PROVIDER_HLC_FULL_TRAIN_SUPPORT_CENSUS_20261124_001 er COMPLETE,
+consumed og stengt0/false.6,524sCPU,4G/512M/éntråd;14målarrays/50700650B,
+alle354550issues×5TF=1772750celler.0NN/fit/CP/features/CUDA/nett.
+Kanoniske masker, alle10priorceller inkl mask-/populationSHA og alle gamle
+SUPPORT total-/årspaneler er eksakte.35målstartår–UTCukedag-celler/TF,
+også nuller, har rad- og unikmål-/medlemskap-/multiplicitetsregnskap.
+Unike kjente sidemål M5/M15/H1/H4/D1:228951/71520/16582/4140/875.
+D1har1290presente/1289modne mål;15overlappende bøttemedlemskap beholdes,
+ingenUP/DOWN-overlapp. D1torsdag2023har0FLAT; null nativeukedager beviser
+ikke stenging. Umodne2026målhaler1/3/12/48/276 er beholdt, ingen rader droppet.
+Moden ukjent aktivitet0/65/366/23424/0 er forskjellig fra kjentAKTIV/ukjentSIDE.
+Dette er en målt støtteprofil, ikke ukvalifisert hovedmålgrønnmerking.
+
+Første metadataforsøk fant Torchs syntetiske relative sti `_classes.py`;001 erbevart.
+Minste002rettelse tar bare absolutte fysiske kildefiler;5syntetiskegrupper,
+faktisk blokkert metadatabuilder65eiere og eksaktCLIpreflight PASS førCLAIM.
+Første signertevertsjekk fikk2stimeout føradmisjon; fersk002PASS, sammegrenser.
+Kilde/input/policy/bootbookends PASS; originaler/inputs/masker/CP uendret.
+Kildebackup12filer5428988B og resultatbackup16filer11041011B er separatdisk-
+kopiert og faktiskSHA/F_FULLFSYNC/fsync-verifisert, inklusive diagnostikk.
+
+OANDAs offentlige UK-side har daterte2025helligdagsoppføringer, men ikke
+kvalifisert2021–25 practice-feed-autoritet. Ingen hull eller kalenderfakta
+er ommerket. OANDA_PUBLIC_CALENDAR_CANDIDATE_REVIEW_20261124_001 binder
+kildekandidater og manglende historisk feedmapping/gyldighetsperiode.
+Neste er å undersøke målt moden aktivitetsukjent-støtte mot eksisterende
+kilde-/kalender-/skalafakta og forhåndsregistrere én hel-populasjonsparet
+læringssammenligning. Ingen stille20727/6prosent-erstatning, klassekvote,
+nyfasit, fit/epoke eller TEST. StrengOOF trenger fortsatt prefix-modne
+statistikker/konstanter/prior og egen fersk baseline/replay.13/3/4 består.
 
 ## Gjort og målt
 
@@ -163,7 +196,8 @@ OANDA/Cboe/GLD og Treasury/COT tidsdomener beholdes uavklarte der bevis mangler.
 11/12FAIL: historisk v1 hadde234/1289strictkompletteD1vinduer og162unike
 kjente sidemål. Gjeldende provider-HLCv2 har875unikeD1sidemål;
 alle3klasser finnes hvert2021–25år påalle5TF. Kalenderautoritet ogfull
-ukedags-/unikmålrepresentativitet er fortsatt ukvalifisert. Historisk v1
+ukedags-/unikmålstøtte er nå faktisk målt i hel-TRAIN-census;
+ukondisjonell markedsrepresentativitet er fortsatt ukvalifisert. Historisk v1
 dekning skal ikke brukes som nåværende v2nevner.
 15FAIL: egenfasit side-Brier/NLL verre enn frossen matchet prior alle5TF.
 TRAIN-AUC0,5300/0,5317/0,5248/0,5058/0,5239 er ingen senere edge.
