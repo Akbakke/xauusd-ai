@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT025:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT026:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -771,87 +771,88 @@ F_FULLFSYNC/readback verifisert, ACK PROVIDER_HLC_FIRST_PARITY_BACKUP001.
 SenesteCPU-ruter er målt/lukket, ikke samsvarsgodkjent motlagretCUDA.
 Ingen jobb kjører; én ny B256-scope er bare klargjort, ikke innrømmet.
 
-## Avsluttet CPU/CUDA-paritetsserie
+## Fullførte lokale diagnoser
 
-B256001 fullførte på 60,775469 sekunder med én CPU-forward/null derivater.
-Prosess-RSS 3000812 KiB = 2,861797 GiB gjaldt bare denne no-grad-kjøringen.
-Samme batchstørrelse fjernet ikke CPU/lagret-CUDA-gapet. Første CPU-rad på
-B1/B256 samsvarte innen fast toleranse. Paritetsserien er avsluttet; ingen
-batch-/rutesweep, toleranseendring eller relaunch. Originale feil bevares.
+Paritetsserien er avsluttet. CPU B1/B256 samsvarer lokalt, men opprinnelig
+CPU/lagret-CUDA-gate forblir FAIL; ingen toleranseendring eller relaunch.
+CPU-betinget B96-test fullførte229,708966s/192FW/384autograd/0oppdateringer.
+Den avviste lokal M5-aktivitet/sidekonflikt på ett frosset FINAL-punkt.
+Dette fastslo ingen historisk årsak og kvalifiserte ingen ekstra epoke.
 
-## Fullført CPU-betinget gradientmåling
+## Faktisk all-TF-kontrast001
 
-CPU_CONDITIONAL_GRADIENT001 er COMPLETE/exit0 og konsumert/stengt0.
-Runtimekilde842ef41d3; plan98f00a2b...943dd. Faktisk229,708966sekunder,
-192 forwards / 384 autograd / null optimizer, backward eller oppdateringer.
-Kjøringen fullførte under 4GiB/512MiB/én tråd/900s; konkret peak-RSS ble
-ikke instrumentert for denne gradientjobben. Ingen videre trening er åpnet.
+COMPLETE/exit0, konsumert/stengt0. Runtimekilde7741bf4d4;
+plan35ac7da7...42343. Faktisk361,912160s,192CPUforwards/768autograd,
+null optimizer, backward, vektoppdateringer, fit eller checkpoint-RNG-restore.
+Kjøringen fullførte under4GiB/512MiB/éntråd/900s; peak-RSS ble ikke målt.
 
-CPU_BASELINE.json ble atomisk lagret ved96 forwards/null autograd, med
-uendret modell/input/lokalRNG/context. Begge96x5-heads i andre pass var
-bitidentiske med denne baselinen før hver rads fire autogradkall. Original
-B96-akse og fullnevner480 er bevart. Sidemaskestøtte M5/M15/H1/H4/D1:
-57/53/37/96/96. Alle genuine inputfelt, familier, TF og makro er beholdt.
+EksplisittNone-kandidaten brukte autentiserte FINAL-parametre med egen
+kontrakt og egen strict tilstand. Alle parameter-/bufferbytes var identiske
+med originalen unntatt future_state_model_sha256, som var kandidatens egen
+beregnede identitet. Originalmodell/CP/kvitteringer ble ikke ommerket eller
+endret. TRANSFER_PROOF ble lagret ved0FW/0autograd. Kandidatbaseline ved
+96FW/0autograd samsvarte bitidentisk med tidligere CPU-baseline; andre pass
+var også bitidentisk før hver rads åtte autogradkall. D96=480 er uendret.
 
-Lokal konklusjon: NOT_LOCAL_CONFLICT. gSide·gTotal=8,8907325415e-5,
-klart over forhåndslåst margin6,3103666842e-10. gSide·gActivity er positiv,
-1,6488045484e-5. Komponentfeil relativt4,01227e-8; faktisk auxiliary-gradient
-til shared backbone er0, som deklarert M5_primary. Aktivitet motarbeidet
-ikke M5-side lokalt på dette frosne punktet. Ingen historisk GPU/AdamW-årsak,
-global all-TF-forklaring, tapsvektfiks eller retningsedge er dermed bevist.
+Faktiskauxiliary-gradient til shared backbone er NONZERO, L2=0,268784573.
+Kanonisk gradient matcher sju uavhengige komponenter; relativfeil5,97261e-8.
+Alle fem sidegradienter har positivt dotprodukt utover fast margin med
+både M5-retningen(gRef) og all-TF-retningen(gAll). Normalisert samsvar:
 
-Alle sluttkontroller av kilde/input/FINAL-modell/packet/lokalRNG/context/boot
-bestod. Uavhengig stdlib-review bekreftet kvitteringskjede, fire logit-byte-
-hasher,386 sammenligninger og rapportert skalar norm/dot/margin-regning;
-rå gradienttensorer ble ikke beregnet på nytt av kontrollagenten. En
-skrivebeskyttet NumPy-maske ga en PyTorch-advarsel ved kanonisk tap607. Kilden leser bare masken gjennom
-where/sum, og packet-hashen var uendret; original logg er bevart, ingen
-påvist mutasjon eller indikert kodeendring. Lagret CUDA-paritet er fortsatt
-FAIL (125/480 aktivitet og289/480 side i den nye informasjonsmålingen).
-Den opprinnelige full96-GPU-gradientkvalifiseringen forblir ugodkjent.
+| TF | Kjente sider / unike sidemål | Cosine gRef | Cosine gAll |
+|---|---:|---:|---:|
+| M5 |57 /57|0,140891|0,195728|
+| M15 |53 /19|0,347457|0,570864|
+| H1 |37 /4|0,170674|0,457629|
+| H4 |96 /3|0,316382|0,818096|
+| D1 |96 /1|0,342290|0,814617|
 
-ACCEPTANCE001/REVIEW025 binder resultatet.22 kilde-/planfiler10084528B og
-26 resultatfiler13152826B er verifisert på separat Mac-disk medSHA,
-F_FULLFSYNC og disklesing. Originale datasett/checkpoints/vekter er bevart.
-Hostquery001 timeout2004ms før admisjon er bevart; fersk002 bestod.
+Dette er lokal gradientgeometri på samme frosne CPU B96-punkt, med bare ett
+unikt D1-mål. Ingen policy er valgt, ingen forbedret læring/generaliserings-
+eller økonomipåstand følger. Den trente referansens retningsscore feiler
+fortsatt alle fem TF. Alle genuine inputfamilier, TF, makro, masker,
+normalisering og targets er bevart; ingen side er fylt fra ukjent.
 
-## Neste avgrensede spørsmål
+Alle kilde/input/CP/modell/packet/lokalRNG/context/boot-bookends bestod.
+Uavhengig stdlib-review bekreftet fem kvitteringer, fire F32-logithasher,
+578 sammenligninger og skalar dot/cosine/norm/margin; ingen uavhengig ny
+råtensor-/gradientberegning. Readonly NumPy-masken ga samme PyTorch-varsel
+ved kanonisk tap607; kilden leser bare viawhere/sum, packet-hashen var
+uendret og original logg bevares. Ingen påvist mutasjon eller indikert fix.
 
-Eksisterende backbone_gradient_policy=None er fullt tilkoblet all-TF, men
-fortsatt ukvalifisert. ALL_TF_CPU_GRADIENT_CONTRAST_SCOPE001 er metodegodkjent,
-ikke innrømmet. Den skal bruke samme autentiserte numeriske FINAL-parametre
-på originalB96, med en separat kandidatkontrakt. Kandidaten beholder sin
-egen beregnede future_state_model_sha256. Alle øvrige buffer-/parameter-
-verdier, nøkler, former og typer må stemme; kandidatens egen tilstand lastes
-strict. Gammel checkpointidentitet, guard og kvitteringer endres aldri.
-Dette er eksplisitt diagnostisk parameteroverføring, ikke en gammel restore
-under ny identitet eller warmstart for en framtidig fit.
+32nye tester bestod, deretter fem berørte etter referanseendringen;
+121tidligere testtilfeller og alle gamle ruter er bytebevart. Hele radvise
+baselinefilen lastes nå via autentisert eksisterende referanse. Faktisk
+prepare001 feilet ved kompilering før plan/claim, fordi21patchkontekster
+overskred Python-grensen. CONTROL002/ExitStack bevarer alle21vakter;
+kompilering og faktisk prepare002/preflight bestod. Originaler/fix bevares.
+Hostquery001 timeout2003ms før admisjon er bevart; fersk002 bestod.
 
-Alle96 kandidat-output må samsvare med godkjent CPU-baseline før derivater.
-Totalt192 forwards/768autograd/null oppdateringer: kanonisk all-TF-gradient
-mot sju uavhengige komponenter. Mål hver TF-sides samspill med M5-retningen
-og all-TF-retningen, medF64-sum før dot/norm og samme faste kontrakter.
-Rapporter unike kvalifiserte target_start_ns i tillegg til radtellinger;
-96 overlappende M5-rader er ikke96 uavhengige D1-mål. Kapasitet for768
-beregninger er uavklart under samme4GiB/870s-intern/900s-ytre grense.
-Kilde/transferbevis/test/faktisk metadata/preflight/backup/host og eksakt ny
-engangsadmisjon gjenstår. Ingen modell-/autograd-/treningsjobb er innrømmet.
-Alle fem globale treningsporter er false.13PASS/3FAIL/4UNKNOWN består.
+ACCEPTANCE001/REVIEW026 binder målingen.25kilde-/planfiler10663562B og
+27resultatfiler13820160B er sikret på separat Mac-disk medSHA/F_FULLFSYNC/
+disklesing. Opprinnelige datasett, checkpoints og vekter er bevart.
 
-All-TF-kilden er kvalifisert:32 nye tester bestod, deretter fem berørte
-tester etter en referanseendring. De121 gamle testtilfellene er bytebevart.
-Ny transferkontroll bruker bytehasher og avviser forskjellig fortegn på
-null der byte-likhet kreves. Planen peker på sikret CPU-baseline medSHA,
-i stedet for å kopiere hele den radvise prognosefilen. Matematikk/budsjett/
-porter er uendret. Faktisk blokkert metadata002 bestod med86eiere og null
-modell/checkpoint/feature- eller målarraydekoding/forward/autograd/claim.
-SOURCE_QUALIFICATION002 og uavhengig kilde/controller-review binder dette.
-Koden må committes/pushes, og eksakt preflight, separat kilde-/planbackup,
-fersk maskinvarekontroll og engangsadmisjon må bestå før kjøring.
-Alle fem treningsporter er false; aktuell CPU-admisjon eies av policy.
+## Neste steg: fersk INITIAL og kandidatens egen kalde replay
 
-Faktisk prepare001 stoppet ved Python-kompilering før import/plan/claim:
-21 patch-kontekster overskred grensen for statisk nestede blokker.
-CONTROL002 bruker ExitStack med de samme21 vaktene. Kompilering med eksakt
-venv-interpreter bestod; original CONTROL001/logg og COMPILE_FIX001 bevares.
-Ingen modelljobb eller engangsplan er konsumert av dette forberedelsesforsøket.
+ALL_TF_FRESH_INITIAL_REPLAY_PREPARATION_SCOPE001 er design uten kjøretilgang.
+Eksisterende v2 fresh-producer og replayer hardkoderM5_primary. Legg kun til
+eksplisittNone-opt-in i de eksisterende eierne, behold referanse/defaults og
+alle kontrakter/guards. Gjenbruk uendret cache/norm/v2fasit/attest/prior.
+
+Først: virkelig fersk kandidattilstand/RNG og ny fullTRAIN354550-raders
+nulloppdateringsbaseline med riktig kandidatidentitet og matched prior.
+INITIAL002 beholdes som navngitt referanse. Ingen FINAL-overføring eller
+replay-oppdaterte vekter brukes som start for en læringsfit.
+
+Deretter egen ny, kvalifisert v2-replay: eksisterende recipe seed20260911,
+AdamW1e-4/clip1/ingen scheduler/B96; tre varme oppdateringer, C2 og ny prosess
+som gjenoppretter kandidatens egne model/optimizer/RNG/posisjon og replikerer
+steg3 bitidentisk på alle ti proof-felt med befolkede AdamW-momenter.
+Ressursprofil, fresh-source, preflight, backup, host/boot og engangsadmisjon
+må kvalifiseres før hver fase. Ingen mainfit eller automatisk epokeserie.
+
+En senere læringssammenligning trenger egen frosset kohort/klokke/observer.
+Eksisterende20727issue/1377dager er kildeklokkesampling, ikke sammenhengende
+læringsvindu eller senereTRAINobserver; gammelv1truth/prior/plan er ingen
+v2autoritet. Ingen nye antall/lr/passer velges her. Globale treningsporter
+erfalse;13PASS/3FAIL/4UNKNOWN og hele20stegsmålet består.
