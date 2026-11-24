@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT059:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT061:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -1212,8 +1212,15 @@ Første reviewprojeksjon hadde tomD1grupperapport;002retter kunrapporten,
 bevarerprimærtabellen ogoriginal001. Ingenkjørings-/metrikkomskriving.
 Sluttbackup:18originalfiler211933951B, alleartefakter/diagnostic/stderr/manifest
 uavhengigMacSHA/F_FULLFSYNC/fsync-verifisert. BeggeCP/alleoutputs erbeholdt.
-Neste konkrete spørsmål gjelderkronologisk kalibreringsdrift oglagrede
-steg-/support-/momentbevis; eksisterende audit-eier skal gjenbrukes før
-nyNN/fit vurderes. Ingen entydigårsak ellervalgtfix erbevist.
+Neste konkrete CPU-audit er forhåndsregistrert i SUPPORT_MOMENT_AUDIT_DESIGN001
+SHA46e77202:1autentiskFINAL-CPUdecode/0NPZ/0NN/0optimizer/0restore.
+Eksisterende readout.validate_final og alignment.moment_extract_heads gjenbrukes.
+3694stegssupport skal avstemmes mot fullquality og nullsupportspenn rapporteres
+i steg/radindekser; ingen oppfunnetdato/hiddenlogitprojeksjon. Én hypotetisk
+standardAdamW-nullgradientformel gjelder sluttilstanden, ikke historisk årsak.
+Kilde/test har bestått96fokuserte cases (49gamle+47nye); gammelowner/default
+og alle80modellnummereiere er bytebevart. Faktiskmetadata/preflight/eksaktCPU-
+admisjon gjenstår; ingen payloaddekoding
+er åpnet. Alle10CPproofs/RNG skal være uendret. Ingen entydigårsak/valgtfix.
 Score-only3694 er kildetestet, men ble ikke fysisk kjørt sidenfullFINALlyktes.
 Alle5porterfalse;13PASS/3FAIL/4UNKNOWN. Ingen størretrening/TEST/handel.

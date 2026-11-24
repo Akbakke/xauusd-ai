@@ -419,3 +419,377 @@ def test_calculate_loads_two_whole_CP_and_four_declared_arrays_without_models(mo
     assert report['parameter_gradient_calculations'] == report['RNG_restore_calls'] == report['model_state_install_calls'] == 0
     assert report['actual_training_cause'] == report['selected_causal_fix'] == 'UNKNOWN'
     assert progress['phase'] == 'COMPLETE_STORED_LOGIT_ATTRIBUTION'
+
+# Additive None stored-step support and terminal AdamW audit; old cases above preserved.
+def stored_support_fixture():
+    recipe = {'passes': 1, 'train_batch_rows': 96, 'eval_batch_rows': 256}
+    schedule = {'rows': 354550, 'batch_rows': 96, 'logical_batches': 3694,
+                'batches_per_pass': 3694, 'optimizer_updates': 3694, 'passes': 1,
+                'update_flags': [True] * 3694, 'skipped_batches': 0,
+                'shuffle': False, 'drop_last': False}
+    steps = []
+    for index in range(3694):
+        rows = 22 if index == 3693 else 96
+        activity = [rows] * 5
+        side = [1, 0, int(index == 0), rows, int(index == 3693)]
+        if index in (0, 2, 3, 3693): side[0] = 0
+        if index == 4: side[0] = 2
+        if index in (1, 2): activity[4] = 0
+        steps.append({'logical_step': index + 1, 'skip_update': False,
+                      'support': {'activity': activity, 'side': side}})
+    quality = {'rows': 354550, 'all_TF': {tf: {task: {'count': sum(step['support'][task][j] for step in steps)}
+               for task in ('activity', 'side')} for j, tf in enumerate(TF)}}
+    return steps, recipe, schedule, quality
+
+
+def test_stored_support_reports_exact_leading_internal_trailing_and_all_zero_spans():
+    steps, recipe, schedule, quality = stored_support_fixture()
+    before = m.core.state_sha((steps, recipe, schedule, quality))
+    report = m.summarize_step_support(steps, recipe, schedule, quality)
+    assert m.core.state_sha((steps, recipe, schedule, quality)) == before
+    panels = report['per_TF']
+    cell = panels['M5']['side']
+    assert cell['known_cells'] == 3691 and cell['zero_support_steps'] == 4
+    assert cell['zero_support_spans'] == [
+        {'first_step': 1, 'last_step': 1, 'start_issue_row': 0, 'stop_issue_row': 96, 'steps': 1, 'issue_rows': 96},
+        {'first_step': 3, 'last_step': 4, 'start_issue_row': 192, 'stop_issue_row': 384, 'steps': 2, 'issue_rows': 192},
+        {'first_step': 3694, 'last_step': 3694, 'start_issue_row': 354528, 'stop_issue_row': 354550, 'steps': 1, 'issue_rows': 22}]
+    assert cell['last_nonzero_support_step'] == 3693
+    assert cell['trailing_zero_support_steps'] == 1 and cell['trailing_zero_support_issue_rows'] == 22
+    assert cell['max_zero_support_steps'] == 2 and cell['max_zero_support_issue_rows'] == 192
+    empty = panels['M15']['side']
+    assert empty['known_cells'] == 0 and empty['last_nonzero_support_step'] is None
+    assert empty['last_nonzero_support_step_issue_rows'] is None
+    assert empty['zero_support_steps'] == empty['trailing_zero_support_steps'] == empty['max_zero_support_steps'] == 3694
+    assert empty['trailing_zero_support_issue_rows'] == empty['max_zero_support_issue_rows'] == 354550
+    assert empty['zero_support_spans'] == [
+        {'first_step': 1, 'last_step': 3694, 'start_issue_row': 0, 'stop_issue_row': 354550, 'steps': 3694, 'issue_rows': 354550}]
+    first = panels['H1']['side']
+    assert first['known_cells'] == 1 and first['last_nonzero_support_step'] == 1
+    assert first['trailing_zero_support_steps'] == 3693 and first['trailing_zero_support_issue_rows'] == 354454
+    full = panels['H4']['side']
+    assert full['known_cells'] == 354550 and full['last_nonzero_support_step'] == 3694
+    assert full['zero_support_spans'] == [] and full['trailing_zero_support_issue_rows'] == 0
+    final_only = panels['D1']['side']
+    assert final_only['known_cells'] == 1 and final_only['last_nonzero_support_step'] == 3694
+    assert final_only['max_zero_support_steps'] == 3693 and final_only['max_zero_support_issue_rows'] == 354528
+    assert panels['D1']['activity']['known_cells'] == 354358
+    for tf in TF:
+        for task in ('activity', 'side'):
+            assert panels[tf][task]['known_cells'] == quality['all_TF'][tf][task]['count']
+    json.dumps(report, allow_nan=False)
+
+
+def stored_moment_checkpoint_fixture():
+    from tests.test_diagnose_native_future_state_alignment_v1 import moment_toy_options
+    cp, receipt, original, originalref, trajectory, executionref = final_fixture()
+    steps, recipe, schedule, quality = stored_support_fixture()
+    original['schedule'].update(schedule); original['recipe'] = {**recipe, 'optimizer': moment_toy_options()}
+    cp['steps'] = steps
+    names = list(cp['optimizer_parameter_names']); ids = []
+    slots = {}
+    for index, name in enumerate(names):
+        tf_index = index // 2
+        parameter_id = 101 + 2 * tf_index if name.endswith('.weight') else 5 + 3 * tf_index
+        ids.append(parameter_id)
+        parameter = cp['model_state'][name]
+        first_moment = .25 if name.endswith('.weight') else -.5
+        slots[parameter_id] = {'step': torch.tensor(3694., dtype=torch.float32),
+                               'exp_avg': torch.full_like(parameter, first_moment),
+                               'exp_avg_sq': torch.ones_like(parameter)}
+    cp['optimizer_state'] = {'state': slots, 'param_groups': [{**copy.deepcopy(original['recipe']['optimizer']), 'params': ids}]}
+    receipt['proof'] = m.train.checkpoint_proof(cp)
+    return cp, receipt, original, originalref, trajectory, executionref, quality
+
+
+def test_stored_moments_keep_actual_opaque_ids_original_formula_and_all_ten_proofs(monkeypatch):
+    cp, receipt, original, *_ = stored_moment_checkpoint_fixture()
+    before = m.train.checkpoint_proof(cp)
+    before_rng = m.core.state_sha(m.support_rng_proof())
+    calls = []
+    actual = m.alignment.moment_zero_gradient_delta
+    def original_only(parameter, first, second, step, options, **kwargs):
+        assert kwargs.get('reset_first_moment', False) is False
+        calls.append((parameter.copy(), first.copy(), second.copy(), step, copy.deepcopy(options)))
+        return actual(parameter, first, second, step, options, **kwargs)
+    monkeypatch.setattr(m.alignment, 'moment_zero_gradient_delta', original_only)
+    heads = m.alignment.moment_extract_heads(cp, original['recipe']['optimizer'])
+    report = m.support_moment_summary(heads)
+    assert report['formula_arms'] == 1 and report['parameter_formula_evaluations'] == len(calls) == 10
+    assert report['reset_first_moment'] is False and report['actual_updates'] == 0
+    assert report['per_TF']['M5']['parameter_binding']['parameter_ids'] == {'weight': 101, 'bias': 5}
+    assert report['per_TF']['D1']['parameter_binding']['parameter_ids'] == {'weight': 109, 'bias': 17}
+    for tf in TF:
+        panel = report['per_TF'][tf]
+        assert panel['parameter_binding']['step'] == 3694
+        effect = panel['one_hypothetical_original_momentum_zero_gradient']['bias']['bias_decomposition']
+        assert effect['observed_bias'] == 1.
+        assert effect['moment_delta'] > 0 and effect['decay_delta'] < 0 and effect['total_delta'] > 0
+        assert effect['identity_abs_error'] <= 1e-15
+    assert all(call[3] == 3694 and call[4] == original['recipe']['optimizer'] for call in calls)
+    assert m.train.checkpoint_proof(cp) == before == receipt['proof']
+    assert m.core.state_sha(m.support_rng_proof()) == before_rng
+    json.dumps(report, allow_nan=False)
+
+
+@pytest.mark.parametrize('bad,gate', [
+    ('length', 'SUPPORT_STEP_CLOCK'), ('batch', 'SUPPORT_STEP_CLOCK'), ('rows', 'SUPPORT_STEP_CLOCK'),
+    ('sequence', 'SUPPORT_STEP_RECORD'), ('bool_step', 'SUPPORT_STEP_RECORD'), ('skip', 'SUPPORT_STEP_RECORD'),
+    ('support_keys', 'SUPPORT_STEP_RECORD'), ('width', 'SUPPORT_STEP_COUNTS'),
+    ('float_count', 'SUPPORT_STEP_COUNTS'), ('bool_count', 'SUPPORT_STEP_COUNTS'),
+    ('negative_count', 'SUPPORT_STEP_COUNTS'), ('tail23', 'SUPPORT_STEP_COUNTS'),
+    ('side_above_activity', 'SUPPORT_STEP_COUNTS'), ('canonical_total', 'SUPPORT_CANONICAL_COUNTS'),
+    ('canonical_float', 'SUPPORT_CANONICAL_COUNTS')])
+def test_stored_support_rejects_the_intended_record_or_canonical_gate(bad, gate):
+    steps, recipe, schedule, quality = stored_support_fixture()
+    assert m.summarize_step_support(steps, recipe, schedule, quality)['per_TF']['M5']['side']['known_cells'] == 3691
+    if bad == 'length': steps.pop()
+    elif bad == 'batch': recipe['train_batch_rows'] = 95
+    elif bad == 'rows': schedule['rows'] = 354551
+    elif bad == 'sequence': steps[2]['logical_step'] = 2
+    elif bad == 'bool_step': steps[0]['logical_step'] = True
+    elif bad == 'skip': steps[0]['skip_update'] = True
+    elif bad == 'support_keys': steps[0]['support']['foreign'] = [0] * 5
+    elif bad == 'width': steps[0]['support']['side'].pop()
+    elif bad == 'float_count': steps[1]['support']['side'][0] = 1.
+    elif bad == 'bool_count': steps[1]['support']['side'][0] = True
+    elif bad == 'negative_count': steps[1]['support']['side'][0] = -1
+    elif bad == 'tail23': steps[-1]['support']['activity'][0] = 23
+    elif bad == 'side_above_activity': steps[1]['support']['side'][4] = 1
+    elif bad == 'canonical_total': quality['all_TF']['M5']['side']['count'] += 1
+    else: quality['all_TF']['M5']['side']['count'] = 3691.
+    with pytest.raises(ValueError, match=gate + '$'):
+        m.summarize_step_support(steps, recipe, schedule, quality)
+
+
+@pytest.mark.parametrize('bad,gate', [
+    ('missing_TF', 'SUPPORT_MOMENT_HEADS'), ('bool_step', 'SUPPORT_MOMENT_TERMINAL_STEP'),
+    ('wrong_step', 'SUPPORT_MOMENT_TERMINAL_STEP'), ('dtype', 'SUPPORT_MOMENT_SHAPES'),
+    ('shape', 'SUPPORT_MOMENT_SHAPES'), ('nonfinite', 'SUPPORT_MOMENT_SHAPES'),
+    ('negative_second', 'SUPPORT_MOMENT_SHAPES'), ('invalid_options', 'MOMENT_OPTIONS')])
+def test_stored_moment_summary_rejects_exact_terminal_or_formula_gate(bad, gate):
+    cp, _, original, *_ = stored_moment_checkpoint_fixture()
+    heads = m.alignment.moment_extract_heads(cp, original['recipe']['optimizer'])
+    assert m.support_moment_summary(heads)['parameter_formula_evaluations'] == 10
+    if bad == 'missing_TF': del heads['D1']
+    elif bad == 'bool_step': heads['M5']['step'] = True
+    elif bad == 'wrong_step': heads['M5']['step'] = 3693
+    elif bad == 'dtype': heads['M5']['weight'] = heads['M5']['weight'].astype(np.float32)
+    elif bad == 'shape': heads['M5']['bias'] = np.zeros(2, np.float64)
+    elif bad == 'nonfinite': heads['M5']['weight_exp_avg'][0] = np.nan
+    elif bad == 'negative_second': heads['M5']['bias_exp_avg_sq'][0] = -1.
+    else: heads['M5']['options']['eps'] = 0.
+    with pytest.raises(ValueError, match=gate + '$'):
+        m.support_moment_summary(heads)
+
+
+@pytest.mark.parametrize('bad,gate', [('duplicate_ID', 'MOMENT_PARAMETER_ID_ORDER'),
+                                     ('bool_ID', 'MOMENT_PARAMETER_ID_ORDER'),
+                                     ('options', 'MOMENT_ACTUAL_RECIPE_amsgrad'),
+                                     ('missing_slot_field', 'MOMENT_CPU_TENSORS')])
+def test_stored_actual_parameter_binding_uses_authentic_ids_and_options(bad, gate):
+    cp, _, original, *_ = stored_moment_checkpoint_fixture()
+    recipe = original['recipe']['optimizer']
+    assert m.alignment.moment_extract_heads(cp, recipe)['M5']['parameter_ids']['weight'] == 101
+    group = cp['optimizer_state']['param_groups'][0]
+    if bad == 'duplicate_ID': group['params'][1] = group['params'][0]
+    elif bad == 'bool_ID': group['params'][0] = True
+    elif bad == 'options': group['amsgrad'] = True
+    else: del cp['optimizer_state']['state'][101]['exp_avg']
+    with pytest.raises(ValueError, match=gate + '$'):
+        m.alignment.moment_extract_heads(cp, recipe)
+
+
+def test_stored_missing_moment_is_rejected_at_the_exact_actual_id_lookup():
+    cp, _, original, *_ = stored_moment_checkpoint_fixture()
+    assert m.alignment.moment_extract_heads(cp, original['recipe']['optimizer'])['M5']['parameter_ids']['weight'] == 101
+    del cp['optimizer_state']['state'][101]
+    with pytest.raises(KeyError, match='^101$'):
+        m.alignment.moment_extract_heads(cp, original['recipe']['optimizer'])
+
+
+def stored_calculation_fixture(monkeypatch):
+    cp, receipt, original, originalref, trajectory, executionref, quality = stored_moment_checkpoint_fixture()
+    plan = {'inputs': {'final_checkpoint': receipt['checkpoint'], 'original_epoch_plan': originalref,
+                       'completed_model_plan': executionref},
+            'metadata': {'original_epoch_plan': original, 'final_receipt': receipt,
+                         'trajectory': trajectory, 'full_quality': quality},
+            'budget': copy.deepcopy(m.SUPPORT_BUDGET), 'conditional_scope': {'synthetic_stored_facts_only': True}}
+    loads = []
+    def load(path, **kwargs):
+        loads.append((path, kwargs)); return cp
+    monkeypatch.setattr(torch, 'load', load)
+    monkeypatch.setattr(m, 'reference', lambda value: Path(value['path']))
+    def no_payload(*args, **kwargs): pytest.fail('NPZ/native payload forbidden')
+    monkeypatch.setattr(np, 'load', no_payload)
+    monkeypatch.setattr(m.saved, 'load_fields', no_payload)
+    return plan, cp, receipt, loads
+
+
+def test_stored_calculation_decodes_only_one_cpu_CP_and_preserves_proofs_rng_and_unknowns(monkeypatch):
+    plan, cp, receipt, loads = stored_calculation_fixture(monkeypatch)
+    proofs = m.train.checkpoint_proof(cp); rng = m.support_rng_proof(); progress = {}
+    report = m.support_calculate(plan, progress=progress)
+    assert loads == [(plan['inputs']['final_checkpoint']['path'], {'map_location': 'cpu', 'weights_only': True})]
+    assert report['checkpoint_deserializations'] == report['payload_budget']['checkpoint_deserializations'] == 1
+    assert report['payload_budget'] == m.SUPPORT_BUDGET
+    for key in ('model_objects_constructed', 'NN_forwards', 'NPZ_arrays_decoded', 'autograd_calls', 'backward_calls',
+                'optimizer_updates', 'model_state_install_calls', 'RNG_restore_calls', 'runtime_blocked_attempts'):
+        assert report[key] == 0
+    assert report['actual_training_cause'] == report['selected_causal_fix'] == 'UNKNOWN'
+    assert report['later_generalization'] == report['economic_edge'] == 'UNKNOWN' and report['all20_approved'] is False
+    assert report['all_ten_checkpoint_proofs_unchanged'] is report['process_Python_NumPy_Torch_CPU_RNG_unchanged'] is True
+    assert m.train.checkpoint_proof(cp) == proofs == receipt['proof'] and m.support_rng_proof() == rng
+    support = report['step_support']
+    assert support['steps'] == 3694 and support['rows'] == 354550 and support['last_batch_rows'] == 22
+    assert support['per_TF']['M5']['side']['last_nonzero_support_step_issue_rows'] == [354432, 354528]
+    assert support['per_TF']['H4']['side']['last_nonzero_support_step_issue_rows'] == [354528, 354550]
+    assert support['zero_support_reason'] == support['historical_per_TF_parameter_gradients'] == 'NOT_RECORDED'
+    assert support['historical_grad_None_vs_zero_tensor'] == 'NOT_RECORDED' and support['unknown_is_not_FLAT'] is True
+    assert 'UNKNOWN' in support['last_known_limit'] and 'not missing market data' in support['zero_support_semantics']
+    assert progress['checkpoint_deserializations'] == 1 and progress['phase'] == 'COMPLETE_STORED_SUPPORT_AND_TERMINAL_MOMENTS'
+    json.dumps(report, allow_nan=False)
+
+
+def test_stored_calculation_rejects_post_extraction_checkpoint_mutation_at_proof_bookend(monkeypatch):
+    plan, cp, _, loads = stored_calculation_fixture(monkeypatch)
+    actual = m.alignment.moment_extract_heads; witnessed = []
+    def mutating_extract(checkpoint, recipe):
+        heads = actual(checkpoint, recipe); witnessed.append(True)
+        checkpoint['optimizer_state']['state'][101]['exp_avg'][0, 0] += 1.
+        return heads
+    monkeypatch.setattr(m.alignment, 'moment_extract_heads', mutating_extract)
+    with pytest.raises(ValueError, match='SUPPORT_ALL_TEN_PROOFS_UNCHANGED$'):
+        m.support_calculate(plan)
+    assert witnessed == [True] and len(loads) == 1
+
+
+def test_stored_calculation_rejects_cpu_rng_mutation_without_selecting_a_fix(monkeypatch):
+    plan, _, _, loads = stored_calculation_fixture(monkeypatch)
+    actual = m.support_moment_summary; before = torch.get_rng_state().clone(); witnessed = []
+    def random_summary(heads):
+        result = actual(heads); torch.rand(1); witnessed.append(True); return result
+    monkeypatch.setattr(m, 'support_moment_summary', random_summary)
+    try:
+        with pytest.raises(ValueError, match='SUPPORT_PROCESS_CPU_RNG_UNCHANGED$'):
+            m.support_calculate(plan)
+        assert witnessed == [True] and len(loads) == 1
+    finally:
+        # Isolate this deliberate test fault; the production runner forbids restores.
+        torch.set_rng_state(before)
+
+
+@pytest.mark.parametrize('action,name', [('NN', '__init__'), ('optimizer', '__init__'), ('CUDA', 'init'),
+                                        ('autograd', 'grad'), ('restore', 'strict_restore'), ('seed', 'manual_seed')])
+def test_stored_runtime_blocks_construction_cuda_derivatives_restores_and_seeding(action, name):
+    actions = {'NN': lambda: torch.nn.Module.__init__(None),
+               'optimizer': lambda: torch.optim.Optimizer.__init__(None, None, None),
+               'CUDA': lambda: torch.cuda.init(), 'autograd': lambda: torch.autograd.grad(None, None),
+               'restore': lambda: m.train.strict_restore(), 'seed': lambda: torch.manual_seed(1)}
+    before = m.support_rng_proof()
+    with m.support_runtime_blockers() as attempts:
+        assert attempts == []
+        with pytest.raises(RuntimeError, match='^SUPPORT_RUNTIME_' + name + '_FORBIDDEN$'):
+            actions[action]()
+        assert attempts == [name]
+    assert m.support_rng_proof() == before and not torch.cuda.is_initialized()
+
+
+def stored_lifecycle(monkeypatch, tmp_path):
+    _, planref, pref, hooks, timers = lifecycle(monkeypatch, tmp_path)
+    monkeypatch.setattr(m, 'SUPPORT_ROOT', m.ROOT); monkeypatch.setattr(m, 'SUPPORT_PLAN', m.PLAN)
+    plan = {'inputs': {'final_checkpoint': {'path': str(tmp_path / 'FINAL.pt'), 'sha256': 'a' * 64}}}
+    monkeypatch.setattr(m, 'support_inspect', lambda *args, **kwargs: (plan, planref, pref))
+    monkeypatch.setattr(m, 'support_checked_inputs', lambda plan: None)
+    monkeypatch.setattr(m, 'support_calculate', lambda *args, **kwargs: {'synthetic': True})
+    return plan, planref, pref, hooks, timers
+
+
+def test_stored_preflight_uses_new_exact_CLI_caps_and_zero_decodes(monkeypatch, tmp_path, capsys):
+    _, planref, _, hooks, _ = stored_lifecycle(monkeypatch, tmp_path)
+    monkeypatch.setattr(torch, 'load', lambda *args, **kwargs: pytest.fail('preflight CP decode'))
+    monkeypatch.setattr(np, 'load', lambda *args, **kwargs: pytest.fail('preflight NPZ decode'))
+    calls = []; actual = m.support_caps
+    def caps(): calls.append(True); return actual()
+    monkeypatch.setattr(m, 'support_caps', caps)
+    monkeypatch.setattr(sys, 'argv', ['audit', '--stored-support-plan-sha256', planref['sha256'], '--preflight'])
+    m.main(); result = json.loads(capsys.readouterr().out)
+    assert result['status'] == 'PREFLIGHT_PROVIDER_HLC_NONE_SUPPORT_MOMENTS_PASS'
+    assert result['checkpoint_deserializations'] == result['NPZ_arrays_decoded'] == result['models'] == result['NN_forwards'] == 0
+    assert result['claim_created'] is result['CUDA_initialized'] is False
+    assert calls == [True] and hooks == [] and not m.SUPPORT_ROOT.exists()
+    monkeypatch.setattr(sys, 'argv', sys.argv + ['--preflight'])
+    with pytest.raises(ValueError, match='SUPPORT_EXACT_CLI$'): m.main()
+
+
+@pytest.mark.parametrize('failure', [None, 'calculate', 'bookend'])
+def test_stored_run_is_one_use_with_preserved_failure_or_success(monkeypatch, tmp_path, failure):
+    _, planref, pref, _, timers = stored_lifecycle(monkeypatch, tmp_path)
+    def calculate(*args, **kwargs):
+        (m.SUPPORT_ROOT / 'PRESERVED.json').write_text('{"synthetic":true}')
+        if failure == 'calculate': raise ValueError('stored_test_fault')
+        return {'synthetic': True}
+    monkeypatch.setattr(m, 'support_calculate', calculate)
+    if failure == 'bookend': monkeypatch.setattr(m, 'source_clean', lambda plan: False)
+    if failure:
+        with pytest.raises(ValueError, match='stored_test_fault$' if failure == 'calculate' else 'SUPPORT_SOURCE_INPUT_PLAN_POLICY_BOOT_BOOKEND$'):
+            m.support_run(planref['sha256'])
+    else:
+        result = m.support_run(planref['sha256'])
+        assert result['result'] == m.ref(m.SUPPORT_ROOT / 'RESULT.json')
+        assert json.loads((m.SUPPORT_ROOT / 'RESULT.json').read_text())['status'] == 'COMPLETE_CONDITIONAL_NONE_STORED_SUPPORT_MOMENTS'
+    claim = json.loads((m.SUPPORT_ROOT / 'CLAIM.json').read_text())
+    terminal = json.loads((m.SUPPORT_ROOT / 'TERMINAL.json').read_text())
+    assert claim['policy_at_claim'] == pref and claim['training_authorized'] is False
+    assert terminal['status'] == ('FAILED_CONSUMED' if failure else 'COMPLETE')
+    assert terminal['remaining_invocations'] == 0 and terminal['relaunch_allowed'] is False
+    assert (m.SUPPORT_ROOT / 'PRESERVED.json').exists() and (m.SUPPORT_ROOT / 'RESULT.json').exists() is (failure is None)
+    assert timers[-1] == (m.signal.ITIMER_REAL, 0)
+
+
+def test_stored_runtime_payload_allowlist_excludes_old_initial_and_every_NPZ(monkeypatch, tmp_path):
+    plan, planref, _, hooks, _ = stored_lifecycle(monkeypatch, tmp_path)
+    m.support_run(planref['sha256']); assert len(hooks) == 1
+    hooks[0]('open', (plan['inputs']['final_checkpoint']['path'],))
+    for filename in ('INITIAL.pt', 'TARGETS.npz', 'CAPTURE.npz', 'FEATURES.npz', 'foreign.pt'):
+        with pytest.raises(RuntimeError, match='^SUPPORT_PAYLOAD_FORBIDDEN$'):
+            hooks[0]('open', (str(tmp_path / filename),))
+    for event in ('socket.connect', 'socket.getaddrinfo', 'urllib.Request'):
+        with pytest.raises(RuntimeError, match='^SUPPORT_NETWORK_FORBIDDEN$'): hooks[0](event, ())
+
+
+@pytest.mark.parametrize('admitted', [False, True])
+def test_stored_gate_is_separate_cpu_authority_with_exact_single_checkpoint_budget(admitted):
+    gate = m.support_gate(binding('new_stored_plan'), admitted)
+    assert gate['remaining_invocations'] == int(admitted) and gate['execution_authorized'] is admitted
+    assert gate['training_authorized'] is gate['test_authorized'] is gate['relaunch_allowed'] is False
+    assert m.SUPPORT_PLAN != m.PLAN and m.SUPPORT_ROOT != m.ROOT and m.SUPPORT_STAGE != m.STAGE
+    budget = m.SUPPORT_BUDGET
+    assert budget['checkpoint_deserializations'] == 1 and budget['final_checkpoint_bytes'] == 97916887
+    assert budget['steps'] == 3694 and budget['rows'] == 354550 and budget['hidden_width'] == 128
+    assert budget['checkpoint_load_policy'] == {'fallback_or_add_safe_globals': False, 'map_location': 'cpu', 'weights_only': True}
+    for key in ('NPZ_archive_loads', 'NPZ_arrays_decoded', 'NN_forwards', 'model_objects_constructed', 'optimizer_updates',
+                'optimizer_constructions', 'optimizer_restores', 'model_state_install_calls', 'RNG_restore_calls', 'autograd_calls',
+                'backward_calls', 'HTTP_calls', 'VAL_TEST_rows', 'prior_refits'):
+        assert budget[key] == 0
+
+
+def test_stored_inspect_never_accepts_old_plan_gate_or_any_global_training_flag(monkeypatch, tmp_path):
+    planfile, policyfile = tmp_path / 'SUPPORT_PLAN.json', tmp_path / 'POLICY.json'
+    monkeypatch.setattr(m, 'SUPPORT_PLAN', planfile); monkeypatch.setattr(m, 'POLICY', policyfile)
+    monkeypatch.setattr(m, 'SUPPORT_ROOT', tmp_path / 'OUT'); monkeypatch.setattr(m, 'REPO', Path.cwd())
+    plan = {'source_base_commit': '1' * 40}; planfile.write_text(json.dumps(plan)); planref = m.ref(planfile)
+    flags = ('training_enabled', 'native_training_enabled', 'native_launch_authorized', 'full_epoch_training_allowed', 'full_val_allowed')
+    policy = dict.fromkeys(flags, False); policy[m.SUPPORT_STAGE] = m.support_gate(planref, False)
+    monkeypatch.setattr(m, 'support_build_plan', lambda **kwargs: plan)
+    monkeypatch.setattr(m, 'source_clean', lambda value: True)
+    def inspect():
+        policyfile.write_text(json.dumps(policy)); return m.support_inspect(planref['sha256'], admitted=False)
+    assert inspect()[0] == plan
+    for key in flags:
+        policy[key] = True
+        with pytest.raises(ValueError, match='SUPPORT_ONE_USE_ALL_TRAINING_CLOSED$'): inspect()
+        policy[key] = False
+    old_binding = {'path': str(m.PLAN), 'sha256': 'a' * 64}
+    policy[m.SUPPORT_STAGE] = m.gate_expected(old_binding, False)
+    with pytest.raises(ValueError, match='SUPPORT_ONE_USE_ALL_TRAINING_CLOSED$'): inspect()
