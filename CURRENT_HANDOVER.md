@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT072:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT078:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -62,39 +62,35 @@ faktisk handoverPASS; launch-gaten og alle øvrige gamle funksjoner er byteuendr
 
 ## Gjeldende årsakskontroll og neste læringsdesign
 
-Aktuelt: None-epoken er fullført og pooled retningskrav FAILER alle5TF.
-Lagret støtte-/momentanalyse og separatbackup er ferdige. DIRECT_BIAS_BOUND001
-utelukker endringen i direkteintercept alene som hovedforklaring; maksimalD1-
-effekt0,11958pp mot17,50529pp observert. Neste er kvalifisering av en blind
-INITIAL003/FINAL-kryssprobe uten oppdatering. Kilde og eksakt sikkerhetsrute
-er kvalifisert med216/216fokuserteCPUcases (5,037s,4G/512M/éntråd).
-Design003 binder6blindeoriginaleB256-batcher/1526TRAINrader/12nativeFW,
-2sekvensielleCP og3arkiv/44felt/1500935808dekodedeB. Ingen modellnumerikk
-er endret; alle80gamle eiere bytebevart unntatt eksakt additiv shellrute
-medfullgammelbyte-rekonstruksjon. Kilde738757673 er committed/pushet.
-Faktisk4G-metadatabygger PASS:92eiere,3eksaktearkivheaders/2CPZIP-kataloger,
-0CP/NPZdecode/NN/CUDA. Plan a84b395a (1430895B) er prepared0/false.
-Privathelper001 hadde relativsti-feil førmetadata/claim;002 retter kunhjelperen,
-originalfeil er bevart. Eksakt nativeCLIpreflight PASS fra faktisk childstdout
-ogguardexit0/8telemetrisamples;0CP/NPZ/NN/CUDA/CLAIM. Første privatekommando
-medekstratimeout ble korrektnektet førchild; direkte kvalifisertCLI brukerguardens
-eksisterendefrist. Første signertehostquery2s-timeout erbevart; ny002PASS med
-fysisk200W ogallehardwaregrenser. Separatbackup33filer1969937B er faktiskMac-SHA/F_FULLFSYNC/fsync-verifisert.
-Beggeeksisterendeendpoint-CP39177848/97916887B er råSHA-verifisert påMac,
-uten nykopi/decode. FersksignertPRELAUNCH001 PASS:CPU30C/GPU33/40C/200W,
-allegrenser ogmaintenance/rebootclear. Kunplan a84b395a varinnrømmetén gang og er nåkonsumert/feilet
-ved fryst738757673:12nativeFW/0optimizer;ADMISSION001 binderallebevis. Leseprobe001 er FAILED_CONSUMED0/false før førsteforward; ingen fit/epoke.
-Feil i ny strict-install-kontroll: ikke-persistent factorybuffer finnesikke iCP.
-Alle kilder/inputs/policy/handover/beggeboot er bookendverifisert uendret;
-1CPload/1NNkonstruksjon/0install/0forwards/0updates. GPUpeak40/44C/126,35W/
-420MiB,CPU36C/23,20W;ingenressursgrensebrutt. Neste er kunbufferkontrollfix,
-bevarefeiloriginaler ognyeksakt002-kvalifikasjon etterDESIGN004. Feilbackup21filer
-10927640B er separatMac-SHA/F_FULLFSYNC/fsync-verifisert. Minsteauditfix er nå
-kildekvalifisert:220/220cases PASS,inkl4ekte nonpersistent/mutasjonsregresjoner.
-Kunstrict_model_install erfunksjonsendret; andre auditfunksjoner byteidentiske,
-ogmodell/target/loss/readers/normalisering uendret. Scope002 har bare nyeksakt
-config/outputidentitet. Faktiskny002-metadata/plan/CLI/backup/vertsadmisjon
-gjenstår; ingenNNadmisjon.
+Aktuelt: full None-epoke er ferdig, men begge retningsskårer FAILER på alle5TF.
+Alle globale treningsflagg og engangsporter er stengt. Ingen tung modelljobb kjører.
+
+Korrigert endpointprobe002 fullførte48,889s ved fryst18c934aa6:12nativeFW,
+2CP/1NN/2strictinstalls/0updates på1526ALLrader i6blinde originalbatcher.
+NativeFINAL og lineære diagonaler er BITEXACT; alle source/input/model/RNG/
+buffer/policy/handover/bootproofs PASS. Første001 feilet før forward på en ny
+audit-bufferkontroll, ble rettet avgrenset og er bevart/konsumert.220tester PASS.
+GPUpeak48/48C181,25W1924MiB,CPU37C31,64W; ingen ressursgrense ble brutt.
+Resultat/capture22filer13092345B er separat Mac-disk SHA/F_FULLFSYNC/fsync-verifisert.
+
+D1-panelmeanq:54,4922%prior →60,2186%(sluttW,initialH) →71,0416%(sluttW,sluttH).
+Lagret0NN/0CP-aritmetikk på alle1526rader viser64,5987% ved sluttretning og
+initialnorm. Langs denne faste banen gir normøkning+6,4429pp og retningsendring
++4,3801pp. Retningsleddet er negativt pooled forH1/M15/H4; normleddet positivt
+foralle5TF/alle6batcher. Dette er funksjonelle ledd, ikke unike årsaksandeler,
+hel-TRAIN-kvalitet eller en testet normaliseringsrettelse. Ingen fix er valgt.
+Normresultat/script11filer175626B er også separatMac-SHA/F_FULLFSYNC/fsync-
+verifisert; begge resultaters originale bevis og checkpoints er bevart.
+
+Neste er kilde-/designforberedelse av en separat batchrekkefølgesammenligning,
+jf GX1_RULES119–124/regel26 og eksisterende PCG64-/cursor-eiere. Samme modell,
+inputs, mål, prior, loss, optimizer og ett pass beholdes;3693heleB96-batcher
+permuteres én forhåndsbundet gang medB22sist. Ny schedule/trajectory/guard/
+admisjon må kvalifiseres; ingen fit/ekstraepoke/HPO/TEST er nå tillatt.
+
+OANDA er brukt til priser og D1-HLC-fasit. Ingen FRED-nøkkel er tilgjengelig;
+API400 og offentlige POST200/identiskHTML gir fortsatt ingen førstevintageverdi.
+Makro/kalender, læring, senere generalisering og edge har fortsatt åpne krav.
 Detaljene nedenfor gjelder de navngitte tidligere design-/kjøringsfasene.
 
 NATIVE_PROVIDER_HLC_UNKNOWN_ACTIVITY_CAUSE_20261124_001 er COMPLETE,
