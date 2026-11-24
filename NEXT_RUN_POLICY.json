@@ -100166,9 +100166,13 @@
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V2_ALL_TF_LEARNING_NONE_FULL_EPOCH_BACKUP001.json",
             "sha256": "76bb2609270228c014d382eb6d69f95fbe462e9327f1d24547a85cd50e2d4e7e"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V2_NONE_REVIEW_STATE_BACKUP001.json",
+            "sha256": "ae2f0faafb93febac1d6f243c248557bb2c34a958c1a6f0eac9b3e4211edecf4"
           }
         ],
-        "scope": "AdministrativeclosureincludesoneuseconditionalCPUaudit3.2344s/exact4G512M1thread600/570limits,firsthosttimeoutpreserved/fresh002admission,all5trainingflagsfalse,82sources/inputs/policy/WSLbootbookends,27originalfilesseparatediskverified. Thisisnot20scientificapproval; v2sidefitFAILall5/sourcecalendar-vintage/generalizationopen. Latest CPUreadout5.4032s:2CP/4NPZ fields,0NN/autograd/update/restore; originalproofs/bookendsverified, firsthosttimeoutretained/fresh002passed. This neither approves all20 nor identifies the training cause. Newfrozen-gradient001failedclosed onfirstactivityparityafter1FW/0autograd/updates. Originalfailure retained, opaque source/input post-bookend verified; scientific gradient/resourcefullpanel proofs not achieved. Newfirst-rowparitymeasurementcompleted30.909s/3CPUFW/0autograd/update; source/input/state/RNG/contextbookends verified; parity tosavedCUDA stillFAIL andfull96gradient notqualified. CurrentNoneINITIALfullmetadata/all2770cachepartsandoriginalINITIALbytesverifiedonindependentMacdisk; all3replayPT285880133B+receipts/metadataactualSHA/F_FULLFSYNCverified. OriginalfailuresandalloriginalDATA/RUNS/checkpointsretained. Bothlanesconsumed/all5flagsfalse; notall20scientificapproval. New CPU support source12files5428988B and result16files11041011B independently Mac-rehashed with diagnostic/stderr SHA and F_FULLFSYNC/directory fsync. Original checkpoints and source evidence preserved. New unknown-cause source8files5400636B/result16files10761622B Mac artifacts+diagnostic+stderr rehash/F_FULLFSYNC/fsync PASS; original checkpoints preserved. All-TF None source qualification and preserved import-only001/002 failures now separately Mac disk-rehashed:13files/630709B, diagnostic/stderr hashes plusF_FULLFSYNC/fsync verified. No new model/checkpoint or fit admission. Incremental EOF-only bridge: one extra newline removed from the new test; full AST including locations exact,453cases reused. Three incremental files/19386B separately Mac-rehashed/F_FULLFSYNC verified; production source unchanged. Corrected source and retired001CLI/host/guard/build evidence24files1802028B independently Mac disk-rehashed, diagnostic/stderr andF_FULLFSYNC/fsync PASS. Main002 INITIAL+UPDATE256 and original stop/claim/terminal/sourcebookends19files141338381B independently Mac-rehashed with diagnostics/stderr andF_FULLFSYNC/fsync;0deserialization. Exact suffix metadata79owners0CPload/NN/CUDA; no new learning quality verdict. Recovery256 CP512/768,restore/claim/terminal/bookends and capturedMoUsoCoreWorker22files197776652B independently Mac disk-rehashed,diagnostics/stderr/F_FULLFSYNC/fsync PASS. Source unchanged; new suffix metadata0CPload/NN. All7recovery768PTs through2560 and originalmetadata37files686953048B independently Mac-rehashed with diagnostic/stderr/F_FULLFSYNC/fsync PASS,0deserialization. Exact remaining metadata79owners0CPload/NN; fullFINAL pending.",
+        "scope": "Current administrative/safety evidence PASS, not all20scientificapproval. Both completed one-epoch producers and all consumed qualification/recovery attempts preserve original claims, terminals, source/input/boot/policy proofs and checkpoints. CurrentNone fullTRAIN/fullFINAL is COMPLETE/exit0; all5globalportsfalse and no newfitadmitted. TRAIN_END/FINAL and alloriginaloutputs/receipts independently Mac-disk SHA/F_FULLFSYNC/filefsync/dirfsync verified:18files211933951B. Committedreview058/status and pairedreview002 additionally backed:11files6105533B. Original failures/projectionerratum remain preserved; current step15/current_scope aliases reconciled. No DATA/RUNS/checkpoint deletion or decoder/model work in backup. Selected immutable artifacts are backed; this does not claim full-machine/source-cache disaster recovery. Historical calendar/asof/vintage, directionlearning and latergeneralization/edge remain open.",
         "status": "PASS"
       }
     },
@@ -100230,8 +100234,8 @@
       "sha256": "57c83be49661a5b62ca623a0ad10dab80a3c615b3e9b238b6ceebdd1fe4f1f5f"
     },
     "review_checkpoint": {
-      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/REVIEW_CHECKPOINT058.json",
-      "sha256": "555a9eef68611152fd2ec6a1a453ea7adab964817fc8a3f474a685d78ff5c94f"
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/REVIEW_CHECKPOINT059.json",
+      "sha256": "32660ae45be90a9ec3e7c3dddf845c56b86a3f486e2ebec927c9d1b46aa38e8b"
     },
     "input_observation_design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/INPUT_OBSERVATION_CENSUS_DESIGN001.json",
@@ -102034,6 +102038,14 @@
     "current_status_reconciliation": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ACTIVE_POST_NONE_EPOCH_STATUS_RECONCILIATION001.json",
       "sha256": "93e936318b08592a97e24fd55cfc82b91f65160834b1d351e8c7d15004a54802"
+    },
+    "v2_all_TF_none_review_state_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V2_NONE_REVIEW_STATE_BACKUP001.json",
+      "sha256": "ae2f0faafb93febac1d6f243c248557bb2c34a958c1a6f0eac9b3e4211edecf4"
+    },
+    "current_step20_scope_erratum": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/CURRENT_STEP20_COMPLETED_SCOPE_ERRATUM001.json",
+      "sha256": "ebfc50aa41450716affb74d9549fa0c0a09daeb86da955f1b13d2b561664702d"
     }
   },
   "native_raw_feed_clock_qualification_20261123_001": {
