@@ -1481,3 +1481,161 @@ def test_qualification_review_is_retained_in_source_only_handover(fixture):
     observed=handover_view(current_status(fixture,source_only=True))
     assert observed['qualification_review']['decision']=='OPEN_QUALIFICATION_REQUIREMENTS'
     assert observed['decision']=='OBSERVATION_ONLY_NOT_RUN_AUTHORITY'
+
+
+def _active_twenty_status_fixture(repo, *, selector='active_stage', complete=False):
+    path, policy = _policy(repo)
+    _, addition, review = _twenty_review(repo, state='PASS', complete=complete)
+    if not complete:
+        for ident in ('14', '15', '16'):
+            review['steps'][ident] = {'status': 'FAIL', 'evidence': []}
+        for ident in ('17', '18', '19', '20'):
+            review['steps'][ident] = {'status': 'UNKNOWN', 'evidence': []}
+    policy.update(addition)
+    policy['current_work'][selector] = 'native_twenty_step_qualification_20261123_001'
+    for flag in ('training_enabled', 'native_training_enabled', 'native_launch_authorized',
+                 'full_epoch_training_allowed', 'full_val_allowed'):
+        policy[flag] = False
+    path.write_text(json.dumps(policy))
+    return path, policy, review
+
+
+@pytest.mark.parametrize('selector', ['active_stage', 'current_research_id'])
+def test_active_qualification_display_replaces_legacy_ready_without_run_authority(fixture, monkeypatch, selector):
+    path, _, _ = _active_twenty_status_fixture(fixture, selector=selector)
+    before = path.read_bytes()
+    legacy = {'decision': 'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES', 'blocked_reasons': []}
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly.next_run_readiness', lambda _: legacy)
+    out = current_status(fixture)
+    assert out['next_run']['decision'] == 'BLOCKED' and out['next_run']['run_authority'] is False
+    assert out['next_run']['open_steps'] == ['14', '15', '16', '17', '18', '19', '20']
+    assert out['next_run']['open_steps'] == out['qualification_review']['open_steps']
+    assert 'current_plan_not_admitted' in out['next_run']['blocked_reasons']
+    assert out['legacy_native_campaign_readiness'] == {'scope': 'legacy_native_entry_window_campaign', **legacy}
+    assert legacy == {'decision': 'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES', 'blocked_reasons': []}
+    assert path.read_bytes() == before
+
+
+def test_active_qualification_all_recorded_pass_still_does_not_admit_current_plan(fixture, monkeypatch):
+    _active_twenty_status_fixture(fixture, complete=True)
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly.next_run_readiness',
+        lambda _: {'decision': 'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES', 'blocked_reasons': []})
+    out = current_status(fixture)
+    assert out['qualification_review']['qualification_complete'] is True
+    assert out['next_run']['decision'] == 'BLOCKED' and out['next_run']['run_authority'] is False
+    assert out['next_run']['open_steps'] == []
+    assert out['next_run']['blocked_reasons'] == ['current_plan_not_admitted']
+
+
+def test_inactive_qualification_record_preserves_legacy_readiness_behavior(fixture, monkeypatch):
+    path, policy, _ = _active_twenty_status_fixture(fixture)
+    policy['current_work']['active_stage'] = policy['current_work']['current_research_id'] = 'different_research'
+    path.write_text(json.dumps(policy))
+    legacy = {'decision': 'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES', 'blocked_reasons': []}
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly.next_run_readiness', lambda _: legacy)
+    out = current_status(fixture)
+    assert out['next_run'] == legacy and 'legacy_native_campaign_readiness' not in out
+    assert out['qualification_review']['open_steps'] == ['14', '15', '16', '17', '18', '19', '20']
+
+
+def test_active_qualification_keeps_failed_terminal_test_gap_blocker(fixture, monkeypatch):
+    path, policy, _ = _active_twenty_status_fixture(fixture)
+    terminal = Path(policy['current_work']['latest_terminal']['path'])
+    terminal.write_text(json.dumps({'exit_code': 1, 'source_unchanged': True}))
+    policy['current_work']['latest_terminal']['sha256'] = hashlib.sha256(terminal.read_bytes()).hexdigest()
+    path.write_text(json.dumps(policy))
+    legacy = {'decision': 'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES', 'blocked_reasons': []}
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly.next_run_readiness', lambda _: legacy)
+    out = current_status(fixture)
+    assert out['next_run']['decision'] == 'BLOCKED' and out['next_run']['run_authority'] is False
+    assert 'latest_failed_terminal_test_isolation_unproven' in out['next_run']['blocked_reasons']
+    assert out['legacy_native_campaign_readiness']['blocked_reasons'] == []
+
+
+def test_active_qualification_display_requires_validated_record_before_readiness(fixture, monkeypatch):
+    path, policy, review = _active_twenty_status_fixture(fixture)
+    review['steps']['01']['status'] = 'READY_IS_NOT_QUALIFICATION'
+    path.write_text(json.dumps(policy))
+    def forbidden(*args): raise AssertionError('unvalidated qualification reached readiness or process observation')
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', forbidden)
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly.next_run_readiness', forbidden)
+    with pytest.raises(ValueError, match='QUALIFICATION_STEP_STATE_01'):
+        current_status(fixture)
+
+
+def _accepted_all_tf_replay_status_fixture(repo, *, fault=None):
+    path, policy, _ = _active_twenty_status_fixture(repo)
+    name = 'NATIVE_PROVIDER_HLC_ALL_TF_COLD_REPLAY_20261124_001'
+    stage = name.lower()
+    root = repo.parent/(name+'_cold'); root.mkdir()
+    def write(target, value):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(value))
+        return {'path': str(target), 'sha256': hashlib.sha256(target.read_bytes()).hexdigest()}
+    plan = write(repo/'configs/research'/(name+'.json'), {'stage': stage})
+    claim = write(root/'CLAIM.json', {'plan': plan, 'lane': 'cold'})
+    result = {'status': 'COMPLETE_ALL_TF_TECHNICAL_COLD_REPLAY', 'plan': plan, 'claim': claim,
+              'source_inputs_policy_boot_unchanged': True, 'test_data_used': False}
+    if fault == 'missing_TEST': result.pop('test_data_used')
+    elif fault == 'true_TEST': result['test_data_used'] = True
+    elif fault == 'missing_source': result.pop('source_inputs_policy_boot_unchanged')
+    result_ref = write(root/'RESULT.json', result)
+    terminal = {'status': 'COMPLETE', 'exit_code': 0, 'plan': plan, 'claim': claim,
+                'result': result_ref, 'remaining_invocations': 0, 'relaunch_allowed': False}
+    terminal_ref = write(root/'TERMINAL.json', terminal)
+    cold = {'claim': claim, 'result': result_ref, 'terminal': terminal_ref}
+    acceptance = {'schema_version': 'gx1_all_tf_segmented_replay_acceptance_v1',
+        'status': 'ACCEPTED_OWN_ALL_TF_C2_TO_STEP3_COLD_REPLAY_TECHNICAL_ONLY', 'plan': plan,
+        'all10_proofs_bitexact': True, 'both_lanes_complete_consumed': True,
+        'all5_training_flags_false': True, 'lanes': {'cold': cold}}
+    acceptance_ref = write(repo.parent/'ALL_TF_REPLAY_ACCEPTANCE001.json', acceptance)
+    policy['native_twenty_step_qualification_20261123_001']['v2_all_TF_segmented_replay_acceptance'] = acceptance_ref
+    policy[stage] = {'status': 'COMPLETE_CONSUMED_CLOSED', 'plan': plan, 'relaunch_allowed': False,
+        'main_fit_authorized': False, 'test_authorized': False, 'full_epoch_training_allowed': False,
+        'lanes': {lane: {'execution_authorized': False, 'remaining_invocations': 0} for lane in ('warm', 'cold')},
+        'executions': {'cold': cold}}
+    if fault == 'open_gate': policy[stage]['lanes']['warm']['execution_authorized'] = True
+    policy['current_work'].update(latest_terminal=terminal_ref, terminal_exit_code=0,
+        source_unchanged_at_terminal=True, training_started=False,
+        training_started_scope='Technical replay only; main learning not started', current_function_main_started=False)
+    path.write_text(json.dumps(policy))
+    if fault == 'acceptance_hash':
+        Path(acceptance_ref['path']).write_text(Path(acceptance_ref['path']).read_text()+' ')
+    return path, root, terminal, result_ref, acceptance_ref
+
+
+def test_active_qualification_observes_accepted_replay_RESULT_without_rewriting_terminal(fixture, monkeypatch):
+    from scripts.collect_gx1_handover_readonly import handover_view
+    path, root, terminal, result_ref, acceptance_ref = _accepted_all_tf_replay_status_fixture(fixture)
+    before = {target: target.read_bytes() for target in (path, root/'TERMINAL.json', root/'RESULT.json')}
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly.next_run_readiness',
+        lambda _: {'decision': 'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES', 'blocked_reasons': []})
+    out = current_status(fixture)
+    assert out['latest_terminal_receipt'] == terminal
+    assert 'source_unchanged' not in terminal and 'test_data_used' not in terminal
+    witness = out['latest_terminal_observation_witness']
+    assert witness['acceptance'] == acceptance_ref and witness['result'] == result_ref
+    assert witness['source_unchanged'] is True and witness['test_data_used'] is False
+    assert witness['source_witness'] == 'RESULT.source_inputs_policy_boot_unchanged'
+    assert witness['test_witness'] == 'RESULT.test_data_used'
+    assert witness['run_authority'] is False and witness['original_terminal_unchanged'] is True
+    assert out['next_run']['decision'] == 'BLOCKED' and out['next_run']['run_authority'] is False
+    shown = handover_view(out)
+    assert shown['current_work']['training_started_scope'] == out['current_work']['training_started_scope']
+    assert shown['current_work']['current_function_main_started'] is False
+    assert all(target.read_bytes() == raw for target, raw in before.items())
+
+
+@pytest.mark.parametrize('fault', ['missing_TEST', 'true_TEST', 'missing_source', 'acceptance_hash', 'open_gate'])
+def test_active_qualification_replay_observation_cannot_invent_witnesses_or_inherit_open_gate(fixture, monkeypatch, fault):
+    _accepted_all_tf_replay_status_fixture(fixture, fault=fault)
+    def forbidden(*args): raise AssertionError('invalid replay observation reached readiness or process observation')
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', forbidden)
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly.next_run_readiness', forbidden)
+    with pytest.raises(ValueError, match='ALL_TF_REPLAY_OBSERVATION_'):
+        current_status(fixture)

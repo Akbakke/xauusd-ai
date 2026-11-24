@@ -483,6 +483,69 @@ def qualification_observation(repo: Path, policy: dict) -> dict | None:
             "evidence_scope": "Recorded metadata receipts are hash-checked; scientific claims require their scoped evidence. This observation admits no run."}
 
 
+def completed_all_tf_replay_observation(policy: dict, binding: dict, terminal: dict) -> dict | None:
+    """Observe the exact consumed cold replay using its bound RESULT witnesses."""
+    stage = "native_provider_hlc_all_tf_cold_replay_20261124_001"
+    if (Path(binding["path"]).parent.name != stage.upper() + "_cold"
+            or Path(binding["path"]).name != "TERMINAL.json"):
+        return None
+
+    def read_bound(value, label):
+        if (not isinstance(value, dict) or set(value) != {"path", "sha256"}
+                or not isinstance(value["path"], str) or not isinstance(value["sha256"], str)):
+            raise ValueError("ALL_TF_REPLAY_OBSERVATION_REFERENCE")
+        path = _regular_file(value["path"], label=label)
+        if _sha256(path) != value["sha256"]:
+            raise ValueError("ALL_TF_REPLAY_OBSERVATION_SHA")
+        return json.loads(path.read_text())
+
+    review = policy.get("native_twenty_step_qualification_20261123_001", {})
+    acceptance_ref = review.get("v2_all_TF_segmented_replay_acceptance")
+    acceptance = read_bound(acceptance_ref, "all_tf_replay_acceptance")
+    cold = acceptance.get("lanes", {}).get("cold", {})
+    gate = policy.get(stage, {})
+    cold_root = Path(binding["path"]).parent
+    expected_plan = str(Path(policy["canonical_source_repo"]) / "configs/research" / (stage.upper() + ".json"))
+    closed_lanes = {lane: {"execution_authorized": False, "remaining_invocations": 0}
+                    for lane in ("warm", "cold")}
+    if (acceptance.get("schema_version") != "gx1_all_tf_segmented_replay_acceptance_v1"
+            or acceptance.get("status") != "ACCEPTED_OWN_ALL_TF_C2_TO_STEP3_COLD_REPLAY_TECHNICAL_ONLY"
+            or acceptance.get("all10_proofs_bitexact") is not True
+            or acceptance.get("both_lanes_complete_consumed") is not True
+            or acceptance.get("all5_training_flags_false") is not True
+            or binding != cold.get("terminal") or terminal.get("status") != "COMPLETE"
+            or terminal.get("exit_code") != 0 or terminal.get("remaining_invocations") != 0
+            or terminal.get("relaunch_allowed") is not False
+            or terminal.get("plan") != acceptance.get("plan")
+            or acceptance.get("plan", {}).get("path") != expected_plan
+            or cold.get("result", {}).get("path") != str(cold_root / "RESULT.json")
+            or cold.get("claim", {}).get("path") != str(cold_root / "CLAIM.json")
+            or any(gate.get("executions", {}).get("cold", {}).get(role) != cold.get(role)
+                   for role in ("claim", "result", "terminal"))
+            or terminal.get("claim") != cold.get("claim")
+            or terminal.get("result") != cold.get("result")
+            or gate.get("status") != "COMPLETE_CONSUMED_CLOSED"
+            or gate.get("plan") != terminal.get("plan")
+            or gate.get("relaunch_allowed") is not False
+            or gate.get("main_fit_authorized") is not False
+            or gate.get("test_authorized") is not False
+            or gate.get("full_epoch_training_allowed") is not False
+            or gate.get("lanes") != closed_lanes):
+        raise ValueError("ALL_TF_REPLAY_OBSERVATION_BINDING")
+    result = read_bound(cold["result"], "all_tf_cold_replay_result")
+    if (result.get("status") != "COMPLETE_ALL_TF_TECHNICAL_COLD_REPLAY"
+            or result.get("plan") != terminal["plan"] or result.get("claim") != terminal["claim"]
+            or result.get("source_inputs_policy_boot_unchanged") is not True
+            or result.get("test_data_used") is not False
+            or any(key in terminal and terminal[key] is not expected
+                   for key, expected in (("source_unchanged", True), ("test_data_used", False)))):
+        raise ValueError("ALL_TF_REPLAY_OBSERVATION_RESULT_WITNESS")
+    return {"scope": stage, "acceptance": acceptance_ref, "result": cold["result"],
+            "source_unchanged": True, "test_data_used": False, "run_authority": False,
+            "source_witness": "RESULT.source_inputs_policy_boot_unchanged",
+            "test_witness": "RESULT.test_data_used", "original_terminal_unchanged": True}
+
+
 def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object]:
     """Read the sole current policy; never choose a historical run/checkpoint."""
     repo = _repo(str(repo))
@@ -578,6 +641,12 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
         p0_terminal |= exact_bound and scope_closed
     test_witness = terminal.get("TEST_accessed" if p0_terminal else
                                 "test_accessed" if research_terminal else "test_data_used")
+    replay_observation = completed_all_tf_replay_observation(policy, binding, terminal)
+    source_witness = terminal.get("source_unchanged")
+    if replay_observation is not None:
+        out["latest_terminal_observation_witness"] = replay_observation
+        source_witness = replay_observation["source_unchanged"]
+        test_witness = replay_observation["test_data_used"]
     failed_without_test_witness = (
         type(terminal.get("exit_code")) is int
         and terminal["exit_code"] != 0
@@ -589,7 +658,7 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
     )
     if (type(terminal.get("exit_code")) is not int
             or terminal["exit_code"] != work["terminal_exit_code"]
-            or terminal.get("source_unchanged") is not work["source_unchanged_at_terminal"]
+            or source_witness is not work["source_unchanged_at_terminal"]
             or (test_witness is not False and not failed_without_test_witness)
             or ((research_terminal or p0_terminal) and "test_data_used" in terminal
                 and terminal["test_data_used"] is not False)):
@@ -598,8 +667,22 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
     out["current_processes"] = _current_processes(repo)
     out["process_observation"] = "RUNNING" if out["current_processes"] else "NO_CURRENT_PYTHON_WORKLOAD_OBSERVED"
     legacy_readiness = next_run_readiness(repo)
-    active_preparation = prepared_five_year_observation(repo, policy)
-    if active_preparation is None:
+    qualification_key = "native_twenty_step_qualification_20261123_001"
+    active_qualification = qualification is not None and qualification_key in (
+        work.get("active_stage"), work.get("current_research_id"))
+    active_preparation = None if active_qualification else prepared_five_year_observation(repo, policy)
+    if active_qualification:
+        out["legacy_native_campaign_readiness"] = {
+            **legacy_readiness, "scope": "legacy_native_entry_window_campaign",
+        }
+        out["next_run"] = {
+            "decision": "BLOCKED", "scope": qualification_key, "run_authority": False,
+            "blocked_reasons": (["qualification_requirements_open"] if qualification["open_steps"] else [])
+                               + ["current_plan_not_admitted"],
+            "open_steps": qualification["open_steps"], "counts": qualification["counts"],
+            "qualification_complete": qualification["qualification_complete"],
+        }
+    elif active_preparation is None:
         out["next_run"] = legacy_readiness
     else:
         out["legacy_native_campaign_readiness"] = {
@@ -645,6 +728,7 @@ def handover_view(status: dict[str, object]) -> dict[str, object]:
             "pre_smoke_goal_preparation_complete", "full_benchmark_completed",
             "sampler_selected", "physical_native_preprocessing_complete",
             "native_training_coordinates_published", "training_started",
+            "training_started_scope", "current_function_main_started",
             "gc_goal_status", "current_blocker", "project_goal", "active_readiness_generation",
         )
         out["current_work"] = {key: work[key] for key in visible if key in work}

@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-24T11:06:32.757522+00:00",
+  "observed_utc": "2026-11-24T11:27:25.303072+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -3950,7 +3950,7 @@
     }
   },
   "learning_gate": {
-    "current_function_selected_cohort_initial_baseline_scope": "RetainedM5-primaryv2INITIAL002qualifiedreference; explicitNonecandidateINITIAL003nowwhole354550TRAINqualified, exactprior/output/properscoreparity. NoNoneoptimizerreplayorfitqualified.",
+    "current_function_selected_cohort_initial_baseline_scope": "Retained M5-primary v2 INITIAL002 and explicit all-TF None INITIAL003 each qualified on all 354550 TRAIN issues. INITIAL003 has 1385 unique B256 batches, exact matched-prior/output/proper-score parity and own separately accepted C2-to-step3 cold replay. No None learning fit or policy selection.",
     "current_function_selected_cohort_initial_baseline_qualified": true,
     "latest_native_small_matched_direction_review": {
       "result": {
@@ -4405,7 +4405,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_WHOLE_TRAIN_INITIAL_20261123_002/RESULT.json",
       "sha256": "a6ac22899121e99f55cc8af0c864e89f9054691d6857f57ce6e25acf9e2cce59"
     },
-    "current_function_native_baseline_qualification_scope": "Corrected COT cache/norm/current future-state None fullyattached model,all354550TRAINissues/5540forwards,allhiddenfinite/prioroutputscoreexact,nooptimizer/updates; not learned cooperation/generalization.",
+    "current_function_native_baseline_qualification_scope": "Current explicit all-TF None INITIAL003: all 354550 TRAIN issues, 1385 unique completed B256 batches across three guarded processes; zero optimizer updates, exact matched-prior/output/proper-score parity. Technical initial baseline only.",
     "latest_current_initial_state_audit": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_INITIAL002_ACCEPTANCE001.json",
       "sha256": "af144facfc45d51e52e892a6a3cd77a75081b645f312064c242e66015e468222"
@@ -4415,7 +4415,7 @@
       "sha256": "c89846b7de4dc5e6833dc10d462e8b7d5aecee05457079e815a05449772b5b40"
     },
     "current_function_private_technical_qualified": true,
-    "current_function_private_technical_scope": "Correctedinput CUDA None fullyattached reference:4updates pluscold replaystep4, allmodel/optimizer/RNG/step/scoreproofbitexact,580gradientparameterparity,actualequalTF-evalparity. No M5_primary optimizer or newbatch/largefit qualification.",
+    "current_function_private_technical_scope": "Own all-TF None warm B96 first288 TRAIN rows: 3 logical updates; own C2 restored in new cold process and step3 physically replayed once. All10 proofs bitexact, nonzero AdamW moments426 backbone/20 readout, finite-gradient parity580 parameters and equal-TF eval parity bitexact. No main fit, OS reboot recovery, or scientific quality qualification.",
     "latest_current_function_main": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002/RESULT.json",
       "sha256": "af32700df5d3d348d8138b8eb3230ace2290b9d7c848e135e9cf1ce0cdc3d7bf"
@@ -4819,8 +4819,8 @@
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_ALL_TF_CPU_GRADIENT_CONTRAST_ACCEPTANCE001.json",
       "sha256": "d27838fdab3c5dac09a602e50311e0412d6f33cc511cd4556b25547ef930fb16"
     },
-    "all_TF_candidate_initial_baseline_qualified": false,
-    "all_TF_candidate_optimizer_replay_qualified": false,
+    "all_TF_candidate_initial_baseline_qualified": true,
+    "all_TF_candidate_optimizer_replay_qualified": true,
     "all_TF_candidate_policy_selected": false,
     "latest_all_tf_candidate_initial_baseline": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_ACCEPTANCE001.json",
@@ -4843,13 +4843,13 @@
     "source_unchanged_at_result": true,
     "active_stage": "native_twenty_step_qualification_20261123_001",
     "latest_native_result": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004/RESULT.json",
-      "sha256": "6dc0e28ab73deacc7dc2cdf19805d094dfcc00a2a10cd1d6cf3d4b64da9348d2"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_COLD_REPLAY_20261124_001_cold/RESULT.json",
+      "sha256": "7b065bec7ab6ab79c900db179959008ed4db0583766c92035301f533dccd8290"
     },
     "latest_external_process_exit": {
       "exit_code": 0,
       "native_terminal_present": true,
-      "observation": "CPU first-row3route measurementcomplete, savedCUDAparityFAIL retained, no derivatives/training."
+      "observation": "Own all-TF warm and cold replay COMPLETE/consumed; current None main fit not started; no model workload observed at takeover."
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
     "current_activity": "FreshNonefullINITIAL003+ownC2/coldstep3technicalreplayqualified; allgatesclosed. Learning/causalbiascause/OOF/edgenotproved.",
@@ -4881,11 +4881,11 @@
     "gc_goal_status": "GENUINE_NATIVE_GC_JOINT_TECHNICAL_PASS_DIRECTION_QUALITY_UNQUALIFIED",
     "existing_indicator_surface_changed": true,
     "training_started": true,
-    "latest_terminal_role": "COMPLETE_ALL_TF_COUNTERFACTUAL_GRADIENT_NOT_LEARNING_OR_POLICY_SELECTION",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_CPU_GRADIENT_CONTRAST_20261124_001",
+    "latest_terminal_role": "COMPLETE_OWN_ALL_TF_COLD_REPLAY_TECHNICAL_ONLY_NOT_MAIN_FIT",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_COLD_REPLAY_20261124_001_cold",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_FIRST_PARITY_20261124_001/TERMINAL.json",
-      "sha256": "1e7dea1a6d3066fa9c16312d96504b1cd6b121650d77dee7615e0d4b1272758b"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_COLD_REPLAY_20261124_001_cold/TERMINAL.json",
+      "sha256": "492dd24a14fffc6cee72c4299f83ba98baca31bf50a4b6533dc105a36d3d7b68"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -4905,7 +4905,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "DirectionproperNLL/Brierall5FAIL onretainedM5primaryepoch. Nonecandidatehasnofreshinitial/replay/fit yet; historicalcause/selectedfixUNKNOWN. Calendar/source-known/vintage/latergeneralizationopen.",
+    "current_blocker": "Retained M5-primary v2 epoch conditional-side NLL/Brier FAIL all5 TF. Current None candidate has qualified full INITIAL003 and own exact cold replay, but no learning fit or selected causal fix. Calendar/source-known/asof/vintage/representativity and later chronological validation remain open.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/CRASH_RECOVERY_QUALIFICATION_001/CHECKPOINT_POSTBOOT_INTEGRITY001.json",
       "sha256": "284e922f1bbd1744cd6635f2085c59814930735813c22ccd532437d8ce327430"
@@ -13505,9 +13505,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "SavedCUDA256 vsCPU1 stillfailsfixedtol; device/runtime versusbatchgeometry unresolved.",
-      "One-row numericdifferences do not qualify wholeTRAIN, full96gradient or actualAdamW/bias cause.",
-      "Directionall5FAIL and calendar/asof/vintage/representativeness/latergeneralization remainopen."
+      "No None learning fit, policy selection, causal bias fix, later generalization or economic edge is qualified.",
+      "Retained M5-primary direction NLL/Brier FAIL all5; calendar/source-known/asof/vintage/representativity remain open.",
+      "Historical saved CUDA256-versus-CPU fixed-tolerance parity FAIL remains separately scoped; exact own cold replay does not erase it."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -20569,7 +20569,7 @@
       "technical_milestones_do_not_complete_main_goal": true,
       "main_goal_not_completed_by_coverage_audits": true
     },
-    "active_readiness_generation": "Referencev2INITIAL002+retainedepochcomplete,directionall5FAIL. Nonecounterfactual192FW768autograd0updates complete; all5localalignmentpositive, uniqueSIDEtgt57/19/4/3/1. FreshNoneINITIAL/replaypreparation only, no promotion.",
+    "active_readiness_generation": "Explicit all-TF None INITIAL003 full354550/1385 baseline and own warm3/C2/coldstep3 replay accepted, backed up and consumed. Retained M5-primary epoch remains the scientific reference with direction FAIL all5. None main fit/policy selection not admitted; all5 global gates closed.",
     "read_only_oanda_terms_20261019": {
       "status": "COMPLETE_CONSUMED_EXACT_TWO_READS_NO_REMAINING_AUTHORITY",
       "authorized_utc_recorded": "2026-10-19T04:32:07.684970+00:00",
@@ -20846,7 +20846,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "OriginalfirstB96, NonecandidateatunchangedFINALnumericpoint;192CPUFW768autograd0updates. Transfer0FW/baseline96FW0grad;578comparisonrecords+4F32vectors+perTFscalarchecks independentPASS. D1unique1; no globalclaim.",
+    "latest_terminal_evidence_scope": "Own all-TF None C2-to-step3 replay in a new process; warm3 logical updates plus one physical cold replay. All10 proof fields bitexact; finite-gradient/equal-TF evaluation parity and nonzero optimizer moments qualified. Technical replay weights never authorize a main-fit initializer.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -20940,8 +20940,8 @@
       "latest_actual_initial_checkpoint_write_seconds": 0.531438
     },
     "latest_native_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004/TERMINAL.json",
-      "sha256": "f91dc38513f94fbc8f935a2e5a267bc1f77e3a5c00b9c91e921da6e277023101"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_COLD_REPLAY_20261124_001_cold/TERMINAL.json",
+      "sha256": "492dd24a14fffc6cee72c4299f83ba98baca31bf50a4b6533dc105a36d3d7b68"
     },
     "latest_native_terminal_review": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FULL_EPOCH_REVIEW001.json",
@@ -25948,7 +25948,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003/SIX_YEAR_BAR_SUPPORT_REVIEW.json",
       "sha256": "2527329e551bf4b316b173ad663f540772cb029e9d26f503b04ca20e0369c9ac"
     },
-    "current_technical_gap": "ExistingNoneallTFpath measuredlocally butfreshINITIAL/fullTRAINbaseline/ownoptimizerreplay NOTqualified. Existingv2producer/replayer hardcodeM5primary; explicitNoneopt-in/newmetadata/sourcequalification needed. OriginalCPU/savedCUDAparityFAIL retained.",
+    "current_technical_gap": "Current None full initial baseline and own optimizer cold replay are qualified. No current technical baseline/replay gap is claimed. Historical saved CUDA256-versus-CPU parity FAIL is preserved in its diagnostic scope. New paired learning design/admission and scientific data/quality qualifications remain open.",
     "latest_ATR03_training_readiness": {
       "path": "/home/andre2/GX1_RUNS/GX1_FULL_PROJECT_AUDIT_20261120_001/TRAINING_READY_FULL_PROJECT_AUDIT001.json",
       "sha256": "778872b2f141bf12d9f9e287ea387f061e08b62e5bd94719a239597519c24edc"
@@ -26015,7 +26015,7 @@
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_FUTURE_STATE_QUALIFICATION_20261121_001/FINAL_QUALIFICATION_DECISION001.json",
       "sha256": "dc3f030f8447f9dd957a9bc80ff9996b2e369ea42a477341ab5d4a2de0f51f5a"
     },
-    "current_function_main_started": true,
+    "current_function_main_started": false,
     "one_epoch_assessment": {
       "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_ONE_EPOCH_FOLLOWUP_20261121_001/ONE_EPOCH_ASSESSMENT001.json",
       "sha256": "eebbf742c5735761513bb27d754c82f8c0fcf80c3f5200dfb40b993f7508056a"
@@ -26101,7 +26101,8 @@
         "status": "TWENTY_STEP_REVIEW_COMPLETE_QUALIFICATION_INCOMPLETE"
       },
       "scope": "Superseded active status projection only; original receipt files and all dated historical lanes retained."
-    }
+    },
+    "training_started_scope": "Historical retained M5-primary v2 epoch completed. Current all-TF None main fit has not started; technical replay updates are not an epoch."
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -29316,8 +29317,8 @@
     }
   },
   "latest_terminal_receipt": {
-    "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TA_FOLD2_TARGET_COUNTS_20261113_001/TERMINAL.json",
-    "sha256": "dccda6f607e6bced6e7a1c5009c79de85dd34d0a92c3730ecf94a41db929db17"
+    "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_COLD_REPLAY_20261124_001_cold/TERMINAL.json",
+    "sha256": "492dd24a14fffc6cee72c4299f83ba98baca31bf50a4b6533dc105a36d3d7b68"
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -100529,8 +100530,8 @@
       "all_TF_auxiliary_shared_gradient": "NONZERO_MEASURED_L2_0.26878457298599245",
       "all_TF_per_TF_local_alignment": "ALL5_POSITIVE_BOTH_GREF_AND_GALL_SINGLE_PANEL_NOT_POLICY_SELECTION",
       "all_TF_policy_selected": false,
-      "all_TF_fresh_INITIAL": "NOT_CONSTRUCTED_REQUIRES_NEW_SOURCE_AND_MATCHED_BASELINE",
-      "all_TF_optimizer_replay": "NOT_EXECUTED_REQUIRES_OWN_CANDIDATE_C2_TO3_REPLAY"
+      "all_TF_fresh_INITIAL": "QUALIFIED_ACTUAL_FRESH_INITIAL003_WHOLE_354550_TRAIN_1385_BATCHES",
+      "all_TF_optimizer_replay": "QUALIFIED_OWN_C2_TO_STEP3_NEW_PROCESS_ALL10_PROOFS_BITEXACT"
     },
     "evidence_backup_after_d1_provider_hlc": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_BACKUP001.json",
@@ -101265,7 +101266,7 @@
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_ALL_TF_FRESH_INITIAL_REPLAY_PREPARATION_SCOPE001.json",
       "sha256": "aa4a01793dfd02344eefc491a83639caa3a00cf626f7e3827c1d8c7730816a21"
     },
-    "v2_all_TF_next_stage_source_review": "Scope002sourcequalified68affected/253reused321basis; actualfreshstate/RNGwritten/readback,14B2563584rows beforemaintenanceguardstop. Sufficient worker-presence cause captured; workerexit latermeasured. NoNonefullbaseline/replay/fit qualified; no001/002relaunch orguardrelaxation. Newmodel onlyafternewexactscopeandfreshsignedfullquiet-hostadmission.",
+    "v2_all_TF_next_stage_source_review": "Full INITIAL003 and own all-TF warm/cold replay are qualified and consumed. Original001/002 partial runs remain closed and preserved. Existing source qualifications and matched inputs are reusable only for unchanged function/data. No None main fit or new epoch is admitted.",
     "v2_all_TF_fresh_initial_replay_profile_design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_ALL_TF_FRESH_INITIAL_REPLAY_PROFILE_DESIGN002.json",
       "sha256": "0247b13570a6fb964cd7bb1420eb648547215902f361288aefefddeb7fbe9060"
@@ -101405,8 +101406,8 @@
       "sha256": "7f2793666f9ddb02bf9e1e2525b6be3c59cea73404db3d0a25996753d036f6f8"
     },
     "active_readiness_status_reconciliation": {
-      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ACTIVE_READINESS_STATUS_RECONCILIATION002.json",
-      "sha256": "6d615490ee5daa3d443a87eff7eb817fc73d981c0a882f2290715e424b99bb47"
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ACTIVE_READINESS_STATUS_RECONCILIATION003.json",
+      "sha256": "e7ea0c900fc7c87f014455c223b711219bc7986efae36e0aad28ec66555e8242"
     },
     "v2_all_TF_resumable_initial_controller_closure_correction": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_CONTROLLER_CLOSURE_CORRECTION001.json",
@@ -101602,6 +101603,10 @@
     "v2_all_TF_segmented_replay_backup": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_ALL_TF_SEGMENTED_REPLAY_BACKUP001.json",
       "sha256": "14cc6bd69b088e2a39529b9e214c90c5204904ab1fbab74d1279d0111ae63b9e"
+    },
+    "active_status_display_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ACTIVE_STATUS_DISPLAY_QUALIFICATION001.json",
+      "sha256": "910f32d49304bcc83c3b609231cb818d3772a01aa6f2a237418c8d5255015324"
     }
   },
   "native_raw_feed_clock_qualification_20261123_001": {

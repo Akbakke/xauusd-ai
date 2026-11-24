@@ -40,10 +40,19 @@ Alle tidligere RAW/inputcensus/fullsource/batchrisk/projectionmoment002/
 macrokeys001 er COMPLETE_CONSUMED og stengt. Projectionmoment001 ble aldri
 claimed: gammelGPU-entrypoint ble korrekt nektet; ingen vakt ble svekket.
 
-Statuskontroll24.11 rettet fire foreldede aktive statusreferanser fra siste
-kildekvalifikasjon og REVIEW026; ACTIVE_READINESS_STATUS_RECONCILIATION002
-binder endringen. Ny003-kilde er testet; Git/terminalkvittering avgjør commit-/pushstatus.
-Dette åpner ingen modellkjøring eller stortrening.
+Statuskontroll24.11 avdekket og rettet foreldede aktive aliaser etter fullført
+INITIAL003 og egen kald replay. ACTIVE_READINESS_STATUS_RECONCILIATION003
+binder før/etter-feltene mot originale akseptkvitteringer. Aktiv terminal,
+resultat, runtime og tekniske kvalifikasjonsfelt viser nå samme cold-replay.
+Tidligere avsnitt om001/002 og gamle baseline-/replaygap gjelder de navngitte
+historiske fasene; de er ikke nåværende mangler. Historisk training_started
+gjelder beholdt M5-primary-epoke; None main-fit er ikke startet.
+Stortrening er fortsatt ikke kvalifisert:13PASS/3FAIL/4UNKNOWN, alle5porterfalse.
+Statusleseren skiller nå aktiv20stegskvalifikasjon fra gammelEntry-readiness.
+Den nyeste kaldreplay-terminalens manglende direkte source-/TEST-felt må
+bevises fra bundet originalRESULT og lukket stage/aksept; ingen felt gjettes.
+ACTIVE_STATUS_DISPLAY_QUALIFICATION001:36fokuserte casesPASS (12nye),
+faktisk handoverPASS; launch-gaten og alle øvrige gamle funksjoner er byteuendret.
 
 ## Gjort og målt
 
@@ -151,8 +160,11 @@ krever fortsatt selvstendig vurdering. Finitthet er ikke historisk known.
 09UNKNOWN: Treasuryoriginal36DIRECTHTTPS-kjede er gjenfunnet;18COT-offisielle
 kildeidentiteter avstemt. Dette er ikke førstevintage/revisjons-/releasebevis.
 OANDA/Cboe/GLD og Treasury/COT tidsdomener beholdes uavklarte der bevis mangler.
-11/12FAIL, historisk v1: målmaskenes mekanikk er avstemt, representativitet er svak:
-D1kun234/1289modnekomplettevinduer,0slutttirs–tors og162unikekjentesidemål.
+11/12FAIL: historisk v1 hadde234/1289strictkompletteD1vinduer og162unike
+kjente sidemål. Gjeldende provider-HLCv2 har875unikeD1sidemål;
+alle3klasser finnes hvert2021–25år påalle5TF. Kalenderautoritet ogfull
+ukedags-/unikmålrepresentativitet er fortsatt ukvalifisert. Historisk v1
+dekning skal ikke brukes som nåværende v2nevner.
 15FAIL: egenfasit side-Brier/NLL verre enn frossen matchet prior alle5TF.
 TRAIN-AUC0,5300/0,5317/0,5248/0,5058/0,5239 er ingen senere edge.
 Varslingsaudit slo ikke alltidOPP på samme varslingstider;0varsler/UNKNOWN/
