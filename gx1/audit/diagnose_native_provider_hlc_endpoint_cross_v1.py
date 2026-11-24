@@ -16,7 +16,7 @@ from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_e
 saved, core, train = readout.saved, readout.core, readout.train
 ref, read, reference = readout.ref, readout.read, readout.reference
 REPO, POLICY = readout.REPO, readout.POLICY
-NAME = 'NATIVE_PROVIDER_HLC_NONE_ENDPOINT_CROSS_20261124_001'
+NAME = 'NATIVE_PROVIDER_HLC_NONE_ENDPOINT_CROSS_20261124_002'
 MODULE = 'gx1.audit.diagnose_native_provider_hlc_endpoint_cross_v1'
 STAGE = NAME.lower(); PLAN = REPO/'configs/research'/(NAME+'.json'); ROOT = Path('/home/andre2/GX1_RUNS')/NAME
 SELF = 'gx1/audit/diagnose_native_provider_hlc_endpoint_cross_v1.py'
@@ -24,7 +24,7 @@ TEST = 'tests/test_diagnose_native_provider_hlc_endpoint_cross_v1.py'
 GUARD_TEST = 'tests/test_native_provider_hlc_endpoint_cross_guard_v1.py'
 ANCHOR = '804145939a03d6d4b000fb472ae08640d9d2e8f6'
 OLD_SHELL_SHA = '1c06c95eaac4752395b71b4da65f7cb21f9613b389f4c59fb97fb552723c4e5d'
-DESIGN = {'path':'/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V2_NONE_ENDPOINT_CROSS_DESIGN003.json', 'sha256':'7800a3dfcd78e7c5cfb05c812196114dffa004bb18ec4553af56a81818f19743'}
+DESIGN = {'path':'/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V2_NONE_ENDPOINT_CROSS_DESIGN004.json', 'sha256':'b7cf349d9b28b9339189aed349aa13b473979045a830aa41c471e467323267e0'}
 TF = train.TF; ROWS = 354550; BATCH = 256; PANEL_ROWS = 1526
 BATCH_INDICES = (138,415,692,969,1246,1384)
 OUTPUTS = ('activity_logits','side_logits')
@@ -358,13 +358,16 @@ def strict_model_install(model,state,counts):
     own = model.state_dict()
     need(set(own)==set(state) and all(isinstance(v,torch.Tensor)and v.device.type=='cpu'and not v.requires_grad
          and v.dtype==own[k].dtype and v.shape==own[k].shape and bool(torch.isfinite(v).all())for k,v in state.items()),'STRICT_MODEL_STATE')
-    need(all(torch.equal(value.detach().cpu(),state[name])for name,value in model.named_buffers()),'IMMUTABLE_MODEL_BUFFERS')
+    buffers = dict(model.named_buffers()); before_buffers = core.state_sha(buffers)
+    need(all(torch.equal(value.detach().cpu(),state[name])for name,value in buffers.items()if name in own),'IMMUTABLE_MODEL_BUFFERS')
     before_rng = core.state_sha(core.training_rng())
     need(counts['model_state_installs']<2,'MODEL_INSTALL_BUDGET')
     model.load_state_dict(state,strict=True); counts['model_state_installs']+=1
+    need(core.state_sha(dict(model.named_buffers()))==before_buffers,'FACTORY_BUFFERS_UNCHANGED')
     need(counts['model_state_installs']<=2 and core.state_sha(model.state_dict())==core.state_sha(state)
          and core.state_sha(core.training_rng())==before_rng and all(p.grad is None for p in model.parameters()),'STRICT_INSTALL_PROOF')
-    return {'installed_model_state_sha256':core.state_sha(state),'RNG_unchanged':True,'all_gradients_none':True,'strict':True}
+    return {'installed_model_state_sha256':core.state_sha(state),'RNG_unchanged':True,'all_gradients_none':True,'strict':True,
+            'all_factory_buffers_sha256_before_and_after':before_buffers,'all_factory_buffers_unchanged':True}
 
 
 def side_parameters(state):

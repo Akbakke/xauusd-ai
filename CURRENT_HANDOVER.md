@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT067:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT072:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -71,8 +71,30 @@ er kvalifisert med216/216fokuserteCPUcases (5,037s,4G/512M/éntråd).
 Design003 binder6blindeoriginaleB256-batcher/1526TRAINrader/12nativeFW,
 2sekvensielleCP og3arkiv/44felt/1500935808dekodedeB. Ingen modellnumerikk
 er endret; alle80gamle eiere bytebevart unntatt eksakt additiv shellrute
-medfullgammelbyte-rekonstruksjon. Faktiskmetadata/plan/CLI/backup/vertskontroll
-ogegenengangsadmisjon gjenstår. Ingen modellprobe/fit er innrømmet.
+medfullgammelbyte-rekonstruksjon. Kilde738757673 er committed/pushet.
+Faktisk4G-metadatabygger PASS:92eiere,3eksaktearkivheaders/2CPZIP-kataloger,
+0CP/NPZdecode/NN/CUDA. Plan a84b395a (1430895B) er prepared0/false.
+Privathelper001 hadde relativsti-feil førmetadata/claim;002 retter kunhjelperen,
+originalfeil er bevart. Eksakt nativeCLIpreflight PASS fra faktisk childstdout
+ogguardexit0/8telemetrisamples;0CP/NPZ/NN/CUDA/CLAIM. Første privatekommando
+medekstratimeout ble korrektnektet førchild; direkte kvalifisertCLI brukerguardens
+eksisterendefrist. Første signertehostquery2s-timeout erbevart; ny002PASS med
+fysisk200W ogallehardwaregrenser. Separatbackup33filer1969937B er faktiskMac-SHA/F_FULLFSYNC/fsync-verifisert.
+Beggeeksisterendeendpoint-CP39177848/97916887B er råSHA-verifisert påMac,
+uten nykopi/decode. FersksignertPRELAUNCH001 PASS:CPU30C/GPU33/40C/200W,
+allegrenser ogmaintenance/rebootclear. Kunplan a84b395a varinnrømmetén gang og er nåkonsumert/feilet
+ved fryst738757673:12nativeFW/0optimizer;ADMISSION001 binderallebevis. Leseprobe001 er FAILED_CONSUMED0/false før førsteforward; ingen fit/epoke.
+Feil i ny strict-install-kontroll: ikke-persistent factorybuffer finnesikke iCP.
+Alle kilder/inputs/policy/handover/beggeboot er bookendverifisert uendret;
+1CPload/1NNkonstruksjon/0install/0forwards/0updates. GPUpeak40/44C/126,35W/
+420MiB,CPU36C/23,20W;ingenressursgrensebrutt. Neste er kunbufferkontrollfix,
+bevarefeiloriginaler ognyeksakt002-kvalifikasjon etterDESIGN004. Feilbackup21filer
+10927640B er separatMac-SHA/F_FULLFSYNC/fsync-verifisert. Minsteauditfix er nå
+kildekvalifisert:220/220cases PASS,inkl4ekte nonpersistent/mutasjonsregresjoner.
+Kunstrict_model_install erfunksjonsendret; andre auditfunksjoner byteidentiske,
+ogmodell/target/loss/readers/normalisering uendret. Scope002 har bare nyeksakt
+config/outputidentitet. Faktiskny002-metadata/plan/CLI/backup/vertsadmisjon
+gjenstår; ingenNNadmisjon.
 Detaljene nedenfor gjelder de navngitte tidligere design-/kjøringsfasene.
 
 NATIVE_PROVIDER_HLC_UNKNOWN_ACTIVITY_CAUSE_20261124_001 er COMPLETE,
@@ -1255,7 +1277,7 @@ Dette utelukkerdirekteinterceptendringalene; kombinasjonenW/representasjon/
 avrunding gjenstår. IngenunikkausalW/H-/optimizerforklaring eller valgtfix.
 Neste:separatforhåndsregistrertINITIAL003/FINAL-kryssprobe påblindeoriginale
 scorebatcher overalle5år, mednativeCUDA-diagonalparitet førfortolkning.
-Ingen NNprobe/nyepoke erinnrømmet; alle5nativeporterfalse. CURRENT_ACTION_
+a84b395a-leseprobe er feilet/konsumert0false; ingen nyepoke, alle5nativeporterfalse. CURRENT_ACTION_
 RECONCILIATION001 retteraktivq.next_action/source-review etterfullførteepoken.
 Score-only3694 er kildetestet, men ble ikke fysisk kjørt sidenfullFINALlyktes.
 Alle5porterfalse;13PASS/3FAIL/4UNKNOWN. Ingen størretrening/TEST/handel.

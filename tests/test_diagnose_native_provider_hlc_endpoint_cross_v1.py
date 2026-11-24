@@ -184,6 +184,54 @@ def test_strict_install_never_accepts_partial_or_corrupt_state(monkeypatch,bad,g
     assert model.installs==0
 
 
+class NativeBufferPattern(torch.nn.Module):
+    """Match the qualified backbone's derived, non-persistent projection index."""
+    def __init__(self):
+        super().__init__()
+        self.weight = torch.nn.Parameter(torch.zeros(2))
+        self.register_buffer('identity',torch.tensor([7],dtype=torch.int64))
+        self.backbone = torch.nn.Module()
+        self.backbone.register_buffer('entry_signal_projection_idx',torch.tensor([2,0,1],dtype=torch.long),persistent=False)
+
+
+def test_native_nonpersistent_projection_buffer_survives_exact_persistent_CP_install(monkeypatch):
+    model = NativeBufferPattern(); state = {k:v.clone()for k,v in model.state_dict().items()}
+    state['weight'].fill_(1.)
+    assert set(state)=={'weight','identity'}
+    assert set(dict(model.named_buffers()))=={'identity','backbone.entry_signal_projection_idx'}
+    before = m.core.state_sha(dict(model.named_buffers()))
+    monkeypatch.setattr(m.core,'training_rng',lambda:{'cpu':torch.get_rng_state()})
+    counts = {'model_state_installs':0}; proof = m.strict_model_install(model,state,counts)
+    assert counts=={'model_state_installs':1}and torch.equal(model.weight,state['weight'])
+    assert proof['all_factory_buffers_unchanged']is True
+    assert proof['all_factory_buffers_sha256_before_and_after']==before==m.core.state_sha(dict(model.named_buffers()))
+
+
+@pytest.mark.parametrize('mutation',['value','dtype'])
+def test_strict_load_hook_mutation_of_nonpersistent_factory_buffer_is_rejected(monkeypatch,mutation):
+    model = NativeBufferPattern(); state = {k:v.clone()for k,v in model.state_dict().items()}
+    def mutate(module,_):
+        if mutation=='value': module.backbone.entry_signal_projection_idx[0]+=1
+        else: module.backbone.entry_signal_projection_idx=module.backbone.entry_signal_projection_idx.float()
+    model.register_load_state_dict_post_hook(mutate)
+    monkeypatch.setattr(m.core,'training_rng',lambda:{'cpu':torch.get_rng_state()})
+    counts = {'model_state_installs':0}
+    with pytest.raises(ValueError,match='^PROVIDER_HLC_ENDPOINT_CROSS_FACTORY_BUFFERS_UNCHANGED$'):
+        m.strict_model_install(model,state,counts)
+    assert counts=={'model_state_installs':1}
+    assert m.core.state_sha(model.state_dict())==m.core.state_sha(state)  # state_dict alone would miss this mutation.
+
+
+def test_nonpersistent_buffer_must_not_be_fabricated_as_a_checkpoint_field(monkeypatch):
+    model = NativeBufferPattern(); state = {k:v.clone()for k,v in model.state_dict().items()}
+    state['backbone.entry_signal_projection_idx']=model.backbone.entry_signal_projection_idx.clone()
+    monkeypatch.setattr(m.core,'training_rng',lambda:{'cpu':torch.get_rng_state()})
+    counts = {'model_state_installs':0}
+    with pytest.raises(ValueError,match='^PROVIDER_HLC_ENDPOINT_CROSS_STRICT_MODEL_STATE$'):
+        m.strict_model_install(model,state,counts)
+    assert counts=={'model_state_installs':0}
+
+
 @pytest.mark.parametrize('action,name',[
     (lambda:torch.optim.AdamW([]),'__init__'),(lambda:torch.autograd.grad(None,None),'grad'),
     (lambda:torch.autograd.backward(None),'backward'),(lambda:torch.tensor(0.).backward(),'backward'),

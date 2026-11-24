@@ -1640,7 +1640,7 @@ matches_bound_native_provider_hlc_endpoint_cross() {
   [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
     && "$3" == "$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_MODULE" \
     && "$4" == --plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1
-  local expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_NONE_ENDPOINT_CROSS_20261124_001.json"
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_NONE_ENDPOINT_CROSS_20261124_002.json"
   [[ -f "$expected_plan" && ! -L "$expected_plan" \
     && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]
@@ -1655,7 +1655,7 @@ configure_native_provider_hlc_endpoint_cross() {
   matches_bound_native_provider_hlc_endpoint_cross "$@" || {
     echo "FATAL: endpoint cross command/plan is not exactly bound" >&2; exit 75
   }
-  local cross_output=/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_NONE_ENDPOINT_CROSS_20261124_001
+  local cross_output=/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_NONE_ENDPOINT_CROSS_20261124_002
   local cross_env_name
   [[ ! -e "$cross_output" && ! -L "$cross_output" \
     && -d "${cross_output%/*}" && ! -L "${cross_output%/*}" \
