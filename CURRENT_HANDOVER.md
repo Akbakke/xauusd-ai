@@ -905,52 +905,54 @@ inkludert faktisk39177784BINITIAL.pt, er separatdiskkopiert og uavhengig
 SHA/F_FULLFSYNC-kontrollert (manifestf5d6e396…). Source103/Stop26 sikrer
 kilde/plan og egneCP/kvitteringer uten deserialisering.
 001/002skalaldri relanseres.
-Etter to målte avbrudd klargjøres nå en smal gjenopptakbar INITIAL-rute,
-bundet i RESUMABLE_INITIAL_DESIGN001. Gamle score_initial/defaults og
-modell-/tap-/normaliseringsmatematikk beholdes. Hver fullførte B256-batch
-kan lagre sine to faktisk NN-beregnede CPU-F32-logitarrayer og en varig
-kvittering sist, etter modellstate/RNG/.grad-bevis. Bare et sammenhengende,
-autentisert003-prefiks med lukkede source/input/model/RNG/policy/bootbevis
-kan brukes igjen.001/002 mangler slike outputs og gjenbrukes ikke.
-Ny003-plan/SHA/fersksegmentroot gir ingen automatisk løkke eller fit.
-Hvert segment konstruerer ferske, identiske parametre/RNG uten vektlasting;
-alle354550issues/1385heleoriginalbatcher og fullcanonicalscore/prior må
-fortsatt avstemmes. Fysiske/avbrutte forwards og konstruksjoner telles separat.
-Samme20G/512M/8tråder/3600-3570s og ALLEhardware-/vedlikeholdsvakter beholdes.
-RESUMABLE_INITIAL003_SOURCE_QUALIFICATION001 består144fokuserte kontroller,
-faktisk blokkert base-/førstesegmentmetadatabygger og to privatecontroller-
-lukkingsveier. Gamle adapter-/produsentfunksjoner er bytebevart, kun eksplisitt
-CLI-/replaymetadatadispatch er utvidet; NN-/tap-/trenings-/restorematematikk
-er uendret. Full modellstate/RNG/.grad kontrolleres før hver commit. Global
-BASE-completion publiseres sist, etter fullført segmentterminal; feil der
-kan ferdigvalideres i nytt0-forwardsegment uten å omskrive gammelterminal.
-Privat CONTROL002 retter én observert lukkingsstatusfeil: global RESULT
-stenger gjenopptakelse også når prefiksbeviset er gyldig, til aggregatet er
-kontrollert. Seks fokuserte syntetiske close-cases PASS; gammel CONTROL001
-og originalkvalifikasjon er bevart. Ingen kilde-/modell-/vaktendring.
-Kildekvalifikasjon er ikke modelladmisjon;003base/segment er ikke klargjort
-eller kjørt, globale5flaggfalse. Commit-/IO-ekstratid er fortsatt umålt.
-Før ny modell kreves fersk signert full vedlikeholds-/ressurskontroll,
-eksakt preflight, separatdiskbackup og engangsadmisjon. FullNonebaseline
-og egen kald replay er fortsatt ikke kvalifisert; all fit/epokeserie er stengt.
+## Fullført gjenopptakbar all-TF INITIAL003
 
-Neste INITIAL må bruke virkelig fersk kandidattilstand/RNG og ny fullTRAIN354550-raders
-nulloppdateringsbaseline med riktig kandidatidentitet og matched prior.
-M5_primary INITIAL_20261123_002 beholdes som navngitt referanse. Ingen FINAL-overføring eller
-replay-oppdaterte vekter brukes som start for en læringsfit.
+EksplisittNone, kilde9168d84dd, BASE-plan540af664… er COMPLETE/akseptert.
+ACCEPTANCE001 SHA07d186a7… binder RESULT fabcccdb… og sluttterminalda2b38b9…
+Hele354550TRAIN-rader/1385originaleB256batcher er faktisk NN-beregnet;
+sistebatch246. Ingen001/002outputs ble brukt. FørsteegenINITIAL39177848B,
+SHA8824615d…, ble skrevet/readback; senere prosesser konstruerte ferskt
+og sammenlignet modell/RNG bitidentisk, uten vekt-/RNG-gjenoppretting.
+Alle genuine inputs/TF/makro/norm/targets/prior og ukjente masker er bevart.
 
-Deretter egen ny, kvalifisert v2-replay: eksisterende recipe seed20260911,
-AdamW1e-4/clip1/ingen scheduler/B96; tre varme oppdateringer, C2 og ny prosess
-som gjenoppretter kandidatens egne model/optimizer/RNG/posisjon og replikerer
-steg3 bitidentisk på alle ti proof-felt med befolkede AdamW-momenter.
-PROFILE_DESIGN002 binder uendrede native profiler: INITIAL bruker CUDA,
-B256/1385forwards/last246 over354550TRAIN; fersk state lagres CPU-clonet.
-Målt referansetid846,9s er ingen kandidatkapasitetsgaranti. INITIAL3600/3570s
-og replay1800/1770s beholder20G/512M,8tråder,128tasks,affinity0..18,12GiBVRAM
-og alle effekt-/temperatur-/hostvakter. Nye eksakte all-TF-plan/CLI-bindinger
-er implementert uten å gjenåpne gamle consumedplaner. Fresh-source,
-preflight, backup, host/boot og engangsadmisjon må kvalifiseres før hver fase.
-Ingen mainfit eller automatisk epokeserie.
+Tre segmenter fullførte961+368+56batcher. Totalt3konstruksjoner,
+1387påbegynte backboneforwards/1385ferdige readouts/commits; de to avbrutte
+forwardene teller ikke som dekning.0autograd/backward/optimizer/fits/oldCPloads.
+2290tidligere outputbatcher ble autentisert innlest. Alle sluttbevis for
+source/input/modell/RNG/grad/policy/beggeboot/M1 PASS. Uavhengig rålenke-/
+SHA-kontroll av alle1385kvitterings-/arkivpar PASS, siste56med246sluttrader.
+Faktisk nedstrøms replay-metadataeier godtar BASE3 ved blokkert modell/payload/
+CUDA/optimizer. Output-SHA, kanonisk skår/fasit/attest er eksakt lik beholdt
+M5-primaryreferanse; properpartialNLL0,7588479371818553, matchedprior eksakt.
+Dette er en startmåling, ikke læring eller edge.
+
+Første segment stoppet korrekt ved251,49W over250W-vakt;961batcher sikret.
+Eksisterende keeper-config ble deretter senket250→200W og lastet på nytt,
+uten skript-/taskdefinisjons-/service-/sertifikatendring. Første atomiske
+Windows-bytte feilet før configendring; keeper250 ble gjenopprettet før002
+lyktes. Originalfeil er bevart. Direkte og signert200W-readback PASS.
+Andre segment stoppet på Windowsmaintenanceproxy ved1329batcher, med
+peak186,33W. Siste segment fullførte81,752s/exit0, peak182,97W/GPU55/58C,
+CPU39C/22,30W/minst56,101GBhostledig. Ingen vakt ble hevet eller slått av
+under modellarbeid.200W fysisk cap gjelder videre; native250W er maksimum.
+
+Fysisk sum over3segmenter1213,939s; dette isolerer ikke commit-/IO-overhead.
+Siste prosess målte Torchreserved1583349760B/RSS3280760KiB, ikke samlet
+RAM-peak for alle segmenter. De to første vaktstoppene er fortsatt feilkvitteringer.
+Kildekvalifisering144tester og privatcontrollerens6close-cases er bestått;
+gamle numeriske funksjoner/defaults er bytebevart. En etterkontrollhelper fikk
+en syntaksfeil før imports; kun mellomrommet ble rettet og002 bestod utenNN.
+Fullcache er pakket23040000B/2770deler.38filer41899065B og alle2770interne
+tardeler er separatdiskkopiert/uavhengigSHA-verifisert med F_FULLFSYNC/fsync.
+Original INITIAL ble gjenbrukt etter faktisk39177848B-SHA-lesing fra Mac-disk;
+FULL_BACKUP001 binder manifestet. OriginalCP og alle deler bevares.
+
+Neste: FERSK replayruntime/plan fra committet metadataavslutning etter fullbackup.
+FINAL_CONTROL002 binder avslutningen ved historisk modellkilde9168d84dd. Egen3warmB96/C2/kaldtsteg3 med seed20260911/AdamW1e-4/clip1/
+ingen scheduler må kvalifiseres og innrømmes separat. Kun to tekniske
+treningsflagg åpnes av eksakt replayadmisjon; fullfit/epokeserie/VAL/TEST stengt.
+Kilde/HEAD/policy fryses gjennom warm+cold. Ingen kvalifiseringsoppdaterte
+vekter eller gammelFINAL brukes til senere læringsfit.
 
 En senere læringssammenligning trenger egen frosset kohort/klokke/observer.
 Eksisterende20727issue/1377dager er kildeklokkesampling, ikke sammenhengende

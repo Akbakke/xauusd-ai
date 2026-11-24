@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-24T09:20:47.967754+00:00",
+  "observed_utc": "2026-11-24T10:32:57.892594+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "RESUMABLE_INITIAL003_SOURCE_QUALIFIED_NOT_ADMITTED",
+  "status": "ALL_TF_INITIAL003_FULL_TRAIN_ACCEPTED_OWN_COLD_REPLAY_PENDING",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -3923,7 +3923,7 @@
   "market_state_ta_integrated_objective_later_20261116": {"status": "SOURCE_OBJECTIVE_AND_LATER_INPUTS_READY_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_OBJECTIVE_LATER_INPUTS_REVIEW_20261116.json", "sha256": "d93d30dd580bab052d21219aae31102329f5f37c33148e9135cb495512632d8c"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "later_input_archive": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/INPUTS.npz", "sha256": "9b527afd59c906f32cf91046ddee282b998cfad5b22216030fb6a873f651ae47"}, "later_input_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/RESULT.json", "sha256": "293e9d042788fa750c60fa49bf84dcdef9e016995805605218b552f8e77c5985"}, "later_score_rows": 4096, "later_issue_axis_sha256": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3", "later_M1_complete_paths": 4089, "later_structure_high_observed": 4068, "later_structure_low_observed": 4081, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_objective_preflight_20261116_004": {"status": "GENUINE_TRAIN_INTEGRATED_OBJECTIVE_GRADIENT_PASS_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_ACTUAL_OBJECTIVE_PREFLIGHT_REVIEW_20261116.json", "sha256": "ad48b1ddc40ab5a893ce0c0f936e06eb9f850d85f1ba023baf8787b999f0ff8d"}, "private_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_004/RESULT.json", "sha256": "5e5a1790b4ae8673f6f3ddd63ed078b81e469a92870cf3ac6b5f0fc2b75ac2c4"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "model_contract_sha256": "70a0497b27ba0ab45277ba622443ab2fca36a448357f1ccb3158689193f8bc82", "all_five_S_F_side_head_gradients_nonzero": true, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_later_view_rebind_20261116": {"status": "ACTUAL_LATER_FEATURE_GATHER_PASS_NO_MODEL", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_LATER_VIEW_REBIND_REVIEW_20261116.json", "sha256": "18616578ac8a0f79eb250c892757ccd099e15b27f567eeee02e36b96a546785c"}, "view_sha256": "8056fe96b4340bccc149da7f22dde85e4ac1b62c5e58c874ec7fbb771c1dff1a", "later_rows_gathered": 16, "all_nine_surfaces_finite": true, "model_forwards": 0, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
-  "next_action": "Preparefixed003baseandfirstSHAsegmentfromfreshcurrentruntime, exactCLIpreflight, separatediskbackup andfreshsignedhost/maintenanceadmission beforezero-updateNN. Durableoutputs permitnewmanuallyadmittedsegment afterclosedvalidprefix; neverrelauncholdplan, no001/002reuse. Full354550/1385committedforwardcoverage+canonicalscore beforebaselineacceptance/owncoldreplay; nofit/epochs.",
+  "next_action": "AftercommittedINITIAL003closurecollectfreshreplayruntime/planatnewHEAD. QualifyprivateALLTFhelpersandadmitonly3warmB96/C2/coldstep3; freezeHEAD/policyacrossbothlanes. INITIAL354550accepted/backed; nofit/epochs;20requirementsopen.",
   "ta_fold2_F_frozen_readout_20261117_001": {"status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN", "plan": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PLAN.json", "sha256": "c87fcec1c25e351fec6e9c7a7bf2905ce97605661ba9055cc769e621b757e786"}, "admission_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_F_FROZEN_READOUT_ADMISSION_20261117.json", "sha256": "a9ababbb1b6ec9ed9a17e9ccff0426b4f994cfe4b78e9a3b72776cd48659629c"}, "capture": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/CAPTURE.npz", "sha256": "d4c8fa49b82dd6095afa17ebfdf40aff2bcf00b9245450edc49044d8325fb256"}, "reconciliation": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/RECONCILIATION.json", "sha256": "9b1bdfae0386ad155f3c315623b9c053e1eec6359996c8b8507ae07e6e505a74"}, "training_scope": "ten CPU linear side readouts on frozen Fold2 TRAIN representations only", "execution_authorized": false, "remaining_invocations": 0, "claimed_invocations": 1, "max_readout_fits": 10, "native_model_forwards": 0, "native_optimizer_updates": 0, "model_updates_authorized": false, "fresh_physical_boot_required": false, "relaunch_allowed": false, "test_data_used": false, "economic_edge_proven": false, "completed_invocations": 1, "actual_readout_fits": 10, "result": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/RESULT.json", "sha256": "919a894ed21f49faf173aa733775054f734b5a96ad904f4a1ac3f0e792e4a643"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/TERMINAL.json", "sha256": "f23e4ea3b4789ddd0ec72b72bed7de6e39e2d8eda7779b8b018d359c99a3643c"}, "params": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PARAMS.npz", "sha256": "babe4452ee5e51b13a640360caf054e862e3eaab34c2af1d608bf370845fedba"}, "predictions": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PREDICTIONS.npz", "sha256": "6e484806fdc8f26e1e51fa61f44f5e258583861b482b975a3be1947a02b33b46"}, "result_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_F_FROZEN_READOUT_RESULT_REVIEW_20261117.json", "sha256": "01e4ed18528116681b8d808f6c5ba28906c395432d5e5d29ae697c0f4d457cf2"}, "training_authorized": false, "independent_generalization_proven": false},
   "ta_m5_structure_persistence_20261116_001": {"status": "COMPLETE_CONSUMED_FIXED_REFERENCE_NO_ESTABLISHED_GAIN", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_PERSISTENCE_20261116_001.json", "sha256": "907ff7ce4fe6a9449f71501b9f4913f1637e2e6b747ce98670fd206a92f21d4a"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/CLAIM.json", "sha256": "a731f909e8cce5ef949679d65b882ed06520ee19ff53c264a2a0e86fdd1994ed"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/RESULT.json", "sha256": "ea10505d4fa8490880d14a126973a8a4fd0f2f4b59ca7e4c08c67b1f05085c86"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/TERMINAL.json", "sha256": "7290d4bae30cb4c4d212af311f714b80e27263605c49641e9874512eb14c7e3f"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_PERSISTENCE_RESULT_REVIEW_20261116.json", "sha256": "020a6b02aa158d4f6d35cb62197683c36bedf5d6be357b94953a2c69fc420fb5"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"prior_mature_issues": 23886, "later_known_classes": 23302, "prior_correct": 8936, "persistence_correct": 8253, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "ta_m5_structure_fold2_audit_20261116_001": {"status": "COMPLETE_CONSUMED_SOURCE_COVERAGE_ONLY_TARGET_UNQUALIFIED", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json", "sha256": "2d5b7359b377a8d4d7658ff7cbc6a756db94565d70673604f69a86530750c081"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/CLAIM.json", "sha256": "12f4d4c5c0c131cb61bf15d2795f557b3c3ceab37cf7b9f4fab13db569a1a0c8"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/RESULT.json", "sha256": "e6be73a2e5e04a9e0abf91e3b0b3775e93f0d75b6064ff8c842c123b1f842450"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/TERMINAL.json", "sha256": "f6a131efb8b3c0f1a85cfa5544dd16d225cf3a75f98d551c0f27041cea1badd9"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_FOLD2_AUDIT_RESULT_REVIEW_20261116.json", "sha256": "601809c2472d5d9f021499dfce2f72f53d56522404f16654df0334451f6de12d"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"m5_issues": 47784, "both_observed": 47567, "known_pair_class": 47195, "same_pivot_bar": 372, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
@@ -3950,7 +3950,7 @@
     }
   },
   "learning_gate": {
-    "current_function_selected_cohort_initial_baseline_scope": "Activeprovider-HLCv2whole354550TRAININITIAL002 qualified,exactmatchedpriorandinitialstate/RNG; previousselected-cohortfunction statementpreservedhistorically.",
+    "current_function_selected_cohort_initial_baseline_scope": "RetainedM5-primaryv2INITIAL002qualifiedreference; explicitNonecandidateINITIAL003nowwhole354550TRAINqualified, exactprior/output/properscoreparity. NoNoneoptimizerreplayorfitqualified.",
     "current_function_selected_cohort_initial_baseline_qualified": true,
     "latest_native_small_matched_direction_review": {
       "result": {
@@ -4306,7 +4306,7 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "RetainedM5primaryv2baseline/replay/epoch mechanicallyqualified; sideNLL/BrierFAILall5. None INITIAL00133024rows and0023584rows bothstoppedbyhostmaintenance; nofullNonebaseline/replay/learning qualified. 002capturedMoUsoCoreWorkerPID5096born07:44:42.970before07:44:44guardstop,alive07:45:43,gone07:47:49. Signedresourceboundsnotbreached; postsource/input/plan/bothbootPASS/allflagsfalse/001+002consumed. Calendar/asof/vintage/latergeneralizationopen.",
+    "current_evidence_scope": "RetainedM5-primaryv2epochsideNLL/BrierFAILall5. ExplicitNoneINITIAL003full354550/1385actualNNbaselineacceptedacross3closedsegments,3freshctors/1387started/1385commits; nooldCPload/restore/optimizer. Actualcanonicalscore/outputSHAsidenticalretainedreference. Firstpowerguardstopresolvedphysical200withoutguardraise; secondmaintenanceguardstophandledbyvalidatedoutputs. OwnNonecoldreplay/learning/generalization/calendar/asof/vintage/edgeopen.",
     "component_learning_measured": true,
     "component_learning_result": "V2_ACTIVITY_TRAIN_GAINS_M5_M15_H1_CONDITIONAL_DIRECTION_FAIL_ALL5",
     "primary_entry_quality_qualified": false,
@@ -4821,7 +4821,11 @@
     },
     "all_TF_candidate_initial_baseline_qualified": false,
     "all_TF_candidate_optimizer_replay_qualified": false,
-    "all_TF_candidate_policy_selected": false
+    "all_TF_candidate_policy_selected": false,
+    "latest_all_tf_candidate_initial_baseline": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_ACCEPTANCE001.json",
+      "sha256": "07d186a74ba0691f2735b28cf0f0defad39604573d5f33e2f298c4cf2cc53e45"
+    }
   },
   "current_work": {
     "monitoring_needed_for_completed_run": false,
@@ -12368,7 +12372,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Preparefixed003baseandfirstSHAsegmentfromfreshcurrentruntime, exactCLIpreflight, separatediskbackup andfreshsignedhost/maintenanceadmission beforezero-updateNN. Durableoutputs permitnewmanuallyadmittedsegment afterclosedvalidprefix; neverrelauncholdplan, no001/002reuse. Full354550/1385committedforwardcoverage+canonicalscore beforebaselineacceptance/owncoldreplay; nofit/epochs.",
+    "next_action": "AftercommittedINITIAL003closurecollectfreshreplayruntime/planatnewHEAD. QualifyprivateALLTFhelpersandadmitonly3warmB96/C2/coldstep3; freezeHEAD/policyacrossbothlanes. INITIAL354550accepted/backed; nofit/epochs;20requirementsopen.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -25661,7 +25665,7 @@
         "new_model_calls": 0
       }
     },
-    "status": "RESUMABLE_INITIAL003_SOURCE_QUALIFIED_NOT_ADMITTED",
+    "status": "ALL_TF_INITIAL003_FULL_TRAIN_ACCEPTED_OWN_COLD_REPLAY_PENDING",
     "observed_utc": "2026-11-24T05:48:06.448448+00:00",
     "current_observation_stage": "native_future_window_coverage_20261123_001",
     "current_observation_plan": {
@@ -28667,7 +28671,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-24T09:20:47.967754+00:00",
+  "updated_utc": "2026-11-24T10:32:57.892594+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -99299,7 +99303,7 @@
     }
   },
   "native_twenty_step_qualification_20261123_001": {
-    "status": "RESUMABLE_INITIAL003_SOURCE_QUALIFIED_NOT_ADMITTED",
+    "status": "ALL_TF_INITIAL003_FULL_TRAIN_ACCEPTED_OWN_COLD_REPLAY_PENDING",
     "goal_thread_id": "01a20035-2836-7f62-bb88-9e24603a51a5",
     "requirements": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_QUALIFICATION_20_STEPS.json",
@@ -101403,6 +101407,132 @@
     "v2_all_TF_resumable_initial_controller_closure_correction": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_CONTROLLER_CLOSURE_CORRECTION001.json",
       "sha256": "c4f2d2c7a76d54d21790c7664f76a85ee80107f1ec09c60b1ca9462c43b97553"
+    },
+    "v2_all_TF_resumable_initial_base_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003.json",
+      "sha256": "540af664bb61af9fee0b445eff34bd0159a07d921db9419e1ddf573c0d1957c8"
+    },
+    "v2_all_TF_resumable_initial_segment_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/PLANS/e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943.json",
+      "sha256": "e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943"
+    },
+    "v2_all_TF_resumable_initial_runtime": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/INITIAL003_SEGMENT_e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943_RUNTIME001.json",
+      "sha256": "1c8fb3fd0b6f84f1edea409c3e2d441d01d0f420e1c7007fb85be2dc06c16872"
+    },
+    "v2_all_TF_resumable_initial_prepare_log": {
+      "path": "/tmp/gx1_initial003_segment_first_prepare001.log",
+      "sha256": "0feb8748b0b01c8ef4d7881c2a9339d8624f74f6fd8d82b4bf8866d3866e6ddd"
+    },
+    "v2_all_TF_resumable_initial_preflight001_refusal": {
+      "status": "HOST_TELEMETRY_UNAVAILABLE_BEFORE_LEAF_CLAIM",
+      "logs": [
+        {
+          "path": "/tmp/gx1_initial003_segment_first_preflight001.log",
+          "sha256": "416d5d50c2af04086af9a310d9b10b5ebf649641aeda40b1e6f88290b051e927"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/.SEGMENT_f400d4743395b6ff32b5ac47d36450fd86ed5be3630c7ca06f02ff8d774892bc.guard.1P54NQQx.log",
+          "sha256": "2e25ce75c938be61f21b17ac639f6f02f137b0f64c37b40264a63d237a01a9bc"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/.SEGMENT_f400d4743395b6ff32b5ac47d36450fd86ed5be3630c7ca06f02ff8d774892bc.trainer.WB1mm8L7.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "wrapper_exit": 75,
+      "claim_created": false,
+      "scope": "No cause inferred beyond unavailable signed telemetry. Existing2s deadline andguardsunchanged."
+    },
+    "v2_all_TF_resumable_initial_readiness_query001": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/INITIAL003_SEGMENT_f400d4743395b6ff32b5ac47d36450fd86ed5be3630c7ca06f02ff8d774892bc_READINESS_QUERY001.txt",
+      "sha256": "7ff82ca134aa95230960e92f6d36ea1081255a93d647a0d4f3e7555592b95be9"
+    },
+    "v2_all_TF_resumable_initial_host_admission": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/INITIAL003_SEGMENT_e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943_HOST_ADMISSION001.json",
+      "sha256": "6f3f367fa18e210a3aba42f30537cfbdee367abf7ba6144546b93debb2a5ad2e"
+    },
+    "v2_all_TF_resumable_initial_preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/INITIAL003_SEGMENT_e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943_PREFLIGHT001.json",
+      "sha256": "b82f49147399d67270e44d039dc966589c592f0b987e7c384fb584593d0a1f86"
+    },
+    "v2_all_TF_resumable_initial_source_plan_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/INITIAL003_SEGMENT_e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943_SOURCE_PLAN_BACKUP001.json",
+      "sha256": "63e3891e22a77f047ff0638906ab38f6f330cd6eeb06ffcc6615e460f45993de"
+    },
+    "v2_all_TF_resumable_initial_launch_exit": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/INITIAL003_SEGMENT_e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943_LAUNCH_EXIT001.json",
+      "sha256": "2de9d6d8c7b9821e7d4201fe6db4c093cff9b2a54d97c50b68fad420b7bbbe34"
+    },
+    "v2_all_TF_resumable_initial_segment001_stop_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_SEGMENT001_STOP_REVIEW001.json",
+      "sha256": "28d1331841f69acf025edd1089429e2c75f42da0c05b63ab3f096b4f75489b22"
+    },
+    "v2_all_TF_resumable_initial_cache_archive": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/CACHE_BACKUP_da2b38b9e95b1ab9cd55d93714b8f38220dd377cf3fe95534ddcbb475366b125.tar",
+      "sha256": "cf66dd3b32473db5c7be4faddfcbce11254c187364082e7f0b6e936422cebcaa"
+    },
+    "v2_all_TF_resumable_initial_physical_power_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_GPU_POWER200_REVIEW001.json",
+      "sha256": "e8d366db0ef743806d17ea25d6daf35c1d98381001b8f1d991aafb81d2457540"
+    },
+    "v2_all_TF_resumable_initial_segment001_stop_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_SEGMENT001_STOP_BACKUP001.json",
+      "sha256": "3ca191e05032832e881a81af104e05ea3f960e1efb2dd095691a4b210a427cd9"
+    },
+    "v2_all_TF_resumable_initial_segment002_prepare_log": {
+      "path": "/tmp/gx1_initial003_segment_second_prepare001.log",
+      "sha256": "b84d896bf4dbd54b83f72ee3ebc14af542d4ca30bc05b9942b777e8caa00a2ae"
+    },
+    "v2_all_TF_resumable_initial_segment002_stop_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_SEGMENT002_STOP_REVIEW001.json",
+      "sha256": "3650165aa94b740609016a6183afd319336c16641dc139a906103a551a5c12e1"
+    },
+    "v2_all_TF_resumable_initial_segment002_stop_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_SEGMENT002_STOP_BACKUP001.json",
+      "sha256": "c694af94e2b7f89955e4f663adba3931b9d091b5c0f08da48acff61303187be4"
+    },
+    "v2_all_TF_resumable_initial_segment003_prepare_log": {
+      "path": "/tmp/gx1_initial003_segment_third_prepare001.log",
+      "sha256": "f3b36afc19d51233280fde8ea6b6de03a1e3dd03636a6d83f323d00739b34b4a"
+    },
+    "v2_all_TF_resumable_initial_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_ACCEPTANCE001.json",
+      "sha256": "07d186a74ba0691f2735b28cf0f0defad39604573d5f33e2f298c4cf2cc53e45"
+    },
+    "v2_all_TF_resumable_initial_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/RESULT.json",
+      "sha256": "fabcccdb57c665b320d8dac9a30ea1984f7b7c9a339c8763e53d63f402d3e372"
+    },
+    "v2_all_TF_resumable_initial_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/INITIAL.json",
+      "sha256": "4199164046a04e575f25bfdb9f85aa1345c569cf751c2b542b7c21431eeba07d"
+    },
+    "v2_all_TF_resumable_initial_full_baseline_qualified": true,
+    "v2_all_TF_resumable_initial_optimizer_replay_qualified": false,
+    "v2_all_TF_resumable_initial_acceptance_qualification": {
+      "status": "ACTUAL_DOWNSTREAM_METADATA_AND_EXACT_REFERENCE_PASS",
+      "driver": {
+        "path": "/tmp/gx1_initial003_acceptance_qualification002.py",
+        "sha256": "5dcf10923e006e4c5ba68f9639d20931740e42a302a5c9724602d9f5363d31c1"
+      },
+      "log": {
+        "path": "/tmp/gx1_initial003_acceptance_qualification002.log",
+        "sha256": "c4fabff12742dba02260f9c3038134391579ca0b96dad69c6f0d8ae7fdfba4d6"
+      },
+      "initial_syntax_failure_driver": {
+        "path": "/tmp/gx1_initial003_acceptance_qualification001.py",
+        "sha256": "9a0810b3296c71ef425edbb1a780b498feafc9c99cdca0c1c683d876dfc3a04a"
+      },
+      "initial_syntax_failure_log": {
+        "path": "/tmp/gx1_initial003_acceptance_qualification001.log",
+        "sha256": "48e8361f655f3b3e15b5ca6454a0f9a19dd66ac26e08ae903afbbb6833995637"
+      },
+      "correction_scope": "One missing space in conditional beforeimports;002compiledbeforeexecution. NoNNjobrerun/sourcechange."
+    },
+    "v2_all_TF_resumable_initial_full_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_FULL_BACKUP001.json",
+      "sha256": "474fe51935169427f31cc49b0e20c125338d73b569c5526a940e0ad90bc15f9c"
     }
   },
   "native_raw_feed_clock_qualification_20261123_001": {
@@ -101782,7 +101912,7 @@
     }
   },
   "native_d1_provider_hlc_certificate_goal_20261123_001": {
-    "status": "RESUMABLE_INITIAL003_SOURCE_QUALIFIED_NOT_ADMITTED",
+    "status": "INITIAL003_FULL_MEASUREMENT_REVIEW_PENDING",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_DESIGN001.json",
       "sha256": "cd97abfec7c512364c21c9608c41352ee70dac9593e1dfd28a5527713734f172"
@@ -102448,5 +102578,55 @@
     },
     "result_missing_expected_after_guard_stop": true,
     "post_source_inputs_plan_both_boot_bookends_passed": true
+  },
+  "native_provider_hlc_all_tf_whole_train_initial_20261124_003": {
+    "status": "COMPLETE_CONSUMED_CLOSED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/PLANS/e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943.json",
+      "sha256": "e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943"
+    },
+    "execution_authorized": false,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "training_authorized": false,
+    "optimizer_authorized": false,
+    "test_authorized": false,
+    "checks": {
+      "claim": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/SEGMENT_e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943/CLAIM.json",
+        "sha256": "1c5533bce17cbd078011f09c221befe4e1497f8ef12b138147106b7319814417"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/SEGMENT_e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943/RESULT.json",
+        "sha256": "ec8de69ae5d082926e8208eb1abce908f8754956542af5ebfce67b6ece939895"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/SEGMENT_e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943/TERMINAL.json",
+        "sha256": "da2b38b9e95b1ab9cd55d93714b8f38220dd377cf3fe95534ddcbb475366b125"
+      },
+      "closure_proof": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/SEGMENT_e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943/CLOSURE_PROOF.json",
+        "sha256": "e540e11d7fd7e4a49aae865825c755b7e1142957b637deb647d1a4228f3c877a"
+      },
+      "validated_prefix": {
+        "cursor": 1385,
+        "head": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/SEGMENT_e7a1d9fff37eb7e12b8ac935487cf2068afce6d1e8b60fe25e7369deebd40943/BATCH_1385.json",
+          "sha256": "2163406a9761a47349a52c0270f0513ec80affe1e9dff8a74cd13e4ae673ac89"
+        },
+        "rows_done": 354550
+      },
+      "initial_receipt": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/INITIAL.json",
+        "sha256": "4199164046a04e575f25bfdb9f85aa1345c569cf751c2b542b7c21431eeba07d"
+      },
+      "whole_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/RESULT.json",
+        "sha256": "fabcccdb57c665b320d8dac9a30ea1984f7b7c9a339c8763e53d63f402d3e372"
+      },
+      "closed_prefix_validated": true,
+      "aggregate_result_present": true,
+      "resume_admissible": false
+    }
   }
 }
