@@ -832,7 +832,7 @@ ACCEPTANCE001/REVIEW026 binder målingen.25kilde-/planfiler10663562B og
 27resultatfiler13820160B er sikret på separat Mac-disk medSHA/F_FULLFSYNC/
 disklesing. Opprinnelige datasett, checkpoints og vekter er bevart.
 
-## All-TF INITIAL001 stoppet; INITIAL002 kildekvalifisert
+## All-TF INITIAL001/002 stoppet av vedlikeholdsvakt
 
 ALL_TF_FRESH_INITIAL_REPLAY_PREPARATION_SCOPE001 er design uten kjøretilgang.
 EksplisittNone-opt-in er nå implementert i eksisterende v2 fresh-producer
@@ -871,15 +871,38 @@ maintenance_active er en konservativ worker/Setup/OOBE/CBS-proxy som også
 inkluderer inaktive workers; faktisk oppdateringsarbeid er ikke bevist.
 Én fysisk Windows-observasjon07:15:23Z viste alle grenerfalse etter stoppen;
 den fastslår ikke grenen07:13. Ingen OS-, scheduler- eller vaktendring er gjort.
-INITIAL002 er nå kildekvalifisert med PROFILE_DESIGN002: kun eksakt nytt
-INITIAL-navn/root/profil og replayens forventede egenINITIAL er endret.
-Alle seks kilde-/guardtestfiler reverseres byteeksakt til fullf37 ved bare
-literalbytter.68berørte kontroller PASS;253uendrede fra321grunnlaget gjenbrukes.
-Faktisk blokkert metadatabygger og privatecontroller success/failureclosure PASS.
-Ingen numerikk/input/maske/seed/recipe/cap/timeout/vedlikeholdsvakt er endret.
-Ny runtime/plan, eksakt preflight, separatdiskbackup og fersk signert
-host/boot/vedlikeholdsadmisjon gjenstår før ny fullbaseline.
-002 er ikke innrømmet/kjørt; egen replay og all fit er fortsatt stengt.
+INITIAL002 (PROFILE_DESIGN002,kilde331f0448,planea95f5e4…) er nå også
+faktisk kjørt og konsumert.68berørte sourcekontroller PASS;253uendrede fra
+321grunnlaget gjenbrukt gjennom fullf37literalreversering. Metadata og
+controller success/failureclosure PASS; ingen numerikk/input/maske/seed/
+recipe/cap/timeout/vedlikeholdsvakt ble endret. Preflight001 ble avvist før
+leaf/CLAIM ved utilgjengelig telemetri; nye signerte målinger og eksakt
+preflight002 bestod.103kilde-/planfiler9821542B er separatdiskverifisert.
+
+002 skrev/leste egenfersk INITIAL.pt/JSON med0optimizer/oldCPload/restore.
+14heleB256-batcher/3584rader var fullført da15.forward ble avbrutt07:44:44Z
+av uendret hostvakt, maintenance_active=true. Ingen observert ressursgrense
+ble brutt: GPU52/50C,202,12W,1924MiB; CPU36C/24,19W; minhost55,75GB.
+Ingen slutt-RESULT/full354550-baseline/egenreplaykvalifikasjon foreligger.
+Begge ufullstendige prefikser må aldri summeres til en fullbaseline.
+Kilde/input/plan/beggeboot-postkontroll PASS; alle5flaggfalse og002konsumert.
+
+Denne gangen er worker-presensgrenen faktisk fanget: MoUsoCoreWorker.exe
+PID5096 opprettet07:44:42,970Z, fortsatt i live07:45:43Z, altså tilstede
+ved07:44:44-stoppen. Den oppfyller den konservative vedlikeholdspredikaten;
+faktisk oppdateringsarbeid/momentanCPU-belastning er ikke bevist av0,875s
+kumulativeCPU-tellere. Andre Setup/OOBE/CBS/WU-grener varfalse i snapshot.
+PID5096 var borte07:47:49–52Z; forelder5764 er samme svchost/UsoSvc.
+Tasktidene er delvisUNKNOWN etternullfelter i diagnostikkproben og gir
+ikke en garantert stille periode. Ingen OS-/scheduler-/service-/vaktendring.
+STOP_REVIEW002 binder originaler og målinger.26originalfiler55215924B,
+inkludert faktisk39177784BINITIAL.pt, er separatdiskkopiert og uavhengig
+SHA/F_FULLFSYNC-kontrollert (manifestf5d6e396…). Source103/Stop26 sikrer
+kilde/plan og egneCP/kvitteringer uten deserialisering.
+001/002skalaldri relanseres.
+Før noen ny modell kreves fersk signert full vedlikeholds-/ressurskontroll
+og ny eksakt scope/plan/preflight/backupadmisjon. FullNonebaseline og egen
+kald replay er fortsatt ikke kvalifisert; all fit/epokeserie er stengt.
 
 Neste INITIAL må bruke virkelig fersk kandidattilstand/RNG og ny fullTRAIN354550-raders
 nulloppdateringsbaseline med riktig kandidatidentitet og matched prior.
