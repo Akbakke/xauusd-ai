@@ -102,6 +102,11 @@ NATIVE_FUTURE_STATE_BIAS_CONTINUE_MODULE=gx1.audit.continue_native_future_state_
 NATIVE_FUTURE_STATE_BIAS_CONTINUE=false
 NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256=
 # END GX1 BIAS CONTINUE ROUTE 20261122 004 STATE
+# BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 STATE
+NATIVE_PROVIDER_HLC_ALL_TF_LEARNING=false
+NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256=
+NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE=
+# END GX1 ALL TF LEARNING ROUTE 20261124 001 STATE
 # BEGIN GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 STATE
 NATIVE_PROVIDER_HLC_LEARNING_RESUME_MODULE=gx1.audit.native_provider_hlc_learning_v1
 NATIVE_PROVIDER_HLC_LEARNING_RESUME=false
@@ -1501,7 +1506,139 @@ configure_native_provider_hlc_all_tf_initial_segment() {
 
 # END GX1 ALL TF INITIAL SEGMENT ROUTE 20261124 003 MATCHERS
 
+# BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 MATCHERS
+matches_bound_native_provider_hlc_all_tf_learning() {
+  if [[ $# -eq 6 ]]; then
+    [[ "$6" == --preflight ]] || return 1
+    set -- "${@:1:5}"
+  fi
+  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$NATIVE_PROVIDER_HLC_LEARNING_MODULE" \
+    && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1
+  local expected_plan
+  case "$4" in
+    --all-tf-learning-plan-sha256)
+      expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_001.json" ;;
+    --all-tf-learning-resume-plan-sha256)
+      expected_plan="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_001/RECOVERY_PLANS/$5.json" ;;
+    *) return 1 ;;
+  esac
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]
+}
+
+configure_native_provider_hlc_all_tf_learning() {
+  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \
+    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \
+    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {
+    echo "FATAL: ALL-TF learning requires exact canonical trainer containment" >&2; exit 75
+  }
+  matches_bound_native_provider_hlc_all_tf_learning "$@" || {
+    echo "FATAL: ALL-TF learning requires its exact canonical command/plan" >&2; exit 75
+  }
+  local learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_001"
+  local learning_mode=main learning_env_name
+  if [[ "$4" == --all-tf-learning-resume-plan-sha256 ]]; then
+    learning_output="$learning_output/RECOVERY_$5"
+    learning_mode=resume
+  fi
+  [[ ! -e "$learning_output" && ! -L "$learning_output" \
+    && -d "${learning_output%/*}" && ! -L "${learning_output%/*}" \
+    && "$(readlink -f "${learning_output%/*}")" == "${learning_output%/*}" ]] || {
+    echo "FATAL: ALL-TF learning requires a fresh output in its canonical parent" >&2; exit 75
+  }
+  for learning_env_name in ${!GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING@}; do
+    case "$learning_env_name" in
+      GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING|GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256|GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE) ;;
+      *) echo "FATAL: unknown ALL-TF learning environment field" >&2; exit 75 ;;
+    esac
+  done
+  [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL:-false}" == false \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_INITIAL:-false}" == false \
+    && "${GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_REPLAY:-false}" == false \
+    && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY:-false}" == false \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING:-false}" == false \
+    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME:-false}" == false \
+    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE:-false}" == false \
+    && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE:-false}" == false \
+    && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-false}" == false \
+    && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-false}" == false \
+    && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == false \
+    && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == false \
+    && "${GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_TRAINING_LANE:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-false}" == false \
+    && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-false}" == false \
+    && "${GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_CUDA_LANE:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE:-}" == "" ]] || {
+    echo "FATAL: ALL-TF learning forbids mixed legacy modes/plans/lanes" >&2; exit 75
+  }
+  if [[ -n "${GX1_CAPPED_CLASS:-}${GX1_CAPPED_MEMORY_BYTES:-}${GX1_CAPPED_SWAP_BYTES:-}${GX1_CAPPED_TASKS_MAX:-}" ]]; then
+    [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-}" == true \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" == "$5" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE:-}" == "$learning_mode" ]] || {
+      echo "FATAL: ALL-TF learning mode/plan differs from protected parent" >&2; exit 75
+    }
+  else
+    [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-false}" == false \
+      && -z "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" \
+      && -z "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE:-}" ]] || {
+      echo "FATAL: unprotected ALL-TF learning environment pollution" >&2; exit 75
+    }
+  fi
+  NATIVE_PROVIDER_HLC_ALL_TF_LEARNING=true
+  NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256="$5"
+  NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE="$learning_mode"
+  TRAINER_DEVICE=cuda
+  TRAINER_EXECUTION_MODE=canonical
+  TRAINER_OUT_BUNDLE_DIR="$learning_output"
+  TRAINER_MAX_WALL_SECONDS=12000
+  TRAINER_MODEL_MAX_WALL_SECONDS=11970
+  TRAINER_GPU_INDEX=0
+  TRAINER_GPU_MAX_POWER_LIMIT_W=250
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_MEMORY_TEMP_C=80
+  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+  TRAINER_CPU_MAX_TEMP_C=80
+  TRAINER_CPU_MAX_PACKAGE_POWER_W=125
+  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592
+  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592
+}
+# END GX1 ALL TF LEARNING ROUTE 20261124 001 MATCHERS
+
 validate_target_command() {
+# BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 DISPATCH
+  local all_tf_learning_arg all_tf_learning_reference=false
+  for all_tf_learning_arg in "$@"; do
+    case "$all_tf_learning_arg" in
+      --all-tf-learning-plan-sha256|--all-tf-learning-plan-sha256=*|--all-tf-learning-resume-plan-sha256|--all-tf-learning-resume-plan-sha256=*)
+        all_tf_learning_reference=true ;;
+    esac
+  done
+  if [[ "$all_tf_learning_reference" == true ]]; then
+    configure_native_provider_hlc_all_tf_learning "$@"
+    return
+  fi
+# END GX1 ALL TF LEARNING ROUTE 20261124 001 DISPATCH
 # BEGIN GX1 ALL TF INITIAL SEGMENT ROUTE 20261124 003 DISPATCH
   if [[ "${4:-}" == --all-tf-score-segment-plan-sha256 ]]; then
     configure_native_provider_hlc_all_tf_initial_segment "$@"
@@ -2608,6 +2745,85 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
     }
   fi
 # END GX1 BIAS CONTINUE ROUTE 20261122 004 NESTED
+# BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 NESTED
+  [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-false}" == "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE:-}" == "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE" ]] || {
+    echo "FATAL: nested ALL-TF learning mode/plan differs from protected parent" >&2; exit 75
+  }
+  if [[ "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING" == true ]]; then
+    [[ "${GX1_CAPPED_MEMORY_BYTES:-}" == "21474836480" \
+      && "${GX1_CAPPED_SWAP_BYTES:-}" == "536870912" \
+      && "${GX1_CAPPED_TASKS_MAX:-}" == "128" \
+      && "${OMP_NUM_THREADS:-}" == "8" \
+      && "${MKL_NUM_THREADS:-}" == "8" \
+      && "${OPENBLAS_NUM_THREADS:-}" == "8" \
+      && "${NUMEXPR_NUM_THREADS:-}" == "8" \
+      && "${VECLIB_MAXIMUM_THREADS:-}" == "8" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_INITIAL:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_REPLAY:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_TRAINING_LANE:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_CUDA_LANE:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE:-}" == "" \
+      && "${GX1_TRAINER_MAX_WALL_SECONDS:-}" == "12000" \
+      && "${GX1_TRAINER_MODEL_MAX_WALL_SECONDS:-}" == "11970" \
+      && "${GX1_TRAINER_ATTENDED_STAGE_REQUIRED:-}" == "false" \
+      && "${GX1_TRAINER_GPU_INDEX:-}" == "0" \
+      && "${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W:-}" == "250" \
+      && "${GX1_TRAINER_GPU_MAX_POWER_DRAW_W:-}" == "250" \
+      && "${GX1_TRAINER_GPU_MAX_CORE_TEMP_C:-}" == "75" \
+      && "${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C:-}" == "80" \
+      && "${GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB:-}" == "12288" \
+      && "${GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS:-}" == "1" \
+      && "${GX1_TRAINER_CPU_MAX_TEMP_C:-}" == "80" \
+      && "${GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W:-}" == "125" \
+      && "${GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES:-}" == "8589934592" \
+      && "${GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES:-}" == "8589934592" \
+      && "${GX1_POWER_BENCHMARK_SCOPE_JSON:-}" == "" \
+      && "${GX1_POWER_BENCHMARK_SCOPE_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-}" == "true" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE:-}" == "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE" \
+      && "${GX1_CAPPED_CLASS:-}" == "trainer" \
+      && "${GX1_CUDA_PRODUCER_GUARD:-}" == "false" \
+      && "${GX1_TRAINER_DEVICE:-}" == "cuda" \
+      && "${GX1_TRAINER_EXECUTION_MODE:-}" == "canonical" \
+      && "${GX1_CPU_AFFINITY:-}" == "0-18" \
+      && "${BLIS_NUM_THREADS:-}" == "8" \
+      && "${ARROW_NUM_THREADS:-}" == "1" \
+      && "${POLARS_MAX_THREADS:-}" == "1" ]] || {
+      echo "FATAL: nested ALL-TF learning resources or mixed modes differ from protected parent" >&2; exit 75
+    }
+  fi
+# END GX1 ALL TF LEARNING ROUTE 20261124 001 NESTED
 # BEGIN GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 NESTED
   [[ "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME:-false}" == "$NATIVE_PROVIDER_HLC_LEARNING_RESUME" \
     && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256" ]] || {
@@ -3203,6 +3419,9 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256" \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE="$NATIVE_FUTURE_STATE_BIAS_CONTINUE" \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING="$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING" \
+  --setenv=GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256="$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE="$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME="$NATIVE_PROVIDER_HLC_LEARNING_RESUME" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256="$NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_LEARNING="$NATIVE_PROVIDER_HLC_LEARNING" \

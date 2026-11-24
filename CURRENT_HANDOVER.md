@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT029:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT031:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -85,9 +85,25 @@ closure75986a2c… PASS ogreadbackautentisert. Bare identitetsbufferen ble
 normalisert i en kopi, aldri installert; beviset er kontrollflyt, ikke bare
 zero-readout-utgangsparitet. V2_FULL_POPULATION_PAIRED_PROVENANCE001 binder
 originalene;0nyeCPloads/NN. Egen None-C2/replay beholdes som mekanikkbevis.
-Neste konkrete kodeblokkering er fit/resume-eierens M5_primary-hardkoding.
-En eksplisitt, kildekvalifisert None-rute må bindes til INITIAL003/replay og
-egen eksakt engangsplan/vakter førfit. All5porterfalse; TRAIN-diagnostikk,
+Eksplisitt None main-/recovery-rute og begge guards er nå kildekvalifisert:
+453syntetiske cases og faktisk metadata003 over79eiere, uendret fysisk
+input-/normaliseringsidentitet,25gamle funksjoner byteuendret og bareto
+main-dispatcher. Faktisk modellctor i begge ruter har None; egenINITIAL003/
+replay og hele354550×5/3694B96/sourceorder/recipe beholdes. Ingen numerisk
+modell-/loss-/target-/normaliseringsendring. Metadata001/002 stoppet bare
+privatekontrollens importcacheprobe; begge er bevart.003tillot ekte, avgrensede
+NumBa-cacheprober ved import og stengte alle writes før runtime/builder:
+0payload/NN/optimizer/autograd/CUDA/nett/builderwrites,0PLAN/ROOT/CLAIM.
+13filer/630709B med kilde/test-/metadata-/feilbevis er separatMac-
+diskkopiert og faktiskSHA/F_FULLFSYNC/fsync-verifisert, ogsådiagnostikk/stderr.
+V2_ALL_TF_LEARNING_SOURCE_QUALIFICATION002 og SOURCE_BACKUP002 binder gjeldende
+bevis;001 bevares. Commitkontrollen fant én ekstra EOF-blanklinje i nytest.
+Bare denne ene byten ble fjernet; fullAST inkl linjeposisjoner er identisk,
+453cases gjenbrukes.3nye filer/19386B er separatdiskverifisert som tillegg
+til de13originalene; produksjonskilden og all numerisk funksjon er uendret.
+Neste: bygg eksakt ny engangsplan fra fryst commit, faktisk cappedCLIpreflight,
+planbackup og fersk signert vert-/ressurskontroll før eventuell admisjon.
+Ingen None-plan eller læring er opprettet/innrømmet; globale porter forblirfalse. All5porterfalse; TRAIN-diagnostikk,
 ikkeOOF ellerutvalg påTEST; kalender/vintage/generalisering/edge fortsattåpent.
 
 ## Gjeldende hele-TRAIN støttekontroll
