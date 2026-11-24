@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT028:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT029:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -42,8 +42,8 @@ claimed: gammelGPU-entrypoint ble korrekt nektet; ingen vakt ble svekket.
 
 Statuskontroll24.11 avdekket og rettet foreldede aktive aliaser etter fullført
 INITIAL003 og egen kald replay. ACTIVE_READINESS_STATUS_RECONCILIATION003
-binder før/etter-feltene mot originale akseptkvitteringer. Aktiv terminal,
-resultat, runtime og tekniske kvalifikasjonsfelt viser nå samme cold-replay.
+binder før/etter-feltene mot originale akseptkvitteringer. Feltene ble da
+avstemt mot cold-replay; nyeste CPU-terminal/resultat/runtime følger policy.
 Tidligere avsnitt om001/002 og gamle baseline-/replaygap gjelder de navngitte
 historiske fasene; de er ikke nåværende mangler. Historisk training_started
 gjelder beholdt M5-primary-epoke; None main-fit er ikke startet.
@@ -53,6 +53,42 @@ Den nyeste kaldreplay-terminalens manglende direkte source-/TEST-felt må
 bevises fra bundet originalRESULT og lukket stage/aksept; ingen felt gjettes.
 ACTIVE_STATUS_DISPLAY_QUALIFICATION001:36fokuserte casesPASS (12nye),
 faktisk handoverPASS; launch-gaten og alle øvrige gamle funksjoner er byteuendret.
+
+## Gjeldende årsakskontroll og neste læringsdesign
+
+NATIVE_PROVIDER_HLC_UNKNOWN_ACTIVITY_CAUSE_20261124_001 er COMPLETE,
+consumed og stengt0/false.2,537s i run,4G/512M/éntråd;22målarrays/151747400B,
+alle354550×5celler.0NN/fit/CP/features/CUDA/nett. Kanoniske masker ogcached
+activity/known/partial gjenskapt eksakt; count-/window-/asof-fakta avstemt.
+H4ukjent:23424rader/508vinduer; H1:366/32. Alle har ufullstendig vindu,
+gyldig skala og positiv observert range under terskelen. M15:19nullrange+
+46positive under terskel,25vinduer. M5/D1har0moden aktivitetsukjent.
+Ingen ugyldig skala forekommer. Alle27H4/2H1blandingsvinduer avstemmes mot
+faste vindusfakta og ulike kausale asof-/skalatilstander. source_gap erikke
+completenessmask.22079H4rader har12av48forventedeM5mangler; dette beviser
+mønsteret, ikke historisk stengingsårsak. Ingen masker/fasit/inputs er endret.
+Uavhengig kilde- og faktiskJSON/SHA-resultatreview PASS; ingen ny ATR14/
+OHLC-/kalenderrekonstruksjon eller årsak til modellens OPP-skjevhet hevdes.
+4syntetiskegrupper, faktiskblokkertmetadata65eiere ogeksaktCLIpreflight PASS.
+Første signertevertsjekk timeout2s føradmisjon; fersk002PASS meduendredevakter.
+Kildebackup8filer5400636B og resultatbackup16filer10761622B er separatMac-disk-
+kopiert og faktiskSHA/F_FULLFSYNC/fsync-verifisert, inklusive diagnostikk.
+
+V2_FULL_POPULATION_NONE_COMPARISON_DESIGN001 er forhåndsregistrert uten
+kjøreautoritet. ÉN None-kandidat, HELE354550TRAIN/5TF/3694B96updates,
+samme seed20260911/AdamW/lr0,0001/clipping1/sourceorder og eksisterende
+M5-primary-fullført kontroll. Ingen20727/6prosent-erstatning, kvoter/HPO/
+ekstraepoker eller FINAL-/replayvekter som fitstart. INITIAL003s originale
+first_fresh kontrollflyt dominerer CPskriving med full policy-normalisert
+stateSHA og RNG lik INITIAL002; eier95a454c8… er historisk/CURRENT byteidentisk,
+closure75986a2c… PASS ogreadbackautentisert. Bare identitetsbufferen ble
+normalisert i en kopi, aldri installert; beviset er kontrollflyt, ikke bare
+zero-readout-utgangsparitet. V2_FULL_POPULATION_PAIRED_PROVENANCE001 binder
+originalene;0nyeCPloads/NN. Egen None-C2/replay beholdes som mekanikkbevis.
+Neste konkrete kodeblokkering er fit/resume-eierens M5_primary-hardkoding.
+En eksplisitt, kildekvalifisert None-rute må bindes til INITIAL003/replay og
+egen eksakt engangsplan/vakter førfit. All5porterfalse; TRAIN-diagnostikk,
+ikkeOOF ellerutvalg påTEST; kalender/vintage/generalisering/edge fortsattåpent.
 
 ## Gjeldende hele-TRAIN støttekontroll
 
@@ -81,9 +117,8 @@ OANDAs offentlige UK-side har daterte2025helligdagsoppføringer, men ikke
 kvalifisert2021–25 practice-feed-autoritet. Ingen hull eller kalenderfakta
 er ommerket. OANDA_PUBLIC_CALENDAR_CANDIDATE_REVIEW_20261124_001 binder
 kildekandidater og manglende historisk feedmapping/gyldighetsperiode.
-Neste er å undersøke målt moden aktivitetsukjent-støtte mot eksisterende
-kilde-/kalender-/skalafakta og forhåndsregistrere én hel-populasjonsparet
-læringssammenligning. Ingen stille20727/6prosent-erstatning, klassekvote,
+Aktivitetsukjent-støtten er nå undersøkt i årsakskontrollen over, og
+hel-populasjonssammenligningen er forhåndsregistrert utenadmisjon. Ingen stille20727/6prosent-erstatning, klassekvote,
 nyfasit, fit/epoke eller TEST. StrengOOF trenger fortsatt prefix-modne
 statistikker/konstanter/prior og egen fersk baseline/replay.13/3/4 består.
 

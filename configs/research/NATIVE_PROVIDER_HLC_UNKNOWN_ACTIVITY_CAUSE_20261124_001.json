@@ -1,0 +1,645 @@
+{
+  "TRAIN_issue_ns_sha256": "c0805f39affb9bd80e679e0b41f69a558ea975d0e479ddeee815c7dd370997ea",
+  "accepted_mature_unknown_activity_rows": {
+    "D1": 0,
+    "H1": 366,
+    "H4": 23424,
+    "M15": 65,
+    "M5": 0
+  },
+  "budget": {
+    "CUDA_initializations": 0,
+    "NN_forwards": 0,
+    "NPZ_arrays_decoded": 22,
+    "NPZ_ndarray_bytes": 151747400,
+    "TFs": 5,
+    "TRAIN_issue_rows": 354550,
+    "VAL_TEST_selected_rows": 0,
+    "autograd_calls": 0,
+    "backward_calls": 0,
+    "checkpoint_loads": 0,
+    "checkpoint_saves": 0,
+    "feature_arrays_decoded": 0,
+    "models": 0,
+    "network_calls": 0,
+    "normalization_fits": 0,
+    "optimizer_updates": 0,
+    "prior_fits": 0,
+    "raw_provider_responses_decoded": 0,
+    "target_cells": 1772750,
+    "whole_archive_bytes": 33865595
+  },
+  "execution": {
+    "class": "audit",
+    "internal_seconds": 570,
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "numerical_threads": 1,
+    "outer_seconds": 600,
+    "swap": "512M"
+  },
+  "inputs": {
+    "archive": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_PROVIDER_HLC_TARGET_QUALIFICATION_20261123_001/FUTURE_STATE_HLC_TARGETS001.npz",
+      "sha256": "2d1280e8f3cc58685db1eab650409262d5e75afbaa091c873d82ecf7a5043b6e"
+    },
+    "census_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V2_FULL_TRAIN_SUPPORT_CENSUS_ACCEPTANCE001.json",
+      "sha256": "9eb5568f7165455b14a32d930c2d46e5a5b435abbda8d3fefc6051af3f0e73ec"
+    },
+    "census_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_FULL_TRAIN_SUPPORT_CENSUS_20261124_001/RESULT.json",
+      "sha256": "1f7489a9a31f01e3ad28b2c128a95e50bf386bc77091d40af779b5976deb2ef3"
+    },
+    "census_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_FULL_TRAIN_SUPPORT_CENSUS_20261124_001/TERMINAL.json",
+      "sha256": "59ab3a8f7e40f3aa5eb6e9659445cbd301c31da7b6e231ccaf90988dc5a0c01e"
+    },
+    "certificate": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_PROVIDER_HLC_TARGET_QUALIFICATION_20261123_001/PROVIDER_HLC_CERTIFICATE001.json",
+      "sha256": "2e50b9616c29bd458d812bd977532cc9fc65c757ecb1762567628a2a8168dbd1"
+    },
+    "dataset": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_PROVIDER_HLC_TARGET_QUALIFICATION_20261123_001/FUTURE_STATE_HLC_DATASET001.json",
+      "sha256": "b7727cddf8bba2f92caa9b8979995478b641518ddb768670b0ec6c0c8152bfc3"
+    },
+    "prior": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_PROVIDER_HLC_TARGET_QUALIFICATION_20261123_001/MATCHED_TRAIN_PRIOR001.json",
+      "sha256": "78b3766212e480c6eac9066b7f15fc174c9da55ee4f755b3286653d858051266"
+    },
+    "support": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_D1_PROVIDER_HLC_TARGET_QUALIFICATION_20261123_001/SUPPORT001.json",
+      "sha256": "c215dfc3373e2b93697972425c51dee91e12613df4c5ea689f32829097053ddc"
+    },
+    "target_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_TARGET_ACCEPTANCE001.json",
+      "sha256": "f20b79e2d37f3315157cd89ca74b2a12cb0e3c520a5a9bf3347ffbee7568981c"
+    }
+  },
+  "output_root": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_UNKNOWN_ACTIVITY_CAUSE_20261124_001",
+  "runner": {
+    "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V2_UNKNOWN_ACTIVITY_CAUSE_RUNNER001.py",
+    "sha256": "437fd3f85e580d60958170fb55365283f69fbcdb447598a40657f2d6ab1dcb79"
+  },
+  "schema_version": "gx1_provider_hlc_unknown_activity_cause_plan_v1",
+  "scope": "Stored-fact joint signatures for mature unknown activity on the complete354550x5 original axis, with canonical mask validation; H4 is a report filter only. Prior/census proofs reused, not refitted or recounted. No source/calendar/API/OHLC/ATR reconstruction, feature or learning-cohort change, NN/CP/fit/VAL/TEST.",
+  "selected_fields": [
+    "issue_ns",
+    "target_start_ns",
+    "validity_ns",
+    "target_present",
+    "mature",
+    "nominal_complete",
+    "activity_known",
+    "activity",
+    "side_known",
+    "side_up",
+    "state_window_complete",
+    "partial_range_active",
+    "provider_hlc_observed",
+    "state_hlc_observed",
+    "target_range",
+    "state_activity_scale",
+    "state_expected_m5_count",
+    "state_missing_open_m5_count",
+    "m5_count",
+    "source_gap",
+    "atr_asof_row",
+    "atr_asof_available_ns"
+  ],
+  "selected_headers": {
+    "activity": {
+      "dtype": "|b1",
+      "ndarray_bytes": 1772750,
+      "sha256": "cab047dd784d7a8f314fcb13a8d5dd731476d4d193d00dadd598aa1a3e019fe0",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "activity_known": {
+      "dtype": "|b1",
+      "ndarray_bytes": 1772750,
+      "sha256": "18f9faf2a0cfebbd83541797ceb302448e1e3402235372281ae05dad2b57feec",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "atr_asof_available_ns": {
+      "dtype": "<i8",
+      "ndarray_bytes": 14182000,
+      "sha256": "211bbdb0e3efe2a5070254e1e82d83d7cfec56be9166879ccf1fc7d16dd11c01",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "atr_asof_row": {
+      "dtype": "<i8",
+      "ndarray_bytes": 14182000,
+      "sha256": "cbbb0e8bbaf70e2481c7d94c840932e4d367fb542a6fc3ed6f573d745b4e65a5",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "issue_ns": {
+      "dtype": "<i8",
+      "ndarray_bytes": 2836400,
+      "sha256": "c0805f39affb9bd80e679e0b41f69a558ea975d0e479ddeee815c7dd370997ea",
+      "shape": [
+        354550
+      ]
+    },
+    "m5_count": {
+      "dtype": "<i8",
+      "ndarray_bytes": 14182000,
+      "sha256": "a484dff3a73213880c43875885ff64fedfa923cd773c5f10d2ec675d92c409d5",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "mature": {
+      "dtype": "|b1",
+      "ndarray_bytes": 1772750,
+      "sha256": "957a71d6f5fc112d6d15c20a53b4fd28e62f13653e4e71e3c8407df116074208",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "nominal_complete": {
+      "dtype": "|b1",
+      "ndarray_bytes": 1772750,
+      "sha256": "29feb6d41ead602a5c46460b8b392c4ba6ff8d14c2d0e2b76d5620e16cae818b",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "partial_range_active": {
+      "dtype": "|b1",
+      "ndarray_bytes": 1772750,
+      "sha256": "77e350bcb232b2af36cb3d722c8e1898702cb0f2bea66b2929809dd3279fc9e5",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "provider_hlc_observed": {
+      "dtype": "|b1",
+      "ndarray_bytes": 1772750,
+      "sha256": "f5b963421891615e0c60c713ee2f107b932e9b962d42a9c99b3f5f2a704b9395",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "side_known": {
+      "dtype": "|b1",
+      "ndarray_bytes": 1772750,
+      "sha256": "68c7cb408992799f97c0421180454684d47c7b12003303a33efd5d07a91502f7",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "side_up": {
+      "dtype": "|b1",
+      "ndarray_bytes": 1772750,
+      "sha256": "2c34ae5f18664dc6ed2edf86c3d9068fa136f9f3a068f55a7f5e137006202f9d",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "source_gap": {
+      "dtype": "|b1",
+      "ndarray_bytes": 1772750,
+      "sha256": "71df90fdc0ea76e6f672efa4e2d9a965c17099a16fdbb3630444db6ba350c9aa",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "state_activity_scale": {
+      "dtype": "<f8",
+      "ndarray_bytes": 14182000,
+      "sha256": "98ee9ebcfc31e153c6e07bd41d2a617d4537eea46b658e737fd24a280340575d",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "state_expected_m5_count": {
+      "dtype": "<i8",
+      "ndarray_bytes": 14182000,
+      "sha256": "944b359cfa821964f3ddea3beffa953753719d8a5fe1583be621a3f2a15c178e",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "state_hlc_observed": {
+      "dtype": "|b1",
+      "ndarray_bytes": 1772750,
+      "sha256": "61d40eb2931323edae3cba28adff97fb8b3d7b904c0b6f1fcf2fd838ae2beb8a",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "state_missing_open_m5_count": {
+      "dtype": "<i8",
+      "ndarray_bytes": 14182000,
+      "sha256": "ccbce949daab22f322f5f7891412f85bc57126b6b8ec38d191e2f7b734a8f9fa",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "state_window_complete": {
+      "dtype": "|b1",
+      "ndarray_bytes": 1772750,
+      "sha256": "fac8953ba8a30b59f615b7533b815cb8575d11ebc8af07370dc13ca3ac5f42c6",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "target_present": {
+      "dtype": "|b1",
+      "ndarray_bytes": 1772750,
+      "sha256": "1aa90a1205caa72e623238c442eb18234ac4d5ee89cc99e6c8d9f1fbd1e9895d",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "target_range": {
+      "dtype": "<f8",
+      "ndarray_bytes": 14182000,
+      "sha256": "5b190fba8e7b36683454c2a5bc44529a49f935b5fc22c52ca53de12d3972a554",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "target_start_ns": {
+      "dtype": "<i8",
+      "ndarray_bytes": 14182000,
+      "sha256": "dfdda3166914c0b9b9c38add5b52365e408a3f414822cb6944568b373126f5a2",
+      "shape": [
+        354550,
+        5
+      ]
+    },
+    "validity_ns": {
+      "dtype": "<i8",
+      "ndarray_bytes": 14182000,
+      "sha256": "054ad8da866c6e5a9db61c14d3d1f759ca304587bc7683cb94ec35783abb6b1d",
+      "shape": [
+        354550,
+        5
+      ]
+    }
+  },
+  "source_commit": "6158fd3b4f3f6d8a6ad22d69a91e6fe22668e16b",
+  "source_files": [
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/__init__.py",
+      "sha256": "cd83fb84c341708c41f4ca3df7de653d480a43e6fff050f3f9aabf3aaeec82bd"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/__init__.py",
+      "sha256": "10a0e69a7d58a2fcaa7312ffe7938693a20a03a6fa64e0ffb77f883c277f57b0"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_causal_m1_outcomes_v1.py",
+      "sha256": "4cba6a5fb49c518eedd67bd8264af51bb319a3af604aeda483c415d4ea864ac7"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_decision_token_v1.py",
+      "sha256": "d99a8840e456ff14e645867fbcd9bfdda3a6fe653dc54e7be45100f3a0d06d1b"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_exit_feature_base_v1.py",
+      "sha256": "4596f4399c000ca4dae3ba11061bef20430decc74f91118649d968111ad89d1c"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_exit_production_architecture_v1.py",
+      "sha256": "cdb2d2e08e52de0597cb011bd6350b78f905e0a0a2514db75fc43f81fb9086b2"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_fitted_q_v1.py",
+      "sha256": "60ea606de3b68fbf2a27d2c5f337bc66ea281813ed7d9d7662ffdda64058e6eb"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_aux_targets_v3.py",
+      "sha256": "d4195bb30277862afe52a41b11adee96880f1e9e27b4bef3124becd60960c0c0"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_input_normalization_v1.py",
+      "sha256": "1d830c7cb767db699879c6c315f5696854dc1f3bf9fa2021a4020bb76c7c0fa4"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_joint_task_weighting_v1.py",
+      "sha256": "170c78020a1577e30ea90c13f4e1e6644e62af910ef9164a9d48a05c6b655e97"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_signal_v1.py",
+      "sha256": "69a819484762dad28194942fd98319be060297dd262c30711e2795515d2f4598"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_tf_input_scale_v1.py",
+      "sha256": "1abcd3a33278f6dec925749386298e979e485b7b10a9772596450b0592e8f1b3"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_training_objective_v1.py",
+      "sha256": "076366e793368bdd079455151cbd6592e4f96432baffaa2239d869c1147cf07b"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_pretrain_polarity_signal_v1.py",
+      "sha256": "01ae83b1ec5482af8dc96c482b7ebe34d4606c28e69ec7bdb9703671eab637ba"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_structural_aux_label_signal_v1.py",
+      "sha256": "a9d1a687e6e9e410a6fcc4cd65f0b530ec98670351abc4562438c3e248fcc196"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "e4fa7ef20eb8fe29ef84e93016e7823540c2c719556aa173e5fc9336b67ff963"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_native_m5_targets_v1.py",
+      "sha256": "1d83e4c04a1e14f067b72a6c4ac2a81af245c77dcb82c3e6320fcbee113c9d4e"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_integrated_model_v1.py",
+      "sha256": "b3849e19c186e0f390d2a4a18d2da7a72e93dbdc80be048fbbda07c5eafe22c9"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/market_state_ta_integrated_objective_v1.py",
+      "sha256": "dbf2a76217b0694f94651357a7c11d9e8166176473eea917c660f9556159f9e8"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/model_state_digest_v1.py",
+      "sha256": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/native_future_state_provider_hlc_v1.py",
+      "sha256": "47b846c6aadce6916dc6c1409a90679623728959306836550403f7b9070e4f8c"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/native_m5_direction_io_firewall_v1.py",
+      "sha256": "4ebe5d7a49a8fd719e82f62a5d04ca45489af1dfdc1022475e6044723c170739"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/registry_hyperparameter_fit_v1.py",
+      "sha256": "214fa54194e42fe43c94fa022dc87ec0ea1eb16558b092dda0e0cb37b815b197"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_economics_objective_v2.py",
+      "sha256": "85c8f54fab03f23ad3c3576cc7ba0b8a704056deeee3846f1310da568ed6f6b6"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_episode_pack_v1.py",
+      "sha256": "6ee0a005ea4e6cb641b0c136d9e49fdf88e304e973ae1236b8b65ec6e82d0f0d"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_fitted_q_v1.py",
+      "sha256": "799c565d168a868194d304e1b13391a6cdf9be4f90ba3720144fdbd2e4d48a52"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_incremental_carry_v1.py",
+      "sha256": "6dd120af3897687917dcb5ceee24a10d3d75e223aeda87df524a157ea5e66ad3"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_input_v1.py",
+      "sha256": "b810e6f395347fd97ccda5fee7849876cf80f8de03b5dbe6f97894fa9c20e1cb"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_legacy_state_v1.py",
+      "sha256": "c8036e7be60007a6b7440bb50a8bf3d5e3ec4cfdb3496581beafab89c8a906ce"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_lifetime_summary_v1.py",
+      "sha256": "c2fffaafad21c3469ab6ec798e72690a8fea2da73e64213631da133d68d31ebf"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_model_v1.py",
+      "sha256": "34fa09f03b2d83aac394c9b8e6ad68526d883aada3e65456a6e365465e35b8d8"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/xau_tape_provenance_v1.py",
+      "sha256": "402ccad76c08ae27f21d5bdbe315a8d087ba76bea706f0f058b886393183292d"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/basic_v1.py",
+      "sha256": "30ef4e4e6dc5a0011b13eeb7e11227dbeaa3a44b78c35405e64f7ca655bad220"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/d1_macro_context_v1.py",
+      "sha256": "1d61f70381a912a275115a35bb97b103919bc23515d79faed7016f0985ae3d56"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_candle_primitives_v1.py",
+      "sha256": "3f5a5e4fa3f12233aa5f9e5cc43d00d5cd5d5069fb7625a6690ce606eec4b0d0"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_direction_momentum_profile_v1.py",
+      "sha256": "5ee9ce6c2aff6424bd0568e893e7173f459d727a8bd744649f10eeef0e79068b"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_foundation_structure_v1.py",
+      "sha256": "c3c91476051b2e6552fc3089ca50980a38a5a20060af74b802435c786325e558"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_model_native_feature_layers_v1.py",
+      "sha256": "db85c4c365cac9bf7d89b5f36cd7ea6112f020b7eb26d2ae4d0462659b3c3a1b"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+      "sha256": "cf5a6da5374e25627c42b9ab3dde93770a92efd85411e6b8e8431b577c2a9153"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/event_age_v1.py",
+      "sha256": "7c20d98c26f5c94885d9defdfc070eb19df81d6344f0457acdf903b4f6712ef5"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/gc_native_context_v1.py",
+      "sha256": "072819223bb13d970cc349650f608367858500ea1a8989e2833a0bbb7ed464ff"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/gc_native_field_catalog_v1.py",
+      "sha256": "c24d1ce880d55dbff6fe346eac4a21529d9dd906fa56a6e55c417edde5a80b8a"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/htf_features.py",
+      "sha256": "3d13c1705c95ddd0e57d93e5c902ef33ed2e6cd24c59cafb24852023e0d0377b"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/level_registry_v1.py",
+      "sha256": "e7304de96c211678f9c6d4a7513d267b1f974c7718fe3a33b8103c71f3a39e02"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/micro_structure_v1.py",
+      "sha256": "761533b9ae31fd268dbe4c075bb7e73f1436076af8372a8efc08fa2d8c1800dd"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/model_native_market_context_v1.py",
+      "sha256": "69f61a52c79711ea58a4c7b2d0e743c01cff6dd3af1e1f1e5f2b4864a12826c2"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/smc_v1.py",
+      "sha256": "56b9fe479e1cdb7dc524179b65e585d890cdd2fef128d47a6cada00692b94d9a"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/swing_structure_v1.py",
+      "sha256": "c46ab4413e5bd5dd7114625fa3539e21ab39f9100341092b73d17e6efdd101e0"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/technical_indicators_v1.py",
+      "sha256": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/trendline_registry_v1.py",
+      "sha256": "24c12e8d4c6f597a331dacecbdc5e9a9ed8fdf6c0b6798ee7c543884d04aee58"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/volatility_squeeze_state_v1.py",
+      "sha256": "652b999a4b058026568b72018be2cf5cf0820d30b12e4f557830986ddeed05dc"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/volume_features.py",
+      "sha256": "31433e540ada7808142805aca353c36fa8de566c88724e7f046aed8f03aef493"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/__init__.py",
+      "sha256": "01d0c5f102a95985647d31fb12deb3974326bb25c4e94a3ec6122cfd8fb21d3b"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/__init__.py",
+      "sha256": "941ea128364bcdaf7edcbdc7d92d4d01042173a10d258614d8143073f1f95f3a"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/direction_decision_contract.py",
+      "sha256": "f309daa0441a049c64b9fc879af371d034f3a720074bf8c236081860672aa4b1"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+      "sha256": "236ea6d7d9dad3801c2ee06a2115c878c0d773c0630038ef0815d407d18ff1c4"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_build_canonical_features_v1.py",
+      "sha256": "b84ce141598294d2449f9f40b49b7ef8c2563ff8ad832e80664a2f1eb15a1a75"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/time/__init__.py",
+      "sha256": "9f5b9996e883bf229dcc880fe3cb06184dafff1e6cb7a85ed74a442f376fb10b"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/time/session_detector.py",
+      "sha256": "ed0189b74ec72a80c9667c470e59c37719e59e549d683cc4b50759855c8e03d8"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/utils/artifact_primitives_v1.py",
+      "sha256": "94a85b804a10c28ff82ef83be5bd67d114ef686ec3e7d4cd36362a308af68932"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "b23f7471ab0c62b883324319739652982394e7572df554c8ea1fc0c20f59bb45"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_host_telemetry_bridge_query.sh",
+      "sha256": "a9d09c7717b3c27b794a2ed9cd10fde57aebba962fa6cbcf3ccdf090faac6262"
+    }
+  ],
+  "stage": "native_provider_hlc_unknown_activity_cause_20261124_001",
+  "target_contract": {
+    "activity_known": "mature_and_observed_HLC_or_explicit_partial_positive_range_certificate",
+    "activity_rule": "positive_observed_range_ge_scale_proves_ACTIVE_complete_range_below_scale_or_exact_zero_proves_FLAT",
+    "activity_scale": "0.5_times_TF_Wilder_ATR14_last_closed_at_issue_no_future_scale",
+    "ambiguous_side": "both_or_neither_material_endpoint_excursions_remain_unknown_no_extrema_order_assumed",
+    "base_state_contract_sha256": "f680c6972ebb9b920770cfc68db7ae717b1ea48149fddf061f17f29f193dad5f",
+    "class_order": [
+      "DOWN",
+      "FLAT",
+      "UP"
+    ],
+    "contract_sha256": "4695c0ac9caeaa001d69d2c10b8a0c3111e3d09122592993b1cd7013720e459c",
+    "coverage_owner": "gx1.contracts.xau_tape_provenance_v1.scheduled_weekly_closure_mask",
+    "future_bar_contract_sha256": "104cb5991b2f3ec65835e6d3e029c1e51164ed63d157e3b07f1b9852afd926d9",
+    "local_window": "high_low_of_next_entirely_future_TF_bar_operator_choice_20261121",
+    "missing_ATR": "nonzero_range_unknown_no_guessed_scale",
+    "nominal_complete": "retained_strict_calendar_clock_fact_never_overwritten",
+    "observation_fields": [
+      "activity_known",
+      "activity",
+      "side_known",
+      "side_up",
+      "provider_hlc_observed",
+      "state_hlc_observed"
+    ],
+    "partial_range_active": "unchanged_ACTIVE_and_not_state_window_complete_M5_clock_fact_not_HLC_unknown",
+    "probability_limits": "proper_scores_on_observed_support_do_not_establish_unconditional_calibration_or_utility",
+    "production_training_admitted": false,
+    "provider_close": "last_reported_provider_bar_close_no_nominal_end_second_or_publication_time_assertion",
+    "provider_hlc_certificate_schema": "gx1_native_D1_provider_hlc_certificate_v1",
+    "provider_hlc_design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_DESIGN001.json",
+      "sha256": "cd97abfec7c512364c21c9608c41352ee70dac9593e1dfd28a5527713734f172"
+    },
+    "provider_hlc_limits": "no_allquotehistory_calendar_firstvintage_firsthitorder_inputchange_or_learning_claim",
+    "provider_hlc_scope": "TRAIN_mature_D1_UTC22_exact_parent_HLC_only_no_other_TF_promotion",
+    "provider_hlc_source_binding_sha256": "b23ae993a754996adbfee56f0793758e18d10cdf1972af88b0074373905e7a17",
+    "qualification": "D1_provider_relative_HLC_observation_only_requires_separate_generation_and_initial_baseline",
+    "schema_version": "gx1_native_m5_fully_future_state_dataset_v2_provider_hlc",
+    "side_boundary": "positive_scale_ge_is_material_zero_scale_requires_strict_positive_excursion",
+    "side_certificate": "observed_HLC_unique_material_endpoint_excursion_C_minus_L_vs_H_minus_C_same_scale",
+    "side_known": "requires_known_ACTIVE_observed_HLC_and_exclusive_endpoint_excursion_certificate",
+    "source_closure_contract": "oanda_complete_true_scheduled_weekly_closure_excluded_v2",
+    "state_endpoint": "complete_window_last_expected_open_M5_close_incomplete_window_last_observed_close_only_no_invented_nominal_end_price",
+    "state_hlc_observed": "state_window_complete_OR_authenticated_provider_hlc_observed",
+    "state_window_complete": "every_expected_M5_start_outside_declared_weekly_closure_present_no_other_missing_bar_excused",
+    "target_arrays_and_metadata_as_model_input": false,
+    "tf_duration_ns": {
+      "D1": 86400000000000,
+      "H1": 3600000000000,
+      "H4": 14400000000000,
+      "M15": 900000000000,
+      "M5": 300000000000
+    },
+    "tf_origin_ns": {
+      "D1": 79200000000000,
+      "H1": 0,
+      "H4": 7200000000000,
+      "M15": 0,
+      "M5": 0
+    },
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "unknown_storage": "false_boolean_payload_is_not_an_observed_class",
+    "zero_range": "observed_HLC_exact_zero_is_FLAT_even_zero_or_missing_ATR_no_epsilon"
+  },
+  "truth_sha256": "2759c1bb2152634eb36d4f23eebe914cef0c5ad5469491daafd61f25d859d443"
+}
