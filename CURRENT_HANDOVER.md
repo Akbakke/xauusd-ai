@@ -770,3 +770,22 @@ Resultatbackup førsteparity:24originalfiler/22687315B separatMacdisk SHA/
 F_FULLFSYNC/readback verifisert, ACK PROVIDER_HLC_FIRST_PARITY_BACKUP001.
 SenesteCPU-ruter er målt/lukket, ikke samsvarsgodkjent motlagretCUDA.
 Ingen jobb kjører; én ny B256-scope er bare klargjort, ikke innrømmet.
+
+Batchgeometrydesign001 er låst for kildekvalifisering: ettoriginaltCPU B256
+no_grad/grouped/equalTFforward,0gradient/update; alle256referanser og row0
+CPU_B1 sammenlignes med uendret toleranse. Første96hash/heleTRAINakser/
+immutablecache binder fast0:256utvalg; nye256hashes registreres etterdecode.
+4Ggrense/900sekunder og stopp uten fallback/batchsweep. Ingenpayloadadmisjon.
+
+Statuskontroll24.11:21nye batchgeometrytester og faktisk blokkert metadata PASS;
+0modell/CP/NPZ/forward/claim. Endelig kildekvalifisering/commit/preflight og
+B256måling gjenstår; ingen treningsadmisjon. CURRENT_STATUS_TEXT_ERRATUM001
+fjerner kun to foreldede ikke-kjørt-klausuler fra dagens steg16visning etter
+SHAkontroll av faktiske RESTORE2048/3328bevis. Original REVIEW023 bevares;
+13PASS/3FAIL/4UNKNOWN og alle fem stengte treningsporter består.
+
+Batchgeometrykilde kvalifisert:21nye cases PASS, gamle82testbytes/hele gamle
+eieren er eksakt bevart etter fjerning av de isolerte tilleggene. Faktisk
+blokkert metadata PASS/86eiere/0payload/0NN; kilde/controllerreview PASS.
+SOURCE_QUALIFICATION001 binder originale logger/helper/preview og hashes.
+Commit/push, kanonisk preflight og separat backup gjenstår før ettCPUforward.

@@ -479,7 +479,215 @@ def run_first_parity(sha):
         for sig,handler in handlers.items():signal.signal(sig,handler)
 
 
+# Single B256 geometry measurement; completed parity routes stay unchanged.
+BATCH_NAME='NATIVE_PROVIDER_HLC_BATCH_GEOMETRY_20261124_001'; BATCH_STAGE=BATCH_NAME.lower()
+BATCH_PLAN=REPO/'configs/research'/(BATCH_NAME+'.json'); BATCH_ROOT=Path('/home/andre2/GX1_RUNS')/BATCH_NAME
+BATCH_DESIGN={'path':'/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_BATCH_GEOMETRY_DESIGN001.json','sha256':'ee827a739c59f60ab95f04f53d0489ea5ea7343b267e09690cebef6ed139088b'}
+BATCH_PARENT='1eae0a9710da279a9a8b81a7cc1147ec86126083'; BATCH_EXECUTION=dict(EXECUTION)
+BATCH_ROUTE={'name':'CPU_B256_NO_GRAD_EQUAL_TF','batch_rows':256,'capture':False,'device':'cpu','equal_tf':True,'grad_enabled':False,'grouped':True,'model_training':False}
+
+
+def build_batch_geometry_plan(*,source_base_commit=None):
+    d=read(BATCH_DESIGN)
+    need(d['schema_version']=='gx1_provider_hlc_batch_geometry_design_v1' and d['basename']==BATCH_NAME and d['stage']==BATCH_STAGE
+         and d['module']==MODULE and d['plan_path']==str(BATCH_PLAN) and d['output_root']==str(BATCH_ROOT) and d['source_parent_commit']==BATCH_PARENT
+         and d['CLI']==['--first-parity-plan-sha256','<SHA256>','--batch-geometry'] and d['execution']==BATCH_EXECUTION
+         and d['execution_authorized']is False and d['training_authorized']is False and d['test_authorized']is False
+         and d['original_tolerance_changed']is False and d['stop_parity_series_after_this_comparison']is True
+         and d['fixed_original_tolerance']==TOLERANCES['saved_FINAL_logits'] and d['route']==BATCH_ROUTE,'BATCH_GEOMETRY_LOCKED_DESIGN')
+    for binding in d['inputs'].values():reference(binding)
+    meta={key:read(binding)for key,binding in d['inputs'].items()}; base=build_first_parity_plan(source_base_commit=source_base_commit)
+    old=meta['first_parity_plan']; result=meta['first_parity_result']; terminal=meta['first_parity_terminal']; accepted=meta['first_parity_acceptance']; report=result['report']
+    need(old['schema_version']==base['schema_version'] and old['stage']==PARITY_STAGE and old['plan_path']==str(PARITY_PLAN) and old['output_root']==str(PARITY_ROOT)
+         and old['inputs']==base['inputs'] and all(old[key]==base[key]for key in ('metadata','model_contract','target_contract','truth_sha256','TRAIN_issue_ns_sha256','budget','panel','routes','fixed_original_tolerance','feature_array_headers','capture_array_headers','target_array_headers','target_archive_inventory','cache_scope')),'BATCH_GEOMETRY_SAME_PRIOR_FUNCTION_INPUTS')
+    need(result['status']=='COMPLETE_CONDITIONAL_PROVIDER_HLC_FIRST_PARITY_MEASUREMENT' and result['plan']==terminal['plan']==accepted['plan']==d['inputs']['first_parity_plan']
+         and terminal['status']=='COMPLETE' and terminal['exit_code']==0 and terminal['result']==accepted['result']==d['inputs']['first_parity_result']
+         and accepted['terminal']==d['inputs']['first_parity_terminal'] and terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False
+         and result['source_unchanged']is True and result['test_data_used']is False and accepted['actual_counts']==report['counts']
+         and accepted['model_input_packet_local_RNG_context_bookends_passed']is True and accepted['source_inputs_plan_policy_WSL_boot_bookends']is True
+         and report['measurement_completed']is True and report['full96_gradient_qualification']is False and report['actual_training_cause']==report['selected_causal_fix']=='UNKNOWN'
+         and report['all20_approved']is False,'BATCH_GEOMETRY_PRIOR_MEASUREMENT_CONSUMED')
+    first_parity_validate_counts(report['counts'],old['budget'])
+    for name,digest in old['source_owners'].items():
+        if name not in (SELF,TEST):need(saved.native.sha(REPO/name)==digest,'BATCH_GEOMETRY_PREVIOUS_OWNER_UNCHANGED')
+    backup=meta['first_parity_result_backup']; source_backup=meta['first_parity_source_plan_backup']
+    need(backup['status']=='ALL24_ORIGINAL_FILES_SEPARATE_MAC_DISK_SHA_FULLFSYNC_READBACK_VERIFIED' and backup['models_deserialized']==0
+         and source_backup['status']=='ALL14_FILES_SEPARATE_MAC_DISK_SHA_FULLFSYNC_READBACK_VERIFIED' and source_backup['models_deserialized']==0,'BATCH_GEOMETRY_BACKUPS')
+    original=meta['original_saved_model_result']; score=original['report']['whole_FINAL_score']; first=score['batches'][0]
+    need(original['plan']==base['inputs']['completed_model_plan'] and original['report']['final_logits']==base['inputs']['capture']
+         and original['report']['final_checkpoint_receipt']==base['inputs']['final_receipt'] and score['batch_rows']==256
+         and score['state_sha256_before_and_after']==base['metadata']['final_receipt']['proof']['model_state']
+         and d['original_score_batch']['JSON_pointer']=='/report/whole_FINAL_score/batches/0'
+         and {key:first[key]for key in d['original_score_batch']if key!='JSON_pointer'}=={key:value for key,value in d['original_score_batch'].items()if key!='JSON_pointer'} and first['rows']==256 and first['rows_done']==256
+         and all(score['output_sha256'][key]==base['capture_array_headers'][key]['sha256']for key in CAPTURE[1:]),'BATCH_GEOMETRY_ORIGINAL_SCORE_BATCH')
+    expected_budget={**base['budget'],'NN_forwards_max':1,'forward_rows_per_call':256,'microbatch_rows':256,'original_packet_rows':256,'packet_feature_bytes':169086976,
+        'panel_rows':256,'parity_forwards':1,'row_for_prior_CPU_B1_comparison':0,'rows_compared_against_saved_GPU':256,'selected_model_unique_rows':256}
+    del expected_budget['selected_model_row_position']
+    need(d['budget']==expected_budget and d['panel']=={'TRAIN_position_start':0,'TRAIN_position_stop_exclusive':256,'drop_or_replace_rows':False,
+         'new_first256_hashes':'derive and persist only after canonical decode; wholeTRAIN axes+immutable sourcecache+fixedslice bind selection',
+         'original_first96_issue_ns_sha256':base['panel']['issue_ns_sha256'],'original_first96_source_rows_sha256':base['panel']['source_rows_sha256'],
+         'prior_CPU_B1_route':'CPU_NO_GRAD_EQUAL_TF','prior_CPU_B1_row_position':0,'rows':256,'selected_from_result_quality':False,'selection':'ORIGINAL_FIRST_FULL_FINAL_SCORE_BATCH_BEFORE_NEW_MEASUREMENT'},'BATCH_GEOMETRY_EXACT_BUDGET_PANEL')
+    prior=[record for record in report['routes']if record['name']==d['panel']['prior_CPU_B1_route']]
+    need(len(prior)==1 and prior[0]['requested']==PARITY_ROUTES[0] and prior[0]['activation']==first['activation']
+         and set(report['first_row_feature_proof'])==set(model_owner._native_bar_feature_keys(base['metadata']['adapter_metadata']['input_binding'])),'BATCH_GEOMETRY_PRIOR_CPU_B1')
+    inputs={**base['inputs'],'first_parity_design':base['inputs']['design'],**d['inputs'],'design':BATCH_DESIGN}
+    plan={**base,'schema_version':'gx1_provider_hlc_batch_geometry_plan_v1','stage':BATCH_STAGE,'plan_path':str(BATCH_PLAN),'output_root':str(BATCH_ROOT),
+          'inputs':inputs,'execution':BATCH_EXECUTION,'budget':d['budget'],'panel':d['panel'],'route':d['route'],'method':d['method'],'limits':d['limits'],
+          'original_score_batch':d['original_score_batch'],'prior_CPU_B1':{'route':prior[0],'selected_issue_ns':report['selected_issue_ns'],'selected_source_row':report['selected_source_row'],'feature_proof':report['first_row_feature_proof']},
+          'source_parent_commit':BATCH_PARENT,'static_first_parity_preservation_required':True,'question':meta['batch_geometry_scope']['question'],'stop_parity_series_after_this_comparison':True}
+    checked_inputs(plan); return plan
+
+
+def gate_batch_geometry_expected(binding,admitted):
+    return {'status':'ADMITTED_EXACT_CONDITIONAL_PROVIDER_HLC_BATCH_GEOMETRY'if admitted else'PREPARED_NOT_ADMITTED','plan':binding,'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':False,'test_authorized':False}
+
+
+def inspect_batch_geometry(sha,*,admitted):
+    need(Path.cwd().resolve()==REPO and type(sha)is str and len(sha)==64 and all(c in '0123456789abcdef'for c in sha),'BATCH_GEOMETRY_CWD_SHA')
+    binding={'path':str(BATCH_PLAN),'sha256':sha}; plan=read(binding)
+    need(plan==build_batch_geometry_plan(source_base_commit=plan['source_base_commit']) and source_clean(plan),'BATCH_GEOMETRY_EXACT_PLAN_SOURCE')
+    pref=ref(POLICY); policy=read(pref)
+    need(all(policy.get(key)is False for key in saved.FLAGS) and policy[BATCH_STAGE]==gate_batch_geometry_expected(binding,admitted),'BATCH_GEOMETRY_ONE_USE_FLAGS')
+    for stage,role in ((STAGE,'failed_gradient_plan'),(PARITY_STAGE,'first_parity_plan')):
+        old=policy[stage]
+        need(old['plan']==plan['inputs'][role] and old['execution_authorized']is False and old['remaining_invocations']==0 and old['relaunch_allowed']is False
+             and old['training_authorized']is False and old['test_authorized']is False,'BATCH_GEOMETRY_OLD_PLANS_CLOSED')
+    need(not BATCH_ROOT.exists() and not BATCH_ROOT.is_symlink(),'BATCH_GEOMETRY_FRESH_ROOT'); return plan,binding,pref
+
+
+def batch_geometry_compare(reference_value,candidate,*,tolerance):
+    need(all(isinstance(value,np.ndarray)and value.dtype==np.float32 and value.shape==(256,5)and np.isfinite(value).all()for value in (reference_value,candidate)),'BATCH_GEOMETRY_COMPARISON_DOMAIN')
+    rows=[first_parity_compare(reference_value[index:index+1],candidate[index:index+1],tolerance=tolerance)for index in range(256)]
+    passed=sum(sum(row['passed_mask'])for row in rows)
+    return {'rows':256,'per_row':rows,'max_absolute_delta':max(row['max_absolute_delta']for row in rows),
+            'per_TF_max_absolute_delta':[max(row['absolute_delta'][j]for row in rows)for j in range(5)],'passed_cells':passed,'failed_cells':1280-passed,'all_within_original_tolerance':passed==1280}
+
+
+def batch_geometry_validate_counts(counts,budget):
+    expected={'full_feature_archive_loads':1,'feature_arrays_decoded':27,'target_archive_loads':1,'target_arrays_decoded':14,'capture_archive_loads':1,'capture_arrays_decoded':3,
+              'checkpoint_deserializations':1,'model_constructions':1,'model_state_install_calls':1,'parity_forwards':1,'gradient_forwards':0,'NN_forwards':1,'autograd_calls':0,
+              'backward_calls':0,'optimizer_constructions':0,'optimizer_restores':0,'optimizer_updates':0,'checkpoint_RNG_restore_calls':0,'fits':0,'prior_refits':0,'new_source_HTTP_calls':0,
+              'canonical_loss_calls':0,'hidden_capture_calls':0,'grad_enabled_forward_calls':0,'no_grad_forward_calls':1}
+    need(counts==expected and all(type(value)is int for value in counts.values()) and budget['NN_forwards_max']==1 and budget['autograd_calls_max']==0,'BATCH_GEOMETRY_EXACT_COUNTS'); return True
+
+
+def calculate_batch_geometry(plan,*,progress=None):
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    torch.set_num_threads(1); need(torch.get_num_threads()==1 and not torch.cuda.is_initialized(),'BATCH_GEOMETRY_CPU_THREADS_CUDA')
+    progress={}if progress is None else progress; budget=plan['budget']; counts=dict.fromkeys(('full_feature_archive_loads','feature_arrays_decoded','target_archive_loads','target_arrays_decoded','capture_archive_loads','capture_arrays_decoded','checkpoint_deserializations','model_constructions','model_state_install_calls','parity_forwards','gradient_forwards','NN_forwards','autograd_calls','backward_calls','optimizer_constructions','optimizer_restores','optimizer_updates','checkpoint_RNG_restore_calls','fits','prior_refits','new_source_HTTP_calls','canonical_loss_calls','hidden_capture_calls','grad_enabled_forward_calls','no_grad_forward_calls'),0)
+    progress.update(phase='BATCH_GEOMETRY_CANONICAL_CONTEXT_AND_256',counts=counts)
+    context=adapter.load_context(plan['metadata']['adapter_metadata']); counts.update(full_feature_archive_loads=1,feature_arrays_decoded=27,target_archive_loads=1,target_arrays_decoded=14)
+    need(bool(np.all(context['provider'].bar_start_ns<1782864000000000000)),'BATCH_GEOMETRY_PRETEST_SOURCE_CUTOFF')
+    take=np.arange(256,dtype=np.int64); packet=adapter.packet(context,take); selected_source_row=int(context['source_rows'][0])
+    need(len(packet['truth']['issue_ns'])==256 and core.digest(packet['truth']['issue_ns'][:96])==plan['panel']['original_first96_issue_ns_sha256']
+         and core.digest(context['source_rows'][:96])==plan['panel']['original_first96_source_rows_sha256']
+         and bool(np.all((packet['truth']['issue_ns']>=train.START)&(packet['truth']['issue_ns']<train.UPPER))) and len(packet['features'])==9
+         and sum(v.numel()*v.element_size()for v in packet['features'].values())==budget['packet_feature_bytes'],'BATCH_GEOMETRY_EXACT_256_PACKET')
+    normalization=context['normalization']; prior=context['prior']; binding=context['input_binding']; target=context['target_contract']
+    input_identity={'first256_issue_ns_sha256':core.digest(packet['truth']['issue_ns']),'first256_source_rows_sha256':core.digest(context['source_rows'][take]),
+                    'original_first96_issue_ns_sha256':core.digest(packet['truth']['issue_ns'][:96]),'original_first96_source_rows_sha256':core.digest(context['source_rows'][:96])}
+    del context; gc.collect()
+    row0_proof={key:{'shape':list(value[:1].shape),'dtype':str(value.dtype),'sha256':core.digest(value[:1].detach().cpu().numpy())}for key,value in packet['features'].items()}
+    prior_b1=plan['prior_CPU_B1']
+    need(row0_proof==prior_b1['feature_proof'] and int(packet['truth']['issue_ns'][0])==prior_b1['selected_issue_ns'] and selected_source_row==prior_b1['selected_source_row'],'BATCH_GEOMETRY_ROW0_PRIOR_INPUT_PROOF')
+    progress.update(phase='BATCH_GEOMETRY_CONTEXT_RELEASED_CAPTURE3',input_identity=input_identity,row0_feature_proof=row0_proof)
+    capture=saved.load_fields(plan['inputs']['capture'],CAPTURE,plan['capture_array_headers']); counts.update(capture_archive_loads=1,capture_arrays_decoded=3)
+    need(sum(v.nbytes for v in capture.values())==budget['capture_ndarray_bytes_decoded'] and core.digest(capture['issue_ns'])==plan['TRAIN_issue_ns_sha256'] and np.array_equal(capture['issue_ns'][:256],packet['truth']['issue_ns']),'BATCH_GEOMETRY_SAVED_CLOCK_BYTES')
+    expected={key:np.ascontiguousarray(capture[key][:256]).copy()for key in CAPTURE[1:]}; del capture; gc.collect()
+    need(all(core.digest(value)==plan['original_score_batch']['output_sha256'][key]for key,value in expected.items()),'BATCH_GEOMETRY_ORIGINAL_CAPTURE256_SHA_BEFORE_FORWARD')
+    def record_array(value):return {'values':value.astype(np.float64).tolist(),'shape':list(value.shape),'dtype':value.dtype.str,'sha256':core.digest(value)}
+    progress.update(phase='BATCH_GEOMETRY_REFERENCE_AUTHENTICATED_CPU_FACTORY',saved_GPU_reference={key:record_array(value)for key,value in expected.items()},reference_capture256_SHA_authenticated=True)
+    model=model_owner.build_native_future_state_model(input_normalization=normalization,input_binding=binding,architecture=plan['metadata']['original_epoch_plan']['metadata']['architecture'],device=torch.device('cpu'),train_prior=prior,target_contract=target,backbone_gradient_policy='M5_primary'); counts['model_constructions']+=1
+    cp=safe_load_final(plan); counts['checkpoint_deserializations']+=1; model.load_state_dict(cp['model_state'],strict=True); counts['model_state_install_calls']+=1
+    need(core.state_sha(model.state_dict())==plan['metadata']['final_receipt']['proof']['model_state'],'BATCH_GEOMETRY_INSTALLED_FINAL_MODEL_PROOF'); del cp; gc.collect(); model.eval()
+    state_before=core.state_sha(model.state_dict()); rng_before=core.shared_gradient_rng(); packet_before=core.state_sha(packet); input_identity['packet_sha256']=packet_before; ambient_grad=torch.is_grad_enabled()
+    need(all(p.grad is None and p.device.type=='cpu'and p.dtype==torch.float32 for p in model.parameters()),'BATCH_GEOMETRY_CPU_PARAMETER_GRAD_NONE')
+    def context_bookend():need(body._BATCH_EQUAL_LENGTH_MTF_EVAL.get()is False and body._MODEL_FINITE_CHECK_SCOPE.get()is None and torch.is_grad_enabled()==ambient_grad,'BATCH_GEOMETRY_CONTEXT_RESTORE')
+    context_bookend()
+    def count_forward(*_):
+        counts['NN_forwards']+=1; counts['parity_forwards']+=1; counts['grad_enabled_forward_calls'if torch.is_grad_enabled()else'no_grad_forward_calls']+=1
+        need(counts['NN_forwards']<=budget['NN_forwards_max'],'BATCH_GEOMETRY_FORWARD_BUDGET')
+    hook=model.register_forward_pre_hook(count_forward); progress['phase']='BATCH_GEOMETRY_SINGLE_FORWARD'
+    try:
+        try:
+            with torch.no_grad():
+                output,hidden,activation=core.future_cuda_forward(model,packet['features'],grouped=True,equal_tf=True,capture=False)
+                need(hidden is None and set(output)==set(CAPTURE[1:]),'BATCH_GEOMETRY_OUTPUT_HEADS_NO_HIDDEN_CAPTURE')
+                values={key:value.detach().cpu().numpy().copy()for key,value in output.items()}
+                need(all(value.dtype==np.float32 and value.shape==(256,5)and np.isfinite(value).all()for value in values.values()) and activation==plan['original_score_batch']['activation'],'BATCH_GEOMETRY_ACTUAL_FINITE_ROUTE')
+                progress.update(outputs={key:record_array(value)for key,value in values.items()},actual_activation=activation)
+                del output,hidden
+        finally:context_bookend()
+        comparisons={key:batch_geometry_compare(expected[key],value,tolerance=plan['fixed_original_tolerance'])for key,value in values.items()}
+        row0={}
+        for key,value in values.items():
+            record=prior_b1['route']['logits'][key]; reference_value=np.array([record['values']],dtype=np.float32)
+            need(list(reference_value.shape)==record['shape']==[1,5] and reference_value.dtype.str==record['dtype'] and core.digest(reference_value)==record['sha256'],'BATCH_GEOMETRY_PRIOR_B1_LOGIT_SHA')
+            row0[key]=first_parity_compare(reference_value,value[:1],tolerance=plan['fixed_original_tolerance'])
+        bookend=measurement_bookend(model,state_before,rng_before); context_bookend(); need(core.state_sha(packet)==packet_before,'BATCH_GEOMETRY_INPUT_PACKET_MUTATION'); batch_geometry_validate_counts(counts,budget)
+    finally:hook.remove()
+    maxrss=None
+    try:
+        import resource
+        maxrss=int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    except (ImportError,OSError,AttributeError,ValueError):pass
+    progress.update(phase='COMPLETE_BATCH_GEOMETRY_MEASUREMENT',vs_saved_GPU=comparisons,row0_vs_prior_CPU_B1=row0)
+    return {'payload_budget':budget,'counts':counts,'route':plan['route'],'actual_activation':activation,'outputs':progress['outputs'],'saved_GPU_reference':progress['saved_GPU_reference'],
+            'vs_saved_GPU':comparisons,'row0_vs_prior_CPU_B1':row0,'all_256_within_saved_original_tolerance':all(cell['all_within_original_tolerance']for cell in comparisons.values()),
+            'reference_capture256_SHA_authenticated_before_forward':True,'fixed_original_tolerance':plan['fixed_original_tolerance'],'panel':plan['panel'],'input_identity':input_identity,'row0_feature_proof':row0_proof,
+            'resource_observation':{'process_maxrss_KiB':maxrss,'scope':'Whole process since startup, including context decoding; not an isolated activation peak or new resource permission.'},
+            'cache_scope':plan['cache_scope'],'old_context_released_before_model_construction':True,'final_all_ten_checkpoint_proofs_verified':True,'strict_FINAL_model_state_installed':True,
+            'model_state_and_local_RNG_bookend_passed':bookend,'context_bookends_passed':True,'ambient_grad_mode_restored':True,'all_parameter_grad_fields_None':True,'retained_256_packet_unmutated':True,
+            'local_RNG_bookend_scope':['python','numpy','torch_cpu'],'measurement_completed':True,'full96_gradient_qualification':False,'stop_parity_series_after_this_comparison':True,
+            'actual_training_cause':'UNKNOWN','selected_causal_fix':'UNKNOWN','later_generalization':'UNKNOWN','economic_edge':'UNKNOWN','all20_approved':False,'limits':plan['limits']}
+
+
+def batch_geometry_publish(name,value):
+    path=BATCH_ROOT/name; saved._publish_bytes(path,(json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n').encode()); return ref(path)
+
+
+def run_batch_geometry(sha):
+    began=time.monotonic(); cap=require_capped_cpu_audit_execution(); lock=require_capped_lock_ancestry()
+    need(cap['memory_max']==cap['memory_high']==4*1024**3 and cap['swap']==512*1024**2 and cap['numerical_threads']==1 and cap['pids']==64
+         and lock['scope']==cap['cgroup_path'][len('/sys/fs/cgroup'):],'BATCH_GEOMETRY_CPU_CAPS')
+    plan,binding,pref=inspect_batch_geometry(sha,admitted=True); checked_inputs(plan); boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip(); BATCH_ROOT.mkdir(parents=True,exist_ok=False)
+    handlers={sig:signal.getsignal(sig)for sig in (signal.SIGALRM,signal.SIGTERM,signal.SIGINT)}; claim=result=None; progress={'phase':'CLAIM'}
+    try:
+        def expired(*_):raise TimeoutError('PROVIDER_HLC_BATCH_GEOMETRY_WALL')
+        def stopped(sig,*_):raise InterruptedError('PROVIDER_HLC_BATCH_GEOMETRY_SIGNAL_'+str(sig))
+        signal.signal(signal.SIGALRM,expired); signal.signal(signal.SIGTERM,stopped); signal.signal(signal.SIGINT,stopped)
+        claim=batch_geometry_publish('CLAIM.json',{'stage':BATCH_STAGE,'plan':binding,'policy_at_claim':pref,'boot_id':boot,'remaining_invocations':0,'relaunch_allowed':False,'training_authorized':False,'test_data_used':False})
+        remaining=BATCH_EXECUTION['internal_seconds']-(time.monotonic()-began); need(remaining>0,'BATCH_GEOMETRY_TIME_BEFORE_DECODE'); signal.setitimer(signal.ITIMER_REAL,remaining)
+        allowed={plan['inputs'][role]['path']for role in ('feature_archive','capture','target_arrays','final_checkpoint')}
+        def audit(event,args):
+            if event in ('socket.connect','socket.getaddrinfo','urllib.Request'):raise RuntimeError('PROVIDER_HLC_BATCH_GEOMETRY_NETWORK_FORBIDDEN')
+            if event=='open'and isinstance(args[0],(str,bytes,os.PathLike)):
+                name=os.fsdecode(args[0])
+                if name.endswith(('.npz','.pt','.pth','.parquet','.safetensors','.pkl'))and str(Path(name).resolve())not in allowed:raise RuntimeError('PROVIDER_HLC_BATCH_GEOMETRY_PAYLOAD_FORBIDDEN')
+        sys.addaudithook(audit); report=calculate_batch_geometry(plan,progress=progress); checked_inputs(plan)
+        need(source_clean(plan)and ref(POLICY)==pref and ref(BATCH_PLAN)==binding and Path('/proc/sys/kernel/random/boot_id').read_text().strip()==boot,'BATCH_GEOMETRY_SOURCE_INPUT_PLAN_POLICY_BOOT_BOOKEND')
+        result=batch_geometry_publish('RESULT.json',{'status':'COMPLETE_CONDITIONAL_PROVIDER_HLC_BATCH_GEOMETRY_MEASUREMENT','stage':BATCH_STAGE,'plan':binding,'claim':claim,'policy_at_claim':pref,'boot_id':boot,'report':report,'source_unchanged':True,'test_data_used':False,'economic_edge_proven':False,'elapsed_seconds':time.monotonic()-began})
+        terminal=batch_geometry_publish('TERMINAL.json',{'status':'COMPLETE','exit_code':0,'stage':BATCH_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'source_unchanged':True,'test_data_used':False}); return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        signal.setitimer(signal.ITIMER_REAL,0); batch_geometry_publish('TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'stage':BATCH_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'progress':progress,'error':type(error).__name__+':'+str(error)[:2000],'test_data_used':False}); raise
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0)
+        for sig,handler in handlers.items():signal.signal(sig,handler)
+
+
+def main_batch_geometry():
+    parser=argparse.ArgumentParser(); parser.add_argument('--first-parity-plan-sha256',required=True); parser.add_argument('--batch-geometry',action='store_true',required=True); parser.add_argument('--preflight',action='store_true'); args=parser.parse_args()
+    need(sys.argv[1:]==['--first-parity-plan-sha256',args.first_parity_plan_sha256,'--batch-geometry']+(['--preflight']if args.preflight else[]),'BATCH_GEOMETRY_EXACT_CLI')
+    if args.preflight:
+        plan,binding,pref=inspect_batch_geometry(args.first_parity_plan_sha256,admitted=False)
+        print(json.dumps({'status':'PREFLIGHT_PROVIDER_HLC_BATCH_GEOMETRY_PASS','plan':binding,'policy':pref,'claim_created':False,'checkpoint_deserializations':0,'NPZ_arrays_decoded':0,'models':0,'NN_forwards':0,'autograd_calls':0,'CUDA_initialized':False}))
+    else:print(json.dumps(run_batch_geometry(args.first_parity_plan_sha256),sort_keys=True))
+# End single B256 geometry measurement.
+
 def main_first_parity():
+    if sys.argv[3:4]==['--batch-geometry']:
+        return main_batch_geometry()
+
     parser=argparse.ArgumentParser(); parser.add_argument('--first-parity-plan-sha256',required=True); parser.add_argument('--preflight',action='store_true'); args=parser.parse_args()
     need(sys.argv[1:]==['--first-parity-plan-sha256',args.first_parity_plan_sha256]+(['--preflight']if args.preflight else[]),'FIRST_PARITY_EXACT_CLI')
     if args.preflight:

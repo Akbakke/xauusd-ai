@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-24T02:57:06.925285+00:00",
+  "observed_utc": "2026-11-24T03:33:04.694695+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "V2_FIRST_PARITY_COMPLETE_CPU_ROUTES_AGREE_SAVED_CUDA_PARITY_FAIL",
+  "status": "V2_BATCH_GEOMETRY_SOURCE_QUALIFIED_PAYLOAD_NOT_ADMITTED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -4829,7 +4829,7 @@
       "observation": "CPU first-row3route measurementcomplete, savedCUDAparityFAIL retained, no derivatives/training."
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Three CPU B1 parity routes completed; no-grad TFmerge/unmerged identical, grad-mode differences within original tolerance. AllCPU routes still differ from savedCUDA256 beyond original tolerance on this first issue. No gradient or training conclusion.",
+    "current_activity": "B256 source qualified:21 focused tests and blocked actual metadata PASS; commit/push, exact preflight and source-plan backup required before single CPU forward. No payload admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -4851,7 +4851,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "native_provider_hlc_first_parity_20261124_001",
+    "current_research_id": "native_provider_hlc_batch_geometry_20261124_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -25646,8 +25646,8 @@
         "new_model_calls": 0
       }
     },
-    "status": "V2_FIRST_PARITY_COMPLETE_CPU_ROUTES_AGREE_SAVED_CUDA_PARITY_FAIL",
-    "observed_utc": "2026-11-24T02:57:06.925285+00:00",
+    "status": "V2_BATCH_GEOMETRY_SOURCE_QUALIFIED_PAYLOAD_NOT_ADMITTED",
+    "observed_utc": "2026-11-24T03:33:04.694695+00:00",
     "current_observation_stage": "native_future_window_coverage_20261123_001",
     "current_observation_plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_FUTURE_WINDOW_COVERAGE_20261123_001.json",
@@ -28652,7 +28652,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-20T14:53:52.608930+00:00",
+  "updated_utc": "2026-11-24T03:33:04.694695+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -99284,7 +99284,7 @@
     }
   },
   "native_twenty_step_qualification_20261123_001": {
-    "status": "V2_FIRST_PARITY_COMPLETE_CPU_ROUTES_AGREE_SAVED_CUDA_PARITY_FAIL",
+    "status": "V2_BATCH_GEOMETRY_SOURCE_QUALIFIED_PAYLOAD_NOT_ADMITTED",
     "goal_thread_id": "01a20035-2836-7f62-bb88-9e24603a51a5",
     "requirements": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_QUALIFICATION_20_STEPS.json",
@@ -99724,7 +99724,7 @@
             "sha256": "6b4af7203e75f11c599b8daef39ae35e302eb2d0f7a9336136b987bfbae15c59"
           }
         ],
-        "scope": "Current declared forecast function; numerical/contract/routing evidence does not establish predictive quality or independent generalization. Legacy v1 baseline/mechanics PASS is retained separately. V2 full NN INITIAL002 is qualified on all 354550 TRAIN rows with exact matched-prior proper scores and unchanged state/RNG. V2 prefix mechanics are qualified: warm 3 B96 updates, cold step 3 from CP2, nonzero moments for 426 backbone and 20 readout parameter tensors, and all 10 checkpoint proofs exact in a new process. OS reboot recovery, learning, later generalization and economic edge remain unqualified. Actualnewprocess restoredCP512 throughunchangedstrict_restore beforeanynewFW: model/AdamW/RNGexact andposition512/tenoriginalmetadata proofsauthenticated. Originaltrajectory retainedthroughdurable1792; noOSrebootoruninterruptednextstepclaim. Actual nextprocess also restoredCP1792 model/AdamW/RNG/position exactly beforeFW; durable same-trajectory2048 retained. CP2048 restore not yetexecuted; noOSreboot or uninterruptednextstep proof. Actualnextprocess restoredCP2048 model/AdamW/RNG/position exactly beforeFW; durable same-trajectory3328 retained. CP3328restore notyetexecuted; noOSreboot/uninterruptednextstepclaim. ActualCP3328 strictrestore completed beforeFW; fullFINAL checkpointmodel/RNGproofs matchunmodifiedfullscorebookends. FINALcheckpointwritten/readback/separatelybacked; freshprocessFINALrestore notexecuted. NoOSreboot/uninterruptednextstep parity claim.",
+        "scope": "Current declared forecast function; numerical/contract/routing evidence does not establish predictive quality or independent generalization. Legacy v1 baseline/mechanics PASS is retained separately. V2 full NN INITIAL002 is qualified on all 354550 TRAIN rows with exact matched-prior proper scores and unchanged state/RNG. V2 prefix mechanics are qualified: warm 3 B96 updates, cold step 3 from CP2, nonzero moments for 426 backbone and 20 readout parameter tensors, and all 10 checkpoint proofs exact in a new process. OS reboot recovery, learning, later generalization and economic edge remain unqualified. Actualnewprocess restoredCP512 throughunchangedstrict_restore beforeanynewFW: model/AdamW/RNGexact andposition512/tenoriginalmetadata proofsauthenticated. Originaltrajectory retainedthroughdurable1792; noOSrebootoruninterruptednextstepclaim. Actual nextprocess also restoredCP1792 model/AdamW/RNG/position exactly beforeFW; durable same-trajectory2048 retained. noOSreboot or uninterruptednextstep proof. Actualnextprocess restoredCP2048 model/AdamW/RNG/position exactly beforeFW; durable same-trajectory3328 retained. noOSreboot/uninterruptednextstepclaim. ActualCP3328 strictrestore completed beforeFW; fullFINAL checkpointmodel/RNGproofs matchunmodifiedfullscorebookends. FINALcheckpointwritten/readback/separatelybacked; freshprocessFINALrestore notexecuted. NoOSreboot/uninterruptednextstep parity claim.",
         "status": "PASS"
       },
       "17": {
@@ -101030,6 +101030,19 @@
     "v2_first_parity_backup": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FIRST_PARITY_BACKUP001.json",
       "sha256": "6b87f7c58e81e1172b6ce8c6042eb1e750674d8e3fa79f06e4f7dd8d9c52aeab"
+    },
+    "v2_batch_geometry_design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_BATCH_GEOMETRY_DESIGN001.json",
+      "sha256": "ee827a739c59f60ab95f04f53d0489ea5ea7343b267e09690cebef6ed139088b"
+    },
+    "current_status_text_erratum": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/CURRENT_STATUS_TEXT_ERRATUM001.json",
+      "sha256": "d03efdc32e99f1da465fc64b25851041a06dafaf510c273c7d61c99066bc5ecf"
+    },
+    "v2_batch_geometry_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_BATCH_GEOMETRY_SOURCE_QUALIFICATION001.json",
+      "sha256": "a14cb8e3b8d263ebfc5d5f394cd5c18df8e168d10cae380096ec63a6292a8ff7",
+      "bytes": 6681
     }
   },
   "native_raw_feed_clock_qualification_20261123_001": {
@@ -101409,7 +101422,7 @@
     }
   },
   "native_d1_provider_hlc_certificate_goal_20261123_001": {
-    "status": "V2_FIRST_PARITY_COMPLETE_CPU_ROUTES_AGREE_SAVED_CUDA_PARITY_FAIL",
+    "status": "V2_BATCH_GEOMETRY_SOURCE_QUALIFIED_PAYLOAD_NOT_ADMITTED",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_DESIGN001.json",
       "sha256": "cd97abfec7c512364c21c9608c41352ee70dac9593e1dfd28a5527713734f172"
@@ -101927,5 +101940,13 @@
         "sha256": "1e7dea1a6d3066fa9c16312d96504b1cd6b121650d77dee7615e0d4b1272758b"
       }
     }
+  },
+  "native_provider_hlc_batch_geometry_20261124_001": {
+    "status": "SOURCE_QUALIFIED_PAYLOAD_NOT_ADMITTED",
+    "remaining_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false
   }
 }

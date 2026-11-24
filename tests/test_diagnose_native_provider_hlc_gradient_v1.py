@@ -823,3 +823,394 @@ def test_first_parity_inspection_keeps_old_gradient_consumed_and_all_training_fl
     with pytest.raises(ValueError, match='ONE_USE_OLD_GRADIENT_CLOSED'): inspect()
     policy[m.PARITY_STAGE]['training_authorized'] = False; m.PARITY_ROOT.mkdir()
     with pytest.raises(ValueError, match='FRESH_ROOT'): inspect()
+
+
+def test_batch_geometry_addition_preserves_old_authorities_and_first_parity_parser_tail():
+    import subprocess
+    anchor = '1eae0a9710da279a9a8b81a7cc1147ec86126083'
+    before = subprocess.check_output(['git', 'show', anchor + ':' + m.SELF], cwd=m.REPO, text=True)
+    after = Path(m.__file__).read_text()
+    old_tree, new_tree = ast.parse(before), ast.parse(after)
+    old_functions = {node.name: node for node in old_tree.body if isinstance(node, ast.FunctionDef)}
+    new_functions = {node.name: node for node in new_tree.body if isinstance(node, ast.FunctionDef)}
+    for name, node in old_functions.items():
+        if name != 'main_first_parity':
+            assert ast.get_source_segment(before, node) == ast.get_source_segment(after, new_functions[name])
+    assignment_nodes = lambda tree: [node for node in tree.body if isinstance(node, (ast.Assign, ast.AnnAssign))]
+    for node in assignment_nodes(old_tree):
+        assert ast.dump(node, include_attributes=False) in [ast.dump(current, include_attributes=False)
+                                                          for current in assignment_nodes(new_tree)]
+    old_main, current_main = old_functions['main_first_parity'], new_functions['main_first_parity']
+    dispatch = current_main.body[0]
+    assert isinstance(dispatch, ast.If)
+    expected_guard = ast.parse("sys.argv[3:4] == ['--batch-geometry']", mode='eval').body
+    assert ast.dump(dispatch.test, include_attributes=False) == ast.dump(expected_guard, include_attributes=False)
+    assert any(isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+               and node.func.id == 'main_batch_geometry' for node in ast.walk(dispatch))
+    assert ast.dump(ast.Module(body=current_main.body[1:], type_ignores=[]), include_attributes=False) == \
+           ast.dump(ast.Module(body=old_main.body, type_ignores=[]), include_attributes=False)
+    old_test = subprocess.check_output(['git', 'show', anchor + ':' + m.TEST], cwd=m.REPO)
+    assert Path(__file__).read_bytes().startswith(old_test)
+
+
+def batch_geometry_lifecycle(monkeypatch, tmp_path):
+    plan, _, pref, hooks, timers = first_parity_lifecycle(monkeypatch, tmp_path)
+    monkeypatch.setattr(m, 'BATCH_ROOT', tmp_path / 'BATCH_OUT')
+    monkeypatch.setattr(m, 'BATCH_PLAN', tmp_path / 'BATCH_PLAN.json')
+    m.BATCH_PLAN.write_text('{"synthetic_batch_geometry":true}')
+    binding = m.ref(m.BATCH_PLAN)
+    monkeypatch.setattr(m, 'inspect_batch_geometry', lambda *a, **k: (plan, binding, pref))
+    report = {'finite_parity_measurement': True, 'parity_pass': False}
+    monkeypatch.setattr(m, 'calculate_batch_geometry', lambda *a, **k: report)
+    return plan, binding, pref, hooks, timers, report
+
+
+def test_batch_geometry_exact_opt_in_preflight_has_no_payload_or_forward(monkeypatch, tmp_path, capsys):
+    _, binding, _, hooks, _, _ = batch_geometry_lifecycle(monkeypatch, tmp_path)
+    def forbidden(*a, **k): raise AssertionError('NO_BATCH_GEOMETRY_PAYLOAD_IN_PREFLIGHT')
+    monkeypatch.setattr(m, 'calculate_batch_geometry', forbidden)
+    monkeypatch.setattr(torch, 'load', forbidden); monkeypatch.setattr(np, 'load', forbidden)
+    monkeypatch.setattr(sys, 'argv', ['audit', '--first-parity-plan-sha256', binding['sha256'], '--batch-geometry', '--preflight'])
+    m.main(); report = json.loads(capsys.readouterr().out)
+    assert report['plan'] == binding and report['claim_created'] is False
+    assert all(report[key] == 0 for key in ('NN_forwards', 'autograd_calls', 'checkpoint_deserializations', 'NPZ_arrays_decoded', 'models'))
+    assert report['CUDA_initialized'] is False and hooks == []
+    assert not any(root.exists() for root in (m.BATCH_ROOT, m.PARITY_ROOT, m.ROOT))
+    monkeypatch.setattr(sys, 'argv', sys.argv + ['--batch-geometry'])
+    with pytest.raises(ValueError, match='EXACT_CLI'): m.main()
+    monkeypatch.setattr(sys, 'argv', ['audit', '--first-parity-plan-sha256', binding['sha256'], '--preflight', '--batch-geometry'])
+    with pytest.raises(SystemExit): m.main()
+
+
+@pytest.mark.parametrize('failure', [False, True])
+def test_batch_geometry_measurement_or_partial_failure_consumes_only_new_root(monkeypatch, tmp_path, failure):
+    _, binding, pref, _, timers, report = batch_geometry_lifecycle(monkeypatch, tmp_path)
+    def calculate(plan, *, progress):
+        progress.update(phase='B256_REFERENCE_AUTHENTICATED', first256_reference_verified=True,
+                        counts={'NN_forwards': 0, 'autograd_calls': 0})
+        if failure: raise ValueError('SYNTHETIC_B256_FORWARD_FAILURE')
+        return report
+    monkeypatch.setattr(m, 'calculate_batch_geometry', calculate)
+    if failure:
+        with pytest.raises(ValueError, match='SYNTHETIC_B256_FORWARD_FAILURE'):
+            m.run_batch_geometry(binding['sha256'])
+    else:
+        outputs = m.run_batch_geometry(binding['sha256'])
+        assert outputs['result'] == m.ref(m.BATCH_ROOT / 'RESULT.json')
+        result = json.loads((m.BATCH_ROOT / 'RESULT.json').read_text())
+        assert result['report'] == report and result['test_data_used'] is result['economic_edge_proven'] is False
+    terminal = json.loads((m.BATCH_ROOT / 'TERMINAL.json').read_text())
+    claim = json.loads((m.BATCH_ROOT / 'CLAIM.json').read_text())
+    assert terminal['status'] == ('FAILED_CONSUMED' if failure else 'COMPLETE')
+    assert terminal['stage'] == claim['stage'] == m.BATCH_STAGE
+    assert terminal['exit_code'] == int(failure) and terminal['remaining_invocations'] == 0
+    assert terminal['relaunch_allowed'] is claim['training_authorized'] is False
+    assert claim['policy_at_claim'] == pref and terminal['plan'] == binding
+    assert (m.BATCH_ROOT / 'RESULT.json').exists() is (not failure)
+    assert not m.PARITY_ROOT.exists() and not m.ROOT.exists()
+    if failure:
+        assert terminal['progress']['phase'] == 'B256_REFERENCE_AUTHENTICATED'
+        assert terminal['progress']['first256_reference_verified'] is True
+        assert terminal['progress']['counts']['NN_forwards'] == terminal['progress']['counts']['autograd_calls'] == 0
+    assert timers[-1] == (m.signal.ITIMER_REAL, 0)
+    with pytest.raises(FileExistsError): m.run_batch_geometry(binding['sha256'])
+
+
+@pytest.mark.parametrize('admitted', [False, True])
+def test_batch_geometry_one_use_gate_never_authorizes_gradients_training_or_relaunch(admitted):
+    binding = {'path': '/synthetic/B256_PLAN.json', 'sha256': 'd'*64}
+    gate = m.gate_batch_geometry_expected(binding, admitted)
+    assert gate['plan'] == binding and gate['execution_authorized'] is admitted
+    assert gate['remaining_invocations'] == int(admitted)
+    assert gate['relaunch_allowed'] is gate['training_authorized'] is gate['test_authorized'] is False
+
+
+def batch_geometry_counts():
+    counts = first_parity_counts()
+    counts.update(NN_forwards=1, parity_forwards=1, grad_enabled_forward_calls=0, no_grad_forward_calls=1)
+    return counts
+
+
+def test_batch_geometry_comparison_retains_all_256_rows_and_original_zero_reference_rules():
+    reference = np.ones((256, 5), np.float32); reference[0, :2] = 0.
+    candidate = reference.copy(); candidate[0, 1] = 1.; candidate[95, 2] += 2e-5; candidate[255, 4] += 1e-7
+    result = m.batch_geometry_compare(reference, candidate, tolerance=TOLERANCES['saved_FINAL_logits'])
+    delta = np.abs(candidate.astype(np.float64) - reference.astype(np.float64))
+    assert result['rows'] == len(result['per_row']) == 256
+    assert result['max_absolute_delta'] == float(delta.max())
+    assert result['per_TF_max_absolute_delta'] == delta.max(axis=0).tolist()
+    assert result['passed_cells'] == 1278 and result['failed_cells'] == 2
+    assert result['all_within_original_tolerance'] is False
+    for row in (0, 95, 96, 255):
+        assert result['per_row'][row] == m.first_parity_compare(
+            reference[row:row+1], candidate[row:row+1], tolerance=TOLERANCES['saved_FINAL_logits'])
+    assert result['per_row'][0]['zero_reference_relative_status'] == ['ZERO_OVER_ZERO', 'INFINITE', None, None, None]
+    json.dumps(result, allow_nan=False)
+
+
+@pytest.mark.parametrize('bad', ['shape', 'dtype', 'nan', 'tolerance'])
+def test_batch_geometry_comparison_rejects_invalid_domain_or_changed_tolerance(bad):
+    reference, candidate = np.zeros((256, 5), np.float32), np.zeros((256, 5), np.float32)
+    tolerance = copy.deepcopy(TOLERANCES['saved_FINAL_logits'])
+    if bad == 'shape': candidate = candidate[:255]
+    elif bad == 'dtype': reference = reference.astype(np.float64)
+    elif bad == 'nan': candidate[255, 4] = np.nan
+    else: tolerance['rtol'] = .1
+    with pytest.raises(ValueError): m.batch_geometry_compare(reference, candidate, tolerance=tolerance)
+
+
+def test_batch_geometry_count_proof_requires_one_no_grad_forward_and_zero_other_actions():
+    assert m.batch_geometry_validate_counts(batch_geometry_counts(), {'NN_forwards_max': 1, 'autograd_calls_max': 0}) is True
+    for field in ('NN_forwards', 'grad_enabled_forward_calls', 'autograd_calls', 'canonical_loss_calls',
+                  'hidden_capture_calls', 'optimizer_updates'):
+        counts = batch_geometry_counts(); counts[field] += 1
+        with pytest.raises(ValueError):
+            m.batch_geometry_validate_counts(counts, {'NN_forwards_max': 1, 'autograd_calls_max': 0})
+    counts = batch_geometry_counts(); counts['checkpoint_deserializations'] = True
+    with pytest.raises(ValueError):
+        m.batch_geometry_validate_counts(counts, {'NN_forwards_max': 1, 'autograd_calls_max': 0})
+
+
+def batch_geometry_calculation(monkeypatch, *, corrupt=None):
+    from types import SimpleNamespace
+    import weakref
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    class Context(dict): pass
+    class BatchModel(SyntheticModel):
+        def forward(self, **features):
+            return super().forward(x=features['seq_x'][:, 0, :])
+    n = 256
+    issues = np.arange(n, dtype=np.int64)*300_000_000_000 + int(m.train.START)
+    rows = np.arange(n, dtype=np.int64)
+    x = np.linspace(.1, .3, n, dtype=np.float32).reshape(n, 1)
+    features = {'seq_x': torch.from_numpy(np.repeat(x[:, None, :], 96, axis=1)),
+                'snap_x': torch.from_numpy(x.copy()), 'ctx_cont': torch.from_numpy(x.copy()),
+                'ctx_cat': torch.zeros((n, 1), dtype=torch.int64)}
+    windows = {'m5': 16, 'm15': 64, 'h1': 96, 'h4': 96, 'd1': 252}
+    features.update({'seq_'+tf: torch.from_numpy(np.repeat(x[:, None, :], window, axis=1))
+                     for tf, window in windows.items()})
+    truth = {'issue_ns': issues, 'activity': np.zeros((n, 5), np.float32),
+             'side_up': np.zeros((n, 5), np.float32), 'activity_known': np.ones((n, 5), bool),
+             'side_known': np.ones((n, 5), bool)}
+    packet = {'features': features, 'truth': truth}
+    capture = {'issue_ns': issues.copy(), 'activity_logits': np.repeat(x*.25, 5, axis=1),
+               'side_logits': np.repeat(-2*(x*.25), 5, axis=1)}
+    def array_record(array):
+        return {'values': array[0].astype(np.float64).tolist(), 'shape': list(array.shape),
+                'dtype': array.dtype.str, 'sha256': m.core.digest(array)}
+    row0_proof = {key: {'shape': list(value[:1].shape), 'dtype': str(value.dtype),
+        'sha256': m.core.digest(value[:1].numpy())} for key, value in features.items()}
+    activation = {'batch_eval_active': True, 'model_training': False, 'grad_enabled': False,
+                  'scope_enabled': True, 'eligible_equal_length_TF_groups': {
+                      '16': ['M5'], '64': ['M15'], '96': ['H1', 'H4'], '252': ['D1']}}
+    route = {'name': 'CPU_NO_GRAD_EQUAL_TF', 'requested': copy.deepcopy(FIRST_PARITY_ROUTES[0]),
+             'activation': copy.deepcopy(activation),
+             'logits': {head: array_record(capture[head][:1]) for head in ('activity_logits', 'side_logits')}}
+    state = {'backbone.weight': torch.tensor(.25, dtype=torch.float32)}
+    plan = {'metadata': {'adapter_metadata': {}, 'original_epoch_plan': {'metadata': {'architecture': {}}},
+                        'final_receipt': {'proof': {'model_state': m.core.state_sha(state)}}},
+            'inputs': {'capture': {'path': '/synthetic/B256_CAPTURE.npz', 'sha256': 'a'*64}},
+            'panel': {'rows': 256, 'original_first96_issue_ns_sha256': m.core.digest(issues[:96]),
+                      'original_first96_source_rows_sha256': m.core.digest(rows[:96])},
+            'TRAIN_issue_ns_sha256': m.core.digest(issues), 'capture_array_headers': {},
+            'budget': {'packet_feature_bytes': sum(t.numel()*t.element_size() for t in features.values()),
+                       'capture_ndarray_bytes_decoded': sum(a.nbytes for a in capture.values()),
+                       'NN_forwards_max': 1, 'autograd_calls_max': 0},
+            'fixed_original_tolerance': copy.deepcopy(TOLERANCES['saved_FINAL_logits']),
+            'prior_CPU_B1': {'route': route, 'selected_issue_ns': int(issues[0]),
+                             'selected_source_row': int(rows[0]), 'feature_proof': row0_proof},
+            'original_score_batch': {'cursor': 1, 'rows': 256, 'rows_done': 256,
+                 'known_activity_cells': 1280, 'activation': copy.deepcopy(activation),
+                 'output_sha256': {head: m.core.digest(capture[head]) for head in ('activity_logits', 'side_logits')}},
+            'cache_scope': {'synthetic': True}, 'limits': [],
+            'route': {'name': 'CPU_B256_NO_GRAD_EQUAL_TF', 'device': 'cpu', 'batch_rows': 256,
+                      'model_training': False, 'grad_enabled': False, 'grouped': True, 'equal_tf': True, 'capture': False}}
+    released, models, calls = [], [], []
+    def load_context(_):
+        context = Context(provider=SimpleNamespace(bar_start_ns=np.array([int(m.train.START)], np.int64)),
+                          source_rows=rows, normalization={}, prior={}, input_binding={}, target_contract={})
+        released.append(weakref.ref(context)); return context
+    def factory(**kwargs):
+        assert released[0]() is None
+        assert kwargs['device'] == torch.device('cpu') and kwargs['backbone_gradient_policy'] == 'M5_primary'
+        model = BatchModel(); models.append(model); return model
+    def helper(model, bound_features, *, grouped, equal_tf, capture):
+        assert grouped is equal_tf is True and capture is False
+        assert torch.is_grad_enabled() is False and model.training is False
+        assert all(value.shape[0] == 256 for value in bound_features.values())
+        assert len(model._forward_pre_hooks) == 1
+        assert all(not child._forward_hooks and not child._forward_pre_hooks
+                   for child in model.modules() if child is not model)
+        calls.append({'features': bound_features, 'grouped': grouped, 'equal_tf': equal_tf, 'capture': capture})
+        with body.model_finite_check_scope('grouped'), body.batch_equal_length_mtf_eval_scope():
+            output = {head: value + .01 for head, value in model(**bound_features).items()}
+        if corrupt == 'helper': raise ValueError('SYNTHETIC_B256_HELPER_EXCEPTION')
+        if corrupt == 'packet': bound_features['seq_x'][0, 0, 0] += 1.
+        return output, None, copy.deepcopy(activation)
+    def forbidden(*a, **k): raise AssertionError('NO_B256_DERIVATIVE_OR_LOSS')
+    monkeypatch.setattr(m.adapter, 'load_context', load_context)
+    monkeypatch.setattr(m.adapter, 'packet', lambda context, take: packet)
+    monkeypatch.setattr(m.saved, 'load_fields', lambda binding, fields, headers: {key: capture[key] for key in fields})
+    monkeypatch.setattr(m.model_owner, 'build_native_future_state_model', factory)
+    monkeypatch.setattr(m, 'safe_load_final', lambda plan: {'model_state': state})
+    monkeypatch.setattr(m.core, 'future_cuda_forward', helper)
+    monkeypatch.setattr(torch.autograd, 'grad', forbidden)
+    monkeypatch.setattr(m.objective, 'native_future_state_loss', forbidden)
+    monkeypatch.setattr(torch, 'set_num_threads', lambda count: None)
+    monkeypatch.setattr(torch, 'get_num_threads', lambda: 1)
+    monkeypatch.setattr(torch.cuda, 'is_initialized', lambda: False)
+    if corrupt == 'capture': capture['side_logits'][128, 4] += .1
+    elif corrupt == 'prior_logit': plan['prior_CPU_B1']['route']['logits']['side_logits']['sha256'] = 'f'*64
+    elif corrupt == 'first96_clock': plan['panel']['original_first96_issue_ns_sha256'] = 'f'*64
+    elif corrupt == 'row0_feature': plan['prior_CPU_B1']['feature_proof']['seq_x']['sha256'] = 'f'*64
+    return plan, capture, packet, models, calls
+
+
+def test_batch_geometry_authenticates_one_full256_packet_and_records_all_finite_mismatches(monkeypatch):
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    plan, capture, packet, models, calls = batch_geometry_calculation(monkeypatch)
+    progress = {}; ambient = torch.is_grad_enabled()
+    report = m.calculate_batch_geometry(plan, progress=progress)
+    assert len(models) == len(calls) == 1
+    assert report['counts'] == batch_geometry_counts()
+    assert report['all_256_within_saved_original_tolerance'] is False
+    assert report['measurement_completed'] is report['stop_parity_series_after_this_comparison'] is True
+    assert report['full96_gradient_qualification'] is False
+    assert report['reference_capture256_SHA_authenticated_before_forward'] is True
+    assert progress['reference_capture256_SHA_authenticated'] is True
+    assert report['actual_activation'] == plan['original_score_batch']['activation']
+    assert report['input_identity']['first256_issue_ns_sha256'] == m.core.digest(packet['truth']['issue_ns'])
+    assert report['input_identity']['first256_source_rows_sha256'] == m.core.digest(np.arange(256, dtype=np.int64))
+    assert report['input_identity']['packet_sha256'] == m.core.state_sha(packet)
+    assert report['row0_feature_proof'] == plan['prior_CPU_B1']['feature_proof']
+    for head in ('activity_logits', 'side_logits'):
+        actual = capture[head] + np.float32(.01)
+        assert report['outputs'][head] == {'values': actual.astype(np.float64).tolist(), 'shape': [256, 5],
+            'dtype': np.dtype('float32').str, 'sha256': m.core.digest(actual)}
+        assert report['saved_GPU_reference'][head] == {'values': capture[head].astype(np.float64).tolist(), 'shape': [256, 5],
+            'dtype': np.dtype('float32').str, 'sha256': m.core.digest(capture[head])}
+        assert report['vs_saved_GPU'][head] == m.batch_geometry_compare(capture[head], actual, tolerance=TOLERANCES['saved_FINAL_logits'])
+        assert report['vs_saved_GPU'][head]['all_within_original_tolerance'] is False
+        assert report['row0_vs_prior_CPU_B1'][head] == m.first_parity_compare(
+            capture[head][:1], actual[:1], tolerance=TOLERANCES['saved_FINAL_logits'])
+        assert len(report['vs_saved_GPU'][head]['per_row']) == 256
+    assert torch.is_grad_enabled() is ambient
+    assert body._BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False and body._MODEL_FINITE_CHECK_SCOPE.get() is None
+    assert models[0].backbone.weight.grad is None and models[0].backbone.weight.item() == .25
+    assert not models[0]._forward_pre_hooks
+    assert report['actual_training_cause'] == report['selected_causal_fix'] == 'UNKNOWN'
+    json.dumps(report, allow_nan=False)
+
+
+@pytest.mark.parametrize('corrupt', ['capture', 'first96_clock', 'row0_feature'])
+def test_batch_geometry_rejects_reference_or_input_identity_before_any_forward(monkeypatch, corrupt):
+    plan, _, _, models, calls = batch_geometry_calculation(monkeypatch, corrupt=corrupt)
+    progress = {}
+    with pytest.raises(ValueError): m.calculate_batch_geometry(plan, progress=progress)
+    assert calls == models == [] and progress['counts']['NN_forwards'] == 0
+    assert progress['counts']['autograd_calls'] == 0
+    assert progress['counts']['model_constructions'] == progress['counts']['checkpoint_deserializations'] == 0
+
+
+@pytest.mark.parametrize('corrupt', ['helper', 'packet', 'prior_logit'])
+def test_batch_geometry_failure_preserves_pre_forward_proofs_and_removes_counter(monkeypatch, corrupt):
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    plan, _, _, models, calls = batch_geometry_calculation(monkeypatch, corrupt=corrupt)
+    progress = {}; ambient = torch.is_grad_enabled()
+    with pytest.raises(ValueError): m.calculate_batch_geometry(plan, progress=progress)
+    assert len(calls) == len(models) == 1
+    assert progress['counts']['NN_forwards'] == 1 and progress['counts']['autograd_calls'] == 0
+    assert progress['reference_capture256_SHA_authenticated'] is True
+    assert len(progress['input_identity']['first256_issue_ns_sha256']) == 64
+    assert len(progress['saved_GPU_reference']['activity_logits']['values']) == 256
+    assert not models[0]._forward_pre_hooks and models[0].backbone.weight.grad is None
+    assert torch.is_grad_enabled() is ambient
+    assert body._BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False and body._MODEL_FINITE_CHECK_SCOPE.get() is None
+    json.dumps(progress, allow_nan=False)
+
+
+def test_batch_geometry_inspection_rejects_cross_route_SHA_and_reopening_consumed_plans(monkeypatch, tmp_path):
+    planfile, policyfile, oldfile = tmp_path / 'B256_PLAN.json', tmp_path / 'POLICY.json', tmp_path / 'OLD_PARITY_PLAN.json'
+    monkeypatch.setattr(m, 'BATCH_PLAN', planfile); monkeypatch.setattr(m, 'POLICY', policyfile)
+    monkeypatch.setattr(m, 'PARITY_PLAN', oldfile)
+    monkeypatch.setattr(m, 'BATCH_ROOT', tmp_path / 'BATCH_OUT'); monkeypatch.setattr(m, 'REPO', Path.cwd())
+    gradient_binding = {'path': '/synthetic/CONSUMED_GRADIENT.json', 'sha256': 'c'*64}
+    oldfile.write_text('{"consumed_first_parity":true}'); first_binding = m.ref(oldfile)
+    plan = {'source_base_commit': '1'*40, 'inputs': {'failed_gradient_plan': gradient_binding,
+                                                   'first_parity_plan': first_binding}}
+    planfile.write_text(json.dumps(plan)); binding = m.ref(planfile)
+    policy = dict.fromkeys(m.saved.FLAGS, False)
+    for stage, old_binding in ((m.STAGE, gradient_binding), (m.PARITY_STAGE, first_binding)):
+        policy[stage] = {'plan': old_binding, 'execution_authorized': False, 'remaining_invocations': 0,
+                        'relaunch_allowed': False, 'training_authorized': False, 'test_authorized': False}
+    policy[m.BATCH_STAGE] = m.gate_batch_geometry_expected(binding, False)
+    monkeypatch.setattr(m, 'build_batch_geometry_plan', lambda **k: plan)
+    monkeypatch.setattr(m, 'source_clean', lambda value: True)
+    def forbidden(*a, **k): raise AssertionError('OLD_BUILDER_MUST_NOT_BE_REACHED_WITH_NEW_SHA')
+    monkeypatch.setattr(m, 'build_first_parity_plan', forbidden)
+    def inspect():
+        policyfile.write_text(json.dumps(policy)); return m.inspect_batch_geometry(binding['sha256'], admitted=False)
+    assert inspect()[0] == plan and not m.BATCH_ROOT.exists()
+    with pytest.raises(ValueError): m.inspect_batch_geometry(first_binding['sha256'], admitted=False)
+    with pytest.raises(ValueError): m.inspect_first_parity(binding['sha256'], admitted=False)
+    for key in m.saved.FLAGS:
+        policy[key] = True
+        with pytest.raises(ValueError, match='ONE_USE_FLAGS'): inspect()
+        policy[key] = False
+    for stage in (m.STAGE, m.PARITY_STAGE):
+        policy[stage]['remaining_invocations'] = 1
+        with pytest.raises(ValueError, match='OLD_PLANS_CLOSED'): inspect()
+        policy[stage]['remaining_invocations'] = 0
+        for key in ('execution_authorized', 'training_authorized', 'test_authorized', 'relaunch_allowed'):
+            policy[stage][key] = True
+            with pytest.raises(ValueError, match='OLD_PLANS_CLOSED'): inspect()
+            policy[stage][key] = False
+    policy[m.BATCH_STAGE]['training_authorized'] = True
+    with pytest.raises(ValueError, match='ONE_USE_FLAGS'): inspect()
+    policy[m.BATCH_STAGE]['training_authorized'] = False; m.BATCH_ROOT.mkdir()
+    with pytest.raises(ValueError, match='FRESH_ROOT'): inspect()
+
+
+def test_batch_geometry_builder_binds_descriptive_pointer_separately_from_actual_score_fields():
+    tree = ast.parse(Path(m.__file__).read_text())
+    builder = next(node for node in tree.body if isinstance(node, ast.FunctionDef)
+                   and node.name == 'build_batch_geometry_plan')
+    statements = [node for node in ast.walk(builder) if isinstance(node, ast.Expr)
+        and isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name)
+        and node.value.func.id == 'need' and len(node.value.args) == 2
+        and isinstance(node.value.args[1], ast.Constant)
+        and node.value.args[1].value == 'BATCH_GEOMETRY_ORIGINAL_SCORE_BATCH']
+    assert len(statements) == 1
+    code = compile(ast.fix_missing_locations(ast.Module(body=[copy.deepcopy(statements[0])], type_ignores=[])),
+                   '<actual_B256_original_score_batch_gate>', 'exec')
+    # Actual saved GPU batch shape, including partial_NLL but no JSON_pointer.
+    first = {'activation': {'batch_eval_active': True, 'eligible_equal_length_TF_groups': {
+                '16': ['M5'], '252': ['D1'], '64': ['M15'], '96': ['H1', 'H4']},
+                'grad_enabled': False, 'model_training': False, 'scope_enabled': True},
+        'cursor': 1, 'known_activity_cells': 1280,
+        'output_sha256': {'activity_logits': '5746312468812960e402dd008a3788b8334d36fdda968a7777c7b5be6a6d2c67',
+                          'side_logits': '38c62b343741395250d198cb353973e3d4851e06da21cee1d4c4df1f6d3d285e'},
+        'partial_NLL': 0.5790096521377563, 'rows': 256, 'rows_done': 256}
+    pointer = '/report/whole_FINAL_score/batches/0'
+    d = {'original_score_batch': {'JSON_pointer': pointer,
+        **{key: copy.deepcopy(first[key]) for key in ('activation', 'cursor', 'known_activity_cells',
+                                                      'output_sha256', 'rows', 'rows_done')}}}
+    bindings = {key: {'path': '/synthetic/' + key + '.json', 'sha256': 'a'*64}
+                for key in ('completed_model_plan', 'capture', 'final_receipt')}
+    whole_output_sha = {'activity_logits': 'b'*64, 'side_logits': 'c'*64}
+    base = {'inputs': bindings, 'metadata': {'final_receipt': {'proof': {'model_state': 'd'*64}}},
+            'capture_array_headers': {key: {'sha256': value} for key, value in whole_output_sha.items()}}
+    score = {'batch_rows': 256, 'state_sha256_before_and_after': 'd'*64,
+             'output_sha256': whole_output_sha, 'batches': [first]}
+    original = {'plan': copy.deepcopy(bindings['completed_model_plan']),
+        'report': {'final_logits': copy.deepcopy(bindings['capture']),
+                   'final_checkpoint_receipt': copy.deepcopy(bindings['final_receipt']),
+                   'whole_FINAL_score': score}}
+    environment = {'need': m.need, 'CAPTURE': m.CAPTURE, 'd': d, 'first': first,
+                   'score': score, 'base': base, 'original': original}
+    exec(code, environment)
+    d['original_score_batch']['JSON_pointer'] = '/report/whole_FINAL_score/batches/1'
+    with pytest.raises(ValueError, match='BATCH_GEOMETRY_ORIGINAL_SCORE_BATCH'): exec(code, environment)
+    d['original_score_batch']['JSON_pointer'] = pointer
+    first['output_sha256']['activity_logits'] = '0'*64
+    with pytest.raises(ValueError, match='BATCH_GEOMETRY_ORIGINAL_SCORE_BATCH'): exec(code, environment)
