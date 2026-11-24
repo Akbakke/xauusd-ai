@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-23T23:26:20.428023+00:00",
+  "observed_utc": "2026-11-24T00:02:33.254203+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "V2_RESUME3328_SOURCE_QUALIFIED_EXACT_PLAN_PENDING",
+  "status": "V2_FULL_TRAIN_EPOCH_COMPLETE_DIRECTION_FAIL_ALL5_REVIEWED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -3923,7 +3923,7 @@
   "market_state_ta_integrated_objective_later_20261116": {"status": "SOURCE_OBJECTIVE_AND_LATER_INPUTS_READY_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_OBJECTIVE_LATER_INPUTS_REVIEW_20261116.json", "sha256": "d93d30dd580bab052d21219aae31102329f5f37c33148e9135cb495512632d8c"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "later_input_archive": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/INPUTS.npz", "sha256": "9b527afd59c906f32cf91046ddee282b998cfad5b22216030fb6a873f651ae47"}, "later_input_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_FOLD2_LATER_INPUTS_20261116_001/RESULT.json", "sha256": "293e9d042788fa750c60fa49bf84dcdef9e016995805605218b552f8e77c5985"}, "later_score_rows": 4096, "later_issue_axis_sha256": "c03ec2ae8b418e21739f9f7966b946615878344364e6dc4e4d80087a0fee99d3", "later_M1_complete_paths": 4089, "later_structure_high_observed": 4068, "later_structure_low_observed": 4081, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_objective_preflight_20261116_004": {"status": "GENUINE_TRAIN_INTEGRATED_OBJECTIVE_GRADIENT_PASS_NO_FIT", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_ACTUAL_OBJECTIVE_PREFLIGHT_REVIEW_20261116.json", "sha256": "ad48b1ddc40ab5a893ce0c0f936e06eb9f850d85f1ba023baf8787b999f0ff8d"}, "private_result": {"path": "/home/andre2/GX1_RUNS/TA_INTEGRATED_PREFLIGHT_20261116_004/RESULT.json", "sha256": "5e5a1790b4ae8673f6f3ddd63ed078b81e469a92870cf3ac6b5f0fc2b75ac2c4"}, "objective_contract_sha256": "f4cd885a7994f66367abc54fcbdedbe5339275ef8404dee29362b38bf2819bd1", "model_contract_sha256": "70a0497b27ba0ab45277ba622443ab2fca36a448357f1ccb3158689193f8bc82", "all_five_S_F_side_head_gradients_nonzero": true, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
   "market_state_ta_integrated_later_view_rebind_20261116": {"status": "ACTUAL_LATER_FEATURE_GATHER_PASS_NO_MODEL", "review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_INTEGRATED_LATER_VIEW_REBIND_REVIEW_20261116.json", "sha256": "18616578ac8a0f79eb250c892757ccd099e15b27f567eeee02e36b96a546785c"}, "view_sha256": "8056fe96b4340bccc149da7f22dde85e4ac1b62c5e58c874ec7fbb771c1dff1a", "later_rows_gathered": 16, "all_nine_surfaces_finite": true, "model_forwards": 0, "optimizer_steps": 0, "training_authorized": false, "test_authorized": false, "economic_edge_proven": false},
-  "next_action": "Freezequalifiedsource/currentruntime and prepare exactresume004from3328. Canonicalreadonlypreflight on previous003started2048, intervening1792/original512, all78source/input/norm/modelidentity. Freshsigned maintenance/CBS/WUfalse plusunchangedcaps beforeseparateoneuseadmission. Restore3328 model/AdamW/RNG beforeFW;366updates35062rows+1385fullFINAL=1751FW/2CP/noINITIAL/newepoch. Review full5TF/year/old-newD1 beforelargertraining; calendar/firstvintage/generalization/edgeopen,TEST/VAL/promotionclosed.",
+  "next_action": "No moreepochs/largerfit. Assessminimumnewv2frozen-output diagnosis usingexistingbatch-risk/attributionowners: reconstruct exactside-logit derivatives, taskdenominators and chronologicalbatch/yearsupport versus frozenprior from savedFINALlogits+authenticatedv2targets;0NN/optimizer/fit. Reconcileoldcausaldesignpreconditions before newexactsource/input/resource/preflight/admission; neverreuseconsumedplans. No quota/threshold/modelreset/featuredrop fromthisresult. Preserve calendar/firstvintage/generalizationUNKNOWN andallgenuineTF/features,TEST/VAL/promotionclosed.",
   "ta_fold2_F_frozen_readout_20261117_001": {"status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN", "plan": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PLAN.json", "sha256": "c87fcec1c25e351fec6e9c7a7bf2905ce97605661ba9055cc769e621b757e786"}, "admission_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_F_FROZEN_READOUT_ADMISSION_20261117.json", "sha256": "a9ababbb1b6ec9ed9a17e9ccff0426b4f994cfe4b78e9a3b72776cd48659629c"}, "capture": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/CAPTURE.npz", "sha256": "d4c8fa49b82dd6095afa17ebfdf40aff2bcf00b9245450edc49044d8325fb256"}, "reconciliation": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_REP_CAPTURE_20261117_002/RECONCILIATION.json", "sha256": "9b1bdfae0386ad155f3c315623b9c053e1eec6359996c8b8507ae07e6e505a74"}, "training_scope": "ten CPU linear side readouts on frozen Fold2 TRAIN representations only", "execution_authorized": false, "remaining_invocations": 0, "claimed_invocations": 1, "max_readout_fits": 10, "native_model_forwards": 0, "native_optimizer_updates": 0, "model_updates_authorized": false, "fresh_physical_boot_required": false, "relaunch_allowed": false, "test_data_used": false, "economic_edge_proven": false, "completed_invocations": 1, "actual_readout_fits": 10, "result": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/RESULT.json", "sha256": "919a894ed21f49faf173aa733775054f734b5a96ad904f4a1ac3f0e792e4a643"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/TERMINAL.json", "sha256": "f23e4ea3b4789ddd0ec72b72bed7de6e39e2d8eda7779b8b018d359c99a3643c"}, "params": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PARAMS.npz", "sha256": "babe4452ee5e51b13a640360caf054e862e3eaab34c2af1d608bf370845fedba"}, "predictions": {"path": "/home/andre2/GX1_RUNS/TA_FOLD2_F_FROZEN_READOUT_20261117_001/PREDICTIONS.npz", "sha256": "6e484806fdc8f26e1e51fa61f44f5e258583861b482b975a3be1947a02b33b46"}, "result_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_FOLD2_F_FROZEN_READOUT_RESULT_REVIEW_20261117.json", "sha256": "01e4ed18528116681b8d808f6c5ba28906c395432d5e5d29ae697c0f4d457cf2"}, "training_authorized": false, "independent_generalization_proven": false},
   "ta_m5_structure_persistence_20261116_001": {"status": "COMPLETE_CONSUMED_FIXED_REFERENCE_NO_ESTABLISHED_GAIN", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_PERSISTENCE_20261116_001.json", "sha256": "907ff7ce4fe6a9449f71501b9f4913f1637e2e6b747ce98670fd206a92f21d4a"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/CLAIM.json", "sha256": "a731f909e8cce5ef949679d65b882ed06520ee19ff53c264a2a0e86fdd1994ed"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/RESULT.json", "sha256": "ea10505d4fa8490880d14a126973a8a4fd0f2f4b59ca7e4c08c67b1f05085c86"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_PERSISTENCE_20261116_001/TERMINAL.json", "sha256": "7290d4bae30cb4c4d212af311f714b80e27263605c49641e9874512eb14c7e3f"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_PERSISTENCE_RESULT_REVIEW_20261116.json", "sha256": "020a6b02aa158d4f6d35cb62197683c36bedf5d6be357b94953a2c69fc420fb5"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"prior_mature_issues": 23886, "later_known_classes": 23302, "prior_correct": 8936, "persistence_correct": 8253, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
   "ta_m5_structure_fold2_audit_20261116_001": {"status": "COMPLETE_CONSUMED_SOURCE_COVERAGE_ONLY_TARGET_UNQUALIFIED", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001.json", "sha256": "2d5b7359b377a8d4d7658ff7cbc6a756db94565d70673604f69a86530750c081"}, "claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/CLAIM.json", "sha256": "12f4d4c5c0c131cb61bf15d2795f557b3c3ceab37cf7b9f4fab13db569a1a0c8"}, "result": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/RESULT.json", "sha256": "e6be73a2e5e04a9e0abf91e3b0b3775e93f0d75b6064ff8c842c123b1f842450"}, "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_STRUCTURE_FOLD2_AUDIT_20261116_001/TERMINAL.json", "sha256": "f6a131efb8b3c0f1a85cfa5544dd16d225cf3a75f98d551c0f27041cea1badd9"}, "repository_review": {"path": "/home/andre2/src/GX1_CURRENT/docs/TA_M5_STRUCTURE_FOLD2_AUDIT_RESULT_REVIEW_20261116.json", "sha256": "601809c2472d5d9f021499dfce2f72f53d56522404f16654df0334451f6de12d"}, "execution_authorized": false, "claimed_invocations": 1, "completed_invocations": 1, "relaunch_allowed": false, "actual_counts": {"m5_issues": 47784, "both_observed": 47567, "known_pair_class": 47195, "same_pivot_bar": 372, "model_forwards": 0, "optimizer_steps": 0}, "target_locked": false, "model_fits_authorized": false, "test_data_used": false, "economic_edge_proven": false},
@@ -3950,8 +3950,8 @@
     }
   },
   "learning_gate": {
-    "current_function_selected_cohort_initial_baseline_scope": "Corrected COT input function: no new selected-cohort model baseline yet; previous64-row CPU measurement belongs to old macro inputs.",
-    "current_function_selected_cohort_initial_baseline_qualified": false,
+    "current_function_selected_cohort_initial_baseline_scope": "Activeprovider-HLCv2whole354550TRAININITIAL002 qualified,exactmatchedpriorandinitialstate/RNG; previousselected-cohortfunction statementpreservedhistorically.",
+    "current_function_selected_cohort_initial_baseline_qualified": true,
     "latest_native_small_matched_direction_review": {
       "result": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_GC_SHORT_FIT_20261119_002/RESULT.json",
@@ -4306,9 +4306,9 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Future-bar high-low target/output/loss/prior/score qualified. Twelve-check audit and exact CPU technical learning/replay complete; whole-cohort baseline, production shared-gradient policy, new CUDA throughput, chronological utility and economics remain unqualified.",
+    "current_evidence_scope": "Activeprovider-HLCv2 fullTRAININITIAL002,coldoptimizerreplay,actualrestores512/1792/2048/3328 andretainedoneepoch/fullFINALnowqualifiedmechanically. All5conditional-sideTRAINpropercomparisonsFAIL;calendar/firstvintage/latergeneralization/economicedgeunqualified. Olderlatest_* evidence remainsnamedhistoricalscope.",
     "component_learning_measured": true,
-    "component_learning_result": "FULL_TRAIN_EPOCH_THREECLASS_LEARNING_OBSERVED_CONDITIONAL_DIRECTION_UNQUALIFIED",
+    "component_learning_result": "V2_ACTIVITY_TRAIN_GAINS_M5_M15_H1_CONDITIONAL_DIRECTION_FAIL_ALL5",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -4402,13 +4402,13 @@
     "current_function_native_baseline_missing": false,
     "current_function_native_baseline_qualified": true,
     "latest_current_initial_measurement": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CPU_MECHANICS_20261121_001/continuous/INITIAL_SCORE.json",
-      "sha256": "e7957fd906153304607ff4aea26944727d3840349f7d70e6a025bd637b4afc03"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_WHOLE_TRAIN_INITIAL_20261123_002/RESULT.json",
+      "sha256": "a6ac22899121e99f55cc8af0c864e89f9054691d6857f57ce6e25acf9e2cce59"
     },
     "current_function_native_baseline_qualification_scope": "Corrected COT cache/norm/current future-state None fullyattached model,all354550TRAINissues/5540forwards,allhiddenfinite/prioroutputscoreexact,nooptimizer/updates; not learned cooperation/generalization.",
     "latest_current_initial_state_audit": {
-      "path": "/home/andre2/GX1_RUNS/GX1_PRETRAIN_12_CHECKPOINTS_20261121_001/BASELINE_BRIDGE_RESULT001.json",
-      "sha256": "099e407ca5404fd9033d8b617f194fad1c8d50dcf664f12f48c9ce5e874fca75"
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_INITIAL002_ACCEPTANCE001.json",
+      "sha256": "af144facfc45d51e52e892a6a3cd77a75081b645f312064c242e66015e468222"
     },
     "latest_current_function_mechanics": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CPU_MECHANICS_20261121_001/replay/TERMINAL.json",
@@ -4716,7 +4716,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003/LARGER_YEAR_TRAINING_READY_20261120.json",
       "sha256": "6e13807b6bfc62be1bb5669e7bc2369267b0cce0e1fd8b09d8489ba189b85862"
     },
-    "decision_scope": "Predictiveedge/promotion still blocked; onefixedfiveyear developmenttest technically ready butnotadmitted.",
+    "decision_scope": "Activeprovider-HLCv2 retainedoneepoch/full354550TRAINFINALcompleted;conditional-sideNLL/BrierFAILall5vsfrozenmatchedinitial/prior. Furthertraining,predictiveedgeandpromotionremainblocked;calendar/firstvintage/latergeneralizationunqualified.",
     "latest_current_function_main_is_historical": true,
     "current_function_main_started": false,
     "year_scope_baseline_qualified": true,
@@ -4774,7 +4774,27 @@
     "current_function_native_baseline_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CUDA_INITIAL_20261121_001/TERMINAL.json",
       "sha256": "1a6372bb1356a32eebdeb3d1b0956bd40633d66839de30eabe52afef2ec97419"
-    }
+    },
+    "historical_selected_cohort_initial_baseline_before_provider_HLC_v2": {
+      "qualified": false,
+      "scope": "Corrected COT input function: no new selected-cohort model baseline yet; previous64-row CPU measurement belongs to old macro inputs."
+    },
+    "latest_provider_HLC_v2_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FULL_EPOCH_REVIEW001.json",
+      "sha256": "6b4af7203e75f11c599b8daef39ae35e302eb2d0f7a9336136b987bfbae15c59"
+    },
+    "historical_current_initial_before_provider_HLC_v2": {
+      "measurement": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FUTURE_STATE_CPU_MECHANICS_20261121_001/continuous/INITIAL_SCORE.json",
+        "sha256": "e7957fd906153304607ff4aea26944727d3840349f7d70e6a025bd637b4afc03"
+      },
+      "state_audit": {
+        "path": "/home/andre2/GX1_RUNS/GX1_PRETRAIN_12_CHECKPOINTS_20261121_001/BASELINE_BRIDGE_RESULT001.json",
+        "sha256": "099e407ca5404fd9033d8b617f194fad1c8d50dcf664f12f48c9ce5e874fca75"
+      },
+      "is_historical": true
+    },
+    "latest_current_initial_measurement_score_field": "report.initial"
   },
   "current_work": {
     "monitoring_needed_for_completed_run": false,
@@ -99174,7 +99194,7 @@
     }
   },
   "native_twenty_step_qualification_20261123_001": {
-    "status": "V2_RESUME3328_SOURCE_QUALIFIED_EXACT_PLAN_PENDING",
+    "status": "V2_FULL_TRAIN_EPOCH_COMPLETE_DIRECTION_FAIL_ALL5_REVIEWED",
     "goal_thread_id": "01a20035-2836-7f62-bb88-9e24603a51a5",
     "requirements": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_QUALIFICATION_20_STEPS.json",
@@ -99467,9 +99487,13 @@
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_TARGET_ACCEPTANCE001.json",
             "sha256": "f20b79e2d37f3315157cd89ca74b2a12cb0e3c520a5a9bf3347ffbee7568981c"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FULL_EPOCH_REVIEW001.json",
+            "sha256": "6b4af7203e75f11c599b8daef39ae35e302eb2d0f7a9336136b987bfbae15c59"
           }
         ],
-        "scope": "FAIL qualifiedhistoricalcalendar/expectedslotcoverage. Currentmask arithmetic reconciles, but D1only234/1289maturecompletewindows and0Tue/Wed/Thu endings underweekly-onlycalendar. Do notlabelrawgaps closedwithoutauthority or promote partialcoverage. Legacy v1 verdict retained; separate provider-HLC v2 D1 target candidate is qualified,875unique known-side windows,without granting all-TF representativity. Separate full v2 NN INITIAL002 is now qualified; current v2 epoch has no FINAL result yet."
+        "scope": "FAIL qualifiedhistoricalcalendar/expectedslotcoverage. Currentmask arithmetic reconciles, but D1only234/1289maturecompletewindows and0Tue/Wed/Thu endings underweekly-onlycalendar. Do notlabelrawgaps closedwithoutauthority or promote partialcoverage. Legacy v1 verdict retained; separate provider-HLC v2 D1 target candidate is qualified,875unique known-side windows,without granting all-TF representativity. Separate full v2 NN INITIAL002 is now qualified; actualv2retainedepochandfullFINALnowcover354550rows; D1supports162old+713new=875side targets,276immaturetail unchanged. Thisdoesnotestablishqualifiedhistoricalcalendar/allTFclass-weekdayrepresentativity."
       },
       "12": {
         "status": "FAIL",
@@ -99485,9 +99509,13 @@
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_TARGET_ACCEPTANCE001.json",
             "sha256": "f20b79e2d37f3315157cd89ca74b2a12cb0e3c520a5a9bf3347ffbee7568981c"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FULL_EPOCH_REVIEW001.json",
+            "sha256": "6b4af7203e75f11c599b8daef39ae35e302eb2d0f7a9336136b987bfbae15c59"
           }
         ],
-        "scope": "FAIL representative known-side support: D1only162unique targets despite44566repeatedM5side labels; temporal/weekday/classselection notqualified. Actualsourcekey completeness doesnotrepairteachercoverage. Legacy v1 verdict retained; separate provider-HLC v2 D1 target candidate is qualified,875unique known-side windows,without granting all-TF representativity. Separate full v2 NN INITIAL002 is now qualified; current v2 epoch has no FINAL result yet."
+        "scope": "FAIL representative known-side support: D1only162unique targets despite44566repeatedM5side labels; temporal/weekday/classselection notqualified. Actualsourcekey completeness doesnotrepairteachercoverage. Legacy v1 verdict retained; separate provider-HLC v2 D1 target candidate is qualified,875unique known-side windows,without granting all-TF representativity. Separate full v2 NN INITIAL002 is now qualified; actualv2retainedepochandfullFINALnowcover354550rows; D1supports162old+713new=875side targets,276immaturetail unchanged. Thisdoesnotestablishqualifiedhistoricalcalendar/allTFclass-weekdayrepresentativity."
       },
       "13": {
         "status": "PASS",
@@ -99551,9 +99579,17 @@
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_CROSSGEN_ACCEPTANCE001.json",
             "sha256": "d3942344755c3ba45967d01af4229a7a4f5d87708de1c073e9fd6e13c3a61429"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FULL_EPOCH_REVIEW001.json",
+            "sha256": "6b4af7203e75f11c599b8daef39ae35e302eb2d0f7a9336136b987bfbae15c59"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004/FINAL_QUALITY.json",
+            "sha256": "7b53e308ec18f0138fdac14b088ff2e948097be3051bf52189143ef7f1fe9ce2"
           }
         ],
-        "scope": "FAIL current own-target Brier/NLL vsprior on all5TF. Scalarbias and constant-reference weighting insufficient simple-shift explanations; directmoment effect mixed acrossTF and reducesD1UP atFINAL.2025D1underUP; rootcause and qualified learningfix unresolved. Frozen v1FINAL cross-generation scoring on authenticatedv2TRAINtruth alsofails matchedv2prior sideBrier/NLL all5TF. D1bothold/newknown andequal-targetweight fail; this is not a test of retrainingv2."
+        "scope": "FAIL measuredv2 retraining: all5TFconditional-side NLL/Brier worse than samefrozen matchedprior/initial onidenticalwholeTRAINrows. D1q69.996%vstrueUP54.492%,AUC0.487139/allUP;H4/H1allUP;M5/M15weakpositiveTRAINrankingbutproperfail. Bothold162/new713D1supports/equal-targetweightsfail. AggregatepartialNLLimproves0.758848to0.743910;activitygainsM5/M15/H1donotqualifydirection. Annual2025somegainsarenotOOF;no universalbiasquota/reset/freeze or causallearningfix qualified. Previousv1/crossgenFAILs remainhistoricalevidence."
       },
       "16": {
         "status": "PASS",
@@ -99581,9 +99617,17 @@
           {
             "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_003/RESTORE2048_PROOF.json",
             "sha256": "4875cb0c1e803ae48f148b7a79e1fe3467c57e546e1f501d11818639beefd619"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004/RESTORE3328_PROOF.json",
+            "sha256": "7d9bb22308b243dea4e59c274a9831990417878dcdf7a93d358f6f12a03343c5"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FULL_EPOCH_REVIEW001.json",
+            "sha256": "6b4af7203e75f11c599b8daef39ae35e302eb2d0f7a9336136b987bfbae15c59"
           }
         ],
-        "scope": "Current declared forecast function; numerical/contract/routing evidence does not establish predictive quality or independent generalization. Legacy v1 baseline/mechanics PASS is retained separately. V2 full NN INITIAL002 is qualified on all 354550 TRAIN rows with exact matched-prior proper scores and unchanged state/RNG. V2 prefix mechanics are qualified: warm 3 B96 updates, cold step 3 from CP2, nonzero moments for 426 backbone and 20 readout parameter tensors, and all 10 checkpoint proofs exact in a new process. OS reboot recovery, learning, later generalization and economic edge remain unqualified. Actualnewprocess restoredCP512 throughunchangedstrict_restore beforeanynewFW: model/AdamW/RNGexact andposition512/tenoriginalmetadata proofsauthenticated. Originaltrajectory retainedthroughdurable1792; noOSrebootoruninterruptednextstepclaim. Actual nextprocess also restoredCP1792 model/AdamW/RNG/position exactly beforeFW; durable same-trajectory2048 retained. CP2048 restore not yetexecuted; noOSreboot or uninterruptednextstep proof. Actualnextprocess restoredCP2048 model/AdamW/RNG/position exactly beforeFW; durable same-trajectory3328 retained. CP3328restore notyetexecuted; noOSreboot/uninterruptednextstepclaim."
+        "scope": "Current declared forecast function; numerical/contract/routing evidence does not establish predictive quality or independent generalization. Legacy v1 baseline/mechanics PASS is retained separately. V2 full NN INITIAL002 is qualified on all 354550 TRAIN rows with exact matched-prior proper scores and unchanged state/RNG. V2 prefix mechanics are qualified: warm 3 B96 updates, cold step 3 from CP2, nonzero moments for 426 backbone and 20 readout parameter tensors, and all 10 checkpoint proofs exact in a new process. OS reboot recovery, learning, later generalization and economic edge remain unqualified. Actualnewprocess restoredCP512 throughunchangedstrict_restore beforeanynewFW: model/AdamW/RNGexact andposition512/tenoriginalmetadata proofsauthenticated. Originaltrajectory retainedthroughdurable1792; noOSrebootoruninterruptednextstepclaim. Actual nextprocess also restoredCP1792 model/AdamW/RNG/position exactly beforeFW; durable same-trajectory2048 retained. CP2048 restore not yetexecuted; noOSreboot or uninterruptednextstep proof. Actualnextprocess restoredCP2048 model/AdamW/RNG/position exactly beforeFW; durable same-trajectory3328 retained. CP3328restore notyetexecuted; noOSreboot/uninterruptednextstepclaim. ActualCP3328 strictrestore completed beforeFW; fullFINAL checkpointmodel/RNGproofs matchunmodifiedfullscorebookends. FINALcheckpointwritten/readback/separatelybacked; freshprocessFINALrestore notexecuted. NoOSreboot/uninterruptednextstep parity claim."
       },
       "17": {
         "status": "PASS",
@@ -99615,6 +99659,10 @@
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME2048_STOP_REVIEW001.json",
             "sha256": "792b804bea5c0d3ddc5e977d67ee3c99650c46356a7205492f42f0bc370be384"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FULL_EPOCH_REVIEW001.json",
+            "sha256": "6b4af7203e75f11c599b8daef39ae35e302eb2d0f7a9336136b987bfbae15c59"
           }
         ],
         "scope": "PASS existing guards and canonical capped jobs, all newjobs closed. Preserve refusedwrongGPUowner attempt001 and failedhostsamples. Fresh /proc actual-owner observation supplements stale-module close helper; no hostuptime guarantee."
@@ -99793,9 +99841,17 @@
           {
             "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME3328_SCOPE001.json",
             "sha256": "74d5c741b597c25b8aeee0977380f87a4a27e6b16a7c99f46778cf9ffc203b1b"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FULL_EPOCH_REVIEW001.json",
+            "sha256": "6b4af7203e75f11c599b8daef39ae35e302eb2d0f7a9336136b987bfbae15c59"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FULL_EPOCH_BACKUP001.json",
+            "sha256": "0c2f01626fdd81e199ed6238d61d57528c3d63ec8887f7cc1839a6852855eab4"
           }
         ],
-        "scope": "Administrative closure includes actualrestore2048, retained3328, maintenance safety stop, processgone/all5closed/source78unchanged, fivePTs/original40files independentlybacked and currentmetadatareconciled. No completedepoch/all20/edge approval."
+        "scope": "Administrativeclosure: exactretainedoneepoch/fullFINAL completed,actualrestore3328 andfinalstate/RNGbookends qualified,all5gatesclosed/source78unchanged,final2PT/logits/quality/original34files separatelybacked and currentstatusreconciled. ScientificsideFAILall5 preserved;noglobal20/edgeapproval."
       }
     },
     "review_source_commit": "ade31c740cd8cfd47dfdb6e4eb173852eeb74c4d",
@@ -99856,8 +99912,8 @@
       "sha256": "57c83be49661a5b62ca623a0ad10dab80a3c615b3e9b238b6ceebdd1fe4f1f5f"
     },
     "review_checkpoint": {
-      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/REVIEW_CHECKPOINT018.json",
-      "sha256": "b821ae8ccc13ee27f066abad64fa46aa6837dd8a697518b7256e1afad5dedafb"
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/REVIEW_CHECKPOINT019.json",
+      "sha256": "2a5e58bb1e6add0061abfc9e86a89c885b86e5b8001786f74983cfc41aed015c"
     },
     "input_observation_design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/INPUT_OBSERVATION_CENSUS_DESIGN001.json",
@@ -99905,8 +99961,8 @@
       "sha256": "cf7f426476fb01bc57ca2a59951993d17947067a3890394beb104be498f5c461"
     },
     "administrative_readiness": {
-      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/REVIEW_CHECKPOINT018.json",
-      "sha256": "b821ae8ccc13ee27f066abad64fa46aa6837dd8a697518b7256e1afad5dedafb"
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/REVIEW_CHECKPOINT019.json",
+      "sha256": "2a5e58bb1e6add0061abfc9e86a89c885b86e5b8001786f74983cfc41aed015c"
     },
     "tf_clock_reconciliation": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TF_CLOCK_CRITERION_RECONCILIATION002.json",
@@ -100255,7 +100311,7 @@
       "other_TF_values": "UNCHANGED_V1",
       "initial_NN_baseline": "QUALIFIED_ACTUAL_WHOLE_TRAIN_INITIAL002_354550_ROWS",
       "optimizer_replay": "QUALIFIED_COLD_PROCESS_CURSOR2_TO3_ALL10_PROOFS_BITEXACT",
-      "direction_learning": "UNKNOWN_NO_FULL_FINAL_SCORE_RETAINED_CURSOR3328",
+      "direction_learning": "FAIL_ACTUAL_FULL_TRAIN_SIDE_NLL_BRIER_ALL5_WORSE_FROZEN_MATCHED_PRIOR",
       "later_generalization": "UNKNOWN",
       "economic_edge": "UNKNOWN",
       "frozen_v1_outputs_scored_on_v2_truth": "COMPLETE_WITH_DIRECTION_FAIL_ALL5TF_NOT_V2_LEARNING",
@@ -100263,15 +100319,19 @@
       "backbone_after_head_update": "MEASURED_DATA_GRADIENT_AND_NONZERO_ADAMW_MOMENTS_B96_PREFIX",
       "training_finite_and_equalTF_eval_parity": "QUALIFIED_EXISTING_TOLERANCE_SEPARATE_FROM_EXACT_COLD_REPLAY",
       "learning_worker_source": "SOURCE_QUALIFIED_ACTUALLY_STARTED_STOPPED_BY_HOST_MAINTENANCE",
-      "partial_epoch_checkpoint": "DURABLE_CURSOR3328_319488ROWS_SEPARATE_MAC_COPY_RESTORE3328_NOT_YET_EXECUTED",
+      "partial_epoch_checkpoint": "COMPLETE_RETAINED_EPOCH_CURSOR3694_FINAL_SEPARATE_MAC_COPY",
       "resume512_worker_source": "QUALIFIED_ACTUALLY_EXECUTED_RESTORED512_RETAINED1792_STOPPED_MAINTENANCE",
       "checkpoint512_tensor_restore": "QUALIFIED_ACTUAL_NEW_PROCESS_CANONICAL_MODEL_ADAMW_RNG_EXACT",
       "resume1792_worker_source": "QUALIFIED_ACTUALLY_EXECUTED_RESTORED1792_RETAINED2048_STOPPED_MAINTENANCE",
       "checkpoint1792_tensor_restore": "QUALIFIED_ACTUAL_NEW_PROCESS_CANONICAL_MODEL_ADAMW_RNG_EXACT",
       "checkpoint2048_tensor_restore": "QUALIFIED_ACTUAL_NEW_PROCESS_CANONICAL_MODEL_ADAMW_RNG_EXACT",
       "resume2048_worker_source": "QUALIFIED_ACTUALLY_EXECUTED_RESTORED2048_RETAINED3328_STOPPED_MAINTENANCE",
-      "checkpoint3328_tensor_restore": "NOT_YET_EXECUTED",
-      "resume3328_worker_source": "SOURCE_QUALIFIED_NOT_ADMITTED_OR_EXECUTED"
+      "checkpoint3328_tensor_restore": "QUALIFIED_ACTUAL_NEW_PROCESS_CANONICAL_MODEL_ADAMW_RNG_EXACT",
+      "resume3328_worker_source": "QUALIFIED_ACTUALLY_EXECUTED_RESTORED3328_COMPLETED_RETAINED_EPOCH_AND_FULL_FINAL",
+      "activity_learning": "TRAIN_GAINS_M5_M15_H1_ONLY_H4_D1_FAIL_NO_OOS",
+      "final_checkpoint": "QUALIFIED_DISK_READBACK_STATE_RNG_MATCH_FULL_FINAL_SCORE_SEPARATE_MAC_COPY",
+      "final_checkpoint_tensor_restore": "NOT_YET_EXECUTED",
+      "retained_epoch": "COMPLETE_354550_ROWS_3694_LOGICAL_UPDATES_FULL_FINAL_1385_BATCHES"
     },
     "evidence_backup_after_d1_provider_hlc": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_BACKUP001.json",
@@ -100566,6 +100626,59 @@
     "v2_resume3328_source_backup": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME3328_SOURCE_BACKUP001.json",
       "sha256": "8a7abe57f9df0c9b4baaeefa971bf097d4cc89dc4f3dfb57b97580200079c825"
+    },
+    "v2_resume3328_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004.json",
+      "sha256": "b8190cdb1df9f340533ad86cfc88a836e674bdd5a55c64446b5b0e45c3f4a5b7"
+    },
+    "v2_resume3328_runtime": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME3328_RUNTIME001.json",
+      "sha256": "2040da49b5e0b130f67091e6e509001c50728420000ae73c47b302d25b5fca8f"
+    },
+    "v2_resume3328_host_admission": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME3328_HOST_ADMISSION001.json",
+      "sha256": "506c14dd77c7bd5ab196dff1cb4c08f898facfd89e1c8c002c25934980ebaf9b"
+    },
+    "v2_resume3328_preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME3328_PREFLIGHT001.json",
+      "sha256": "a0a721852ada2b1684c91005fda4c51838bf1067c07b073feed24763ead78a2f"
+    },
+    "v2_resume3328_controller": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME3328_CONTROL001.py",
+      "sha256": "cd01213bc68b5533c82d4d9e00980f5e769adacc36e5335b96ec8fb3e59bf7fc"
+    },
+    "v2_full_epoch_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FULL_EPOCH_REVIEW001.json",
+      "sha256": "6b4af7203e75f11c599b8daef39ae35e302eb2d0f7a9336136b987bfbae15c59"
+    },
+    "v2_full_epoch_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FULL_EPOCH_BACKUP001.json",
+      "sha256": "0c2f01626fdd81e199ed6238d61d57528c3d63ec8887f7cc1839a6852855eab4"
+    },
+    "v2_full_epoch_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004/RESULT.json",
+      "sha256": "6dc0e28ab73deacc7dc2cdf19805d094dfcc00a2a10cd1d6cf3d4b64da9348d2"
+    },
+    "v2_full_epoch_quality": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004/FINAL_QUALITY.json",
+      "sha256": "7b53e308ec18f0138fdac14b088ff2e948097be3051bf52189143ef7f1fe9ce2"
+    },
+    "v2_final_checkpoint_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004/FINAL.json",
+      "sha256": "4922a235aeaf69507db2983cd8a95d1969eaa758a6965daba32227fa43aa0310"
+    },
+    "v2_resume3328_actual_restore": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004/RESTORE3328_PROOF.json",
+      "sha256": "7d9bb22308b243dea4e59c274a9831990417878dcdf7a93d358f6f12a03343c5"
+    },
+    "v2_post_epoch_diagnostic_scope": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_POST_EPOCH_DIAGNOSTIC_SCOPE001.json",
+      "sha256": "cbec21a88c286e0376f197f068dd5f2f896ee011671398826b600d26afbacc1d"
+    },
+    "current_20_step_verdict_counts": {
+      "PASS": 13,
+      "FAIL": 3,
+      "UNKNOWN": 4
     }
   },
   "native_raw_feed_clock_qualification_20261123_001": {
@@ -100945,7 +101058,7 @@
     }
   },
   "native_d1_provider_hlc_certificate_goal_20261123_001": {
-    "status": "V2_RESUME3328_SOURCE_QUALIFIED_EXACT_PLAN_PENDING",
+    "status": "V2_FULL_TRAIN_EPOCH_COMPLETE_DIRECTION_FAIL_ALL5_REVIEWED",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_DESIGN001.json",
       "sha256": "cd97abfec7c512364c21c9608c41352ee70dac9593e1dfd28a5527713734f172"
@@ -100999,8 +101112,8 @@
       "sha256": "5ce76ab395a316c9d622d07248329389eb15dc91461a9046bb4e4cb8ee59fcbc"
     },
     "review_checkpoint": {
-      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/REVIEW_CHECKPOINT018.json",
-      "sha256": "b821ae8ccc13ee27f066abad64fa46aa6837dd8a697518b7256e1afad5dedafb"
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/REVIEW_CHECKPOINT019.json",
+      "sha256": "2a5e58bb1e6add0061abfc9e86a89c885b86e5b8001786f74983cfc41aed015c"
     },
     "crossgen_plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_D1_PROVIDER_HLC_CROSSGEN_SCORE_20261123_001.json",
@@ -101071,6 +101184,12 @@
     "latest_epoch_stop_backup": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_RESUME2048_STOP_BACKUP001.json",
       "sha256": "355551c64a0e0b4c017cb03fd3be123333e45287b4115c341720ad37b608cb90"
+    },
+    "retained_v2_epoch_complete": true,
+    "v2_direction_fit": "FAIL_ALL5_TRAIN",
+    "full_epoch_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FULL_EPOCH_BACKUP001.json",
+      "sha256": "0c2f01626fdd81e199ed6238d61d57528c3d63ec8887f7cc1839a6852855eab4"
     }
   },
   "native_d1_provider_hlc_target_qualification_20261123_001": {
@@ -101327,12 +101446,34 @@
     }
   },
   "native_provider_hlc_one_epoch_resume_20261123_004": {
-    "status": "SOURCE_QUALIFIED_EXACT_PLAN_PENDING",
+    "status": "COMPLETE_CONSUMED_CLOSED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004.json",
+      "sha256": "b8190cdb1df9f340533ad86cfc88a836e674bdd5a55c64446b5b0e45c3f4a5b7"
+    },
     "remaining_invocations": 0,
     "execution_authorized": false,
     "full_epoch_training_allowed": false,
+    "additional_epochs_allowed": false,
     "test_authorized": false,
     "relaunch_allowed": false,
-    "additional_epochs_allowed": false
+    "execution": {
+      "claim": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004/CLAIM.json",
+        "sha256": "21c1f3d24fdd7ee71a326f1dbd197ea4e89c9a102376339ac5d0234a08832ed6"
+      },
+      "restore3328_proof": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004/RESTORE3328_PROOF.json",
+        "sha256": "7d9bb22308b243dea4e59c274a9831990417878dcdf7a93d358f6f12a03343c5"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004/RESULT.json",
+        "sha256": "6dc0e28ab73deacc7dc2cdf19805d094dfcc00a2a10cd1d6cf3d4b64da9348d2"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ONE_EPOCH_RESUME_20261123_004/TERMINAL.json",
+        "sha256": "f91dc38513f94fbc8f935a2e5a267bc1f77e3a5c00b9c91e921da6e277023101"
+      }
+    }
   }
 }
