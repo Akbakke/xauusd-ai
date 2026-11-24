@@ -832,7 +832,7 @@ ACCEPTANCE001/REVIEW026 binder målingen.25kilde-/planfiler10663562B og
 27resultatfiler13820160B er sikret på separat Mac-disk medSHA/F_FULLFSYNC/
 disklesing. Opprinnelige datasett, checkpoints og vekter er bevart.
 
-## All-TF INITIAL stoppet av hostvakt; egen replay gjenstår
+## All-TF INITIAL001 stoppet; INITIAL002 kildekvalifisert
 
 ALL_TF_FRESH_INITIAL_REPLAY_PREPARATION_SCOPE001 er design uten kjøretilgang.
 EksplisittNone-opt-in er nå implementert i eksisterende v2 fresh-producer
@@ -871,24 +871,31 @@ maintenance_active er en konservativ worker/Setup/OOBE/CBS-proxy som også
 inkluderer inaktive workers; faktisk oppdateringsarbeid er ikke bevist.
 Én fysisk Windows-observasjon07:15:23Z viste alle grenerfalse etter stoppen;
 den fastslår ikke grenen07:13. Ingen OS-, scheduler- eller vaktendring er gjort.
-En ny virkelig fersk fullbaseline trenger ny eksakt scope/plan/guardbinding
-og fersk signert quiet-hostadmisjon. Egen kald replay og all fit er fortsatt stengt.
+INITIAL002 er nå kildekvalifisert med PROFILE_DESIGN002: kun eksakt nytt
+INITIAL-navn/root/profil og replayens forventede egenINITIAL er endret.
+Alle seks kilde-/guardtestfiler reverseres byteeksakt til fullf37 ved bare
+literalbytter.68berørte kontroller PASS;253uendrede fra321grunnlaget gjenbrukes.
+Faktisk blokkert metadatabygger og privatecontroller success/failureclosure PASS.
+Ingen numerikk/input/maske/seed/recipe/cap/timeout/vedlikeholdsvakt er endret.
+Ny runtime/plan, eksakt preflight, separatdiskbackup og fersk signert
+host/boot/vedlikeholdsadmisjon gjenstår før ny fullbaseline.
+002 er ikke innrømmet/kjørt; egen replay og all fit er fortsatt stengt.
 
 Neste INITIAL må bruke virkelig fersk kandidattilstand/RNG og ny fullTRAIN354550-raders
 nulloppdateringsbaseline med riktig kandidatidentitet og matched prior.
-INITIAL002 beholdes som navngitt referanse. Ingen FINAL-overføring eller
+M5_primary INITIAL_20261123_002 beholdes som navngitt referanse. Ingen FINAL-overføring eller
 replay-oppdaterte vekter brukes som start for en læringsfit.
 
 Deretter egen ny, kvalifisert v2-replay: eksisterende recipe seed20260911,
 AdamW1e-4/clip1/ingen scheduler/B96; tre varme oppdateringer, C2 og ny prosess
 som gjenoppretter kandidatens egne model/optimizer/RNG/posisjon og replikerer
 steg3 bitidentisk på alle ti proof-felt med befolkede AdamW-momenter.
-PROFILE_DESIGN001 binder uendrede native profiler: INITIAL bruker CUDA,
+PROFILE_DESIGN002 binder uendrede native profiler: INITIAL bruker CUDA,
 B256/1385forwards/last246 over354550TRAIN; fersk state lagres CPU-clonet.
 Målt referansetid846,9s er ingen kandidatkapasitetsgaranti. INITIAL3600/3570s
 og replay1800/1770s beholder20G/512M,8tråder,128tasks,affinity0..18,12GiBVRAM
 og alle effekt-/temperatur-/hostvakter. Nye eksakte all-TF-plan/CLI-bindinger
-må implementeres uten å gjenåpne gamle consumedplaner. Fresh-source,
+er implementert uten å gjenåpne gamle consumedplaner. Fresh-source,
 preflight, backup, host/boot og engangsadmisjon må kvalifiseres før hver fase.
 Ingen mainfit eller automatisk epokeserie.
 

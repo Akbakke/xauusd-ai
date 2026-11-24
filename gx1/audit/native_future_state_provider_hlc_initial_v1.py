@@ -114,9 +114,9 @@ def run(plan_sha):
   publish('TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'plan':binding,'claim':claim,'error':type(error).__name__+':'+str(error)[:1800],'progress':progress,'remaining_invocations':0,'relaunch_allowed':False});raise
  finally:signal.setitimer(signal.ITIMER_REAL,0)
 # Explicit None fresh INITIAL; original M5 producer remains consumed.
-ALL_NAME='NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_001';ALL_STAGE=ALL_NAME.lower();ALL_PLAN=REPO/'configs/research'/(ALL_NAME+'.json');ALL_ROOT=Path('/home/andre2/GX1_RUNS')/ALL_NAME
+ALL_NAME='NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_002';ALL_STAGE=ALL_NAME.lower();ALL_PLAN=REPO/'configs/research'/(ALL_NAME+'.json');ALL_ROOT=Path('/home/andre2/GX1_RUNS')/ALL_NAME
 ALL_SCOPE={'path':str(E/'PROVIDER_HLC_ALL_TF_FRESH_INITIAL_REPLAY_PREPARATION_SCOPE001.json'),'sha256':'aa4a01793dfd02344eefc491a83639caa3a00cf626f7e3827c1d8c7730816a21'}
-ALL_PROFILE={'path':str(E/'PROVIDER_HLC_ALL_TF_FRESH_INITIAL_REPLAY_PROFILE_DESIGN001.json'),'sha256':'9c00fad884062c672a1dd66949eacfa3b9b86689b4ad136837d8d38780290632'}
+ALL_PROFILE={'path':str(E/'PROVIDER_HLC_ALL_TF_FRESH_INITIAL_REPLAY_PROFILE_DESIGN002.json'),'sha256':'0247b13570a6fb964cd7bb1420eb648547215902f361288aefefddeb7fbe9060'}
 ALL_PARENT='f33da18dd6a0e3d59e4876fa26f8e62ec5ab97b8';ALL_TEST='tests/test_native_future_state_provider_hlc_initial_v1.py'
 ALL_EXECUTION=dict(EXECUTION);ALL_LIMITS=dict(LIMITS);ALL_CONTRACT_SHA='6d6ac22819e54c7b12aebcf4e1afe27b990d8a4d90d16500e352c7353d99cca0'
 all_tf_check_sources_inputs=check_sources_inputs
