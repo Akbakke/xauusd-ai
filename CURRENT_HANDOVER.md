@@ -616,7 +616,7 @@ SHA/F_FULLFSYNC/readbackPASS, manifestc3382692...12872b0. IngenCP/vekter
 endret/kopiertavdenneaudit. REVIEW020beholder13PASS/3FAIL/4UNKNOWN,
 all20false; globallearning_gateBLOCKogbaselinepointerefortsattkorrekte.
 
-Neste: readoutattribution er kildekvalifisert; faktisk payload er ikke innrømmet.
+Readoutattribution er nå faktisk COMPLETE_CONSUMED og stengt; se siste resultat nedenfor.
 READOUT_ATTRIBUTION_DESIGN001 binder2heleCP137092559B+4NPZfelt14536550B.
 Nytynnauditowner/test laralleeksisterendealignment/bias/model/training/guards
 byte-identiske; detbevarerforrigesourcebridge utennestedeunntak.
@@ -639,7 +639,8 @@ metadatabuilder PASS med checkpoint-/NPZ-/pris-/modell-/optimizer-/restore-/
 CUDA-/publisering blokkert. 84 kildeeiere; 0 payloaddekoding/forward/update.
 SOURCE_QUALIFICATION001 SHA3333b8ab...08bf95c binder originale logger/hjelper/
 preview. Tidligere gx1/scripts/tests er byte-identiske; bare ny audit/test.
-Ingen readout-payloadjobb eller ny trening startet; stortrening ikke kvalifisert.
+Ved denne kildekvalifiseringen var payload ennå ikke startet. Senere faktisk
+readout er oppsummert nedenfor; stortrening er fortsatt ikke kvalifisert.
 
 Aktiv status avstemt24.11: 30 utdaterte current_work-felt rettet fra
 originale hashverifiserte kvitteringer. Generisk siste terminal er CPUbatchrisk;
@@ -650,5 +651,38 @@ ACTIVE_STATUS_RECONCILIATION001 binder endringen. Ingen generell nullfeilgaranti
 13PASS/3FAIL/4UNKNOWN og ubevist retning/generaliseringsverdi står uendret.
 
 Ny kilde/statusbackup: 12 filer/6794125 bytes separat Mac-disk, alle SHA/
-F_FULLFSYNC/readback verifisert. Originale checkpoints er urørt; ingen payload
-eller trening innrømmet. ACK: PROVIDER_HLC_READOUT_SOURCE_STATUS_BACKUP001.
+F_FULLFSYNC/readback verifisert før readoutadmisjonen. Originale checkpoints
+er urørt. ACK: PROVIDER_HLC_READOUT_SOURCE_STATUS_BACKUP001.
+
+## Siste faktiske CPU-readoutdiagnose24.11
+
+NATIVE_PROVIDER_HLC_READOUT_ATTRIBUTION_20261124_001 COMPLETE/exit0,5,403228s.
+Plan39422e72...e3fb61, sourceb74180789; RESULT e63bf9cd...fcdbc0c,
+ACCEPTANCE001 SHA43d213ea...48c21cc. To hele CP137092559B og fire
+NPZ-felt14536550B; 0modell/FW/autograd/update/stateinstall/RNGrestore.
+INITIALfulltree/model/RNG og FINALalle10proofs avstemt; source/input/plan/
+policy/WSLboot bookends PASS. Originale CP endret ikke bytes.
+Første signerte hostforespørsel timeout2004ms beholdt; fersk002PASS.
+CPU4G/512M/éntråd/64tasks/600sekunder, intern570sekunder; alle5porterfalse.
+
+D1KNOWN: delta meanlogit0,6734592243 = biasdelta0,00873580575 +
+kombinert ikke-bias-residual0,6647234186. OPP-q54,492171→69,995913prosent;
+biasendring ved fast residual kan påvirke q høyst0,218395pp. Tilsvarende
+biasgrenser M5/M15/H1/H4:0,055542/0,073881/0,074275/0,152761pp.
+Identitetsfeil maks2,776e-17. Ikke additive sannsynlighetsandeler, W/H-splitt
+eller bevis for historisk årsak. Scalarbias-alene er utilstrekkelig;
+actualcause/selectedfix/generalization/edge UNKNOWN.
+
+REVIEW021:13PASS/3FAIL/4UNKNOWN, all20false, v2retningFAILalle5TF.
+Neste er avgrenset designreview av faktisk tap-/oppdateringsvei, mulig
+M5activity-versus-side shared-gradientdiagnose på fryst funksjon. Faktisk
+M5_primary-route er dokumentert, ikke ny årsakspåstand. Ingen modell-/
+autograd-/treningsadmisjon følger; ingen ekstraepoke eller stortrening.
+
+Resultatbackup: 26 originalfiler/22575492 bytes separat Mac-disk SHA/
+F_FULLFSYNC/readback verifisert, ACK PROVIDER_HLC_READOUT_BACKUP001.
+Neste konkrete spørsmål: på ett forhåndsvalgt original-B96-panel ved fryst
+FINAL skal gA+gS samsvare med faktisk kanonisk shared-gradient. Negativ
+gS·(gA+gS) støtter bare lokal førsteordens aktivitet/side-konflikt; dette
+er ikke faktisk historisk AdamW-årsak eller alle-TF-bevis. Ingen optimizer-
+oppdatering eller modell-/autogradadmisjon følger av designspørsmålet.
