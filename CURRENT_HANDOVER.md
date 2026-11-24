@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT066:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT067:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -66,7 +66,13 @@ Aktuelt: None-epoken er fullført og pooled retningskrav FAILER alle5TF.
 Lagret støtte-/momentanalyse og separatbackup er ferdige. DIRECT_BIAS_BOUND001
 utelukker endringen i direkteintercept alene som hovedforklaring; maksimalD1-
 effekt0,11958pp mot17,50529pp observert. Neste er kvalifisering av en blind
-INITIAL003/FINAL-kryssprobe uten oppdatering. Ingen modellprobe/fit er innrømmet.
+INITIAL003/FINAL-kryssprobe uten oppdatering. Kilde og eksakt sikkerhetsrute
+er kvalifisert med216/216fokuserteCPUcases (5,037s,4G/512M/éntråd).
+Design003 binder6blindeoriginaleB256-batcher/1526TRAINrader/12nativeFW,
+2sekvensielleCP og3arkiv/44felt/1500935808dekodedeB. Ingen modellnumerikk
+er endret; alle80gamle eiere bytebevart unntatt eksakt additiv shellrute
+medfullgammelbyte-rekonstruksjon. Faktiskmetadata/plan/CLI/backup/vertskontroll
+ogegenengangsadmisjon gjenstår. Ingen modellprobe/fit er innrømmet.
 Detaljene nedenfor gjelder de navngitte tidligere design-/kjøringsfasene.
 
 NATIVE_PROVIDER_HLC_UNKNOWN_ACTIVITY_CAUSE_20261124_001 er COMPLETE,

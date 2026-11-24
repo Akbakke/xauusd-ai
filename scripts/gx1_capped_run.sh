@@ -102,6 +102,11 @@ NATIVE_FUTURE_STATE_BIAS_CONTINUE_MODULE=gx1.audit.continue_native_future_state_
 NATIVE_FUTURE_STATE_BIAS_CONTINUE=false
 NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256=
 # END GX1 BIAS CONTINUE ROUTE 20261122 004 STATE
+# BEGIN GX1 PROVIDER HLC ENDPOINT CROSS ROUTE 20261124 001 STATE
+NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_MODULE=gx1.audit.diagnose_native_provider_hlc_endpoint_cross_v1
+NATIVE_PROVIDER_HLC_ENDPOINT_CROSS=false
+NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256=
+# END GX1 PROVIDER HLC ENDPOINT CROSS ROUTE 20261124 001 STATE
 # BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 STATE
 NATIVE_PROVIDER_HLC_ALL_TF_LEARNING=false
 NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256=
@@ -1625,7 +1630,127 @@ configure_native_provider_hlc_all_tf_learning() {
 }
 # END GX1 ALL TF LEARNING ROUTE 20261124 001 MATCHERS
 
+# BEGIN GX1 PROVIDER HLC ENDPOINT CROSS ROUTE 20261124 001 MATCHERS
+matches_bound_native_provider_hlc_endpoint_cross() {
+  if [[ $# -eq 6 ]]; then
+    [[ "$6" == --preflight ]] || return 1
+    set -- "${@:1:5}"
+  fi
+  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_MODULE" \
+    && "$4" == --plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_NONE_ENDPOINT_CROSS_20261124_001.json"
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]
+}
+
+configure_native_provider_hlc_endpoint_cross() {
+  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \
+    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \
+    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {
+    echo "FATAL: endpoint cross requires exact canonical CUDA containment" >&2; exit 75
+  }
+  matches_bound_native_provider_hlc_endpoint_cross "$@" || {
+    echo "FATAL: endpoint cross command/plan is not exactly bound" >&2; exit 75
+  }
+  local cross_output=/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_NONE_ENDPOINT_CROSS_20261124_001
+  local cross_env_name
+  [[ ! -e "$cross_output" && ! -L "$cross_output" \
+    && -d "${cross_output%/*}" && ! -L "${cross_output%/*}" \
+    && "$(readlink -f "${cross_output%/*}")" == "${cross_output%/*}" ]] || {
+    echo "FATAL: endpoint cross requires a fresh canonical output" >&2; exit 75
+  }
+  for cross_env_name in ${!GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS@}; do
+    case "$cross_env_name" in
+      GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS|GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256) ;;
+      *) echo "FATAL: unknown endpoint cross environment field" >&2; exit 75 ;;
+    esac
+  done
+  [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL:-false}" == "false" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_INITIAL:-false}" == "false" \
+    && "${GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_REPLAY:-false}" == "false" \
+    && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY:-false}" == "false" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING:-false}" == "false" \
+    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME:-false}" == "false" \
+    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE:-false}" == "false" \
+    && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE:-false}" == "false" \
+    && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-false}" == "false" \
+    && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-false}" == "false" \
+    && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == "false" \
+    && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == "false" \
+    && "${GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_TRAINING_LANE:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-false}" == "false" \
+    && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-false}" == "false" \
+    && "${GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_CUDA_LANE:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-false}" == "false" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" == "" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE:-}" == "" ]] || {
+    echo "FATAL: endpoint cross forbids mixed legacy modes/plans/lanes" >&2; exit 75
+  }
+  if [[ -n "${GX1_CAPPED_CLASS:-}${GX1_CAPPED_MEMORY_BYTES:-}${GX1_CAPPED_SWAP_BYTES:-}${GX1_CAPPED_TASKS_MAX:-}" ]]; then
+    [[ "${GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS:-}" == true \
+      && "${GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256:-}" == "$5" ]] || {
+      echo "FATAL: endpoint cross mode/plan differs from protected parent" >&2; exit 75
+    }
+  else
+    [[ "${GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS:-false}" == false \
+      && -z "${GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256:-}" ]] || {
+      echo "FATAL: unprotected endpoint cross environment pollution" >&2; exit 75
+    }
+  fi
+  NATIVE_PROVIDER_HLC_ENDPOINT_CROSS=true
+  NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256="$5"
+  TRAINER_DEVICE=cuda
+  TRAINER_EXECUTION_MODE=canonical
+  TRAINER_OUT_BUNDLE_DIR="$cross_output"
+  TRAINER_MAX_WALL_SECONDS=900
+  TRAINER_MODEL_MAX_WALL_SECONDS=870
+  TRAINER_GPU_INDEX=0
+  TRAINER_GPU_MAX_POWER_LIMIT_W=250
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_MEMORY_TEMP_C=80
+  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+  TRAINER_CPU_MAX_TEMP_C=80
+  TRAINER_CPU_MAX_PACKAGE_POWER_W=125
+  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592
+  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592
+}
+# END GX1 PROVIDER HLC ENDPOINT CROSS ROUTE 20261124 001 MATCHERS
 validate_target_command() {
+# BEGIN GX1 PROVIDER HLC ENDPOINT CROSS ROUTE 20261124 001 DISPATCH
+  local endpoint_cross_arg endpoint_cross_reference=false
+  for endpoint_cross_arg in "$@"; do
+    case "$endpoint_cross_arg" in
+      "$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_MODULE"|*/gx1/audit/diagnose_native_provider_hlc_endpoint_cross_v1.py|gx1/audit/diagnose_native_provider_hlc_endpoint_cross_v1.py)
+        endpoint_cross_reference=true ;;
+    esac
+  done
+  if [[ "$endpoint_cross_reference" == true ]]; then
+    configure_native_provider_hlc_endpoint_cross "$@"
+    return
+  fi
+# END GX1 PROVIDER HLC ENDPOINT CROSS ROUTE 20261124 001 DISPATCH
 # BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 DISPATCH
   local all_tf_learning_arg all_tf_learning_reference=false
   for all_tf_learning_arg in "$@"; do
@@ -2745,6 +2870,85 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
     }
   fi
 # END GX1 BIAS CONTINUE ROUTE 20261122 004 NESTED
+# BEGIN GX1 PROVIDER HLC ENDPOINT CROSS ROUTE 20261124 001 NESTED
+  [[ "${GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS:-false}" == "$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256" ]] || {
+    echo "FATAL: nested endpoint cross mode/plan differs from protected parent" >&2; exit 75
+  }
+  if [[ "$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS" == true ]]; then
+    [[ "${GX1_CAPPED_MEMORY_BYTES:-}" == "21474836480" \
+      && "${GX1_CAPPED_SWAP_BYTES:-}" == "536870912" \
+      && "${GX1_CAPPED_TASKS_MAX:-}" == "128" \
+      && "${OMP_NUM_THREADS:-}" == "8" \
+      && "${MKL_NUM_THREADS:-}" == "8" \
+      && "${OPENBLAS_NUM_THREADS:-}" == "8" \
+      && "${NUMEXPR_NUM_THREADS:-}" == "8" \
+      && "${VECLIB_MAXIMUM_THREADS:-}" == "8" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_INITIAL:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_REPLAY:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_TRAINING_LANE:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-}" == "false" \
+      && "${GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_CUDA_LANE:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE:-}" == "" \
+      && "${GX1_TRAINER_MAX_WALL_SECONDS:-}" == "900" \
+      && "${GX1_TRAINER_MODEL_MAX_WALL_SECONDS:-}" == "870" \
+      && "${GX1_TRAINER_ATTENDED_STAGE_REQUIRED:-}" == "false" \
+      && "${GX1_TRAINER_GPU_INDEX:-}" == "0" \
+      && "${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W:-}" == "250" \
+      && "${GX1_TRAINER_GPU_MAX_POWER_DRAW_W:-}" == "250" \
+      && "${GX1_TRAINER_GPU_MAX_CORE_TEMP_C:-}" == "75" \
+      && "${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C:-}" == "80" \
+      && "${GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB:-}" == "12288" \
+      && "${GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS:-}" == "1" \
+      && "${GX1_TRAINER_CPU_MAX_TEMP_C:-}" == "80" \
+      && "${GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W:-}" == "125" \
+      && "${GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES:-}" == "8589934592" \
+      && "${GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES:-}" == "8589934592" \
+      && "${GX1_POWER_BENCHMARK_SCOPE_JSON:-}" == "" \
+      && "${GX1_POWER_BENCHMARK_SCOPE_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-}" == "false" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" == "" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE:-}" == "" \
+      && "${GX1_CAPPED_CLASS:-}" == "trainer" \
+      && "${GX1_CUDA_PRODUCER_GUARD:-}" == "false" \
+      && "${GX1_TRAINER_DEVICE:-}" == "cuda" \
+      && "${GX1_TRAINER_EXECUTION_MODE:-}" == "canonical" \
+      && "${BLIS_NUM_THREADS:-}" == "8" \
+      && "${ARROW_NUM_THREADS:-}" == "1" \
+      && "${POLARS_MAX_THREADS:-}" == "1" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS:-}" == "true" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256" ]] || {
+      echo "FATAL: nested endpoint cross resources or legacy modes differ from protected parent" >&2; exit 75
+    }
+  fi
+# END GX1 PROVIDER HLC ENDPOINT CROSS ROUTE 20261124 001 NESTED
 # BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 NESTED
   [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-false}" == "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING" \
     && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256" \
@@ -3418,6 +3622,8 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256" \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE="$NATIVE_FUTURE_STATE_BIAS_CONTINUE" \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS="$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS" \
+  --setenv=GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256="$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING="$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256="$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE="$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE" \
