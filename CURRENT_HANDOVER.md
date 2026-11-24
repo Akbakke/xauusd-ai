@@ -11,12 +11,12 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT020:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT023:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
 generalisering og økonomisk edge er fortsatt UNKNOWN.
-Administrative20PASS; kildekalender/firstvintage og læring/generalisering
+Steg20 (administrativ sikring) er PASS; kildekalender/firstvintage og læring/generalisering
 har fortsatt åpne krav, med historiske v1FAIL beholdt.
 REQUIRED_EXTERNAL_EVIDENCE_BLOCKED_AUDIT001 eroppfylt over3målfortsettelser;
 Tidligeremålblokkering beholdes somhistorikk; nyautorisertOANDAkilderute
@@ -747,3 +747,26 @@ og gammel eierkode etter fjerning av én blokk/dispatch er eksakt bevart.
 Faktisk blokkert metadatabuilder PASS/86kildeeiere/0payload/NN/autograd.
 SOURCE_QUALIFICATION001 og uavhengig source/controllerreview PASS. Ingen
 ny payloadadmisjon; alle5porterfalse, gammelgradient001fortsattstengt.
+
+## Faktisk førsteparitymåling001
+
+COMPLETE/exit0,30,909478s/3CPUFW/0autograd/update. Alle3ruter og begge5TF-
+vektorer lagret; source/input/plan/policy/WSLboot/modell/packet/lokalRNG/
+contextbookends PASS. Førstehostquerytimeout2004ms beholdt; fersk002PASS.
+CPUno_grad med/utenTFmerge er bitidentiske. Grad-modeforskjell makslogit
+4,768e-7activity/5,960e-8side, innenopprinneligtoleranse. AlleCPU-ruter
+feiler fortsatt lagretCUDA1e-6/1e-5 på4/5celler perhead; maksavviklogit
+1,206398e-4activity/3,147125e-5side. Maks sannsynlighetsavvik pådenneENE
+raden0,000406788ppactivity/0,000611266ppside; ikke helTRAIN-grense/årsaksbevis.
+
+ACCEPTANCE001/REVIEW023 binder resultatet;13PASS/3FAIL/4UNKNOWN består.
+Neste er ÉN separat CPU B256 no_grad/grouped/equalTF-måling avoriginalførste
+scorebatch, alle256GPUreferanser hashbundet. Packet169086976B erikkepeak;
+projiserteTF/familietensorer anslått549453824B førencoderarbeidsminne.
+4G/éntråd/hardstop består, faktiskB256kapasitetuavklart. Ingen batchsweep,
+toleranseendring, gradient-/treningsadmisjon eller relaunch følger.
+
+Resultatbackup førsteparity:24originalfiler/22687315B separatMacdisk SHA/
+F_FULLFSYNC/readback verifisert, ACK PROVIDER_HLC_FIRST_PARITY_BACKUP001.
+SenesteCPU-ruter er målt/lukket, ikke samsvarsgodkjent motlagretCUDA.
+Ingen jobb kjører; én ny B256-scope er bare klargjort, ikke innrømmet.
