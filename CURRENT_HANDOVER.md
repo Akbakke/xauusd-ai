@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT026:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT027:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -29,9 +29,10 @@ GC/orderbok er utsatt, ikke slettet; M30 trenger egen verdikvalifisering.
 M1 brukes aldri til retning/fasit/normalisering/utvalg. TEST er forseglet.
 Ingen live/paper, broker, ordre, spending eller promotion.
 
-Alle fem globale treningsporter er false. Den opprinnelige v2-epoken er
-fullført:354550rader/3694retainedlogiskeupdates/fullFINAL1385batcher. Ingen
-modelljobb kjører. Flere epoker/stortrening er ikke kvalifisert.
+Alle fem globale treningsporter er false. Den tekniske all-TF-replayen er
+fullført, consumed og lukket. Opprinnelig M5-primaryv2-epoke er fullført:
+354550rader/3694retainedlogiskeupdates/fullFINAL1385batcher. Ingen modelljobb
+kjører; prosess/CLAIM/terminal er autoritet. Stortrening er ikke kvalifisert.
 Én tung CURRENT-jobb via scripts/gx1_capped_run.sh, lås og eksisterende
 kapasitets-/temperatur-/effekt-/hostvakter. Ingen kilde-/policyendring under
 bundet kjøring. Stabile langjobber sjekkes15–30minutter, ikke minuttvis.
@@ -947,19 +948,44 @@ tardeler er separatdiskkopiert/uavhengigSHA-verifisert med F_FULLFSYNC/fsync.
 Original INITIAL ble gjenbrukt etter faktisk39177848B-SHA-lesing fra Mac-disk;
 FULL_BACKUP001 binder manifestet. OriginalCP og alle deler bevares.
 
-Private ALLTF-prepare/control er kildekvalifisert:12syntetiske close/admit-
-cases PASS, inkludert lukking før auditpublisering ved publiseringsfeil.
-Faktisk blokkert replay-metadatabuilder PASS/73eiere/0modell/payload/CUDA.
-Metadata-preview779aa er ingen kjøreplan; config/warm/coldrøtter er ikke
-opprettet/claimed. Ingen produksjons-/tap-/recipe-/guard-/restorekode endret.
-SOURCE_QUALIFICATION001 binder kilder/logger; alle5flaggfalse.
+## Faktisk egen all-TF kald replay
 
-Neste: FERSK replayruntime/plan fra committet metadataavslutning etter fullbackup.
-FINAL_CONTROL002 binder avslutningen ved historisk modellkilde9168d84dd. Egen3warmB96/C2/kaldtsteg3 med seed20260911/AdamW1e-4/clip1/
-ingen scheduler må kvalifiseres og innrømmes separat. Kun to tekniske
-treningsflagg åpnes av eksakt replayadmisjon; fullfit/epokeserie/VAL/TEST stengt.
-Kilde/HEAD/policy fryses gjennom warm+cold. Ingen kvalifiseringsoppdaterte
-vekter eller gammelFINAL brukes til senere læringsfit.
+Planb0182365…/kilde350c48091 er COMPLETE/consumed/stengt for begge lanes.
+ACCEPTANCE001 binder warmRESULTa3838daf…/coldRESULT7b065bec… og alle originale
+receipts/95MB-checkpoints. Warm45,451s/3logiskeupdatesB96første288TRAIN-rader;
+cold33,892s/énfysiskreplayavsteg3 fra egenC2 i nyprosess. Samme fryste
+policy9e75ad9e… og uendrede source/input/runtime/beggeboot gjennom begge.
+Model/optimizer/parameternavn/RNG/scheduler/position/scores/steps/training/
+trajectory matcher bitidentisk på alle10proof-felt. C2momenter er nonzero for
+426backbone-/20readout-tensorer. Uavhengig metadata+råSHA av3PT-filer
+285880133B PASS, uten tensordekoding. Ingen kvalifiseringsvekter får bli
+fitinitializer; egen fersk INITIAL003 beholdes til senere uendret funksjon.
+
+Warm9FW/5backward/3autograd/3updates, cold2FW/1backward/1strictrestore/1update;
+sluttcursor er logisk3, ikke4. Finite-checkgradientparitet580parametre og
+no_grad equalTF-paritet er bitidentiske. Etter første headupdate er lokale
+datagradienter nonzero i alle8navngitte sharedfamilier; gM5/gaux-cosine0,66975.
+Dette er lokal konnektivitet, ikke historisk årsak, optimale vekter eller edge.
+Begge under fysisk200W og uendrede20G/512M/8tråder/12GiB/250W/thermal/hostvakter.
+WarmpeakGPU49/50C/179,53W/9776MiB; cold48/48C/178,07W/9772MiB. Torchreserved
+9783214080B/9779019776B; minste hostledig54,098GB. Ingen RSS-måling fra denne
+eieren. Ingen hardwaregrense brutt; begge exit0. Alle5porterfalse etterpå.
+
+12privatecontrollercases og faktisk blokkert metadatabuilder bestod før
+preflight/admisjon; ingen produksjonskode/tap/recipe/guard/restore endret.
+39originalfiler302298864B, inkludert alle3PT285880133B, er nå separatdisk-
+kopiert og uavhengig faktiskMac-SHA/F_FULLFSYNC/fsync-verifisert.
+Neste er å forhåndsregistrere ÉN begrenset paret læringssammenligning førNNfit.
+Eksisterende INITIAL/replay gjenbrukes når funksjon/data er uendret. Fastfrys
+TRAIN-klokke/støtte/modenhet/senereTRAINobserver/stoppkriterium og målt
+kapasitet før fit; ingen bias-reset, klassekvote, ekstraepoke eller TEST.
+Referansens retningsFAILalle5 og kalender/asof/vintage/latergeneralisering er
+fortsatt åpne. FullTRAIN-normalisering OG factoryprior kan bare gjenbrukes
+for uendret TRAIN-diagnostikk. En senere observasjon i samme TRAIN er da ikke
+streng kronologiskOOF. Slike folds trenger prefix-modne statistikker,
+featurekonstanter og prior; ny funksjon krever egen fersk baseline/replay.
+Lås kildeklokkeutvalg før målinnsyn; kvalifiser v2 klasse-/år-/unikmålstøtte
+uten targetfilter/top-up eller gammelv1-kohort som v2-autoritet. Teknisk replay er ingen ny retnings-/økonomiaksept.
 
 En senere læringssammenligning trenger egen frosset kohort/klokke/observer.
 Eksisterende20727issue/1377dager er kildeklokkesampling, ikke sammenhengende
