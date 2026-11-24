@@ -924,6 +924,10 @@ CLI-/replaymetadatadispatch er utvidet; NN-/tap-/trenings-/restorematematikk
 er uendret. Full modellstate/RNG/.grad kontrolleres før hver commit. Global
 BASE-completion publiseres sist, etter fullført segmentterminal; feil der
 kan ferdigvalideres i nytt0-forwardsegment uten å omskrive gammelterminal.
+Privat CONTROL002 retter én observert lukkingsstatusfeil: global RESULT
+stenger gjenopptakelse også når prefiksbeviset er gyldig, til aggregatet er
+kontrollert. Seks fokuserte syntetiske close-cases PASS; gammel CONTROL001
+og originalkvalifikasjon er bevart. Ingen kilde-/modell-/vaktendring.
 Kildekvalifikasjon er ikke modelladmisjon;003base/segment er ikke klargjort
 eller kjørt, globale5flaggfalse. Commit-/IO-ekstratid er fortsatt umålt.
 Før ny modell kreves fersk signert full vedlikeholds-/ressurskontroll,

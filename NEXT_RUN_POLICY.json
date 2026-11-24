@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-24T09:13:52.542730+00:00",
+  "observed_utc": "2026-11-24T09:20:47.967754+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -28667,7 +28667,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-24T09:13:52.542730+00:00",
+  "updated_utc": "2026-11-24T09:20:47.967754+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -101389,8 +101389,8 @@
       "sha256": "d4b7e736e75694237aacc324b2577b80a77e4a2dc0cd74f3d084a40b1bba9b0c"
     },
     "v2_all_TF_resumable_initial_controller": {
-      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_CONTROL001.py",
-      "sha256": "5af6a4b434848fdbd7b2e314cb816f953abdb5a4a937f50055d43ab6fbc48ffe"
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_CONTROL002.py",
+      "sha256": "d1911d5f6617788dec92336bcbf070953c46d8ed359373a23170d3f0361e26fc"
     },
     "v2_all_TF_resumable_initial_backup_packer": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_PACK_CLOSED_CACHE001.py",
@@ -101399,6 +101399,10 @@
     "active_readiness_status_reconciliation": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ACTIVE_READINESS_STATUS_RECONCILIATION002.json",
       "sha256": "6d615490ee5daa3d443a87eff7eb817fc73d981c0a882f2290715e424b99bb47"
+    },
+    "v2_all_TF_resumable_initial_controller_closure_correction": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_CONTROLLER_CLOSURE_CORRECTION001.json",
+      "sha256": "c4f2d2c7a76d54d21790c7664f76a85ee80107f1ec09c60b1ca9462c43b97553"
     }
   },
   "native_raw_feed_clock_qualification_20261123_001": {
