@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT023:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT024:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -771,21 +771,49 @@ F_FULLFSYNC/readback verifisert, ACK PROVIDER_HLC_FIRST_PARITY_BACKUP001.
 SenesteCPU-ruter er målt/lukket, ikke samsvarsgodkjent motlagretCUDA.
 Ingen jobb kjører; én ny B256-scope er bare klargjort, ikke innrømmet.
 
-Batchgeometrydesign001 er låst for kildekvalifisering: ettoriginaltCPU B256
-no_grad/grouped/equalTFforward,0gradient/update; alle256referanser og row0
-CPU_B1 sammenlignes med uendret toleranse. Første96hash/heleTRAINakser/
-immutablecache binder fast0:256utvalg; nye256hashes registreres etterdecode.
-4Ggrense/900sekunder og stopp uten fallback/batchsweep. Ingenpayloadadmisjon.
+## Siste batchgeometrymåling og neste vitenskapelige grense
 
-Statuskontroll24.11:21nye batchgeometrytester og faktisk blokkert metadata PASS;
-0modell/CP/NPZ/forward/claim. Endelig kildekvalifisering/commit/preflight og
-B256måling gjenstår; ingen treningsadmisjon. CURRENT_STATUS_TEXT_ERRATUM001
-fjerner kun to foreldede ikke-kjørt-klausuler fra dagens steg16visning etter
-SHAkontroll av faktiske RESTORE2048/3328bevis. Original REVIEW023 bevares;
-13PASS/3FAIL/4UNKNOWN og alle fem stengte treningsporter består.
+B256001 er COMPLETE/exit0: 60,775469 sekunder, én CPU-forward og ingen
+AUTOGRAD-, optimizer- eller vektoppdateringer. Høyeste rapporterte prosess-RSS
+var 3000812 KiB = 2,861797 GiB. Hardgrensene var 4 GiB minne, 512 MiB swap,
+én beregningstråd og 900 sekunder. Dette er ikke en målt kapasitet for gradienter.
 
-Batchgeometrykilde kvalifisert:21nye cases PASS, gamle82testbytes/hele gamle
-eieren er eksakt bevart etter fjerning av de isolerte tilleggene. Faktisk
-blokkert metadata PASS/86eiere/0payload/0NN; kilde/controllerreview PASS.
-SOURCE_QUALIFICATION001 binder originale logger/helper/preview og hashes.
-Commit/push, kanonisk preflight og separat backup gjenstår før ettCPUforward.
+De 21 nye testene og faktisk blokkert metadatakontroll bestod. Tidligere
+82 testtilfeller og gammel eierkode er bytebevart. Koden er committet/pushet
+som fe7a4461e. SOURCE_QUALIFICATION001 binder originale logger og hashes.
+Alle 256 vektorer per head er lagret. Etterkontrollen reproduserte fire F32-
+bytehasher og 514 sammenligninger med standardbiblioteket uten modell/NPZ.
+Kilde-, input-, FINAL-modell-, packet-, lokal RNG-, context- og WSL-boot-
+kontroller bestod. Hostquery001 fikk timeout etter 2005 ms før admisjon;
+originalen er bevart, og fersk query002 bestod før den ene modellkjøringen.
+
+Paritet mot lagret CUDA er fortsatt FAIL ved uendret 1e-6 atol/1e-5 rtol:
+activity feiler 428/1280 celler, med maks logitavvik 0,0001850128174;
+side feiler 796/1280, med maks 0,0000358819962. Maks sigmoidavvik på disse
+256 radene er 0,001244190 prosentpoeng for aktivitet og 0,000777867 for side.
+Ingen logit byttet positivt/negativt fortegn. Første rad på CPU B256 mot
+CPU B1 bestod: maks avvik 4,76837e-7 for aktivitet og 5,96046e-8 for side.
+Batchstørrelse alene forklarer ikke første rads CPU/CUDA-gap. Dette beviser
+ikke en grense for hele TRAIN, en runtimeårsak eller historisk AdamW-årsak.
+
+Paritetsserien er avsluttet etter den forhåndslåste sammenligningen.
+001 er konsumert/stengt med null invokasjoner og ingen relaunch.
+ACCEPTANCE001/REVIEW024 binder resultatet. 30 originalfiler / 19774950 bytes
+er sikret på separat Mac-disk med SHA, F_FULLFSYNC og verifisert disklesing.
+Originale checkpoints/vekter/resultater er bevart. REVIEW024 retter foreldet
+tekst om CP2048/3328 og skiller målt FINAL-modellinnlasting på CPU fra en
+ikke utført FINAL-gjenoppretting av optimizer og checkpoint-RNG.
+
+Neste steg er en separat CPU-betinget lokal gradientdiagnose, bare design:
+original første B96; første pass lagrer en CPU-baseline fra grad-enabled eval
+før derivater, og andre pass må samsvare med denne på samme rute og faste
+toleranse før hver rads autograd. Original full-B96-nevner, kanonisk tap,
+uavhengige komponenter, F64-summering og alle kontroller beholdes.
+Maksimalt 192 forwards / 384 autograd / null optimizer/oppdateringer.
+Både tap/BCE og alle fire autogradkall må ligge inne i torch.enable_grad;
+omgivelsenes modus gjenopprettes. Diagnosen kan bare teste lokal, frossen
+M5-aktivitet/side-interaksjon. Den beviser ikke historisk GPU/AdamW-årsak,
+all-TF-bias eller generalisering. Den gamle CUDA-paritetsgaten forblir FAIL.
+Ny kilde, tester, faktisk metadata, preflight, backup, hostkontroll og eksakt
+engangsadmisjon må kvalifiseres før utførelse. Ingen modell-, autograd- eller
+treningsadmisjon finnes nå. Alle fem globale treningsporter er false.
