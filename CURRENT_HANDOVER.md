@@ -82,11 +82,29 @@ hel-TRAIN-kvalitet eller en testet normaliseringsrettelse. Ingen fix er valgt.
 Normresultat/script11filer175626B er også separatMac-SHA/F_FULLFSYNC/fsync-
 verifisert; begge resultaters originale bevis og checkpoints er bevart.
 
-Neste er kilde-/designforberedelse av en separat batchrekkefølgesammenligning,
-jf GX1_RULES119–124/regel26 og eksisterende PCG64-/cursor-eiere. Samme modell,
-inputs, mål, prior, loss, optimizer og ett pass beholdes;3693heleB96-batcher
-permuteres én forhåndsbundet gang medB22sist. Ny schedule/trajectory/guard/
-admisjon må kvalifiseres; ingen fit/ekstraepoke/HPO/TEST er nå tillatt.
+Batchrekkefølgeeieren er nå kilde-/metadatakvalifisert, jf SOURCE_QUALIFICATION001
+og design002 SHA89b0ede3. Uendret numerisk engine/INITIAL003/replay gjenbrukes;
+3693heleB96-batcher permuteres én lokalPCG64-gang medB22sist, alle354550rader
+eksaktén gang. Sealed schedule/journal/prefix førrestore/EOF og17CP inklusive
+TRAIN_END før fullFINAL er kvalifisert. Eksakt gammel/nye guardbinding, caps
+og82eier-metadata PASS; 27feature+14targetfelt/1483917408B via uendretreader.
+
+Første fokuserte suite hadde709PASS/én historisk testfixtureFAIL, ogsåmålt påd5.
+Bare testfixture ble rettet til gyldig pinnedf111; dagens gamlebro må fortsatt
+avvise senere udeklarerte tillegg.649berørte nye/gamlecases er nåPASS, uendrede
+engine-/recoveryPASS gjenbrukes. Privatmetadata001 stoppet ved ekte Numba-cacheprobe;
+eksisterende kvalifisert helper004 ble gjenbrukt. Siste faktiskblokkertmetadata
+PASS med0payload/CP/modell/optimizer/CUDA/seed/nett/policywrites. Originalfeilbevis
+beholdes. Ingen modell-/loss-/optimizer-/normaliseringsrettelse er innført.
+
+Neste: fersk HEAD/runtimebundet eksakt engangsplan,
+CLI-preflight, separat source/planbackup og signert fersk vert/admisjon. Ingen
+ny plan/fit er publisert eller innrømmet ennå; alle seks globaleflagg erfalse.
+Primær-/gruppeskårPASS girikkeautomatisk steg15/bidireksjonalitet/biasårsak/edgePASS.
+13PASS/3FAIL/4UNKNOWN og alle tidligere vitenskapelige krav står vedlag.
+Source/design/bevis er separatdiskkopiert:19filer6237014B. Alle artefakter,
+diagnostic/stderr/manifest er uavhengig faktiskMac-SHA/F_FULLFSYNC/fsync-verifisert.
+SOURCE_BACKUP001 binder kopien; ingen checkpoints/markedsdata er deserialisert.
 
 OANDA er brukt til priser og D1-HLC-fasit. Ingen FRED-nøkkel er tilgjengelig;
 API400 og offentlige POST200/identiskHTML gir fortsatt ingen førstevintageverdi.

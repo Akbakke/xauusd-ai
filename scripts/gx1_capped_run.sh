@@ -1519,14 +1519,17 @@ matches_bound_native_provider_hlc_all_tf_learning() {
   fi
   [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1
   [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
-    && "$3" == "$NATIVE_PROVIDER_HLC_LEARNING_MODULE" \
     && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1
   local expected_plan
-  case "$4" in
-    --all-tf-learning-plan-sha256)
+  case "$3:$4" in
+    "$NATIVE_PROVIDER_HLC_LEARNING_MODULE:--all-tf-learning-plan-sha256")
       expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002.json" ;;
-    --all-tf-learning-resume-plan-sha256)
+    "$NATIVE_PROVIDER_HLC_LEARNING_MODULE:--all-tf-learning-resume-plan-sha256")
       expected_plan="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002/RECOVERY_PLANS/$5.json" ;;
+    gx1.audit.native_provider_hlc_block_order_v1:--block-order-plan-sha256)
+      expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001.json" ;;
+    gx1.audit.native_provider_hlc_block_order_v1:--block-order-resume-plan-sha256)
+      expected_plan="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001/RECOVERY_PLANS/$5.json" ;;
     *) return 1 ;;
   esac
   [[ -f "$expected_plan" && ! -L "$expected_plan" \
@@ -1545,7 +1548,10 @@ configure_native_provider_hlc_all_tf_learning() {
   }
   local learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002"
   local learning_mode=main learning_env_name
-  if [[ "$4" == --all-tf-learning-resume-plan-sha256 ]]; then
+  if [[ "$3" == gx1.audit.native_provider_hlc_block_order_v1 ]]; then
+    learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001"
+  fi
+  if [[ "$4" == --all-tf-learning-resume-plan-sha256 || "$4" == --block-order-resume-plan-sha256 ]]; then
     learning_output="$learning_output/RECOVERY_$5"
     learning_mode=resume
   fi
@@ -1755,7 +1761,7 @@ validate_target_command() {
   local all_tf_learning_arg all_tf_learning_reference=false
   for all_tf_learning_arg in "$@"; do
     case "$all_tf_learning_arg" in
-      --all-tf-learning-plan-sha256|--all-tf-learning-plan-sha256=*|--all-tf-learning-resume-plan-sha256|--all-tf-learning-resume-plan-sha256=*)
+      --all-tf-learning-plan-sha256|--all-tf-learning-plan-sha256=*|--all-tf-learning-resume-plan-sha256|--all-tf-learning-resume-plan-sha256=*|--block-order-plan-sha256|--block-order-plan-sha256=*|--block-order-resume-plan-sha256|--block-order-resume-plan-sha256=*|gx1.audit.native_provider_hlc_block_order_v1|*/gx1/audit/native_provider_hlc_block_order_v1.py|gx1/audit/native_provider_hlc_block_order_v1.py)
         all_tf_learning_reference=true ;;
     esac
   done

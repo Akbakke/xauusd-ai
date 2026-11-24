@@ -822,13 +822,22 @@ def inspect_all_tf_resume(sha,admitted):
  original_gate=policy[ALL_TF_STAGE];need(original_gate['plan']==plan['metadata']['original_plan']and original_gate['remaining_invocations']==0 and all(original_gate[key]is False for key in ('execution_authorized','full_epoch_training_allowed','additional_epochs_allowed','test_authorized','relaunch_allowed')),'ALL_TF_RECOVERY_ORIGINAL_GATE_CONSUMED')
  need(not output.exists()and not output.is_symlink(),'ALL_TF_RECOVERY_FRESH_OUTPUT');live=core.collect_future_cuda_runtime_metadata();core.future_cuda_runtime_matches(plan['metadata']['runtime'],live);return plan,binding,pref,live
 
-def physical_all_tf(plan,binding,pref,live):
+def physical_all_tf(plan,binding,pref,live,*,order_scope=None):
  import torch
  from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_future_state_model
  from gx1.contracts.market_state_ta_integrated_objective_v1 import _native_future_state_truth
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_SCOPE
+ order_root=ALL_TF_ROOT;canonical_schedule=plan['schedule']
+ if order_scope is not None:
+  from gx1.audit import native_provider_hlc_block_order_v1 as order
+  order_root=order.require_engine_scope(order_scope,plan,binding,'main');canonical_schedule=plan['schedule']['canonical_schedule']
+# END GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_SCOPE
  began=time.monotonic();counts=dict.fromkeys(plan['limits'],0);context=adapter.load_context(plan['metadata']);counts['feature_cache_payload_loads']=counts['target_archive_loads']=1
  batches=core.all_score_batches(np.arange(len(context['source_rows']),dtype=np.int64),plan['recipe']['train_batch_rows']);need(len(batches)==plan['schedule']['logical_batches'],'FULL_CLOCK_BATCHES')
- for j,take in enumerate(batches):need(core.digest(context['source_rows'][take])==plan['schedule']['batch_source_rows_sha256'][j]and core.digest(context['truth']['issue_ns'][take])==plan['schedule']['batch_issue_ns_sha256'][j],'WHOLE_CLOCK_BINDING')
+ for j,take in enumerate(batches):need(core.digest(context['source_rows'][take])==canonical_schedule['batch_source_rows_sha256'][j]and core.digest(context['truth']['issue_ns'][take])==canonical_schedule['batch_issue_ns_sha256'][j],'WHOLE_CLOCK_BINDING')
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_BATCHES
+ if order_scope is not None:batches=order.resolve_batches(context,plan['schedule'])
+# END GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_BATCHES
  core.future_cuda_seed_and_runtime({'recipe':plan['recipe'],'metadata':{'runtime':live}})
  model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=context['input_binding'],architecture=plan['metadata']['architecture'],device=torch.device('cuda'),train_prior=context['prior'],target_contract=context['target_contract'],backbone_gradient_policy=None);counts['model_constructions']=1
  initial=plan['initial_reference'];need(model.research_objective==plan['model_contract']and core.state_sha(model.state_dict())==initial['model_state_sha256']and core.state_sha(core.training_rng())==initial['rng_sha256'],'FRESH_QUALIFIED_INITIAL_STATE_RNG')
@@ -838,15 +847,30 @@ def physical_all_tf(plan,binding,pref,live):
   return hook
  hooks=[model.register_forward_pre_hook(count('model_forwards')),model.backbone.register_forward_pre_hook(count('backbone_forwards')),model.readout.register_forward_pre_hook(count('readout_forwards'))]
  def checkpoint(cursor,name):
-  cp=train.make_checkpoint(model,optimizer,trajectory=traj,original_plan_ref=binding,lane='main',cursor=cursor,steps=list(steps),scores=copy.deepcopy(scores),producer_runtime=live);r=train.publish_checkpoint_receipt(ALL_TF_ROOT/name,cp,counts,execution_ref=binding);receipts.append(r);return r
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_CHECKPOINT
+  if order_scope is not None:order.validate_prefix(plan['schedule'],steps,cursor)
+# END GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_CHECKPOINT
+  cp=train.make_checkpoint(model,optimizer,trajectory=traj,original_plan_ref=binding,lane='main',cursor=cursor,steps=list(steps),scores=copy.deepcopy(scores),producer_runtime=live);r=train.publish_checkpoint_receipt(order_root/name,cp,counts,execution_ref=binding);receipts.append(r);return r
  try:
   checkpoint(0,'INITIAL.pt')
   for j,take in enumerate(batches):
    packet=adapter.packet(context,take);masks=_native_future_state_truth(packet['truth'],rows=len(take),fold_upper_ns=train.UPPER,target_contract=context['target_contract']);need(bool(masks['activity'].any())==plan['schedule']['update_flags'][j],'ACTUAL_BATCH_SUPPORT')
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_PACKET
+   if order_scope is not None:order_record=order.step_binding(context,plan['schedule'],j,take,packet)
+# END GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_PACKET
    steps.append(train.training_step(model,optimizer,packet,plan,counts,j));cursor=j+1;need(counts['optimizer_steps']==train.position(plan['schedule'],cursor)['optimizer_updates']and counts['skipped_batches']==0,'EXACT_LOGICAL_CURSOR');del packet,masks
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_JOURNAL
+   if order_scope is not None:steps[-1]['order_binding']=order_record
+# END GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_JOURNAL
    if cursor%plan['recipe']['checkpoint_every_optimizer_updates']==0 and cursor<len(batches):
-    receipt=checkpoint(cursor,'UPDATE%06d.pt'%cursor);pub(ALL_TF_ROOT,'PROGRESS_%06d.json'%cursor,{'cursor':cursor,'rows_done':min(cursor*96,354550),'rows_total':354550,'checkpoint_receipt':receipt,'last_step':steps[-1],'policy':pref,'elapsed_training_scope_seconds':time.monotonic()-began})
+    receipt=checkpoint(cursor,'UPDATE%06d.pt'%cursor);pub(order_root,'PROGRESS_%06d.json'%cursor,{'cursor':cursor,'rows_done':min(cursor*96,354550),'rows_total':354550,'checkpoint_receipt':receipt,'last_step':steps[-1],'policy':pref,'elapsed_training_scope_seconds':time.monotonic()-began})
   optimizer.zero_grad(set_to_none=True)
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_TRAIN_END
+  if order_scope is not None:
+   order.validate_prefix(plan['schedule'],steps,len(batches))
+   need(model.training is True and scores=={'INITIAL':{'reused_qualified_result':plan['inputs']['baseline_result'],'no_repeated_initial_forwards':True}},'ORDER_TRAIN_END_INITIAL_ONLY')
+   train_end_receipt=checkpoint(len(batches),'TRAIN_END.pt')
+# END GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_TRAIN_END
   boundary=train.release_phase_allocator_cache(model,optimizer,label='TRAIN_TO_FULL_V2_FINAL_SCORE')
   scores['PASS1'],outputs=adapter.score_final(model,context,batch_rows=plan['recipe']['eval_batch_rows'],device='cuda')
   quality=quality_panels(context,outputs)
@@ -855,30 +879,50 @@ def physical_all_tf(plan,binding,pref,live):
     panel=quality['all_TF'][tf][task];cell=scores['PASS1']['scores']['per_tf'][tf][task];need(panel['count']==cell['count'],'QUALITY_CANONICAL_COUNT')
     if panel['count']:
      for name,total in (('NLL','log_loss_sum'),('brier','brier_sum')):need(np.isclose(panel['model'][name]*panel['count'],cell[total],rtol=1e-12,atol=1e-7),'QUALITY_CANONICAL_SUM')
-  score_ref=pub(ALL_TF_ROOT,'FINAL_QUALITY.json',quality)
+  score_ref=pub(order_root,'FINAL_QUALITY.json',quality)
   import io
-  memory=io.BytesIO();np.savez_compressed(memory,issue_ns=context['truth']['issue_ns'],**outputs);capture=pub(ALL_TF_ROOT,'FINAL_LOGITS.npz',memory.getvalue())
+  memory=io.BytesIO();np.savez_compressed(memory,issue_ns=context['truth']['issue_ns'],**outputs);capture=pub(order_root,'FINAL_LOGITS.npz',memory.getvalue())
   final=checkpoint(len(batches),'FINAL.pt');need(counts==plan['limits'],'EXACT_COUNTS');need(torch.cuda.max_memory_reserved()<=EXECUTION['cuda_peak_reserved_bytes_max'],'VRAM_CAP')
-  return {'counts':counts,'trajectory':traj,'fresh_initial_state_sha256':initial['model_state_sha256'],'logical_batches':len(batches),'actual_optimizer_updates':counts['optimizer_steps'],'passes':1,'full_TRAIN_rows':354550,'whole_FINAL_score':scores['PASS1'],'final_quality':score_ref,'final_logits':capture,'final_checkpoint_receipt':final,'all_checkpoint_receipts':receipts,'allocator_boundary':boundary,'cuda_peak_reserved_bytes':int(torch.cuda.max_memory_reserved()),'TRAIN_side_fit_status':quality['all5_pooled_side_TRAIN_fit'],'later_generalization':'UNKNOWN','economic_edge':'UNKNOWN','all20_approved':False}
+  report={'counts':counts,'trajectory':traj,'fresh_initial_state_sha256':initial['model_state_sha256'],'logical_batches':len(batches),'actual_optimizer_updates':counts['optimizer_steps'],'passes':1,'full_TRAIN_rows':354550,'whole_FINAL_score':scores['PASS1'],'final_quality':score_ref,'final_logits':capture,'final_checkpoint_receipt':final,'all_checkpoint_receipts':receipts,'allocator_boundary':boundary,'cuda_peak_reserved_bytes':int(torch.cuda.max_memory_reserved()),'TRAIN_side_fit_status':quality['all5_pooled_side_TRAIN_fit'],'later_generalization':'UNKNOWN','economic_edge':'UNKNOWN','all20_approved':False}
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_REPORT
+  if order_scope is not None:report.update(train_end_checkpoint_receipt=train_end_receipt,order_cursor=order.cursor_binding(plan['schedule'],len(batches)),actual_order_journal_verified=True)
+  return report
+# END GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_REPORT
  finally:
   for hook in hooks:hook.remove()
 
-def physical_all_tf_resume(plan,binding,pref,live):
+def physical_all_tf_resume(plan,binding,pref,live,*,order_scope=None):
  output=all_tf_recovery_root(binding['sha256']);phase_recovery=plan['schema_version']=='gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v2'
  import torch
  from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_future_state_model
  from gx1.contracts.market_state_ta_integrated_objective_v1 import _native_future_state_truth
  began=time.monotonic();meta=plan['metadata'];original=meta['original'];receipt=meta['receipt'];traj=meta['trajectory'];counts=dict.fromkeys(plan['limits'],0);start=plan['starting_cursor'];before=train.position(original['schedule'],start)
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_SCOPE
+ canonical_schedule=original['schedule']
+ if order_scope is not None:
+  from gx1.audit import native_provider_hlc_block_order_v1 as order
+  output=order.require_engine_scope(order_scope,plan,binding,'resume');phase_recovery=True;canonical_schedule=original['schedule']['canonical_schedule']
+# END GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_SCOPE
  context=adapter.load_context(original['metadata']);counts['feature_cache_payload_loads']=counts['target_archive_loads']=1
  batches=core.all_score_batches(np.arange(len(context['source_rows']),dtype=np.int64),original['recipe']['train_batch_rows']);need(len(batches)==original['schedule']['logical_batches'],'RESUME_FULL_CLOCK_BATCHES')
- for j,take in enumerate(batches):need(core.digest(context['source_rows'][take])==original['schedule']['batch_source_rows_sha256'][j]and core.digest(context['truth']['issue_ns'][take])==original['schedule']['batch_issue_ns_sha256'][j],'RESUME_WHOLE_CLOCK_BINDING')
+ for j,take in enumerate(batches):need(core.digest(context['source_rows'][take])==canonical_schedule['batch_source_rows_sha256'][j]and core.digest(context['truth']['issue_ns'][take])==canonical_schedule['batch_issue_ns_sha256'][j],'RESUME_WHOLE_CLOCK_BINDING')
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_BATCHES
+ if order_scope is not None:batches=order.resolve_batches(context,original['schedule'])
+# END GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_BATCHES
  core.future_cuda_seed_and_runtime({'recipe':original['recipe'],'metadata':{'runtime':live}})
  model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=context['input_binding'],architecture=original['metadata']['architecture'],device=torch.device('cuda'),train_prior=context['prior'],target_contract=context['target_contract'],backbone_gradient_policy=None);counts['model_constructions']=1
  initial=original['initial_reference'];need(model.research_objective==original['model_contract']and core.state_sha(model.state_dict())==initial['model_state_sha256']and core.state_sha(core.training_rng())==initial['rng_sha256'],'RESUME_FRESH_QUALIFIED_INITIAL_STATE_RNG')
  optimizer=torch.optim.AdamW(model.parameters(),**original['recipe']['optimizer']);counts['optimizer_constructions']=1;need(not optimizer.state,'RESUME_EMPTY_FRESH_OPTIMIZER')
  resume_reference(receipt['checkpoint'],Path(plan['inputs']['checkpoint']['path']));cp=torch.load(receipt['checkpoint']['path'],map_location='cpu',weights_only=True);counts['checkpoint_loads']=1
  need(cp['producer']=={'original_plan':meta['original_plan'],'lane':receipt['producer_lane'],'runtime':receipt['producer_runtime']},'RESUME_ACTUAL_CHECKPOINT_PRODUCER')
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_PREFIX
+ if order_scope is not None:
+  order.validate_prefix(original['schedule'],cp['steps'],start);factory_buffers=core.state_sha(dict(model.named_buffers()))
+# END GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_PREFIX
  restored=train.strict_restore(model,optimizer,cp,trajectory=traj,original_plan_ref=meta['original_plan'],expected_cursor=start,current_runtime=live,expected_state_proof=receipt['proof'])
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_BUFFERS
+ if order_scope is not None:need(core.state_sha(dict(model.named_buffers()))==factory_buffers,'ORDER_RESTORE_FACTORY_BUFFERS')
+# END GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_BUFFERS
  need(restored==train.position(original['schedule'],start),'RESUME_RESTORED_EXACT_POSITION');counts['model_restores']=1
  restore_proof=pub(output,'RESTORE%d_PROOF.json'%start,{'status':'PASS_CANONICAL_CURSOR%d_MODEL_ADAMW_RNG_RESTORE'%start,'original_plan':meta['original_plan'],'execution_plan':binding,'checkpoint':receipt['checkpoint'],'checkpoint_receipt':plan['inputs']['checkpoint_receipt'],'position':restored,'expected_state_proof':receipt['proof'],'canonical_strict_restore_completed':True,'new_model_forwards':0,'uninterrupted_next_step_parity':'NOT_MEASURED'})
  steps=copy.deepcopy(cp['steps']);scores=copy.deepcopy(cp['scores']);del cp;receipts=[]
@@ -887,12 +931,21 @@ def physical_all_tf_resume(plan,binding,pref,live):
   return hook
  hooks=[model.register_forward_pre_hook(count('model_forwards')),model.backbone.register_forward_pre_hook(count('backbone_forwards')),model.readout.register_forward_pre_hook(count('readout_forwards'))]
  def checkpoint(cursor,name):
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_CHECKPOINT
+  if order_scope is not None:order.validate_prefix(original['schedule'],steps,cursor)
+# END GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_CHECKPOINT
   cp=train.make_checkpoint(model,optimizer,trajectory=traj,original_plan_ref=meta['original_plan'],lane='main',cursor=cursor,steps=list(steps),scores=copy.deepcopy(scores),producer_runtime=live)
   result=train.publish_checkpoint_receipt(output/name,cp,counts,execution_ref=binding);receipts.append(result);return result
  try:
   for j in range(start,len(batches)):
    take=batches[j];packet=adapter.packet(context,take);masks=_native_future_state_truth(packet['truth'],rows=len(take),fold_upper_ns=train.UPPER,target_contract=context['target_contract']);need(bool(masks['activity'].any())==original['schedule']['update_flags'][j],'RESUME_ACTUAL_BATCH_SUPPORT')
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_PACKET
+   if order_scope is not None:order_record=order.step_binding(context,original['schedule'],j,take,packet)
+# END GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_PACKET
    steps.append(train.training_step(model,optimizer,packet,original,counts,j));cursor=j+1
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_JOURNAL
+   if order_scope is not None:steps[-1]['order_binding']=order_record
+# END GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_JOURNAL
    need(counts['optimizer_steps']+before['optimizer_updates']==train.position(original['schedule'],cursor)['optimizer_updates']and len(steps)==cursor and counts['skipped_batches']==0,'RESUME_EXACT_LOGICAL_CURSOR');del packet,masks
    if cursor%original['recipe']['checkpoint_every_optimizer_updates']==0 and cursor<len(batches):
     checkpoint_ref=checkpoint(cursor,'UPDATE%06d.pt'%cursor);pub(output,'PROGRESS_%06d.json'%cursor,{'cursor':cursor,'rows_done':min(cursor*original['recipe']['train_batch_rows'],original['schedule']['rows']),'rows_total':original['schedule']['rows'],'starting_cursor':start,'new_optimizer_updates':counts['optimizer_steps'],'checkpoint_receipt':checkpoint_ref,'last_step':steps[-1],'policy':pref,'elapsed_training_scope_seconds':time.monotonic()-began})
@@ -913,6 +966,9 @@ def physical_all_tf_resume(plan,binding,pref,live):
   final=checkpoint(len(batches),'FINAL.pt');need(counts==plan['limits'],'RESUME_EXACT_COUNTS');need(torch.cuda.max_memory_reserved()<=EXECUTION['cuda_peak_reserved_bytes_max'],'RESUME_VRAM_CAP')
   report={'counts':counts,'trajectory':traj,'original_plan':meta['original_plan'],'execution_plan':binding,'restored_checkpoint_receipt':plan['inputs']['checkpoint_receipt'],'restore_proof':restore_proof,'starting_cursor':start,'remaining_TRAIN_rows':plan['remaining_TRAIN_rows'],'fresh_initial_state_sha256':initial['model_state_sha256'],'logical_batches':len(batches),'new_optimizer_updates':counts['optimizer_steps'],'actual_optimizer_updates':before['optimizer_updates']+counts['optimizer_steps'],'passes':1,'full_TRAIN_rows':354550,'whole_FINAL_score':scores['PASS1'],'final_quality':score_ref,'final_logits':capture,'final_checkpoint_receipt':final,'all_checkpoint_receipts':receipts,'allocator_boundary':boundary,'cuda_peak_reserved_bytes':int(torch.cuda.max_memory_reserved()),'TRAIN_side_fit_status':quality['all5_pooled_side_TRAIN_fit'],'later_generalization':'UNKNOWN','economic_edge':'UNKNOWN','all20_approved':False}
   if phase_recovery:report.update(train_end_checkpoint_receipt=train_end_receipt,score_only=start==len(batches))
+# BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_REPORT
+  if order_scope is not None:report.update(order_cursor=order.cursor_binding(original['schedule'],len(batches)),actual_order_journal_verified=True)
+# END GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_REPORT
   return report
  finally:
   for hook in hooks:hook.remove()

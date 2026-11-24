@@ -400,7 +400,33 @@ def test_nested_route_cannot_change_any_mode_lane_or_fixed_resource(mode, field)
     assert result.returncode == (75 if field else 0), result.stderr
 
 
-def test_source_bridge_preserves_every_old_owner_byte_and_ast():
+# BEGIN GX1 HISTORICAL ALL TF GUARD SOURCE FIXTURE 20261124 001
+HISTORICAL_GUARD_SOURCE = 'f111b32ac032f1fe3b893e37ec37ea736b67f942'
+
+
+@pytest.fixture
+def historical_guard_source(monkeypatch):
+    """Run the original bridge against its authenticated pre-endpoint generation."""
+    import ast
+    repo = Path(g.__file__).resolve().parents[2]
+    snapshots = {repo / name: subprocess.check_output(
+        ['git', 'show', HISTORICAL_GUARD_SOURCE + ':' + name], cwd=repo) for name in GUARDS}
+    tree = ast.parse(snapshots[repo / 'gx1/contracts/gx1_capped_execution_v1.py'])
+    constant = '_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_GUARD_SHELL_ADDITIONS'
+    node = next(n for n in tree.body if isinstance(n, ast.Assign) and len(n.targets) == 1
+                and isinstance(n.targets[0], ast.Name) and n.targets[0].id == constant)
+    monkeypatch.setattr(g, constant, ast.literal_eval(node.value))
+    original_read_bytes = Path.read_bytes
+    monkeypatch.setattr(Path, 'read_bytes', lambda path: snapshots[path] if path in snapshots else original_read_bytes(path))
+    return snapshots
+
+
+def test_current_source_bridge_rejects_later_unscoped_endpoint_generation():
+    with pytest.raises(RuntimeError, match='SOURCE_BRIDGE_EXACT_SHELL_INSERTION'):
+        g.native_provider_hlc_all_tf_learning_source_bridge(GUARDS)
+# END GX1 HISTORICAL ALL TF GUARD SOURCE FIXTURE 20261124 001
+
+def test_historical_source_bridge_preserves_every_old_owner_byte_and_ast(historical_guard_source):
     proof = g.native_provider_hlc_all_tf_learning_source_bridge(GUARDS)
     assert proof['producer_commit'] == PARENT
     assert proof['checked_guard_owners'] == 2 and proof['old_guard_routes_preserved'] is True
@@ -409,7 +435,7 @@ def test_source_bridge_preserves_every_old_owner_byte_and_ast():
 
 @pytest.mark.parametrize('case', ['old_python', 'old_shell', 'extra_function', 'extra_assignment',
                                   'changed_route', 'duplicate_fragment', 'missing_marker'])
-def test_source_bridge_rejects_unscoped_source_or_route_authority(monkeypatch, case):
+def test_source_bridge_rejects_unscoped_source_or_route_authority(monkeypatch, historical_guard_source, case):
     repo = Path(g.__file__).resolve().parents[2]
     original = Path.read_bytes
     def changed(path):
