@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT061:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT066:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -61,6 +61,13 @@ ACTIVE_STATUS_DISPLAY_QUALIFICATION001:36fokuserte casesPASS (12nye),
 faktisk handoverPASS; launch-gaten og alle øvrige gamle funksjoner er byteuendret.
 
 ## Gjeldende årsakskontroll og neste læringsdesign
+
+Aktuelt: None-epoken er fullført og pooled retningskrav FAILER alle5TF.
+Lagret støtte-/momentanalyse og separatbackup er ferdige. DIRECT_BIAS_BOUND001
+utelukker endringen i direkteintercept alene som hovedforklaring; maksimalD1-
+effekt0,11958pp mot17,50529pp observert. Neste er kvalifisering av en blind
+INITIAL003/FINAL-kryssprobe uten oppdatering. Ingen modellprobe/fit er innrømmet.
+Detaljene nedenfor gjelder de navngitte tidligere design-/kjøringsfasene.
 
 NATIVE_PROVIDER_HLC_UNKNOWN_ACTIVITY_CAUSE_20261124_001 er COMPLETE,
 consumed og stengt0/false.2,537s i run,4G/512M/éntråd;22målarrays/151747400B,
@@ -1219,8 +1226,30 @@ Eksisterende readout.validate_final og alignment.moment_extract_heads gjenbrukes
 i steg/radindekser; ingen oppfunnetdato/hiddenlogitprojeksjon. Én hypotetisk
 standardAdamW-nullgradientformel gjelder sluttilstanden, ikke historisk årsak.
 Kilde/test har bestått96fokuserte cases (49gamle+47nye); gammelowner/default
-og alle80modellnummereiere er bytebevart. Faktiskmetadata/preflight/eksaktCPU-
-admisjon gjenstår; ingen payloaddekoding
-er åpnet. Alle10CPproofs/RNG skal være uendret. Ingen entydigårsak/valgtfix.
+og alle80modellnummereiere er bytebevart. Kilden er publisert7e4c38b5; faktisk89eier-metadata/ZIP-katalog PASS,
+0CP/NPZ/NN/CUDA/RNGendring. Planf4ba1883 er prepared0/false.
+Eksakt4G-cappedCLI-preflight PASS:0CP/NPZ/NN/CUDA/CLAIM. Kilde-/planbackup
+14filer3482434B er uavhengigMacSHA/F_FULLFSYNC/fsync-verifisert.
+Fersk signert vertsstatus002 PASS; første2s-timeout001 er bevart.
+Planf4ba1883 er COMPLETE/consumed0false:3,714s,1FINALload/0NPZ/0NN/0updates.
+Alle10CPproofs/CPU-RNG ogalle10canonicalsupportsummer er uendret/avstemt.
+SidestøttestegM5/M15/H1/H4/D1:3694/3694/3680/3315/2767. Nullsteg:
+0/0/14/379/927; maksnullspenn0/0/1/3/14steg, trailing0/0/0/1/6.
+Alle10headslots harAdamWstep3694 ogikke-nullmomenter. Hypotetiskterminal
+g0-biasdelta erOPPforM5/M15,NEDforH1/H4/D1. IngenuniversellUP-momentårsak.
+Nullsupportårsak/historiskeperTFgradienter/Nonevsnulltensor erNOT_RECORDED.
+ACCEPTANCE001 binderoriginalene. Resultatbackup er nå separatdiskverifisert:
+17RAWfiler5593841B, alleartefakter/diagnostic/stderr/manifest faktiskMac-SHA/
+F_FULLFSYNC/fsyncPASS; RESULT_BACKUP001 binderbeviset. CPUplanen er konsumert.
+Alle10CPproofs/RNG er uendret. DIRECT_BIAS_BOUND001 gjenbruker autentisert
+INITIAL003-proveniens oglagretNoneFINALbias/quality utenCP/NPZ/NN. Maksimal
+direktebias-effektM5/M15/H1/H4/D1 er0,05692/0,05680/0,05483/0,10817/0,11958pp,
+mot3,54083/5,01376/5,71882/12,35916/17,50529pp observertmeanqUP-drift.
+Dette utelukkerdirekteinterceptendringalene; kombinasjonenW/representasjon/
+avrunding gjenstår. IngenunikkausalW/H-/optimizerforklaring eller valgtfix.
+Neste:separatforhåndsregistrertINITIAL003/FINAL-kryssprobe påblindeoriginale
+scorebatcher overalle5år, mednativeCUDA-diagonalparitet førfortolkning.
+Ingen NNprobe/nyepoke erinnrømmet; alle5nativeporterfalse. CURRENT_ACTION_
+RECONCILIATION001 retteraktivq.next_action/source-review etterfullførteepoken.
 Score-only3694 er kildetestet, men ble ikke fysisk kjørt sidenfullFINALlyktes.
 Alle5porterfalse;13PASS/3FAIL/4UNKNOWN. Ingen størretrening/TEST/handel.
