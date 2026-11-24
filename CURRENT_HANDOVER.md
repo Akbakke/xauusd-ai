@@ -735,3 +735,15 @@ NaN/Inf serialiseres eksplisitt. 2målrettede regresjoner PASS;51uendrede
 tidligerePASS gjenbrukt. Model-/gradient-/guard-/toleransebudsjett uendret.
 LOGGING_FIX001 binderfør/etterkilde og testlogg. Ingen nye nativeFW; gamle
 001manglendevektorer er fortsatt UNKNOWN. Ny eksakt plan kreves.
+
+Første-rad-paritydesign001 er låst for kildekvalifisering: samme gamle
+fullB96packet/FINAL og valgt rad0;3CPU-B1 evalruter via kanoniskforwardhelper,
+0autograd/updates. Alle endelige logitvektorer og faste toleransemasker skal
+lagres selv ved endelig avvik. COMPLETE betyr målt, ikke paritetsPASS.
+Gammel gradient001 forblir konsumert; ingen nye payloadporter er åpnet.
+
+Førsteparity kildekvalifisert:29nye fokuserte tester PASS;53gamle testbytes
+og gammel eierkode etter fjerning av én blokk/dispatch er eksakt bevart.
+Faktisk blokkert metadatabuilder PASS/86kildeeiere/0payload/NN/autograd.
+SOURCE_QUALIFICATION001 og uavhengig source/controllerreview PASS. Ingen
+ny payloadadmisjon; alle5porterfalse, gammelgradient001fortsattstengt.

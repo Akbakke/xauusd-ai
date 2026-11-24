@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-24T02:21:14.590441+00:00",
+  "observed_utc": "2026-11-24T02:42:58.844118+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "V2_PARITY_FAILED_LOGGING_FIXED_NEW_PLAN_REQUIRED",
+  "status": "V2_FIRST_PARITY_SOURCE_QUALIFIED_PAYLOAD_NOT_ADMITTED",
   "storage_cursor_runtime_cleanup_20261117_001": {"deleted_allocated_bytes": 1767837696, "deleted_old_version_count": 4, "economic_edge_proven": false, "gx1_data_runs_touched": false, "newest_version_preserved": "be4c9e5350d77747b42cd467cbd3370a753d4640", "open_fd_check_passed": true, "path_root": "/home/andre2/.cursor-server/bin/linux-x64", "status": "DELETE_COMPLETE", "test_authorized": false, "training_authorized": false, "user_snapshots_codex_sessions_trash_preserved": true},
   "storage_compaction_20261117_001": {"broker_access_allowed": false, "diskpart_compact_executed": false, "economic_edge_proven": false, "ext4_used_bytes": 438184099840, "fstrim_completed": true, "fstrim_reported_trimmed_bytes": 630501879808, "full_local_backup_fits_current_c_free": false, "gx1_current_data_runs_repo_approx_gib": 340, "rough_max_reclaim_bytes_not_prediction": 52003160064, "running_wsl_interactive_shells_observed": 2, "scope": "Windows C and sole Ubuntu-22.04 WSL VHDX; no model or data source change", "status": "CANCELLED_BY_OPERATOR_NO_COMPACTION", "test_authorized": false, "training_authorized": false, "vhdx_bytes": 490187259904, "vhdx_bytes_after_fstrim": 490187259904, "vhdx_path": "C:\\Users\\Andre\\AppData\\Local\\Packages\\CanonicalGroupLimited.Ubuntu22.04LTS_79rhkp1fndgsc\\LocalState\\ext4.vhdx", "vhdx_sparse": false, "windows_c_capacity_bytes": 998577442816, "windows_c_free_bytes_before_compaction": 397167644672, "windows_c_used_bytes_before_compaction": 601409798144, "wsl_shutdown_executed": false, "operator_decision": "DROP_COMPACTION_20261117", "fstrim_before_latest_cursor_cleanup": true, "fstrim_recheck_required_before_compaction": true},
   "ta_m5_ema_delta_sidecars_20261117_001": {"claim": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/CLAIM.json", "sha256": "81d85f74bea367750b70173cd5edf6af089253a26684d86caa22e6a0954192a5"}, "claimed_invocations": 1, "completed_invocations": 0, "data_reads_authorized": false, "economic_edge_proven": false, "execution_authorized": false, "failure": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/FAILED.json", "sha256": "d26cb8597913ad94110127aebe2b9a06119c9d01491bf4b0dc395b8dd6aceaf5"}, "max_invocations": 1, "model_forwards_authorized": 0, "observed_failure": "TA_EMA_DELTA_OLD_SLOPE_PARITY:M5", "optimizer_steps_authorized": 0, "output_root": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001", "plan": {"path": "/home/andre2/src/GX1_CURRENT/configs/research/TA_M5_EMA_DELTA_SIDECARS_20261117_001.json", "sha256": "e2e9f9233e27223099f8905a003e05f637cfa0c7e0325485d1d55b2f89223b08"}, "relaunch_allowed": false, "remaining_invocations": 0, "scope": {"cutoff_ns": 1735603200000000000, "fit_rows": 29574, "later_parent_start": 29849, "later_rows": 17489, "model_forwards": 0, "optimizer_steps": 0, "physical_surfaces": 6, "test_data_used": false}, "source_unchanged": true, "status": "FAILED_CONSUMED_SOURCE_PARITY_M5", "terminal": {"path": "/home/andre2/GX1_RUNS/TA_M5_EMA_DELTA_SIDECARS_20261117_001/TERMINAL.json", "sha256": "5eac4f13ad8f9d0c768b58cd7db006d9744dc77b5c3d2ecc988fe112fd304eee"}, "test_authorized": false, "test_data_used": false, "training_authorized": false},
@@ -4825,7 +4825,7 @@
       "observation": "Failed CPU parity gate; no gradients or training. Latest native model epoch separately retained."
     },
     "operator_request": "NEVER M1 for direction. All direction inputs, labels, masks, row selection, priors, normalization, loss, model selection, evaluation and metadata must be native M5/higher. M1 is only for later management of an already opened trade. Direction quality precedes Entry.",
-    "current_activity": "Failed001 retained/closed with zero autograd/updates. Concrete failure-logging defect fixed and two targeted regressions passed; original missing values remain UNKNOWN. Next exact parity-only plan must separately qualify three CPU paths for same first issue; no model job admitted.",
+    "current_activity": "Qualifying separate first-row parity-only route in existing audit owner. Three CPU B1 routes, no autograd/update; consumed gradient001 remains closed. No payload admitted or running.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -4847,7 +4847,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "native_provider_hlc_frozen_gradient_20261124_001",
+    "current_research_id": "native_provider_hlc_first_parity_20261124_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -25642,8 +25642,8 @@
         "new_model_calls": 0
       }
     },
-    "status": "V2_PARITY_FAILED_LOGGING_FIXED_NEW_PLAN_REQUIRED",
-    "observed_utc": "2026-11-24T02:21:14.590441+00:00",
+    "status": "V2_FIRST_PARITY_SOURCE_QUALIFIED_PAYLOAD_NOT_ADMITTED",
+    "observed_utc": "2026-11-24T02:42:58.844118+00:00",
     "current_observation_stage": "native_future_window_coverage_20261123_001",
     "current_observation_plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_FUTURE_WINDOW_COVERAGE_20261123_001.json",
@@ -99280,7 +99280,7 @@
     }
   },
   "native_twenty_step_qualification_20261123_001": {
-    "status": "V2_PARITY_FAILED_LOGGING_FIXED_NEW_PLAN_REQUIRED",
+    "status": "V2_FIRST_PARITY_SOURCE_QUALIFIED_PAYLOAD_NOT_ADMITTED",
     "goal_thread_id": "01a20035-2836-7f62-bb88-9e24603a51a5",
     "requirements": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_QUALIFICATION_20_STEPS.json",
@@ -100970,6 +100970,14 @@
     "v2_frozen_gradient_logging_fix": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FROZEN_GRADIENT_LOGGING_FIX001.json",
       "sha256": "ebaab7e368f361baff2c9d0588566368f056dd276a29b67a4114ec645319d729"
+    },
+    "v2_first_parity_design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FIRST_PARITY_DESIGN001.json",
+      "sha256": "82721b760e9a6d68b8767dae7da3b6ae123950be08dd58280b4aa2ae4f640800"
+    },
+    "v2_first_parity_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FIRST_PARITY_SOURCE_QUALIFICATION001.json",
+      "sha256": "b3cf0d696762833b2951b138378fbd083eee6676e9f37e483aeb9a6977371571"
     }
   },
   "native_raw_feed_clock_qualification_20261123_001": {
@@ -101349,7 +101357,7 @@
     }
   },
   "native_d1_provider_hlc_certificate_goal_20261123_001": {
-    "status": "V2_PARITY_FAILED_LOGGING_FIXED_NEW_PLAN_REQUIRED",
+    "status": "V2_FIRST_PARITY_SOURCE_QUALIFIED_PAYLOAD_NOT_ADMITTED",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/D1_PROVIDER_HLC_DESIGN001.json",
       "sha256": "cd97abfec7c512364c21c9608c41352ee70dac9593e1dfd28a5527713734f172"
@@ -101840,6 +101848,18 @@
         "sha256": "0761a941bdfa1fb73ef47f565fa7ad12aeffdd043f9006686f9fc4b59e462f79"
       },
       "closure_error": "KeyError:'result'"
+    }
+  },
+  "native_provider_hlc_first_parity_20261124_001": {
+    "status": "SOURCE_QUALIFIED_PAYLOAD_NOT_ADMITTED",
+    "remaining_invocations": 0,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FIRST_PARITY_SOURCE_QUALIFICATION001.json",
+      "sha256": "b3cf0d696762833b2951b138378fbd083eee6676e9f37e483aeb9a6977371571"
     }
   }
 }

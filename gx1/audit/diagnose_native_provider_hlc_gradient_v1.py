@@ -282,7 +282,216 @@ def run(sha):
         for sig,handler in handlers.items():signal.signal(sig,handler)
 
 
+# First-row parity measurement; the consumed gradient route stays unchanged.
+PARITY_NAME='NATIVE_PROVIDER_HLC_FIRST_PARITY_20261124_001'; PARITY_STAGE=PARITY_NAME.lower()
+PARITY_PLAN=REPO/'configs/research'/(PARITY_NAME+'.json'); PARITY_ROOT=Path('/home/andre2/GX1_RUNS')/PARITY_NAME
+PARITY_DESIGN={'path':'/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_FIRST_PARITY_DESIGN001.json','sha256':'82721b760e9a6d68b8767dae7da3b6ae123950be08dd58280b4aa2ae4f640800'}
+PARITY_PARENT='3231f1d5961e1c8eeb4d14e2b0e17fa48dc9b15b'; PARITY_EXECUTION=dict(EXECUTION)
+PARITY_ROUTES=tuple({'name':name,'grad_enabled':grad,'equal_tf':equal,'batch_rows':1,'capture':False,'device':'cpu','grouped':True,'model_training':False}for name,grad,equal in (
+    ('CPU_NO_GRAD_EQUAL_TF',False,True),('CPU_NO_GRAD_UNMERGED',False,False),('CPU_GRAD_ENABLED_UNMERGED',True,False)))
+PARITY_PAIRS=(('CPU_NO_GRAD_EQUAL_TF','CPU_NO_GRAD_UNMERGED'),('CPU_NO_GRAD_UNMERGED','CPU_GRAD_ENABLED_UNMERGED'),('CPU_NO_GRAD_EQUAL_TF','CPU_GRAD_ENABLED_UNMERGED'))
+
+
+def first_parity_source_bridge():
+    import hashlib
+    before=subprocess.check_output(['git','show',PARITY_PARENT+':'+SELF],cwd=REPO); after=(REPO/SELF).read_bytes()
+    begin=b'# First-row parity measurement; the consumed gradient route stays unchanged.\n'; end=b'# End first-row parity measurement.\n\n'
+    dispatch=b"    if sys.argv[1:2]==['--first-parity-plan-sha256']:\n        return main_first_parity()\n\n"
+    need(after.count(begin)==after.count(end)==1,'FIRST_PARITY_SINGLE_ADDITIVE_BLOCK')
+    first,tail=after.split(begin);_,last=tail.split(end)
+    need(last.count(dispatch)==1 and before==first+last.replace(dispatch,b''),'FIRST_PARITY_OLD_FUNCTIONS_CONSTANTS_MAIN_TAIL_EXACT')
+    old_test=subprocess.check_output(['git','show',PARITY_PARENT+':'+TEST],cwd=REPO)
+    need((REPO/TEST).read_bytes().startswith(old_test),'FIRST_PARITY_OLD_TEST_BYTES_EXACT')
+    need(not subprocess.check_output(['git','diff',PARITY_PARENT,'--','gx1','scripts','tests',':(exclude)'+SELF,':(exclude)'+TEST],cwd=REPO),'FIRST_PARITY_OTHER_TRACKED_SOURCES_EXACT')
+    return {'anchor':PARITY_PARENT,'old_owner_sha256':hashlib.sha256(before).hexdigest(),'current_owner_sha256':saved.native.sha(REPO/SELF),
+            'old_test_sha256':hashlib.sha256(old_test).hexdigest(),'old_functions_constants_and_main_tail_preserved':True,'old_test_prefix_preserved':True}
+
+
+def build_first_parity_plan(*,source_base_commit=None):
+    d=read(PARITY_DESIGN)
+    need(d['schema_version']=='gx1_provider_hlc_first_parity_design_v1' and d['basename']==PARITY_NAME and d['stage']==PARITY_STAGE
+         and d['module']==MODULE and d['plan_path']==str(PARITY_PLAN) and d['output_root']==str(PARITY_ROOT) and d['source_parent_commit']==PARITY_PARENT
+         and d['CLI_flag']=='--first-parity-plan-sha256' and d['execution']==PARITY_EXECUTION and d['execution_authorized']is False
+         and d['training_authorized']is False and d['test_authorized']is False and d['old_gradient_plan_remains_consumed']is True
+         and d['original_tolerance_changed']is False and d['fixed_original_tolerance']==TOLERANCES['saved_FINAL_logits']
+         and d['routes']==list(PARITY_ROUTES) and d['method']['pairwise_comparisons']==[list(pair)for pair in PARITY_PAIRS]
+         and d['method']['finite_tolerance_mismatch_is_measurement_not_technical_failure']is True,'FIRST_PARITY_LOCKED_DESIGN')
+    for binding in d['inputs'].values():reference(binding)
+    meta={key:read(binding)for key,binding in d['inputs'].items()if key!='torch_transformer_source'}
+    base=build_plan(source_base_commit=source_base_commit); old=meta['failed_gradient_plan']; claim=meta['failed_gradient_claim']; terminal=meta['failed_gradient_terminal']; review=meta['failed_gradient_review']
+    need(old['schema_version']==base['schema_version'] and old['stage']==STAGE and old['plan_path']==str(PLAN) and old['output_root']==str(ROOT)
+         and old['inputs']==base['inputs'] and old['budget']==base['budget'] and old['panel']==base['panel']
+         and all(old[key]==base[key]for key in ('model_contract','target_contract','truth_sha256','TRAIN_issue_ns_sha256','metadata','feature_array_headers','capture_array_headers','target_array_headers','target_archive_inventory','cache_scope')),'FIRST_PARITY_SAME_FAILED_FUNCTION_INPUTS')
+    need(claim['plan']==terminal['plan']==review['plan']==d['inputs']['failed_gradient_plan'] and terminal['claim']==review['claim']==d['inputs']['failed_gradient_claim']
+         and review['terminal']==d['inputs']['failed_gradient_terminal'] and terminal['status']=='FAILED_CONSUMED' and terminal['exit_code']==1 and terminal['result']is None
+         and terminal['remaining_invocations']==claim['remaining_invocations']==0 and terminal['relaunch_allowed']is False and claim['relaunch_allowed']is False
+         and terminal['error']=='ValueError:PROVIDER_HLC_FROZEN_GRADIENT_SAVED_FINAL_LOGIT_PARITY:activity_logits'
+         and terminal['progress']['phase']=='FULL96_AUTOGRAD_ENABLED_EVAL_PARITY_BEFORE_DERIVATIVES' and terminal['progress']['counts']['NN_forwards']==1
+         and terminal['progress']['counts']['autograd_calls']==terminal['progress']['counts']['optimizer_updates']==0
+         and review['actual_counts']==terminal['progress']['counts'] and review['source_and_all_original_bound_input_bytes_unchanged']is True
+         and review['actual_training_cause']==review['selected_causal_fix']=='UNKNOWN' and review['all20_approved']is False,'FIRST_PARITY_OLD_ATTEMPT_CONSUMED_NO_VERDICT')
+    backup=meta['failed_gradient_result_backup']; source_backup=meta['failed_gradient_source_plan_backup']; fix=meta['failure_logging_fix']; bridge=first_parity_source_bridge()
+    need(backup['status']=='ALL22_ORIGINAL_FAILURE_FILES_SEPARATE_MAC_DISK_SHA_FULLFSYNC_READBACK_VERIFIED' and backup['models_deserialized']==0
+         and source_backup['status']=='ALL14_FILES_SEPARATE_MAC_DISK_SHA_FULLFSYNC_READBACK_VERIFIED' and source_backup['models_deserialized']==0
+         and fix['after_owner']=={'path':str(REPO/SELF),'sha256':bridge['old_owner_sha256']} and fix['after_test']=={'path':str(REPO/TEST),'sha256':bridge['old_test_sha256']}
+         and fix['affected_cases_executed_and_passed']==2 and fix['new_native_model_forwards']==fix['new_real_data_or_checkpoint_decodes']==0
+         and fix['concrete_failure_review']==d['inputs']['failed_gradient_review'] and fix['new_plan_required']is True and fix['relaunch_allowed']is False,'FIRST_PARITY_BACKUP_LOGGING_FIX_PROVENANCE')
+    expected_budget={**base['budget'],'NN_forwards_max':3,'autograd_calls_max':0,'autograd_terms':[],'gradient_forwards':0,'parity_forwards':3,
+        'canonical_loss_calls':0,'forward_rows_per_call':1,'hidden_capture_calls':0,'original_packet_rows':96,'selected_model_row_position':0,'selected_model_unique_rows':1}
+    expected_panel={**base['panel'],'full_original_B96_packet_retained_and_authenticated':True,'measurement':'ROW_ZERO_ONLY_FOR_FIRST_FAILED_PARITY_NOT_GRADIENT_QUALIFICATION','selected_model_row_position':0,'selected_model_unique_rows':1}
+    need(d['budget']==expected_budget and d['panel']==expected_panel,'FIRST_PARITY_EXACT_BUDGET_PANEL')
+    for name,digest in old['source_owners'].items():
+        if name not in (SELF,TEST):need(saved.native.sha(REPO/name)==digest,'FIRST_PARITY_PREVIOUS_OWNER_UNCHANGED')
+    inputs={**base['inputs'],'gradient_design':base['inputs']['design'],**d['inputs'],'design':PARITY_DESIGN}
+    plan={**base,'schema_version':'gx1_provider_hlc_first_parity_plan_v1','stage':PARITY_STAGE,'plan_path':str(PARITY_PLAN),'output_root':str(PARITY_ROOT),
+          'inputs':inputs,'input_roles_not_JSON':sorted(NOT_JSON|{'torch_transformer_source'}),'execution':PARITY_EXECUTION,'budget':d['budget'],'panel':d['panel'],
+          'source_proof':bridge,'routes':d['routes'],'fixed_original_tolerance':d['fixed_original_tolerance'],'method':d['method'],'limits':d['limits'],
+          'question':meta['first_parity_scope']['question'],'failed_attempt_provenance':{'plan':d['inputs']['failed_gradient_plan'],'claim':d['inputs']['failed_gradient_claim'],'terminal':d['inputs']['failed_gradient_terminal']}}
+    checked_inputs(plan); return plan
+
+
+def gate_first_parity_expected(binding,admitted):
+    return {'status':'ADMITTED_EXACT_CONDITIONAL_PROVIDER_HLC_FIRST_PARITY'if admitted else'PREPARED_NOT_ADMITTED','plan':binding,'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':False,'test_authorized':False}
+
+
+def inspect_first_parity(sha,*,admitted):
+    need(Path.cwd().resolve()==REPO and type(sha)is str and len(sha)==64 and all(c in '0123456789abcdef'for c in sha),'FIRST_PARITY_CWD_SHA')
+    binding={'path':str(PARITY_PLAN),'sha256':sha}; plan=read(binding)
+    need(plan==build_first_parity_plan(source_base_commit=plan['source_base_commit']) and source_clean(plan),'FIRST_PARITY_EXACT_PLAN_SOURCE')
+    pref=ref(POLICY); policy=read(pref); old=policy[STAGE]
+    need(all(policy.get(key)is False for key in saved.FLAGS) and policy[PARITY_STAGE]==gate_first_parity_expected(binding,admitted)
+         and old['plan']==plan['inputs']['failed_gradient_plan'] and old['execution_authorized']is False and old['remaining_invocations']==0
+         and old['relaunch_allowed']is False and old['training_authorized']is False and old['test_authorized']is False,'FIRST_PARITY_ONE_USE_OLD_GRADIENT_CLOSED')
+    need(not PARITY_ROOT.exists() and not PARITY_ROOT.is_symlink(),'FIRST_PARITY_FRESH_ROOT'); return plan,binding,pref
+
+
+def first_parity_compare(reference_value,candidate,*,tolerance):
+    need(tolerance==TOLERANCES['saved_FINAL_logits'] and all(isinstance(value,np.ndarray)and value.dtype==np.float32 and value.shape==(1,5)and np.isfinite(value).all()for value in (reference_value,candidate)),'FIRST_PARITY_COMPARISON_DOMAIN')
+    left=reference_value[0].astype(np.float64); right=candidate[0].astype(np.float64); delta=np.abs(right-left); zero=left==0
+    relative=[None if is_zero else float(error/abs(value))for value,error,is_zero in zip(left,delta,zero)]
+    passed=np.isclose(candidate,reference_value,atol=tolerance['atol'],rtol=tolerance['rtol'])[0]
+    return {'reference_values':left.tolist(),'candidate_values':right.tolist(),'absolute_delta':delta.tolist(),'max_absolute_delta':float(delta.max()),
+            'relative_error':relative,'reference_zero_mask':zero.tolist(),'zero_reference_relative_status':[('ZERO_OVER_ZERO'if error==0 else'INFINITE')if is_zero else None for error,is_zero in zip(delta,zero)],
+            'passed_mask':passed.tolist(),'all_within_original_tolerance':bool(passed.all()),'fixed_tolerance':dict(tolerance)}
+
+
+def first_parity_validate_counts(counts,budget):
+    expected={'full_feature_archive_loads':1,'feature_arrays_decoded':27,'target_archive_loads':1,'target_arrays_decoded':14,'capture_archive_loads':1,'capture_arrays_decoded':3,
+              'checkpoint_deserializations':1,'model_constructions':1,'model_state_install_calls':1,'parity_forwards':3,'gradient_forwards':0,'NN_forwards':3,'autograd_calls':0,
+              'backward_calls':0,'optimizer_constructions':0,'optimizer_restores':0,'optimizer_updates':0,'checkpoint_RNG_restore_calls':0,'fits':0,'prior_refits':0,'new_source_HTTP_calls':0,
+              'canonical_loss_calls':0,'hidden_capture_calls':0,'grad_enabled_forward_calls':1,'no_grad_forward_calls':2}
+    need(counts==expected and all(type(value)is int for value in counts.values()) and counts['NN_forwards']==budget['NN_forwards_max'] and budget['autograd_calls_max']==0,'FIRST_PARITY_EXACT_COUNTS'); return True
+
+
+def calculate_first_parity(plan,*,progress=None):
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    torch.set_num_threads(1); need(torch.get_num_threads()==1 and not torch.cuda.is_initialized(),'FIRST_PARITY_CPU_THREADS_CUDA')
+    progress={}if progress is None else progress; budget=plan['budget']; counts=dict.fromkeys(('full_feature_archive_loads','feature_arrays_decoded','target_archive_loads','target_arrays_decoded','capture_archive_loads','capture_arrays_decoded','checkpoint_deserializations','model_constructions','model_state_install_calls','parity_forwards','gradient_forwards','NN_forwards','autograd_calls','backward_calls','optimizer_constructions','optimizer_restores','optimizer_updates','checkpoint_RNG_restore_calls','fits','prior_refits','new_source_HTTP_calls','canonical_loss_calls','hidden_capture_calls','grad_enabled_forward_calls','no_grad_forward_calls'),0)
+    progress.update(phase='FIRST_PARITY_CANONICAL_CONTEXT_AND_B96',counts=counts,routes=[])
+    context=adapter.load_context(plan['metadata']['adapter_metadata']); counts.update(full_feature_archive_loads=1,feature_arrays_decoded=27,target_archive_loads=1,target_arrays_decoded=14)
+    need(bool(np.all(context['provider'].bar_start_ns<1782864000000000000)),'FIRST_PARITY_PRETEST_SOURCE_CUTOFF')
+    take=np.arange(96,dtype=np.int64); packet=adapter.packet(context,take); selected_source_row=int(context['source_rows'][0])
+    need(core.digest(packet['truth']['issue_ns'])==plan['panel']['issue_ns_sha256'] and core.digest(context['source_rows'][take])==plan['panel']['source_rows_sha256']
+         and bool(np.all((packet['truth']['issue_ns']>=train.START)&(packet['truth']['issue_ns']<train.UPPER))) and len(packet['truth']['issue_ns'])==96 and len(packet['features'])==9
+         and sum(v.numel()*v.element_size()for v in packet['features'].values())==budget['packet_feature_bytes'],'FIRST_PARITY_EXACT_B96_PACKET')
+    normalization=context['normalization']; prior=context['prior']; binding=context['input_binding']; target=context['target_contract']; del context; gc.collect()
+    progress['phase']='FIRST_PARITY_CONTEXT_RELEASED_CAPTURE3'; capture=saved.load_fields(plan['inputs']['capture'],CAPTURE,plan['capture_array_headers']); counts.update(capture_archive_loads=1,capture_arrays_decoded=3)
+    need(sum(v.nbytes for v in capture.values())==budget['capture_ndarray_bytes_decoded'] and core.digest(capture['issue_ns'])==plan['TRAIN_issue_ns_sha256'] and np.array_equal(capture['issue_ns'][:96],packet['truth']['issue_ns']),'FIRST_PARITY_SAVED_CLOCK_BYTES')
+    expected={key:np.ascontiguousarray(capture[key][:1]).copy()for key in CAPTURE[1:]}; del capture; gc.collect()
+    progress['phase']='FIRST_PARITY_CPU_FACTORY_STRICT_FINAL'
+    model=model_owner.build_native_future_state_model(input_normalization=normalization,input_binding=binding,architecture=plan['metadata']['original_epoch_plan']['metadata']['architecture'],device=torch.device('cpu'),train_prior=prior,target_contract=target,backbone_gradient_policy='M5_primary'); counts['model_constructions']+=1
+    cp=safe_load_final(plan); counts['checkpoint_deserializations']+=1; model.load_state_dict(cp['model_state'],strict=True); counts['model_state_install_calls']+=1
+    need(core.state_sha(model.state_dict())==plan['metadata']['final_receipt']['proof']['model_state'],'FIRST_PARITY_INSTALLED_FINAL_MODEL_PROOF'); del cp; gc.collect(); model.eval()
+    state_before=core.state_sha(model.state_dict()); rng_before=core.shared_gradient_rng(); packet_before=core.state_sha(packet); ambient_grad=torch.is_grad_enabled()
+    need(all(p.grad is None and p.device.type=='cpu'and p.dtype==torch.float32 for p in model.parameters()),'FIRST_PARITY_CPU_PARAMETER_GRAD_NONE')
+    features={key:value[:1]for key,value in packet['features'].items()}
+    def record_array(value):return {'values':value[0].astype(np.float64).tolist(),'shape':list(value.shape),'dtype':value.dtype.str,'sha256':core.digest(value)}
+    input_proof={key:{'shape':list(value.shape),'dtype':str(value.dtype),'sha256':core.digest(value.detach().cpu().numpy())}for key,value in features.items()}
+    def context_bookend():
+        need(body._BATCH_EQUAL_LENGTH_MTF_EVAL.get()is False and body._MODEL_FINITE_CHECK_SCOPE.get()is None and torch.is_grad_enabled()==ambient_grad,'FIRST_PARITY_CONTEXT_RESTORE')
+    context_bookend()
+    progress.update(selected_issue_ns=int(packet['truth']['issue_ns'][0]),selected_source_row=selected_source_row,first_row_feature_proof=input_proof,saved_FINAL={key:record_array(value)for key,value in expected.items()})
+    def count_forward(*_):
+        counts['NN_forwards']+=1; counts['parity_forwards']+=1; counts['grad_enabled_forward_calls'if torch.is_grad_enabled()else'no_grad_forward_calls']+=1
+        need(counts['NN_forwards']<=budget['NN_forwards_max'],'FIRST_PARITY_FORWARD_BUDGET')
+    hook=model.register_forward_pre_hook(count_forward); arrays={}; records=progress['routes']
+    try:
+        for route in plan['routes']:
+            context_bookend(); progress.update(phase='FIRST_PARITY_ROUTE',active_route=route['name'])
+            try:
+                with torch.enable_grad()if route['grad_enabled']else torch.no_grad():
+                    output,hidden,activation=core.future_cuda_forward(model,features,grouped=True,equal_tf=route['equal_tf'],capture=False)
+                    need(hidden is None and set(output)==set(CAPTURE[1:]),'FIRST_PARITY_OUTPUT_HEADS_NO_HIDDEN_CAPTURE')
+                    values={key:value.detach().cpu().numpy().copy()for key,value in output.items()}
+                    need(all(value.dtype==np.float32 and value.shape==(1,5)and np.isfinite(value).all()for value in values.values()),'FIRST_PARITY_FINITE_FLOAT32_HEADS')
+                    groups={}
+                    for tf in train.TF:groups.setdefault(str(features['seq_'+tf.lower()].shape[1]),[]).append(tf)
+                    need(activation=={'batch_eval_active':route['equal_tf']and not route['grad_enabled'],'model_training':False,'grad_enabled':route['grad_enabled'],'scope_enabled':route['equal_tf'],'eligible_equal_length_TF_groups':groups},'FIRST_PARITY_ACTUAL_ROUTE_FLAGS')
+                    arrays[route['name']]=values; record={'name':route['name'],'requested':dict(route),'activation':activation,'logits':{key:record_array(value)for key,value in values.items()},
+                        'vs_saved_FINAL':{key:first_parity_compare(expected[key],value,tolerance=plan['fixed_original_tolerance'])for key,value in values.items()}}
+                    records.append(record); del output,hidden,values
+            finally:context_bookend()
+            measurement_bookend(model,state_before,rng_before)
+        pairwise=[{'reference_route':left,'candidate_route':right,'per_head':{key:first_parity_compare(arrays[left][key],arrays[right][key],tolerance=plan['fixed_original_tolerance'])for key in CAPTURE[1:]}}for left,right in PARITY_PAIRS]
+        bookend=measurement_bookend(model,state_before,rng_before); context_bookend(); need(core.state_sha(packet)==packet_before,'FIRST_PARITY_INPUT_PACKET_MUTATION'); first_parity_validate_counts(counts,budget)
+    finally:hook.remove()
+    progress.update(phase='COMPLETE_FIRST_PARITY_MEASUREMENT',pairwise=pairwise)
+    return {'payload_budget':budget,'counts':counts,'routes':records,'pairwise':pairwise,'saved_FINAL':{key:record_array(value)for key,value in expected.items()},
+            'fixed_original_tolerance':plan['fixed_original_tolerance'],'all_routes_within_saved_original_tolerance':all(comparison['all_within_original_tolerance']for record in records for comparison in record['vs_saved_FINAL'].values()),
+            'panel':plan['panel'],'selected_issue_ns':int(packet['truth']['issue_ns'][0]),'selected_source_row':selected_source_row,'first_row_feature_proof':input_proof,'retained_B96_packet_unmutated':True,
+            'original_B96_known_activity_denominator_identity_only':int(packet['truth']['activity_known'].sum()),'cache_scope':plan['cache_scope'],
+            'old_context_released_before_model_construction':True,'final_all_ten_checkpoint_proofs_verified':True,'strict_FINAL_model_state_installed':True,'model_state_and_local_RNG_bookend_passed':bookend,
+            'context_bookends_passed':True,'ambient_grad_mode_restored':True,'all_parameter_grad_fields_None':True,'local_RNG_bookend_scope':['python','numpy','torch_cpu'],
+            'count_semantics':'Three parity forwards include two no_grad and one grad-enabled forward. gradient_forwards=0 means zero derivative-phase forwards; autograd/backward calls and parameter updates are zero.',
+            'measurement_completed':True,'full96_gradient_qualification':False,'actual_training_cause':'UNKNOWN','selected_causal_fix':'UNKNOWN','later_generalization':'UNKNOWN','economic_edge':'UNKNOWN','all20_approved':False,'limits':plan['limits']}
+
+
+def parity_publish(name,value):
+    path=PARITY_ROOT/name; saved._publish_bytes(path,(json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n').encode()); return ref(path)
+
+
+def run_first_parity(sha):
+    began=time.monotonic(); cap=require_capped_cpu_audit_execution(); lock=require_capped_lock_ancestry()
+    need(cap['memory_max']==cap['memory_high']==4*1024**3 and cap['swap']==512*1024**2 and cap['numerical_threads']==1 and cap['pids']==64
+         and lock['scope']==cap['cgroup_path'][len('/sys/fs/cgroup'):],'FIRST_PARITY_CPU_CAPS')
+    plan,binding,pref=inspect_first_parity(sha,admitted=True); checked_inputs(plan); boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip(); PARITY_ROOT.mkdir(parents=True,exist_ok=False)
+    handlers={sig:signal.getsignal(sig)for sig in (signal.SIGALRM,signal.SIGTERM,signal.SIGINT)}; claim=result=None; progress={'phase':'CLAIM'}
+    try:
+        def expired(*_):raise TimeoutError('PROVIDER_HLC_FIRST_PARITY_WALL')
+        def stopped(sig,*_):raise InterruptedError('PROVIDER_HLC_FIRST_PARITY_SIGNAL_'+str(sig))
+        signal.signal(signal.SIGALRM,expired); signal.signal(signal.SIGTERM,stopped); signal.signal(signal.SIGINT,stopped)
+        claim=parity_publish('CLAIM.json',{'stage':PARITY_STAGE,'plan':binding,'policy_at_claim':pref,'boot_id':boot,'remaining_invocations':0,'relaunch_allowed':False,'training_authorized':False,'test_data_used':False})
+        remaining=PARITY_EXECUTION['internal_seconds']-(time.monotonic()-began); need(remaining>0,'FIRST_PARITY_TIME_BEFORE_DECODE'); signal.setitimer(signal.ITIMER_REAL,remaining)
+        allowed={plan['inputs'][role]['path']for role in ('feature_archive','capture','target_arrays','final_checkpoint')}
+        def audit(event,args):
+            if event in ('socket.connect','socket.getaddrinfo','urllib.Request'):raise RuntimeError('PROVIDER_HLC_FIRST_PARITY_NETWORK_FORBIDDEN')
+            if event=='open'and isinstance(args[0],(str,bytes,os.PathLike)):
+                name=os.fsdecode(args[0])
+                if name.endswith(('.npz','.pt','.pth','.parquet','.safetensors','.pkl'))and str(Path(name).resolve())not in allowed:raise RuntimeError('PROVIDER_HLC_FIRST_PARITY_PAYLOAD_FORBIDDEN')
+        sys.addaudithook(audit); report=calculate_first_parity(plan,progress=progress); checked_inputs(plan)
+        need(source_clean(plan)and ref(POLICY)==pref and ref(PARITY_PLAN)==binding and Path('/proc/sys/kernel/random/boot_id').read_text().strip()==boot,'FIRST_PARITY_SOURCE_INPUT_PLAN_POLICY_BOOT_BOOKEND')
+        result=parity_publish('RESULT.json',{'status':'COMPLETE_CONDITIONAL_PROVIDER_HLC_FIRST_PARITY_MEASUREMENT','stage':PARITY_STAGE,'plan':binding,'claim':claim,'policy_at_claim':pref,'boot_id':boot,'report':report,'source_unchanged':True,'test_data_used':False,'economic_edge_proven':False,'elapsed_seconds':time.monotonic()-began})
+        terminal=parity_publish('TERMINAL.json',{'status':'COMPLETE','exit_code':0,'stage':PARITY_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'source_unchanged':True,'test_data_used':False}); return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        signal.setitimer(signal.ITIMER_REAL,0); parity_publish('TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'stage':PARITY_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'progress':progress,'error':type(error).__name__+':'+str(error)[:2000],'test_data_used':False}); raise
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0)
+        for sig,handler in handlers.items():signal.signal(sig,handler)
+
+
+def main_first_parity():
+    parser=argparse.ArgumentParser(); parser.add_argument('--first-parity-plan-sha256',required=True); parser.add_argument('--preflight',action='store_true'); args=parser.parse_args()
+    need(sys.argv[1:]==['--first-parity-plan-sha256',args.first_parity_plan_sha256]+(['--preflight']if args.preflight else[]),'FIRST_PARITY_EXACT_CLI')
+    if args.preflight:
+        plan,binding,pref=inspect_first_parity(args.first_parity_plan_sha256,admitted=False)
+        print(json.dumps({'status':'PREFLIGHT_PROVIDER_HLC_FIRST_PARITY_PASS','plan':binding,'policy':pref,'claim_created':False,'checkpoint_deserializations':0,'NPZ_arrays_decoded':0,'models':0,'NN_forwards':0,'autograd_calls':0,'CUDA_initialized':False}))
+    else:print(json.dumps(run_first_parity(args.first_parity_plan_sha256),sort_keys=True))
+# End first-row parity measurement.
+
 def main():
+    if sys.argv[1:2]==['--first-parity-plan-sha256']:
+        return main_first_parity()
+
     parser=argparse.ArgumentParser(); parser.add_argument('--plan-sha256',required=True); parser.add_argument('--preflight',action='store_true'); args=parser.parse_args()
     need(sys.argv[1:]==['--plan-sha256',args.plan_sha256]+(['--preflight']if args.preflight else[]),'EXACT_CLI')
     if args.preflight:

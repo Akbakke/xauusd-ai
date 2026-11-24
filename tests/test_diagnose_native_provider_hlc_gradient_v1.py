@@ -479,3 +479,347 @@ def test_runtime_forward_and_derivative_caps_fail_without_shrinking_panel(monkey
     assert progress['counts']['optimizer_updates'] == progress['counts']['backward_calls'] == 0
     assert plan['panel']['issue_ns_sha256'] == m.core.digest(
         np.arange(96, dtype=np.int64)*300_000_000_000 + int(m.train.START))
+
+
+def test_first_parity_appends_authority_preserving_old_functions_constants_and_main_tail():
+    import subprocess
+    anchor = '3231f1d5961e1c8eeb4d14e2b0e17fa48dc9b15b'
+    before = subprocess.check_output(['git', 'show', anchor + ':' + m.SELF], cwd=m.REPO, text=True)
+    after = Path(m.__file__).read_text()
+    old_tree, new_tree = ast.parse(before), ast.parse(after)
+    old_functions = {node.name: node for node in old_tree.body if isinstance(node, ast.FunctionDef)}
+    new_functions = {node.name: node for node in new_tree.body if isinstance(node, ast.FunctionDef)}
+    for name, node in old_functions.items():
+        if name != 'main':
+            assert ast.get_source_segment(before, node) == ast.get_source_segment(after, new_functions[name])
+    assignments = lambda tree: [node for node in tree.body if isinstance(node, (ast.Assign, ast.AnnAssign))]
+    for node in assignments(old_tree):
+        assert ast.dump(node, include_attributes=False) in [ast.dump(current, include_attributes=False)
+                                                          for current in assignments(new_tree)]
+    original_main, current_main = old_functions['main'], new_functions['main']
+    dispatch = current_main.body[0]
+    assert isinstance(dispatch, ast.If)
+    expected_guard = ast.parse("sys.argv[1:2] == ['--first-parity-plan-sha256']", mode='eval').body
+    assert ast.dump(dispatch.test, include_attributes=False) == ast.dump(expected_guard, include_attributes=False)
+    assert any(isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+               and node.func.id == 'main_first_parity' for node in ast.walk(dispatch))
+    assert ast.dump(ast.Module(body=current_main.body[1:], type_ignores=[]), include_attributes=False) == \
+           ast.dump(ast.Module(body=original_main.body, type_ignores=[]), include_attributes=False)
+
+
+FIRST_PARITY_ROUTES = [
+    {'name': 'CPU_NO_GRAD_EQUAL_TF', 'device': 'cpu', 'batch_rows': 1, 'model_training': False,
+     'grad_enabled': False, 'grouped': True, 'equal_tf': True, 'capture': False},
+    {'name': 'CPU_NO_GRAD_UNMERGED', 'device': 'cpu', 'batch_rows': 1, 'model_training': False,
+     'grad_enabled': False, 'grouped': True, 'equal_tf': False, 'capture': False},
+    {'name': 'CPU_GRAD_ENABLED_UNMERGED', 'device': 'cpu', 'batch_rows': 1, 'model_training': False,
+     'grad_enabled': True, 'grouped': True, 'equal_tf': False, 'capture': False},
+]
+
+
+def first_parity_counts():
+    counts = completed_counts()
+    counts.update(parity_forwards=3, gradient_forwards=0, NN_forwards=3, autograd_calls=0,
+                  canonical_loss_calls=0, hidden_capture_calls=0,
+                  grad_enabled_forward_calls=1, no_grad_forward_calls=2)
+    return counts
+
+
+def test_first_parity_comparison_preserves_fixed_tolerance_and_zero_reference_semantics():
+    reference = np.array([[0., 0., 1., -1., .001]], np.float32)
+    candidate = np.array([[0., 1., 1.+1e-7, -1.+2e-5, 0.]], np.float32)
+    result = m.first_parity_compare(reference, candidate, tolerance=TOLERANCES['saved_FINAL_logits'])
+    delta = np.abs(candidate.astype(np.float64) - reference.astype(np.float64))[0]
+    assert result['absolute_delta'] == delta.tolist()
+    assert result['max_absolute_delta'] == float(delta.max())
+    assert result['reference_values'] == reference[0].astype(np.float64).tolist()
+    assert result['candidate_values'] == candidate[0].astype(np.float64).tolist()
+    assert result['reference_zero_mask'] == [True, True, False, False, False]
+    assert result['relative_error'][:2] == [None, None]
+    assert result['relative_error'][2:] == (delta[2:] / np.abs(reference[0, 2:].astype(np.float64))).tolist()
+    assert result['zero_reference_relative_status'] == ['ZERO_OVER_ZERO', 'INFINITE', None, None, None]
+    assert result['passed_mask'] == [True, False, True, False, False]
+    assert result['all_within_original_tolerance'] is False
+    json.dumps(result, allow_nan=False)
+
+
+@pytest.mark.parametrize('bad', ['shape', 'dtype', 'nan', 'inf', 'tolerance'])
+def test_first_parity_comparison_rejects_nonfinite_or_unlocked_contract(bad):
+    reference, candidate = np.ones((1, 5), np.float32), np.ones((1, 5), np.float32)
+    tolerance = copy.deepcopy(TOLERANCES['saved_FINAL_logits'])
+    if bad == 'shape': candidate = candidate[0]
+    elif bad == 'dtype': candidate = candidate.astype(np.float64)
+    elif bad == 'nan': candidate[0, 0] = np.nan
+    elif bad == 'inf': reference[0, 0] = np.inf
+    else: tolerance['atol'] = .1
+    with pytest.raises(ValueError): m.first_parity_compare(reference, candidate, tolerance=tolerance)
+
+
+def test_first_parity_completed_counts_require_three_forwards_zero_derivatives():
+    assert m.first_parity_validate_counts(first_parity_counts(), {'NN_forwards_max': 3, 'autograd_calls_max': 0}) is True
+
+
+@pytest.mark.parametrize('bad', ['NN_forwards', 'autograd_calls', 'canonical_loss_calls',
+                                 'hidden_capture_calls', 'grad_enabled_forward_calls', 'bool'])
+def test_first_parity_count_proof_rejects_unbudgeted_actions_or_wrong_modes(bad):
+    counts = first_parity_counts()
+    if bad == 'bool': counts['checkpoint_deserializations'] = True
+    else: counts[bad] += 1
+    with pytest.raises(ValueError):
+        m.first_parity_validate_counts(counts, {'NN_forwards_max': 3, 'autograd_calls_max': 0})
+
+
+def first_parity_lifecycle(monkeypatch, tmp_path):
+    plan, _, pref, hooks, timers = lifecycle(monkeypatch, tmp_path)
+    monkeypatch.setattr(m, 'PARITY_ROOT', tmp_path / 'PARITY_OUT')
+    monkeypatch.setattr(m, 'PARITY_PLAN', tmp_path / 'PARITY_PLAN.json')
+    m.PARITY_PLAN.write_text('{"synthetic_first_parity":true}')
+    binding = m.ref(m.PARITY_PLAN)
+    monkeypatch.setattr(m, 'inspect_first_parity', lambda *a, **k: (plan, binding, pref))
+    monkeypatch.setattr(m, 'calculate_first_parity', lambda *a, **k: {
+        'all_routes_within_saved_original_tolerance': False, 'synthetic': True})
+    return plan, binding, pref, hooks, timers
+
+
+def test_first_parity_preflight_dispatch_has_no_payload_forward_or_claim(monkeypatch, tmp_path, capsys):
+    _, binding, _, hooks, _ = first_parity_lifecycle(monkeypatch, tmp_path)
+    def forbidden(*a, **k): raise AssertionError('NO_FIRST_PARITY_PAYLOAD_IN_PREFLIGHT')
+    monkeypatch.setattr(m, 'calculate_first_parity', forbidden)
+    monkeypatch.setattr(torch, 'load', forbidden); monkeypatch.setattr(np, 'load', forbidden)
+    monkeypatch.setattr(sys, 'argv', ['audit', '--first-parity-plan-sha256', binding['sha256'], '--preflight'])
+    m.main(); report = json.loads(capsys.readouterr().out)
+    assert report['plan'] == binding and report['claim_created'] is False
+    assert report['NN_forwards'] == report['autograd_calls'] == 0
+    assert report['checkpoint_deserializations'] == report['NPZ_arrays_decoded'] == report['models'] == 0
+    assert report['CUDA_initialized'] is False and hooks == []
+    assert not m.PARITY_ROOT.exists() and not m.ROOT.exists()
+    monkeypatch.setattr(sys, 'argv', sys.argv + ['--preflight'])
+    with pytest.raises(ValueError, match='EXACT_CLI'): m.main()
+
+
+@pytest.mark.parametrize('failure', [False, True])
+def test_first_parity_mismatch_completion_and_partial_failure_are_consumed(monkeypatch, tmp_path, failure):
+    _, binding, pref, _, timers = first_parity_lifecycle(monkeypatch, tmp_path)
+    completed = {'name': 'CPU_NO_GRAD_EQUAL_TF', 'finite_mismatch_is_recorded': True}
+    def calculate(plan, *, progress):
+        progress.update(routes=[completed], active_route='CPU_NO_GRAD_UNMERGED')
+        if failure: raise ValueError('SYNTHETIC_SECOND_ROUTE_FAILURE')
+        return {'all_routes_within_saved_original_tolerance': False, 'routes': [completed]}
+    monkeypatch.setattr(m, 'calculate_first_parity', calculate)
+    if failure:
+        with pytest.raises(ValueError, match='SYNTHETIC_SECOND_ROUTE_FAILURE'):
+            m.run_first_parity(binding['sha256'])
+    else:
+        outputs = m.run_first_parity(binding['sha256'])
+        assert outputs['result'] == m.ref(m.PARITY_ROOT / 'RESULT.json')
+        result = json.loads((m.PARITY_ROOT / 'RESULT.json').read_text())
+        assert result['report']['all_routes_within_saved_original_tolerance'] is False
+        assert result['report']['routes'] == [completed]
+        assert result['test_data_used'] is result['economic_edge_proven'] is False
+    terminal = json.loads((m.PARITY_ROOT / 'TERMINAL.json').read_text())
+    claim = json.loads((m.PARITY_ROOT / 'CLAIM.json').read_text())
+    assert terminal['status'] == ('FAILED_CONSUMED' if failure else 'COMPLETE')
+    assert terminal['stage'] == claim['stage'] == m.PARITY_STAGE
+    assert terminal['exit_code'] == int(failure) and terminal['remaining_invocations'] == 0
+    assert terminal['relaunch_allowed'] is claim['training_authorized'] is False
+    assert claim['policy_at_claim'] == pref and terminal['plan'] == binding
+    assert (m.PARITY_ROOT / 'RESULT.json').exists() is (not failure)
+    assert not m.ROOT.exists()  # Dedicated new-stage outputs never consume the old output root.
+    if failure:
+        assert terminal['progress']['routes'] == [completed]
+        assert terminal['progress']['active_route'] == 'CPU_NO_GRAD_UNMERGED'
+        json.dumps(terminal, allow_nan=False)
+    assert timers[-1] == (m.signal.ITIMER_REAL, 0)
+    with pytest.raises(FileExistsError): m.run_first_parity(binding['sha256'])
+
+
+@pytest.mark.parametrize('admitted', [False, True])
+def test_first_parity_exact_gate_cannot_authorize_gradient_training_or_relaunch(admitted):
+    binding = {'path': '/synthetic/FIRST_PARITY_PLAN.json', 'sha256': 'b'*64}
+    gate = m.gate_first_parity_expected(binding, admitted)
+    assert gate['plan'] == binding and gate['execution_authorized'] is admitted
+    assert gate['remaining_invocations'] == int(admitted)
+    assert gate['relaunch_allowed'] is gate['training_authorized'] is gate['test_authorized'] is False
+
+
+def test_first_parity_runtime_whitelist_and_network_guard_reuse_exact_four_payload_roles(monkeypatch, tmp_path):
+    plan, binding, _, hooks, _ = first_parity_lifecycle(monkeypatch, tmp_path)
+    m.run_first_parity(binding['sha256']); assert len(hooks) == 1
+    for value in plan['inputs'].values(): hooks[0]('open', (value['path'],))
+    for filename in ('UNBOUND.pt', 'OTHER_FEATURES.npz', 'foreign.parquet', 'other.pkl'):
+        with pytest.raises(RuntimeError, match='PAYLOAD_FORBIDDEN'):
+            hooks[0]('open', (str(tmp_path / filename),))
+    for event in ('socket.connect', 'socket.getaddrinfo', 'urllib.Request'):
+        with pytest.raises(RuntimeError, match='NETWORK_FORBIDDEN'): hooks[0](event, ())
+
+
+def first_parity_calculation(monkeypatch, *, fail_route=None, corrupt=None):
+    from contextlib import nullcontext
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    plan, capture, models = synthetic_calculation(monkeypatch)
+    plan.update(routes=copy.deepcopy(FIRST_PARITY_ROUTES),
+                fixed_original_tolerance=copy.deepcopy(TOLERANCES['saved_FINAL_logits']))
+    plan['budget'].update(NN_forwards_max=3, autograd_calls_max=0)
+    packet_owner = m.adapter.packet
+    def packet(context, take):
+        value = packet_owner(context, take)
+        for j, tf in enumerate(('m5', 'm15', 'h1', 'h4', 'd1')):
+            value['features']['seq_' + tf] = value['features'].pop('dummy' + str(j))
+        return value
+    monkeypatch.setattr(m.adapter, 'packet', packet)
+    calls, tokens = [], []
+    def helper(model, features, *, grouped, equal_tf, capture):
+        assert body._BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False
+        assert body._MODEL_FINITE_CHECK_SCOPE.get() is None
+        assert len(model._forward_pre_hooks) == 1
+        assert all(not child._forward_hooks and not child._forward_pre_hooks
+                   for child in model.modules() if child is not model)
+        index = len(calls)
+        calls.append({'grouped': grouped, 'equal_tf': equal_tf, 'capture': capture,
+                      'grad_enabled': torch.is_grad_enabled(), 'model_training': model.training,
+                      'feature_ids': {key: id(value) for key, value in features.items()}})
+        if index == fail_route: raise ValueError('SYNTHETIC_HELPER_ROUTE_FAILURE')
+        with body.model_finite_check_scope('grouped'), (body.batch_equal_length_mtf_eval_scope()
+                                                       if equal_tf else nullcontext()):
+            output = model(**features)
+            output = {key: value + index*.001 for key, value in output.items()}
+            groups = {}
+            for tf in ('M5', 'M15', 'H1', 'H4', 'D1'):
+                groups.setdefault(str(features['seq_' + tf.lower()].shape[1]), []).append(tf)
+            activation = {'batch_eval_active': equal_tf and not torch.is_grad_enabled(),
+                'model_training': model.training, 'grad_enabled': torch.is_grad_enabled(),
+                'scope_enabled': body._BATCH_EQUAL_LENGTH_MTF_EVAL.get(),
+                'eligible_equal_length_TF_groups': groups}
+        if index == 0:
+            if corrupt == 'state': model.backbone.weight.data.add_(1.)
+            elif corrupt == 'grad': model.backbone.weight.grad = torch.ones_like(model.backbone.weight)
+            elif corrupt == 'equal_scope':
+                tokens.append((body._BATCH_EQUAL_LENGTH_MTF_EVAL, body._BATCH_EQUAL_LENGTH_MTF_EVAL.set(True)))
+            elif corrupt == 'finite_scope':
+                tokens.append((body._MODEL_FINITE_CHECK_SCOPE, body._MODEL_FINITE_CHECK_SCOPE.set(object())))
+        return output, None, activation
+    def forbidden(*a, **k): raise AssertionError('NO_FIRST_PARITY_DERIVATIVE_OR_LOSS')
+    monkeypatch.setattr(m.core, 'future_cuda_forward', helper)
+    monkeypatch.setattr(torch.autograd, 'grad', forbidden)
+    monkeypatch.setattr(m.objective, 'native_future_state_loss', forbidden)
+    if corrupt == 'RNG':
+        original_rng = m.core.shared_gradient_rng
+        seen = []
+        def rng():
+            value = original_rng()
+            if seen: value['torch_cpu'][0] ^= 1
+            seen.append(True); return value
+        monkeypatch.setattr(m.core, 'shared_gradient_rng', rng)
+    return plan, capture, models, calls, tokens
+
+
+@pytest.mark.parametrize('ambient_grad', [False, True])
+def test_first_parity_three_exact_routes_complete_all_finite_mismatches_without_derivatives(monkeypatch, ambient_grad):
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    plan, capture, models, calls, _ = first_parity_calculation(monkeypatch)
+    original = {key: capture[key][:1].copy() for key in ('activity_logits', 'side_logits')}
+    for key in original: capture[key][0] += .1
+    progress = {}
+    with torch.set_grad_enabled(ambient_grad):
+        report = m.calculate_first_parity(plan, progress=progress)
+        assert torch.is_grad_enabled() is ambient_grad
+    assert report['counts'] == first_parity_counts()
+    assert len(calls) == len(report['routes']) == 3
+    assert report['all_routes_within_saved_original_tolerance'] is False
+    assert report['measurement_completed'] is True and report['full96_gradient_qualification'] is False
+    assert report['selected_issue_ns'] == int(capture['issue_ns'][0]) and report['selected_source_row'] == 0
+    assert report['retained_B96_packet_unmutated'] is True
+    assert len(report['first_row_feature_proof']) == 9
+    assert report['original_B96_known_activity_denominator_identity_only'] == 480
+    for index, (call, record, route) in enumerate(zip(calls, report['routes'], FIRST_PARITY_ROUTES)):
+        assert record['name'] == route['name'] and record['requested'] == route
+        assert {key: call[key] for key in ('grouped', 'equal_tf', 'capture', 'grad_enabled', 'model_training')} == \
+               {key: route[key] for key in ('grouped', 'equal_tf', 'capture', 'grad_enabled', 'model_training')}
+        assert call['feature_ids'] == calls[0]['feature_ids']
+        assert record['activation']['batch_eval_active'] is (index == 0)
+        assert record['activation']['scope_enabled'] is route['equal_tf']
+        for head, base in original.items():
+            values = base + np.float32(index*.001)
+            assert record['logits'][head] == {'values': values[0].astype(np.float64).tolist(),
+                'shape': [1, 5], 'dtype': np.dtype('float32').str, 'sha256': m.core.digest(values)}
+            assert record['vs_saved_FINAL'][head] == m.first_parity_compare(
+                capture[head][:1], values, tolerance=TOLERANCES['saved_FINAL_logits'])
+            assert record['vs_saved_FINAL'][head]['all_within_original_tolerance'] is False
+    assert [(pair['reference_route'], pair['candidate_route']) for pair in report['pairwise']] == [
+        ('CPU_NO_GRAD_EQUAL_TF', 'CPU_NO_GRAD_UNMERGED'),
+        ('CPU_NO_GRAD_UNMERGED', 'CPU_GRAD_ENABLED_UNMERGED'),
+        ('CPU_NO_GRAD_EQUAL_TF', 'CPU_GRAD_ENABLED_UNMERGED')]
+    by_name = {record['name']: record for record in report['routes']}
+    for pair in report['pairwise']:
+        for head in original:
+            left = np.array([by_name[pair['reference_route']]['logits'][head]['values']], np.float32)
+            right = np.array([by_name[pair['candidate_route']]['logits'][head]['values']], np.float32)
+            assert pair['per_head'][head] == m.first_parity_compare(left, right, tolerance=TOLERANCES['saved_FINAL_logits'])
+    assert progress['routes'] == report['routes'] and progress['pairwise'] == report['pairwise']
+    assert progress['phase'] == 'COMPLETE_FIRST_PARITY_MEASUREMENT'
+    assert report['context_bookends_passed'] is report['ambient_grad_mode_restored'] is True
+    assert report['model_state_and_local_RNG_bookend_passed'] is True
+    assert body._BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False and body._MODEL_FINITE_CHECK_SCOPE.get() is None
+    assert len(models) == 1 and models[0].backbone.weight.item() == .25 and models[0].backbone.weight.grad is None
+    assert not models[0]._forward_pre_hooks
+    assert report['actual_training_cause'] == report['selected_causal_fix'] == 'UNKNOWN'
+    json.dumps(report, allow_nan=False)
+
+
+def test_first_parity_helper_failure_preserves_completed_route_and_restores_context(monkeypatch):
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    plan, _, models, calls, _ = first_parity_calculation(monkeypatch, fail_route=1)
+    progress = {}; ambient = torch.is_grad_enabled()
+    with pytest.raises(ValueError, match='SYNTHETIC_HELPER_ROUTE_FAILURE'):
+        m.calculate_first_parity(plan, progress=progress)
+    assert len(calls) == 2 and len(progress['routes']) == 1
+    assert progress['routes'][0]['name'] == 'CPU_NO_GRAD_EQUAL_TF'
+    assert progress['active_route'] == 'CPU_NO_GRAD_UNMERGED'
+    assert progress['counts']['NN_forwards'] == 1 and progress['counts']['autograd_calls'] == 0
+    assert torch.is_grad_enabled() is ambient
+    assert body._BATCH_EQUAL_LENGTH_MTF_EVAL.get() is False and body._MODEL_FINITE_CHECK_SCOPE.get() is None
+    assert not models[0]._forward_pre_hooks and models[0].backbone.weight.grad is None
+    json.dumps(progress, allow_nan=False)
+
+
+@pytest.mark.parametrize('corrupt', ['equal_scope', 'finite_scope', 'state', 'RNG', 'grad'])
+def test_first_parity_rejects_context_state_RNG_or_grad_mutation(monkeypatch, corrupt):
+    plan, _, _, _, tokens = first_parity_calculation(monkeypatch, corrupt=corrupt)
+    try:
+        with pytest.raises(ValueError, match='CONTEXT_RESTORE|MODEL_STATE_MUTATION|LOCAL_RNG_MUTATION|MODE_GRAD_CUDA'):
+            m.calculate_first_parity(plan, progress={})
+    finally:
+        for variable, token in reversed(tokens): variable.reset(token)
+
+
+def test_first_parity_inspection_keeps_old_gradient_consumed_and_all_training_flags_closed(monkeypatch, tmp_path):
+    planfile, policyfile = tmp_path / 'FIRST_PARITY_PLAN.json', tmp_path / 'POLICY.json'
+    monkeypatch.setattr(m, 'PARITY_PLAN', planfile); monkeypatch.setattr(m, 'POLICY', policyfile)
+    monkeypatch.setattr(m, 'PARITY_ROOT', tmp_path / 'PARITY_OUT'); monkeypatch.setattr(m, 'REPO', Path.cwd())
+    old_binding = {'path': '/synthetic/CONSUMED_GRADIENT_PLAN.json', 'sha256': 'c'*64}
+    plan = {'source_base_commit': '1'*40, 'inputs': {'failed_gradient_plan': old_binding}}
+    planfile.write_text(json.dumps(plan)); binding = m.ref(planfile)
+    policy = dict.fromkeys(m.saved.FLAGS, False)
+    policy[m.STAGE] = {'plan': old_binding, 'execution_authorized': False, 'remaining_invocations': 0,
+        'relaunch_allowed': False, 'training_authorized': False, 'test_authorized': False}
+    policy[m.PARITY_STAGE] = m.gate_first_parity_expected(binding, False)
+    monkeypatch.setattr(m, 'build_first_parity_plan', lambda **k: plan)
+    monkeypatch.setattr(m, 'source_clean', lambda value: True)
+    def inspect():
+        policyfile.write_text(json.dumps(policy)); return m.inspect_first_parity(binding['sha256'], admitted=False)
+    assert inspect()[0] == plan and not m.PARITY_ROOT.exists()
+    for key in m.saved.FLAGS:
+        policy[key] = True
+        with pytest.raises(ValueError, match='ONE_USE_OLD_GRADIENT_CLOSED'): inspect()
+        policy[key] = False
+    for key in ('execution_authorized', 'training_authorized', 'test_authorized', 'relaunch_allowed'):
+        policy[m.STAGE][key] = True
+        with pytest.raises(ValueError, match='ONE_USE_OLD_GRADIENT_CLOSED'): inspect()
+        policy[m.STAGE][key] = False
+    policy[m.STAGE]['remaining_invocations'] = 1
+    with pytest.raises(ValueError, match='ONE_USE_OLD_GRADIENT_CLOSED'): inspect()
+    policy[m.STAGE]['remaining_invocations'] = 0
+    policy[m.PARITY_STAGE]['training_authorized'] = True
+    with pytest.raises(ValueError, match='ONE_USE_OLD_GRADIENT_CLOSED'): inspect()
+    policy[m.PARITY_STAGE]['training_authorized'] = False; m.PARITY_ROOT.mkdir()
+    with pytest.raises(ValueError, match='FRESH_ROOT'): inspect()
