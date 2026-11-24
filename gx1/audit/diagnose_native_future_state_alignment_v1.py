@@ -632,7 +632,199 @@ def moment_run(plan_sha):
   for s,h in handlers.items():signal.signal(s,h)
 
 
+# Provider-HLC conditional batch arithmetic; existing studies remain consumed.
+HLC_BATCH_NAME='NATIVE_PROVIDER_HLC_BATCH_RISK_20261124_001'
+HLC_BATCH_STAGE=HLC_BATCH_NAME.lower();HLC_BATCH_PLAN=REPO/'configs/research'/(HLC_BATCH_NAME+'.json');HLC_BATCH_ROOT=Path('/home/andre2/GX1_RUNS')/HLC_BATCH_NAME
+HLC_BATCH_DESIGN={'path':str(BATCH_EROOT/'PROVIDER_HLC_BATCH_RISK_DESIGN002.json'),'sha256':'15027441e09cd64d85608b5ff118a4530c75a1e38386d727e8c8df20d89848cd'}
+HLC_BATCH_ANCHOR='9f6cfe40469486b549f4430232b042e2439dbf45'
+HLC_BATCH_CAPTURE=('issue_ns','activity_logits','side_logits')
+
+
+def provider_hlc_batch_source_bridge():
+    before=subprocess.check_output(['git','show',HLC_BATCH_ANCHOR+':'+SELF],cwd=REPO);after=(REPO/SELF).read_bytes()
+    begin=b'# Provider-HLC conditional batch arithmetic; existing studies remain consumed.\n';end=b'# End provider-HLC conditional batch arithmetic.\n\n'
+    need(after.count(begin)==after.count(end)==1,'HLC_BATCH_SINGLE_ADDITIVE_BLOCK')
+    first,tail=after.split(begin);_,last=tail.split(end)
+    dispatch=b"    if __import__('sys').argv[1:2]==['--provider-hlc-batch-risk-plan-sha256']:return provider_hlc_batch_main()\n"
+    need(last.count(dispatch)==1 and before==first+last.replace(dispatch,b''),'HLC_BATCH_OLD_BYTES_AST_UNCHANGED')
+    return {'anchor':HLC_BATCH_ANCHOR,'old_owner_sha256':__import__('hashlib').sha256(before).hexdigest(),'current_owner_sha256':saved.native.sha(REPO/SELF),'old_functions_and_batch_risk_statistics_preserved':True,'old_main_only_change':'exact_first_token_HLC_batch_dispatch'}
+
+
+def provider_hlc_batch_reference(binding):
+    need(type(binding)is dict and set(binding)=={'path','sha256'}and type(binding['path'])is str,'HLC_BATCH_REFERENCE_SCHEMA')
+    path=Path(binding['path'])
+    need(path.is_absolute()and str(path)==binding['path']and '..'not in path.parts and path.is_file()and not path.is_symlink()and path.resolve()==path and ref(path)==binding,'HLC_BATCH_CANONICAL_REFERENCE')
+    return path
+
+
+def provider_hlc_batch_build_plan(*,source_base_commit=None):
+    from gx1.audit import native_future_state_training_v1 as training
+    from gx1.contracts.native_future_state_provider_hlc_v1 import SOURCE_BINDINGS,require_provider_hlc_state_contract,require_provider_hlc_certificate_ref
+    d=read(HLC_BATCH_DESIGN)
+    need(d['schema_version']=='gx1_provider_hlc_conditional_batch_risk_design_v1'and d['execution_authorized']is False and d['training_authorized']is False and d['test_authorized']is False and d['no_more_epochs']is True and d['model_parameters_changed']is False and d['execution']==EXECUTION and d['basename']==HLC_BATCH_NAME and d['stage']==HLC_BATCH_STAGE and d['plan_path']==str(HLC_BATCH_PLAN)and d['output_root']==str(HLC_BATCH_ROOT),'HLC_BATCH_LOCKED_DESIGN')
+    inputs={**d['inputs'],'design':HLC_BATCH_DESIGN}
+    for binding in inputs.values():provider_hlc_batch_reference(binding)
+    result=read(inputs['completed_model_result']);terminal=read(inputs['completed_model_terminal']);completed=read(inputs['completed_model_plan']);original=read(inputs['original_epoch_plan']);quality=read(inputs['full_quality']);initial=read(inputs['initial_result'])
+    report=result['report'];trajectory=report['trajectory'];meta=original['metadata'];schedule=original['schedule'];recipe=original['recipe']
+    need(terminal['status']=='COMPLETE'and terminal['exit_code']==0 and terminal['result']==inputs['completed_model_result']and terminal['plan']==result['plan']==inputs['completed_model_plan']and terminal['relaunch_allowed']is False and result['source_inputs_policy_boot_unchanged']is True and result['test_data_used']is False and report['actual_optimizer_updates']==3694 and report['passes']==1 and report['full_TRAIN_rows']==ROWS and report['original_plan']==inputs['original_epoch_plan']and completed['metadata']['original']==original,'HLC_BATCH_COMPLETED_V2_EPOCH')
+    need(trajectory['schedule']==schedule and trajectory['recipe']==recipe and trajectory['model_contract']==original['model_contract']and trajectory['target_contract']==meta['target_contract']and schedule['rows']==ROWS and schedule['batch_rows']==recipe['train_batch_rows']==96 and schedule['logical_batches']==schedule['batches_per_pass']==3694 and schedule['passes']==1 and schedule['shuffle']is False and schedule['drop_last']is False and schedule['skipped_batches']==0 and len(schedule['batch_issue_ns_sha256'])==len(schedule['update_flags'])==3694 and all(flag is True for flag in schedule['update_flags']),'HLC_BATCH_ORIGINAL_ISSUE_SCHEDULE')
+    target=require_provider_hlc_state_contract(meta['target_contract']);data=read(inputs['dataset']);prior=objective.require_native_future_state_train_prior(read(inputs['prior']),target_contract=target)
+    fields=training.provider_hlc_truth_fields(target);budget=d['budget'];certificate=require_provider_hlc_certificate_ref(data['target_observation_certificate_ref'])
+    need(data['contract']==target and data['cutoff_ns']==UPPER and data['model_input']is False and data['arrays']==inputs['target_arrays']and meta['dataset']==inputs['dataset']and meta['prior']==inputs['prior']and data['TRAIN_issue_ns_sha256']==meta['TRAIN_issue_ns_sha256']==schedule['issue_ns_sha256']and data['base_dataset']==SOURCE_BINDINGS['base_dataset']and data['base_targets']==SOURCE_BINDINGS['base_targets']and data['native_manifest']==SOURCE_BINDINGS['native_manifest']and inputs['provider_response']==SOURCE_BINDINGS['reference_raw']and {key:certificate[key]for key in ('path','sha256')}==inputs['certificate'],'HLC_BATCH_V2_TARGET_CERTIFICATE_PRIOR')
+    truth_sha=meta['truth_sha256'];final=report['whole_FINAL_score'];baseline=initial['report']['initial'];pop=prior['fit_population']
+    need(pop['issue_rows']==ROWS and pop['issue_ns_sha256']==schedule['issue_ns_sha256']and pop['cutoff_ns']==UPPER and pop['truth_sha256']==truth_sha==final['truth_sha256']==baseline['truth_sha256']==quality['truth_sha256']and baseline['initial_prior_exact']is True and report['final_logits']==inputs['capture']and report['final_quality']==inputs['full_quality']and final['output_sha256']==quality['output_sha256']and quality['frozen_prior_contract_sha256']==prior['contract_sha256']and quality['rows']==ROWS,'HLC_BATCH_MATCHED_SAVED_IDENTITIES')
+    capture_headers={'issue_ns':{'shape':[ROWS],'dtype':'<i8','sha256':schedule['issue_ns_sha256']},**{key:{'shape':[ROWS,5],'dtype':'<f4','sha256':final['output_sha256'][key]}for key in HLC_BATCH_CAPTURE[1:]}}
+    headers={key:data['array_headers'][key]for key in fields};size=sum(int(np.prod(h['shape']))*np.dtype(h['dtype']).itemsize for h in [*capture_headers.values(),*headers.values()])
+    need(tuple(budget['capture_fields'])==HLC_BATCH_CAPTURE and len(budget['target_fields'])==len(fields)and set(budget['target_fields'])==set(fields) and size==budget['NPZ_ndarray_bytes_decoded']==67719050 and budget['rows']==ROWS and budget['original_batches']==3694 and budget['batch_rows']==96 and budget['last_batch_rows']==22 and budget['capture_archive_loads']==budget['target_archive_loads']==1 and all(budget[key]==0 for key in ('models','checkpoint_loads','NN_forwards','backward_calls','autograd_calls','parameter_gradient_calculations','optimizer_constructions','optimizer_updates','fits','features','HTTP_calls','prior_refits','VAL_TEST_rows','new_labels')),'HLC_BATCH_EXACT_PAYLOAD_BUDGET')
+    need(Path(inputs['provider_response']['path']).stat().st_size==budget['cached_provider_response_bytes']==614909 and Path(inputs['certificate']['path']).stat().st_size==budget['certificate_metadata_bytes']==3460 and budget['cached_provider_response_reads']==budget['cached_provider_response_JSON_parses']==budget['certificate_metadata_reads']==budget['certificate_reauthentications']==1 and budget['provider_candle_records']==budget['volume_integers_checked']==budget['source_timestamp_strings_parsed']==1290 and budget['MBA_OHLC_price_scalars_parsed']==15480 and budget['returned_certificate_arrays']=={'target_start_ns_bytes':10320,'validity_ns_bytes':10320,'mid_hlc_bytes':30960,'total_bytes':51600},'HLC_BATCH_EXACT_CACHED_AUTHENTICATION_BUDGET')
+    for key in ('full_epoch_review','target_acceptance','previous_causal_design','previous_post_epoch_scope','qualification_requirements'):read(inputs[key])
+    names=set(completed['source_owners'])|{SELF,TEST,saved.SELF,saved.TEST}
+    need(all(not Path(name).is_absolute()and '..'not in Path(name).parts and Path(name).suffix in ('.py','.sh')for name in names),'HLC_BATCH_SOURCE_NAMES')
+    for name,digest in completed['source_owners'].items():
+        if name not in (SELF,TEST):need(saved.native.sha(REPO/name)==digest,'HLC_BATCH_UNCHANGED_COMPLETED_SOURCE')
+    bridge=provider_hlc_batch_source_bridge()
+    plan={'schema_version':'gx1_provider_hlc_conditional_batch_risk_plan_v1','stage':HLC_BATCH_STAGE,'status':'PREPARED_NOT_ADMITTED','plan_path':str(HLC_BATCH_PLAN),'output_root':str(HLC_BATCH_ROOT),'source_base_commit':source_base_commit or subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip(),'source_owners':{name:saved.native.sha(REPO/name)for name in sorted(names)},'source_bridge':bridge,'inputs':inputs,'execution':EXECUTION,'budget':budget,'capture_array_headers':capture_headers,'target_array_headers':headers,'target_archive_inventory':list(data['array_headers']),'target_contract':target,'truth_sha256':truth_sha,'prior_contract_sha256':prior['contract_sha256'],'TRAIN_issue_ns_sha256':schedule['issue_ns_sha256'],'schedule':schedule,'runtime_versions':{'numpy':np.__version__,'torch':str(torch.__version__)},'question':d['question'],'method':d['method'],'limits':d['limits'],'conditional_scope':d['new_conditional_scope_preconditions'],'expected_global_decomposition':d['expected_global_decomposition_from_existing_JSON']}
+    provider_hlc_batch_checked_inputs(plan)
+    return plan
+
+
+def provider_hlc_batch_gate(binding,admitted):
+    return {'status':'ADMITTED_EXACT_CONDITIONAL_PROVIDER_HLC_BATCH_ARITHMETIC'if admitted else'PREPARED_NOT_ADMITTED','plan':binding,'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':False,'test_authorized':False}
+
+
+def provider_hlc_batch_inspect(sha,*,admitted):
+    need(Path.cwd().resolve()==REPO and type(sha)is str and len(sha)==64 and all(c in '0123456789abcdef'for c in sha),'HLC_BATCH_CWD_SHA')
+    binding={'path':str(HLC_BATCH_PLAN),'sha256':sha};plan=read(binding)
+    need(plan==provider_hlc_batch_build_plan(source_base_commit=plan['source_base_commit'])and source_clean(plan),'HLC_BATCH_EXACT_PLAN_SOURCE')
+    pref=ref(POLICY);policy=read(pref)
+    need(all(policy.get(key)is False for key in saved.FLAGS)and policy[HLC_BATCH_STAGE]==provider_hlc_batch_gate(binding,admitted),'HLC_BATCH_ONE_USE_ALL_TRAINING_CLOSED')
+    need(not HLC_BATCH_ROOT.exists()and not HLC_BATCH_ROOT.is_symlink(),'HLC_BATCH_FRESH_ROOT')
+    return plan,binding,pref
+
+
+def provider_hlc_batch_checked_inputs(plan):
+    for binding in plan['inputs'].values():provider_hlc_batch_reference(binding)
+    saved.archive_headers(plan['inputs']['capture'],plan['capture_array_headers'],exact_inventory=HLC_BATCH_CAPTURE)
+    saved.archive_headers(plan['inputs']['target_arrays'],plan['target_array_headers'],exact_inventory=plan['target_archive_inventory'])
+
+
+def provider_hlc_batch_statistics(outputs,truth,*,batch_rows,prior_logits):
+    """Fixed-output coordinate arithmetic; original batch denominators survive year splits."""
+    issues=truth['issue_ns'];known=truth['activity_known'];side=truth['side_known'];up=truth['side_up'];active=truth['activity'];n=len(issues)
+    need(issues.dtype==np.int64 and issues.shape==(n,)and np.all(np.diff(issues)>0)and active.dtype==np.bool_ and active.shape==known.shape and not np.any(active&~known),'HLC_BATCH_STATISTICS_CLOCK_ACTIVITY')
+    need(set(outputs)=={'activity_logits','side_logits'}and outputs['activity_logits'].dtype==np.float32 and outputs['activity_logits'].shape==(n,5)and np.isfinite(outputs['activity_logits']).all()and prior_logits['activity_logits'].dtype==np.float32 and prior_logits['activity_logits'].shape==(5,)and np.isfinite(prior_logits['activity_logits']).all(),'HLC_BATCH_ACTIVITY_LOGITS')
+    stats=batch_risk_statistics(outputs['side_logits'],known,side,up,batch_rows=batch_rows,prior_logits=prior_logits['side_logits'])
+    years=issues.astype('datetime64[ns]').astype('datetime64[Y]').astype(str);names=sorted(set(years.tolist()));whole={name:{task:np.zeros(5,np.float64)for task in ('activity','side')}for name in ('FINAL','prior')};mean={name:{task:np.zeros(5,np.float64)for task in ('activity','side')}for name in whole}
+    annual={year:{**{name+'_native_batch_loss_sum':{task:np.zeros(5,np.float64)for task in ('activity','side')}for name in whole},'rows':int((years==year).sum()),'batches_touched':0,'activity_known':np.zeros(5,np.int64),'side_known':np.zeros(5,np.int64),'UP':np.zeros(5,np.int64),'FINAL_side_residual_sums':np.zeros(5,np.float64),'prior_side_residual_sums':np.zeros(5,np.float64),'FINAL_native_batch_gradient_sum':np.zeros(5,np.float64),'prior_native_batch_gradient_sum':np.zeros(5,np.float64),**{name:{task:np.zeros(5,np.float64)for task in ('activity','side')}for name in whole}}for year in names};crossings=[]
+    global_D=stats['activity_denominator_total'];updates=stats['updates']
+    for batch in stats['batches']:
+        left,right,D=batch['start_position'],batch['stop_position'],batch['D_activity_all_TF'];by=years[left:right];masks={'activity':known[left:right],'side':side[left:right]};labels={'activity':active[left:right],'side':up[left:right]};losses={}
+        if len(set(by.tolist()))>1:crossings.append(batch['logical_step'])
+        for name in whole:
+            losses[name]={}
+            for task in ('activity','side'):
+                z=outputs[task+'_logits'][left:right].astype(np.float64)if name=='FINAL'else np.broadcast_to(prior_logits[task+'_logits'].astype(np.float64),(right-left,5))
+                values=np.where(labels[task],np.logaddexp(0.,-z),np.logaddexp(0.,z));values=np.where(masks[task],values,0.);losses[name][task]=values;totals=values.sum(0)
+                whole[name][task]+=totals
+                if D:mean[name][task]+=totals/D
+            batch[name+'_activity_BCE_sums']=losses[name]['activity'].sum(0).tolist();batch[name+'_side_BCE_sums']=losses[name]['side'].sum(0).tolist()
+        q=np.exp(-np.logaddexp(0.,-outputs['side_logits'][left:right].astype(np.float64)));p=np.exp(-np.logaddexp(0.,-prior_logits['side_logits'].astype(np.float64)))
+        for year in sorted(set(by.tolist())):
+            take=by==year;cell=annual[year];cell['batches_touched']+=1;cell['activity_known']+=known[left:right][take].sum(0);cell['side_known']+=side[left:right][take].sum(0);cell['UP']+=(side[left:right][take]&up[left:right][take]).sum(0)
+            for name,residual in (('FINAL',np.where(side[left:right],q-up[left:right],0.)),('prior',np.where(side[left:right],p-up[left:right],0.))):
+                sums=residual[take].sum(0);cell[name+'_side_residual_sums']+=sums
+                if D:cell[name+'_native_batch_gradient_sum']+=sums/D
+                for task in ('activity','side'):
+                    sums=losses[name][task][take].sum(0);cell[name][task]+=sums
+                    if D:cell[name+'_native_batch_loss_sum'][task]+=sums/D
+    losses={}
+    for name in whole:
+        losses[name]={'per_TF_BCE_sums':{task:whole[name][task].tolist()for task in whole[name]},'global_native':{task:float(whole[name][task].sum()/global_D)if global_D else None for task in whole[name]},'mean_supported_B96_native':{task:float(mean[name][task].sum()/updates)if updates else None for task in mean[name]}}
+        for aggregation in ('global_native','mean_supported_B96_native'):
+            losses[name][aggregation]['total']=sum(losses[name][aggregation][task]for task in ('activity','side'))if global_D else None
+    for year,cell in annual.items():
+        cell['DOWN']=(cell['side_known']-cell['UP']).tolist()
+        for name in ('FINAL','prior'):
+            cell[name+'_gradient_global_contribution']=(cell[name+'_side_residual_sums']/global_D).tolist()if global_D else [None]*5
+            cell[name+'_gradient_mean_B96_contribution']=(cell[name+'_native_batch_gradient_sum']/updates).tolist()if updates else [None]*5
+            weighted=cell.pop(name+'_native_batch_loss_sum');cell[name]={'BCE_sums':{task:cell[name][task].tolist()for task in ('activity','side')},'global_native_contribution':{task:float(cell[name][task].sum()/global_D)if global_D else None for task in ('activity','side')},'mean_supported_B96_contribution':{task:float(weighted[task].sum()/updates)if updates else None for task in ('activity','side')}}
+        for key,value in list(cell.items()):
+            if isinstance(value,np.ndarray):cell[key]=value.tolist()
+    return {**stats,'loss_decomposition':losses,'issue_UTC_years':annual,'year_crossing_logical_batches':crossings,'year_aggregation':'Each year contributes rows within original full B96 batches; D_b remains the full original all-TF activity denominator. Contributions sum to global/all-batch quantities; no rebatched yearly objective.','existing_target_UTC_year_quality_is_separate':True}
+
+
+def provider_hlc_batch_calculate(plan,*,progress=None):
+    from gx1.audit import native_future_state_training_v1 as training
+    torch.set_num_threads(1);need(torch.get_num_threads()==1,'HLC_BATCH_CPU_THREAD');progress={}if progress is None else progress;progress['phase']='CAPTURE3_CANONICAL_V2_TARGET14_CACHED_CERTIFICATE_REAUTH'
+    capture=saved.load_fields(plan['inputs']['capture'],HLC_BATCH_CAPTURE,plan['capture_array_headers']);truth=training.load_provider_hlc_target_truth(plan['inputs']['dataset'],expected_issue_ns=capture['issue_ns'],target_contract=plan['target_contract'])
+    fields=training.provider_hlc_truth_fields(plan['target_contract']);need(sum(capture[key].nbytes for key in HLC_BATCH_CAPTURE)+sum(truth[key].nbytes for key in fields)==plan['budget']['NPZ_ndarray_bytes_decoded'],'HLC_BATCH_ACTUAL_NPZ_BYTES')
+    progress['capture_fields_decoded']=list(HLC_BATCH_CAPTURE);progress['target_fields_decoded']=list(fields);progress['certificate_reauthentications']=1
+    need(objective.native_future_state_truth_sha256(truth,target_contract=plan['target_contract'])==plan['truth_sha256']and saved.array_sha(capture['issue_ns'])==plan['TRAIN_issue_ns_sha256'],'HLC_BATCH_ACTUAL_TRUTH_CLOCK')
+    prior=objective.require_native_future_state_train_prior(read(plan['inputs']['prior']),target_contract=plan['target_contract']);logits=objective.native_future_state_train_prior_logits(prior,rows=1,target_contract=plan['target_contract']);prior_logits={key:value.numpy()[0]for key,value in logits.items()}
+    stats=provider_hlc_batch_statistics({key:capture[key]for key in HEADS},truth,batch_rows=plan['budget']['batch_rows'],prior_logits=prior_logits)
+    need(stats['updates']==3694 and stats['skipped_batches']==0 and len(stats['batches'])==3694 and stats['batches'][-1]['rows']==22 and set(stats['issue_UTC_years'])==set(STRATA[1:]),'HLC_BATCH_COMPLETE_SCHEDULE')
+    for batch,digest,flag in zip(stats['batches'],plan['schedule']['batch_issue_ns_sha256'],plan['schedule']['update_flags']):need(saved.array_sha(capture['issue_ns'][batch['start_position']:batch['stop_position']])==digest and (not batch['skip_update'])is flag,'HLC_BATCH_ISSUE_BATCH_IDENTITY')
+    result=read(plan['inputs']['completed_model_result']);initial=read(plan['inputs']['initial_result']);quality=read(plan['inputs']['full_quality']);final=result['report']['whole_FINAL_score'];baseline=initial['report']['initial']
+    for j,tf in enumerate(TF):
+        for task,mask,label in (('activity',truth['activity_known'][:,j],truth['activity'][:,j]),('side',truth['side_known'][:,j],truth['side_up'][:,j])):
+            cell=prior['per_task'][task][tf];need(int(mask.sum())==cell['count']and saved.array_sha(mask)==cell['mask_sha256']and [int((mask&~label).sum()),int((mask&label).sum())]==cell['class_counts'],'HLC_BATCH_FROZEN_PRIOR_SUPPORT')
+            for name,reference in (('FINAL',final),('prior',baseline)):
+                actual=stats['loss_decomposition'][name]['per_TF_BCE_sums'][task][j];expected=reference['scores']['per_tf'][tf][task]
+                need(expected['count']==int(mask.sum())and np.isclose(actual,expected['log_loss_sum'],rtol=1e-12,atol=1e-7),'HLC_BATCH_CANONICAL_BCE_SUM')
+        need(np.isclose(stats['per_tf'][tf]['FINAL_mean_q'],quality['all_TF'][tf]['side']['model']['mean_positive_probability'],rtol=1e-12,atol=1e-12),'HLC_BATCH_QUALITY_Q')
+    expected=plan['expected_global_decomposition']
+    for name,suffix in (('FINAL','final'),('prior','initial')):
+        global_loss=stats['loss_decomposition'][name]['global_native']
+        for task in ('activity','side','total'):need(np.isclose(global_loss[task],expected[task+'_'+suffix],rtol=1e-12,atol=1e-12),'HLC_BATCH_RECORDED_GLOBAL_DECOMPOSITION')
+    progress['phase']='COMPLETE_CONDITIONAL_BATCH_ARITHMETIC'
+    return {**stats,'payload_counts':plan['budget'],'payload_count_semantics':'Canonical decoder/reauthentication operations; mandatory SHA streaming and header-only ZIP validation are separate and are not total physical file-open or I/O counts.','complete_issue_clock_and_original_B96_boundaries_verified':True,'physical_source_rows_or_training_step_history_reconstructed':False,'canonical_v2_truth_prior_and_recorded_scores_verified':True,'probability_semantics':'q=P(UP|activity), not joint P(UP).','task_denominator':'D_b=sum all five TF known-activity cells; side BCE only where side_known. Unknown side contributes exact zero coordinate derivative.','analytic_coordinate_derivatives_only':True,'parameter_gradient_calculations':0,'actual_training_cause':'UNKNOWN','selected_causal_fix':'UNKNOWN','later_generalization':'UNKNOWN','economic_edge':'UNKNOWN','all20_approved':False,'limits':plan['limits'],'conditional_scope':plan['conditional_scope']}
+
+
+def provider_hlc_batch_publish(name,value):
+    path=HLC_BATCH_ROOT/name;saved._publish_bytes(path,(json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n').encode());return ref(path)
+
+
+def provider_hlc_batch_run(sha):
+    import os,sys
+    began=time.monotonic();cap=require_capped_cpu_audit_execution();lock=require_capped_lock_ancestry()
+    need(cap['memory_max']==cap['memory_high']==4*1024**3 and cap['swap']==512*1024**2 and cap['numerical_threads']==1 and lock['scope']==cap['cgroup_path'][len('/sys/fs/cgroup'):],'HLC_BATCH_CAPS')
+    plan,binding,pref=provider_hlc_batch_inspect(sha,admitted=True);provider_hlc_batch_checked_inputs(plan);boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip();HLC_BATCH_ROOT.mkdir(parents=True,exist_ok=False)
+    handlers={s:signal.getsignal(s)for s in (signal.SIGALRM,signal.SIGTERM,signal.SIGINT)};claim=result=None;progress={'phase':'CLAIM'}
+    try:
+        def expired(*_):raise TimeoutError('HLC_BATCH_WALL')
+        def stopped(s,*_):raise InterruptedError('HLC_BATCH_EXTERNAL_SIGNAL_'+str(s))
+        signal.signal(signal.SIGALRM,expired);signal.signal(signal.SIGTERM,stopped);signal.signal(signal.SIGINT,stopped)
+        claim=provider_hlc_batch_publish('CLAIM.json',{'stage':HLC_BATCH_STAGE,'plan':binding,'policy_at_claim':pref,'boot_id':boot,'remaining_invocations':0,'relaunch_allowed':False,'training_authorized':False,'test_data_used':False})
+        remaining=EXECUTION['internal_seconds']-(time.monotonic()-began);need(remaining>0,'HLC_BATCH_TIME');signal.setitimer(signal.ITIMER_REAL,remaining)
+        allowed={plan['inputs'][key]['path']for key in ('capture','target_arrays')}
+        def audit(event,args):
+            if event in ('socket.connect','socket.getaddrinfo','urllib.Request'):raise RuntimeError('HLC_BATCH_NETWORK_FORBIDDEN')
+            if event=='open'and isinstance(args[0],(str,bytes,os.PathLike)):
+                name=os.fsdecode(args[0])
+                if name.endswith(('.npz','.pt','.pth','.parquet','.safetensors','.pkl'))and str(Path(name).resolve())not in allowed:raise RuntimeError('HLC_BATCH_PAYLOAD_FORBIDDEN')
+        sys.addaudithook(audit);report=provider_hlc_batch_calculate(plan,progress=progress);provider_hlc_batch_checked_inputs(plan)
+        need(source_clean(plan)and ref(POLICY)==pref and ref(HLC_BATCH_PLAN)==binding and Path('/proc/sys/kernel/random/boot_id').read_text().strip()==boot,'HLC_BATCH_SOURCE_INPUT_PLAN_POLICY_BOOT_BOOKEND')
+        result=provider_hlc_batch_publish('RESULT.json',{'status':'COMPLETE_CONDITIONAL_PROVIDER_HLC_BATCH_ARITHMETIC','stage':HLC_BATCH_STAGE,'plan':binding,'claim':claim,'policy_at_claim':pref,'boot_id':boot,'report':report,'source_unchanged':True,'test_data_used':False,'economic_edge_proven':False,'elapsed_seconds':time.monotonic()-began})
+        terminal=provider_hlc_batch_publish('TERMINAL.json',{'status':'COMPLETE','exit_code':0,'stage':HLC_BATCH_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'source_unchanged':True,'test_data_used':False});return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        signal.setitimer(signal.ITIMER_REAL,0);provider_hlc_batch_publish('TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'stage':HLC_BATCH_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'progress':progress,'error':type(error).__name__+':'+str(error)[:2000],'test_data_used':False});raise
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0)
+        for sig,handler in handlers.items():signal.signal(sig,handler)
+
+
+def provider_hlc_batch_main():
+    import sys
+    parser=argparse.ArgumentParser();parser.add_argument('--provider-hlc-batch-risk-plan-sha256',required=True);parser.add_argument('--preflight',action='store_true');args=parser.parse_args()
+    sha=args.provider_hlc_batch_risk_plan_sha256;need(sys.argv[1:]==['--provider-hlc-batch-risk-plan-sha256',sha]+(['--preflight']if args.preflight else[]),'HLC_BATCH_EXACT_CLI')
+    if args.preflight:
+        plan,binding,pref=provider_hlc_batch_inspect(sha,admitted=False)
+        print(json.dumps({'status':'PREFLIGHT_CONDITIONAL_PROVIDER_HLC_BATCH_PASS','plan':binding,'policy':pref,'claim_created':False,'array_payloads_decoded':0,'cached_provider_records_parsed':0,'models':0,'checkpoint_loads':0,'forwards':0,'fits':0}))
+    else:print(json.dumps(provider_hlc_batch_run(sha),sort_keys=True))
+# End provider-HLC conditional batch arithmetic.
+
 def main():
+    if __import__('sys').argv[1:2]==['--provider-hlc-batch-risk-plan-sha256']:return provider_hlc_batch_main()
     parser=argparse.ArgumentParser(description=__doc__);mode=parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--plan-sha256');mode.add_argument('--batch-risk-plan-sha256');mode.add_argument('--projection-moment-plan-sha256');parser.add_argument('--preflight',action='store_true');args=parser.parse_args()
     if args.projection_moment_plan_sha256 is not None:

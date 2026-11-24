@@ -587,3 +587,371 @@ def test_moment_projection_real_builder_uses_frozen_owner_metadata_before_closed
  with pytest.raises(ValueError,match='MOMENT_AUTHENTIC_FROZEN_COHORT'):
   audit.moment_build_plan(design=design_ref)
  assert seen==[audit.frozen_owner.ROOT/'RESULT.json',audit.frozen_owner.ROOT/'TERMINAL.json']
+
+
+# Provider-HLC fixed-output arithmetic; existing v1 tests and owners stay unchanged.
+def hlc_batch_toy():
+    values = batch_risk_toy()
+    issues = np.array(['2021-12-31T23:55', '2022-01-01T00:00',
+                       '2022-01-01T00:05', '2022-01-01T00:10'], dtype='datetime64[ns]').astype(np.int64)
+    outputs = {'side_logits': values[0], 'activity_logits': np.zeros_like(values[0])}
+    truth = {'issue_ns': issues, 'activity_known': values[1], 'side_known': values[2],
+             'side_up': values[3], 'activity': values[1].copy()}
+    prior = {'side_logits': values[4], 'activity_logits': values[4].copy()}
+    return outputs, truth, prior
+
+
+def test_provider_hlc_batch_decomposes_activity_and_side_with_native_denominator():
+    outputs, truth, prior = hlc_batch_toy()
+    report = audit.provider_hlc_batch_statistics(outputs, truth, batch_rows=2, prior_logits=prior)
+    assert report['activity_denominator_total'] == 12
+    for name in ('FINAL', 'prior'):
+        loss = report['loss_decomposition'][name]
+        assert loss['global_native']['activity'] == pytest.approx(np.log(2), abs=1e-15)
+        assert loss['global_native']['side'] == pytest.approx(np.log(2) / 3, abs=1e-15)
+        assert loss['global_native']['total'] == pytest.approx(4 * np.log(2) / 3, abs=1e-15)
+        assert loss['mean_supported_B96_native']['activity'] == pytest.approx(np.log(2), abs=1e-15)
+        assert loss['mean_supported_B96_native']['side'] == pytest.approx(.6 * np.log(2), abs=1e-15)
+    assert report['per_tf']['M5']['constant_mean_batch_optimum'] == pytest.approx(1 / 6)
+
+
+def test_provider_hlc_batch_year_crossing_preserves_full_original_denominator():
+    outputs, truth, prior = hlc_batch_toy()
+    report = audit.provider_hlc_batch_statistics(outputs, truth, batch_rows=2, prior_logits=prior)
+    assert report['year_crossing_logical_batches'] == [1]
+    first, second = report['issue_UTC_years']['2021'], report['issue_UTC_years']['2022']
+    assert first['rows'] == 1 and second['rows'] == 3
+    assert first['FINAL_gradient_mean_B96_contribution'][0] == pytest.approx(-.025, abs=1e-15)
+    assert second['FINAL_gradient_mean_B96_contribution'][0] == pytest.approx(.225, abs=1e-15)
+    assert first['FINAL']['mean_supported_B96_contribution']['side'] == pytest.approx(.05 * np.log(2), abs=1e-15)
+    for name in ('FINAL', 'prior'):
+        for task in ('activity', 'side'):
+            assert sum(year[name]['global_native_contribution'][task] for year in (first, second)) == pytest.approx(report['loss_decomposition'][name]['global_native'][task], abs=1e-15)
+            assert sum(year[name]['mean_supported_B96_contribution'][task] for year in (first, second)) == pytest.approx(report['loss_decomposition'][name]['mean_supported_B96_native'][task], abs=1e-15)
+        for j, tf in enumerate(audit.TF):
+            assert sum(year[name+'_gradient_global_contribution'][j] for year in (first, second)) == pytest.approx(report['per_tf'][tf][name+'_gradient_global'], abs=1e-15)
+            assert sum(year[name+'_gradient_mean_B96_contribution'][j] for year in (first, second)) == pytest.approx(report['per_tf'][tf][name+'_gradient_mean_batch'], abs=1e-15)
+
+
+def test_provider_hlc_batch_unknown_side_is_zero_without_filling_labels():
+    outputs, truth, prior = hlc_batch_toy(); truth['side_known'][:] = False; truth['side_up'][:] = False
+    outputs['side_logits'][:] = 100
+    report = audit.provider_hlc_batch_statistics(outputs, truth, batch_rows=2, prior_logits=prior)
+    assert report['loss_decomposition']['FINAL']['global_native']['side'] == 0
+    for cell in report['per_tf'].values():
+        assert cell['known_side_rows'] == 0 and cell['FINAL_gradient_global'] == 0
+        assert cell['FINAL_gradient_conditional_side'] is None
+    assert report['loss_decomposition']['FINAL']['global_native']['activity'] > 0
+
+
+def test_provider_hlc_batch_no_support_keeps_undefined_risk_and_json_finite():
+    outputs, truth, prior = hlc_batch_toy()
+    for name in ('activity_known', 'activity', 'side_known', 'side_up'): truth[name][:] = False
+    report = audit.provider_hlc_batch_statistics(outputs, truth, batch_rows=2, prior_logits=prior)
+    assert report['updates'] == 0 and report['skipped_batches'] == 2
+    assert report['loss_decomposition']['FINAL']['global_native']['total'] is None
+    json.dumps(report, allow_nan=False)
+
+
+@pytest.mark.parametrize('bad', ['activity_unknown', 'activity_dtype', 'activity_logits', 'prior_activity', 'issue_dtype'])
+def test_provider_hlc_batch_rejects_invalid_new_arithmetic_inputs(bad):
+    outputs, truth, prior = hlc_batch_toy()
+    if bad == 'activity_unknown': truth['activity'][2, 1] = True
+    elif bad == 'activity_dtype': truth['activity'] = truth['activity'].astype(np.int64)
+    elif bad == 'activity_logits': outputs['activity_logits'][0, 0] = np.nan
+    elif bad == 'prior_activity': prior['activity_logits'] = prior['activity_logits'].astype(np.float64)
+    else: truth['issue_ns'] = truth['issue_ns'].astype(np.float64)
+    with pytest.raises(ValueError): audit.provider_hlc_batch_statistics(outputs, truth, batch_rows=2, prior_logits=prior)
+
+
+def hlc_batch_lifecycle(monkeypatch, tmp_path):
+    import signal
+    monkeypatch.setattr(audit, 'HLC_BATCH_ROOT', tmp_path / 'OUT')
+    monkeypatch.setattr(audit, 'HLC_BATCH_PLAN', tmp_path / 'PLAN.json')
+    monkeypatch.setattr(audit, 'POLICY', tmp_path / 'POLICY.json')
+    audit.HLC_BATCH_PLAN.write_text('{}'); audit.POLICY.write_text('{}')
+    binding, pref = audit.ref(audit.HLC_BATCH_PLAN), audit.ref(audit.POLICY)
+    plan = {'inputs': {'capture': {'path': str(tmp_path / 'capture.npz')},
+                       'target_arrays': {'path': str(tmp_path / 'targets.npz')}}}
+    monkeypatch.setattr(audit, 'provider_hlc_batch_inspect', lambda *a, **k: (plan, binding, pref))
+    monkeypatch.setattr(audit, 'provider_hlc_batch_checked_inputs', lambda plan: None)
+    monkeypatch.setattr(audit, 'source_clean', lambda plan: True)
+    monkeypatch.setattr(audit, 'require_capped_cpu_audit_execution', lambda: {'memory_max': 4*1024**3,
+        'memory_high': 4*1024**3, 'swap': 512*1024**2, 'numerical_threads': 1, 'cgroup_path': '/sys/fs/cgroup/synthetic'})
+    monkeypatch.setattr(audit, 'require_capped_lock_ancestry', lambda: {'scope': '/synthetic'})
+    hooks = []; monkeypatch.setattr(sys, 'addaudithook', hooks.append)
+    monkeypatch.setattr(signal, 'signal', lambda *a: None)
+    timers = []; monkeypatch.setattr(signal, 'setitimer', lambda *a: timers.append(a))
+    monkeypatch.setattr(audit, 'provider_hlc_batch_calculate', lambda *a, **k: {'synthetic': True})
+    return plan, binding, pref, hooks, timers
+
+
+def test_provider_hlc_batch_preflight_exact_dispatch_has_no_claim_payload_or_quotes(monkeypatch, tmp_path, capsys):
+    _, binding, _, _, _ = hlc_batch_lifecycle(monkeypatch, tmp_path)
+    monkeypatch.setattr(sys, 'argv', ['audit', '--provider-hlc-batch-risk-plan-sha256', binding['sha256'], '--preflight'])
+    audit.main(); result = json.loads(capsys.readouterr().out)
+    assert result['status'] == 'PREFLIGHT_CONDITIONAL_PROVIDER_HLC_BATCH_PASS'
+    assert result['array_payloads_decoded'] == result['cached_provider_records_parsed'] == result['models'] == 0
+    assert not audit.HLC_BATCH_ROOT.exists()
+    monkeypatch.setattr(sys, 'argv', sys.argv + ['--preflight'])
+    with pytest.raises(ValueError, match='HLC_BATCH_EXACT_CLI'): audit.main()
+
+
+@pytest.mark.parametrize('failure', [None, 'calculate', 'bookend'])
+def test_provider_hlc_batch_success_and_consumed_failure_reports(monkeypatch, tmp_path, failure):
+    _, binding, pref, _, timers = hlc_batch_lifecycle(monkeypatch, tmp_path)
+    if failure == 'calculate':
+        monkeypatch.setattr(audit, 'provider_hlc_batch_calculate', lambda *a, **k: (_ for _ in ()).throw(ValueError('synthetic_calculate')))
+    elif failure == 'bookend': monkeypatch.setattr(audit, 'source_clean', lambda plan: False)
+    if failure:
+        with pytest.raises(ValueError): audit.provider_hlc_batch_run(binding['sha256'])
+    else:
+        result = audit.provider_hlc_batch_run(binding['sha256'])
+        assert result['result'] == audit.ref(audit.HLC_BATCH_ROOT / 'RESULT.json')
+    terminal = json.loads((audit.HLC_BATCH_ROOT / 'TERMINAL.json').read_text())
+    claim = json.loads((audit.HLC_BATCH_ROOT / 'CLAIM.json').read_text())
+    assert claim['policy_at_claim'] == pref and claim['training_authorized'] is False
+    assert terminal['status'] == ('FAILED_CONSUMED' if failure else 'COMPLETE')
+    assert terminal['remaining_invocations'] == 0 and terminal['relaunch_allowed'] is False
+    assert (audit.HLC_BATCH_ROOT / 'RESULT.json').exists() is (failure is None)
+    assert timers[-1] == (audit.signal.ITIMER_REAL, 0)
+
+
+def test_provider_hlc_batch_audit_allows_only_two_npz_and_rejects_CP_features_network(monkeypatch, tmp_path):
+    plan, binding, _, hooks, _ = hlc_batch_lifecycle(monkeypatch, tmp_path)
+    audit.provider_hlc_batch_run(binding['sha256']); assert len(hooks) == 1
+    for key in ('capture', 'target_arrays'): hooks[0]('open', (plan['inputs'][key]['path'],))
+    for name in ('FINAL.pt', 'FEATURE_INPUTS.npz', 'foreign.parquet'):
+        with pytest.raises(RuntimeError, match='HLC_BATCH_PAYLOAD_FORBIDDEN'): hooks[0]('open', (str(tmp_path / name),))
+    for event in ('socket.connect', 'socket.getaddrinfo', 'urllib.Request'):
+        with pytest.raises(RuntimeError, match='HLC_BATCH_NETWORK_FORBIDDEN'): hooks[0](event, ())
+
+
+@pytest.mark.parametrize('admitted', [False, True])
+def test_provider_hlc_batch_gate_keeps_training_and_test_closed(admitted):
+    gate = audit.provider_hlc_batch_gate({'path': '/synthetic/plan.json', 'sha256': 'a'*64}, admitted)
+    assert gate['execution_authorized'] is admitted and gate['remaining_invocations'] == int(admitted)
+    assert gate['training_authorized'] is gate['test_authorized'] is gate['relaunch_allowed'] is False
+
+
+
+def provider_hlc_builder_fixture(monkeypatch, tmp_path):
+    from pathlib import Path
+    from gx1.audit import native_future_state_training_v1 as training
+    from gx1.contracts import native_future_state_provider_hlc_v1 as provider
+    budget = {'HTTP_calls': 0,
+     'MBA_OHLC_price_scalars_parsed': 15480,
+     'NN_forwards': 0,
+     'NPZ_ndarray_bytes_decoded': 67719050,
+     'VAL_TEST_rows': 0,
+     'analytic_logit_derivatives': 'Nonzero arithmetic onfixedoutputs allowed; no '
+                                   'parametergrad/autograd/optimizer.',
+     'autograd_calls': 0,
+     'backward_calls': 0,
+     'batch_rows': 96,
+     'cached_provider_response_JSON_parses': 1,
+     'cached_provider_response_bytes': 614909,
+     'cached_provider_response_reads': 1,
+     'capture_archive_loads': 1,
+     'capture_fields': ['issue_ns', 'activity_logits', 'side_logits'],
+     'certificate_array_memory_limit': 'Returnedarraysonly; '
+                                       'intermediateallocationsarenotcounted/claimed; '
+                                       'kernel4Gpeakcapapplies.',
+     'certificate_metadata_bytes': 3460,
+     'certificate_metadata_reads': 1,
+     'certificate_reauthentications': 1,
+     'checkpoint_loads': 0,
+     'features': 0,
+     'fits': 0,
+     'last_batch_rows': 22,
+     'models': 0,
+     'new_labels': 0,
+     'optimizer_constructions': 0,
+     'optimizer_updates': 0,
+     'original_batches': 3694,
+     'parameter_gradient_calculations': 0,
+     'prior_refits': 0,
+     'provider_candle_records': 1290,
+     'returned_certificate_arrays': {'mid_hlc_bytes': 30960,
+                                     'target_start_ns_bytes': 10320,
+                                     'total_bytes': 51600,
+                                     'validity_ns_bytes': 10320},
+     'rows': 354550,
+     'source_timestamp_strings_parsed': 1290,
+     'target_archive_loads': 1,
+     'target_fields': ['issue_ns',
+                       'target_start_ns',
+                       'validity_ns',
+                       'target_present',
+                       'mature',
+                       'nominal_complete',
+                       'activity_known',
+                       'activity',
+                       'side_known',
+                       'side_up',
+                       'state_window_complete',
+                       'partial_range_active',
+                       'provider_hlc_observed',
+                       'state_hlc_observed'],
+     'volume_integers_checked': 1290}
+    fields = ('issue_ns', 'target_start_ns', 'validity_ns', 'target_present', 'mature',
+              'nominal_complete', 'state_window_complete', 'partial_range_active',
+              'activity_known', 'activity', 'side_known', 'side_up',
+              'provider_hlc_observed', 'state_hlc_observed')
+    def binding(name): return {'path': str(tmp_path / (name + '.json')), 'sha256': 'a' * 64}
+    roles = ('capture', 'certificate', 'completed_model_plan', 'completed_model_result',
+             'completed_model_terminal', 'dataset', 'full_epoch_review', 'full_quality',
+             'initial_result', 'main_goal', 'original_epoch_plan', 'previous_causal_design',
+             'previous_post_epoch_scope', 'prior', 'provider_response',
+             'qualification_requirements', 'target_acceptance', 'target_arrays')
+    inputs = {key: binding(key) for key in roles}
+    Path(inputs['provider_response']['path']).write_bytes(b'x' * 614909)
+    Path(inputs['certificate']['path']).write_bytes(b'y' * 3460)
+    source = {key: binding(key) for key in ('base_dataset', 'base_targets', 'native_manifest')}
+    source['reference_raw'] = inputs['provider_response']
+    target = {'schema_version': 'synthetic_v2', 'contract_sha256': 'b' * 64}
+    truth_sha = 'c' * 64; issue_sha = 'd' * 64
+    schedule = {'rows': 354550, 'batch_rows': 96, 'logical_batches': 3694,
+                'batches_per_pass': 3694, 'passes': 1, 'shuffle': False,
+                'drop_last': False, 'skipped_batches': 0, 'issue_ns_sha256': issue_sha,
+                'batch_issue_ns_sha256': ['e' * 64] * 3694, 'update_flags': [True] * 3694}
+    recipe = {'train_batch_rows': 96}
+    meta = {'target_contract': target, 'dataset': inputs['dataset'], 'prior': inputs['prior'],
+            'TRAIN_issue_ns_sha256': issue_sha, 'truth_sha256': truth_sha}
+    original = {'metadata': meta, 'schedule': schedule, 'recipe': recipe,
+                'model_contract': {'contract_sha256': 'f' * 64}}
+    trajectory = {'schedule': copy.deepcopy(schedule), 'recipe': recipe,
+                  'model_contract': original['model_contract'], 'target_contract': target}
+    hashes = {'activity_logits': '1' * 64, 'side_logits': '2' * 64}
+    report = {'trajectory': trajectory, 'actual_optimizer_updates': 3694, 'passes': 1,
+              'full_TRAIN_rows': 354550, 'original_plan': inputs['original_epoch_plan'],
+              'final_logits': inputs['capture'], 'final_quality': inputs['full_quality'],
+              'whole_FINAL_score': {'truth_sha256': truth_sha, 'output_sha256': hashes}}
+    result = {'plan': inputs['completed_model_plan'], 'source_inputs_policy_boot_unchanged': True,
+              'test_data_used': False, 'report': report}
+    terminal = {'status': 'COMPLETE', 'exit_code': 0, 'result': inputs['completed_model_result'],
+                'plan': inputs['completed_model_plan'], 'relaunch_allowed': False}
+    completed = {'metadata': {'original': copy.deepcopy(original)},
+                 'source_owners': {'synthetic_numeric.py': 'a' * 64}}
+    prior = {'fit_population': {'issue_rows': 354550, 'issue_ns_sha256': issue_sha,
+             'cutoff_ns': audit.UPPER, 'truth_sha256': truth_sha}, 'contract_sha256': '3' * 64}
+    quality = {'truth_sha256': truth_sha, 'output_sha256': hashes,
+               'frozen_prior_contract_sha256': prior['contract_sha256'], 'rows': 354550}
+    headers = {key: {'shape': [354550] if key == 'issue_ns' else [354550, 5],
+                    'dtype': '<i8' if key in ('issue_ns', 'target_start_ns', 'validity_ns') else '|b1',
+                    'sha256': issue_sha if key == 'issue_ns' else '4' * 64} for key in fields}
+    certificate = {**inputs['certificate'], 'target_contract_sha256': target['contract_sha256'],
+                   'source_binding_sha256': '5' * 64}
+    dataset = {'contract': target, 'cutoff_ns': audit.UPPER, 'model_input': False,
+               'arrays': inputs['target_arrays'], 'TRAIN_issue_ns_sha256': issue_sha,
+               'target_observation_certificate_ref': certificate, 'array_headers': headers,
+               **{key: source[key] for key in ('base_dataset', 'base_targets', 'native_manifest')}}
+    design = {'schema_version': 'gx1_provider_hlc_conditional_batch_risk_design_v1',
+              'execution_authorized': False, 'training_authorized': False,
+              'test_authorized': False, 'no_more_epochs': True, 'model_parameters_changed': False,
+              'execution': copy.deepcopy(audit.EXECUTION), 'basename': audit.HLC_BATCH_NAME,
+              'stage': audit.HLC_BATCH_STAGE, 'plan_path': str(audit.HLC_BATCH_PLAN),
+              'output_root': str(audit.HLC_BATCH_ROOT), 'inputs': inputs, 'budget': budget,
+              'question': 'synthetic conditional algebra', 'method': [], 'limits': [],
+              'new_conditional_scope_preconditions': {'causal_source_availability_claim': False},
+              'expected_global_decomposition_from_existing_JSON': {}}
+    values = {inputs[key]['path']: {} for key in inputs}
+    values.update({audit.HLC_BATCH_DESIGN['path']: design, inputs['completed_model_result']['path']: result,
+                   inputs['completed_model_terminal']['path']: terminal,
+                   inputs['completed_model_plan']['path']: completed,
+                   inputs['original_epoch_plan']['path']: original, inputs['dataset']['path']: dataset,
+                   inputs['prior']['path']: prior, inputs['full_quality']['path']: quality,
+                   inputs['initial_result']['path']: {'report': {'initial': {
+                       'truth_sha256': truth_sha, 'initial_prior_exact': True}}}})
+    monkeypatch.setattr(audit, 'read', lambda binding: values[binding['path']])
+    monkeypatch.setattr(audit, 'provider_hlc_batch_reference', lambda binding: Path(binding['path']))
+    monkeypatch.setattr(provider, 'SOURCE_BINDINGS', source)
+    monkeypatch.setattr(provider, 'require_provider_hlc_state_contract', lambda value: value)
+    monkeypatch.setattr(provider, 'require_provider_hlc_certificate_ref', lambda value: value)
+    monkeypatch.setattr(training, 'provider_hlc_truth_fields', lambda target: fields)
+    monkeypatch.setattr(audit.objective, 'require_native_future_state_train_prior', lambda value, **k: value)
+    monkeypatch.setattr(audit.saved.native, 'sha', lambda path: 'a' * 64)
+    monkeypatch.setattr(audit, 'provider_hlc_batch_source_bridge', lambda: {'synthetic_old_bytes_unchanged': True})
+    checked = []; monkeypatch.setattr(audit, 'provider_hlc_batch_checked_inputs', checked.append)
+    return design, original, dataset, prior, quality, result, terminal, completed, checked
+
+
+def test_provider_hlc_builder_binds_v2_certificate_full_issue_schedule_and_explicit_decode_budget(monkeypatch, tmp_path):
+    design, original, dataset, prior, _, _, _, _, checked = provider_hlc_builder_fixture(monkeypatch, tmp_path)
+    plan = audit.provider_hlc_batch_build_plan(source_base_commit='1' * 40)
+    assert checked == [plan]
+    assert plan['schedule'] == original['schedule']
+    assert plan['budget']['NPZ_ndarray_bytes_decoded'] == 67719050
+    assert plan['budget']['provider_candle_records'] == 1290
+    assert plan['budget']['MBA_OHLC_price_scalars_parsed'] == 15480
+    assert plan['budget']['cached_provider_response_bytes'] == 614909
+    assert plan['prior_contract_sha256'] == prior['contract_sha256']
+    assert set(plan['target_array_headers']) == set(design['budget']['target_fields'])
+    assert list(plan['target_array_headers']) != design['budget']['target_fields']
+    assert 'source_rows' not in plan['capture_array_headers']
+    assert 'known_activity_by_batch' not in plan['schedule']
+    assert plan['target_contract'] == dataset['contract']
+    assert all(plan['budget'][key] == 0 for key in ('models', 'NN_forwards', 'checkpoint_loads',
+               'autograd_calls', 'backward_calls', 'parameter_gradient_calculations', 'optimizer_updates', 'fits'))
+
+
+@pytest.mark.parametrize('bad', ['terminal', 'prior_truth', 'quality_output', 'dataset_contract',
+    'schedule_flag', 'target_fields_duplicate', 'capture_fields', 'budget_bytes',
+    'provider_count', 'no_more_epochs', 'numeric_owner'])
+def test_provider_hlc_builder_rejects_mismatched_frozen_identity_or_budget(monkeypatch, tmp_path, bad):
+    d, original, dataset, prior, quality, _, terminal, completed, _ = provider_hlc_builder_fixture(monkeypatch, tmp_path)
+    if bad == 'terminal': terminal['status'] = 'FAILED'
+    elif bad == 'prior_truth': prior['fit_population']['truth_sha256'] = '0' * 64
+    elif bad == 'quality_output': quality['output_sha256'] = {'side_logits': '0' * 64}
+    elif bad == 'dataset_contract': dataset['contract'] = {'foreign': True}
+    elif bad == 'schedule_flag': original['schedule']['update_flags'][0] = False
+    elif bad == 'target_fields_duplicate': d['budget']['target_fields'][0] = d['budget']['target_fields'][1]
+    elif bad == 'capture_fields': d['budget']['capture_fields'].append('source_rows')
+    elif bad == 'budget_bytes': d['budget']['NPZ_ndarray_bytes_decoded'] += 1
+    elif bad == 'provider_count': d['budget']['provider_candle_records'] = 1289
+    elif bad == 'no_more_epochs': d['no_more_epochs'] = False
+    else: completed['source_owners']['synthetic_numeric.py'] = '0' * 64
+    with pytest.raises(ValueError): audit.provider_hlc_batch_build_plan(source_base_commit='1' * 40)
+
+
+@pytest.mark.parametrize('invalid_json_role', [False, True])
+def test_provider_hlc_builder_hashes_real_markdown_goal_and_keeps_JSON_roles_strict(monkeypatch, tmp_path, invalid_json_role):
+    from pathlib import Path
+    d, _, _, _, _, _, _, _, _ = provider_hlc_builder_fixture(monkeypatch, tmp_path)
+    goal = tmp_path / 'ORIGINAL_PROJECT_GOAL.md'
+    goal.write_text('# Original project goal\n\nPreserve the genuine five-timeframe research goal.\n')
+    # The synthetic fixture stubs file SHA to a*64; the actual reference owner is unchanged.
+    goal_ref = {'path': str(goal), 'sha256': 'a' * 64}
+    d['inputs']['main_goal'] = goal_ref
+    json_role = d['inputs']['qualification_requirements']
+    malformed = tmp_path / 'malformed_JSON_role.json'; malformed.write_text('# This is not JSON\n')
+    previous_read = audit.read; previous_reference = audit.provider_hlc_batch_reference
+    parsed, authenticated = [], []
+    def read(binding):
+        parsed.append(binding['path'])
+        if binding['path'] == str(goal): return json.loads(goal.read_text())
+        if invalid_json_role and binding == json_role: return json.loads(malformed.read_text())
+        return previous_read(binding)
+    def reference(binding):
+        authenticated.append(binding)
+        if binding == goal_ref:
+            assert Path(binding['path']).suffix == '.md' and goal.read_text().startswith('# Original project goal')
+        return previous_reference(binding)
+    monkeypatch.setattr(audit, 'read', read)
+    monkeypatch.setattr(audit, 'provider_hlc_batch_reference', reference)
+    if invalid_json_role:
+        with pytest.raises(json.JSONDecodeError): audit.provider_hlc_batch_build_plan(source_base_commit='1' * 40)
+    else:
+        plan = audit.provider_hlc_batch_build_plan(source_base_commit='1' * 40)
+        assert plan['inputs']['main_goal'] == goal_ref
+    assert goal_ref in authenticated and str(goal) not in parsed
+    assert json_role['path'] in parsed
+
+
+def test_provider_hlc_reference_real_markdown_requires_exact_immutable_bytes(tmp_path):
+    goal = tmp_path / 'ORIGINAL_PROJECT_GOAL.md'; goal.write_text('# Original goal\n')
+    binding = audit.ref(goal)
+    assert audit.provider_hlc_batch_reference(binding) == goal
+    goal.write_text('# Changed goal\n')
+    with pytest.raises(ValueError, match='HLC_BATCH_CANONICAL_REFERENCE'):
+        audit.provider_hlc_batch_reference(binding)

@@ -574,10 +574,39 @@ historisk13PASS/3FAIL/4UNKNOWN og kildekalender/firstvintage/latergeneral-
 isering/edgegrenser består. Primarylearning_gate currentbaseline/scope er
 avstemt medv2; eldre selected-cohortstatus bevart navngitthistorisk.
 
-Neste:POST_EPOCH_DIAGNOSTIC_SCOPE001 er bare design, ingenrunadmisjon.
-Vurder eksisterendebatchrisk/attribution og gammelcausaldesign motnyv2:
-minste frosneoutput/target-aritmetikk forside-derivater, taskdenominatorer
-ogkronologisk batch/årstøtte,0NN/optimizer/fit. Avstem kilde-/kalender-/
-vintagepreconditions før nyeksakt kilde/input/vakt/preflight/admisjon.
-Ingen automatiskmorefit, gammelplanrelansering, TEST/VAL/promotion/ordre.
-Hovedmålet/all20 forblir ACTIVE/ikkeoppnådd; selectedcausalfix UNKNOWN.
+NyconditionalTRAINbatchrisikodiagnose er kildekvalifisert, ingenrunadmisjon.
+PROVIDER_HLC_BATCH_RISK_DESIGN002 bindersamme354550clock/v2logits/targets/
+prior.001relativplanreferanse ble korrigert tilabsolutt i002førplan/CLAIM;
+originalbevart, ingenresolverunntak. Gammel kausaldesigns kalender/vintage-
+preconditions er fortsattuoppfylt; nyanalyse gjelderbarealgebra gittlagrede
+bytes ogkvalifisererikke historiskinputtilgjengelighet/optimizerhistorie.
+
+SOURCE_QUALIFICATION001:28nye cases PASS,3målrettede Markdownregresjoner
+PASS;13uendredebatchriskcases gjenbrukt. Actualblockedmetadatabuilder002
+PASS:0payload/priser/modell/CP/NN/CUDA,82kildefiler. Førsteactualbuilder
+forsøkteJSONparse main_goal.md; kun denparsen fjernet, sti/SHA/bookends og
+andreJSONroller beholdt. Originalfeil/helper/log bevart,0plan/CLAIM.
+Alle34gamlefunksjoner/heleownerbytes oggamletestbytes gjenoppretteseksakt
+uten nyttappendblock+mainførstetokendispatch; batch_risk_statistics urørt.
+Ingen guardfil endret. Uavhengigreview fantingenkonkretblokkering.
+18kilde-/kvalifikasjonsfiler/6122235B er separatMacdisk-SHA/F_FULLFSYNC/
+readback-sikret, manifestb9674180...971f301. Ingenpayload/CPmodellerkopiert.
+
+Planlagt payload:3capture+14kanoniskev2truth-arrays=67719050NPZbytes;
+kanoniskcachetsertifikatreauth:response614909B/cert3460B,1290candles/
+15480MBAOHLCpristall+1290volume/tidsstempelkontroller,0HTTP. Dekoder-
+operasjoner, ikkepåstandomtotal fysiskSHA/headerIO;51600Breturnertecert-
+arrays erikketotalallokering/peak.4G/512M/1tråd oginsidecapped600souter/
+570sinner/kill10 bevares.0features/CP/modeller/NN/autograd/parametergrad/
+optimizer/fit/VALTEST; analytisk dL/dside_logit er tillattaritmetikk.
+
+Neste:fryscommittetkilde, nyeksakt NATIVE_PROVIDER_HLC_BATCH_RISK_20261124_001
+plan/stage/fersktoutput, canonicalreadonlypreflight+fersksignertroligvert
+før separatengangsCPUadmisjon. Alle5treningsporter forblirfalse.
+Verifiserheleissueaksen+3694B96issuehashes; ikkeoppfinn manglendesource_rows/
+historiskstephistorie. Målbatch/global/conditional-side-derivater ogBCE-
+oppgavebidrag; issueUTCår beholderoriginalebatchdenominatorer overårsskifter.
+EksisterendetargetUTCår erannen navngittkohort. Ikkeinstaller diagnostisk
+vektetklassefrekvens som nyprior/kalibrator; ingen terskel-/klassekvote/
+featuredrop/morefit eller gammelplanrelansering. Faktisktreningsårsak og
+valgtcausalfix UNKNOWN;20steg/kalender/vintage/generalisering/edgeuoppnådd.
