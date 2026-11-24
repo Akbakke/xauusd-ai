@@ -835,9 +835,16 @@ disklesing. Opprinnelige datasett, checkpoints og vekter er bevart.
 ## Neste steg: fersk INITIAL og kandidatens egen kalde replay
 
 ALL_TF_FRESH_INITIAL_REPLAY_PREPARATION_SCOPE001 er design uten kjøretilgang.
-Eksisterende v2 fresh-producer og replayer hardkoderM5_primary. Legg kun til
-eksplisittNone-opt-in i de eksisterende eierne, behold referanse/defaults og
-alle kontrakter/guards. Gjenbruk uendret cache/norm/v2fasit/attest/prior.
+EksplisittNone-opt-in er nå implementert i eksisterende v2 fresh-producer
+og replayer, med egne eksakte plan/CLI/guardruter. Referanse/defaults og
+alle gamle produsent-/guardbytes er bevart; uendret cache/norm/v2fasit/attest/
+prior gjenbrukes. SOURCE_QUALIFICATION001:321unike kontroller PASS,
+263førstePASS gjenbrukt og58retter etter én felles testfixturefeil (Path.cwd).
+Produksjonsguardene ble ikke endret av fixturefixen. Faktisk blokkert
+INITIAL-metadata og privatecontroller success/failureclosure består.
+Gamle kildebroer testes i sine autentiske historiske scopes og avviser
+gjeldende generasjon; ingen consumedplan åpnes. Nye broen beviser fullf33.
+Faktisk kandidat-INITIAL/replay er ikke kjørt eller innrømmet.
 
 Først: virkelig fersk kandidattilstand/RNG og ny fullTRAIN354550-raders
 nulloppdateringsbaseline med riktig kandidatidentitet og matched prior.
@@ -848,8 +855,14 @@ Deretter egen ny, kvalifisert v2-replay: eksisterende recipe seed20260911,
 AdamW1e-4/clip1/ingen scheduler/B96; tre varme oppdateringer, C2 og ny prosess
 som gjenoppretter kandidatens egne model/optimizer/RNG/posisjon og replikerer
 steg3 bitidentisk på alle ti proof-felt med befolkede AdamW-momenter.
-Ressursprofil, fresh-source, preflight, backup, host/boot og engangsadmisjon
-må kvalifiseres før hver fase. Ingen mainfit eller automatisk epokeserie.
+PROFILE_DESIGN001 binder uendrede native profiler: INITIAL bruker CUDA,
+B256/1385forwards/last246 over354550TRAIN; fersk state lagres CPU-clonet.
+Målt referansetid846,9s er ingen kandidatkapasitetsgaranti. INITIAL3600/3570s
+og replay1800/1770s beholder20G/512M,8tråder,128tasks,affinity0..18,12GiBVRAM
+og alle effekt-/temperatur-/hostvakter. Nye eksakte all-TF-plan/CLI-bindinger
+må implementeres uten å gjenåpne gamle consumedplaner. Fresh-source,
+preflight, backup, host/boot og engangsadmisjon må kvalifiseres før hver fase.
+Ingen mainfit eller automatisk epokeserie.
 
 En senere læringssammenligning trenger egen frosset kohort/klokke/observer.
 Eksisterende20727issue/1377dager er kildeklokkesampling, ikke sammenhengende
