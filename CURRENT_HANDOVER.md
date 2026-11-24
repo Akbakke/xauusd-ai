@@ -832,7 +832,7 @@ ACCEPTANCE001/REVIEW026 binder målingen.25kilde-/planfiler10663562B og
 27resultatfiler13820160B er sikret på separat Mac-disk medSHA/F_FULLFSYNC/
 disklesing. Opprinnelige datasett, checkpoints og vekter er bevart.
 
-## Neste steg: fersk INITIAL og kandidatens egen kalde replay
+## All-TF INITIAL stoppet av hostvakt; egen replay gjenstår
 
 ALL_TF_FRESH_INITIAL_REPLAY_PREPARATION_SCOPE001 er design uten kjøretilgang.
 EksplisittNone-opt-in er nå implementert i eksisterende v2 fresh-producer
@@ -844,9 +844,37 @@ Produksjonsguardene ble ikke endret av fixturefixen. Faktisk blokkert
 INITIAL-metadata og privatecontroller success/failureclosure består.
 Gamle kildebroer testes i sine autentiske historiske scopes og avviser
 gjeldende generasjon; ingen consumedplan åpnes. Nye broen beviser fullf33.
-Faktisk kandidat-INITIAL/replay er ikke kjørt eller innrømmet.
+Kandidat-INITIAL001 ble senere innrømmet og stoppet av hostvakt som beskrevet
+nedenfor; fullbaseline og egen replay er fortsatt ukvalifisert.
 
-Først: virkelig fersk kandidattilstand/RNG og ny fullTRAIN354550-raders
+INITIAL001 (kildeacebaa4df, plan75bc481f…) er faktisk kjørt og konsumert.
+Preflight001 ble avvist før leaf/CLAIM da telemetrien var utilgjengelig;
+originalene beholdes. Fersk signert diagnose og eksakt preflight002 bestod.
+107kilde-/plan-/kontrollfiler10346390B er separatdiskkopiert med SHA,
+F_FULLFSYNC og uavhengig faktisk Mac-disklesing (manifest577dece9…).
+CONTROL002 endret kun preflightlogg001→002, med byteeksakt reverseringsbevis.
+
+Fersk egenNone INITIAL.pt/JSON ble skrevet og weights_only-lest tilbake;
+0optimizer/restore/oldcheckpointloads.129heleB256-batcher/33024rader ble
+fullført;130.forward ble avbrutt av uendret signert hostvakt da
+maintenance_active=true. Ingen temperatur-/effekt-/minnegrense ble
+observert brutt: GPU57/60C,209,96W,1924MiB; CPU37C/26,22W;
+minst55,62GB hostavailable. Ingen slutt-RESULT, Torchpeak/RSS eller
+full354550-baselinekvalifikasjon foreligger. Checkpoint/terminal er separatdiskkopiert sammen med24originalfiler
+55191943B, med SHA/F_FULLFSYNC og uavhengig faktisk Mac-disklesing
+(manifest96b70e94…). SOURCE107/STOP24-backupene bevarer kilde/plan og
+faktisk39177784BINITIAL.pt uten tensor-deserialisering.
+001 skal aldri relanseres. Postkontroll av kilde/inputs/plan/beggeboot PASS,
+0CURRENT-Python og alle5treningsflaggfalse. STOP_REVIEW001 binder bevisene.
+
+maintenance_active er en konservativ worker/Setup/OOBE/CBS-proxy som også
+inkluderer inaktive workers; faktisk oppdateringsarbeid er ikke bevist.
+Én fysisk Windows-observasjon07:15:23Z viste alle grenerfalse etter stoppen;
+den fastslår ikke grenen07:13. Ingen OS-, scheduler- eller vaktendring er gjort.
+En ny virkelig fersk fullbaseline trenger ny eksakt scope/plan/guardbinding
+og fersk signert quiet-hostadmisjon. Egen kald replay og all fit er fortsatt stengt.
+
+Neste INITIAL må bruke virkelig fersk kandidattilstand/RNG og ny fullTRAIN354550-raders
 nulloppdateringsbaseline med riktig kandidatidentitet og matched prior.
 INITIAL002 beholdes som navngitt referanse. Ingen FINAL-overføring eller
 replay-oppdaterte vekter brukes som start for en læringsfit.
