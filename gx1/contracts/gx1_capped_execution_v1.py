@@ -2312,10 +2312,11 @@ def _native_provider_hlc_all_tf_learning_bound_plan(*, plan_sha256, mode):
         plan = json.loads(raw)
     except (OSError, ValueError, UnicodeError) as error:
         raise RuntimeError("[GX1_PROVIDER_HLC_ALL_TF_LEARNING_BINDING_PLAN_OUTPUT_INVALID]") from error
-    schema = ("gx1_native_provider_hlc_all_tf_one_epoch_plan_v1" if mode == "main"
-              else "gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v1")
+    schemas = (("gx1_native_provider_hlc_all_tf_one_epoch_plan_v1",) if mode == "main" else
+               ("gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v1",
+                "gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v2"))
     stage = basename.lower() + ("_recovery" if mode == "resume" else "")
-    require(type(plan) is dict and plan.get("schema_version") == schema and plan.get("stage") == stage,
+    require(type(plan) is dict and plan.get("schema_version") in schemas and plan.get("stage") == stage,
             "PLAN_IDENTITY")
     require(plan.get("output_root") == str(base) and (mode == "main" or plan.get("output_directory_prefix") == "RECOVERY_"), "PLAN_ROOT")
     recipe, contract = plan.get("recipe"), plan.get("model_contract")

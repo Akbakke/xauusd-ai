@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT034:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT052:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -29,10 +29,12 @@ GC/orderbok er utsatt, ikke slettet; M30 trenger egen verdikvalifisering.
 M1 brukes aldri til retning/fasit/normalisering/utvalg. TEST er forseglet.
 Ingen live/paper, broker, ordre, spending eller promotion.
 
-Alle fem globale treningsporter er false. Den tekniske all-TF-replayen er
-fullført, consumed og lukket. Opprinnelig M5-primaryv2-epoke er fullført:
-354550rader/3694retainedlogiskeupdates/fullFINAL1385batcher. Ingen modelljobb
-kjører; prosess/CLAIM/terminal er autoritet. Stortrening er ikke kvalifisert.
+Alle fem globale treningsporter er false. Main002 og alle tre recoveryprodusenter
+er consumed0/false; siste prosess er bekreftet stoppet. None-kjøringen har
+3584/3694 varig sikrede oppdateringer,344064/354550TRAINrader. Den ble stoppet
+av Windows-vedlikehold under fullFINAL; ingen komplett NoneRESULT/FINAL.
+Opprinnelig M5-primaryv2-epoke er fullført og beholdes som referanse.
+Stortrening er ikke kvalifisert.
 Én tung CURRENT-jobb via scripts/gx1_capped_run.sh, lås og eksisterende
 kapasitets-/temperatur-/effekt-/hostvakter. Ingen kilde-/policyendring under
 bundet kjøring. Stabile langjobber sjekkes15–30minutter, ikke minuttvis.
@@ -46,8 +48,9 @@ binder før/etter-feltene mot originale akseptkvitteringer. Feltene ble da
 avstemt mot cold-replay; nyeste CPU-terminal/resultat/runtime følger policy.
 Tidligere avsnitt om001/002 og gamle baseline-/replaygap gjelder de navngitte
 historiske fasene; de er ikke nåværende mangler. Historisk training_started
-gjelder beholdt M5-primary-epoke; None main-fit er ikke startet.
-Stortrening er fortsatt ikke kvalifisert:13PASS/3FAIL/4UNKNOWN, alle5porterfalse.
+gjelder beholdt M5-primary-epoke; None002 og tre recoveryer startet;3584updates er varig sikret før siste stopp under fullFINAL.
+Stortrening er fortsatt ikke kvalifisert:13PASS/3FAIL/4UNKNOWN.
+002 er consumed; separat kvalifisert recovery kreves for resten av samme epoke.
 Statusleseren skiller nå aktiv20stegskvalifikasjon fra gammelEntry-readiness.
 Den nyeste kaldreplay-terminalens manglende direkte source-/TEST-felt må
 bevises fra bundet originalRESULT og lukket stage/aksept; ingen felt gjettes.
@@ -115,10 +118,21 @@ affinitet passerer; misvisendehint+feil faktisk affinitet stoppes.453cases
 inkl4nye regresjoner og faktiskmetadata004/79eiere PASS,0payload/NN/CUDA.
 Learningeieren har bare eksakt001→002-navnebytte; all annen byte bevart.
 SOURCE_QUALIFICATION003 og ENV_REPAIR_BACKUP001 binder24filer1802028B,
-uavhengigMacSHA/F_FULLFSYNC/fsync ogsådiagnostikk/stderr. Nyplan002 er ennå
-ikke opprettet; bygg fra rettet frystcommit og kvalifiser faktiskCLI/host/
-planbackup før engangsadmisjon. Original001/feillogger beholdes stengt.
-Ingen None-læring startet; alle5porterfalse. Ingen baseline-/recipe-/targetendring. All5porterfalse; TRAIN-diagnostikk,
+uavhengigMacSHA/F_FULLFSYNC/fsync ogsådiagnostikk/stderr. Nyplan002 er opprettet fra
+rettet fryst903964692, SHA9a82753bcf6702a14a2eda1a22acdde203cb612105b7837a2e34d7d5c21a70f8.
+Faktisk ny79eier-metadatabuilderPASS, identisk funksjon/start/data/recipe og
+hele354550×5. Egen002-main-gate er consumed0/false. Faktisk cappedCLIpreflight002 PASS:
+originaldedikerttrainerstdout sierPASS,guardchildexit0/5tryggesamples.0NN/
+payload/CUDA/ROOT/CLAIM/TEST. Privatrapport leste først feil ytrestdout og
+merket exit0 feilaktigFAILED; originalkvittering beholdes og ACCEPTANCE001
+binder riktig childlogg,5syntetiske rapportcases,0omkjøring. Fersk signert
+vertsmåling200W/CPU31C/10,79W/GPU32/40C/21,80W/79MiB/59,66GB ledig PASS.
+Separat planbackup19filer6719040B er MacSHA/F_FULLFSYNC/fsync-verifisert,
+og fersk signert host/boot/idle er kontrollert før eksakt engangsadmisjon.
+Firetrainflagg ertrue bareforrecovery2560; fullVAL/ekstraepoker/TEST/handel fortsattstengt. Bevar HEAD903964692; nye plan-/policyfiler committes
+først etter kjøringslukking. Original001/feillogger beholdes stengt.
+002 er stoppet etter claim; ingen baseline-/recipe-/targetendring.
+Én TRAIN-diagnostikk med256-stegs atomiske checkpoints; ikke ekstraepoke,
 ikkeOOF ellerutvalg påTEST; kalender/vintage/generalisering/edge fortsattåpent.
 
 ## Gjeldende hele-TRAIN støttekontroll
@@ -1104,3 +1118,78 @@ Eksisterende20727issue/1377dager er kildeklokkesampling, ikke sammenhengende
 læringsvindu eller senereTRAINobserver; gammelv1truth/prior/plan er ingen
 v2autoritet. Ingen nye antall/lr/passer velges her. Globale treningsporter
 erfalse;13PASS/3FAIL/4UNKNOWN og hele20stegsmålet består.
+
+002 stoppet14:13:00UTC på signert host_maintenance_active, ikke termisk/effekt/
+minnebrudd. GPUpeak61/68C/188,31W/9772MiB,CPU42C/30,74W; minstehostledig
+55,47GB/commitheadroom50,06GB. OriginalCLAIM/TERMINAL/guard-/trainerlogger bevart.
+UPDATE256 er95947351B,24576av354550TRAINrader; initialstate55ce/RNG343b var
+eksakt. Cappedpost-bookend bekrefter stoppetPID, alle kilder/inputs/plan/
+innrømmetpolicy/beggebootuendret og fysiskCP256SHA;0payload/NN/CUDA.
+CP256 ogINITIAL med originalmetadata19filer141338381B er nå separatMac-
+diskkopiert og uavhengig faktiskSHA/F_FULLFSYNC/fsync-verifisert, også
+diagnostikk/stderr;0deserialisering. CHECKPOINT256_BACKUP001 binder beviset.
+Eksakt recoveryplan0288597e… underROOT/RECOVERY_PLANS er klargjort0/false fra
+RECOVERY256_SCOPE001; faktisk blokkertmetadata79eierePASS,0CPloads/NN/CUDA,
+3438updates/329974rader/4823FW/14CP og fullFINAL. Ingen nyINITIAL.
+Faktisk cappedresumeCLIpreflightPASS,0CPloads/NN/CUDA/ROOT/CLAIM.
+Recoveryplan/scope/bevis16filer9165869B er uavhengigMacSHA/F_FULLFSYNC/fsync-
+verifisert. Fersk signert host/boot/idle er kontrollert; eksakt suffix
+0288597e… er nåconsumed0/false, main002 forblirconsumed.
+ADMITTED_POLICY001 og FROZEN_CLAIM_INPUTS001 for RECOVERY256 binder nyprodusent-
+autoritet før faktiskclaim. Ingen nyINITIAL/ekstraepoke/baseline. BevarHEAD903964692 til denne
+gjenopptakelsen er lukket; ingen kilde-/policyendring underbundetjobb. Ingen nyINITIAL/ekstraepoke/baseline.
+FROZEN_CLAIM_INPUTS001 og admitted-policy-snapshot bevarer produsentautoritet.
+Main002 relanseres aldri. Ingen None-FINAL eller lærings-/edgekonklusjon ennå.
+
+Recovery256 stoppet16:13:01UTC påhost_maintenance_active etter512nye/768retained
+updates/73728rader. CP76896154007B er fysiskSHA-/boot-/input-/policybookendet;
+CP512/768+originalmetadata22filer197776652B er nå separatMac-kopiert og
+uavhengigSHA/F_FULLFSYNC/fsync-verifisert inkl diagnostikk/stderr. GPUpeak61/70C188,86W9772MiB;CPU43C27,57W;
+hostminledig54,47GB. Ingen ressursoverskridelse. FaktiskMoUsoCoreWorker2140
+ble fanget16:13:43,start16:12:59.594,parentUsoSvc5764. Initierendeoppgave er
+UNKNOWN; ingen Windowsinnstillinger/tjenester/oppgaver er endret.
+Eksakt RECOVERY768_SCOPE001 binder faktiskprodusent0288597e/733747f5-policy,
+CP768c917d3bd… og sinbackup. Faktiskmetadata79eierePASS,0CPload/NN/CUDA.
+Recovery9ee8bcbc… er nåconsumed0/false:2926updates/280822rader/4311FW/12CP
+og fullFINAL. Faktisk cappedresumeCLIpreflight9ee8bcbc PASS fraoriginal
+trainerstdout+guardexit0,0CPload/NN/CUDA/ROOT/CLAIM/TEST. Fersk signert
+vertsnapshotmaintenance=false,200Wogallekapasitets-/temperaturgrenserPASS.
+Eksakt recoveryplan/scope/preflight19filer9240736B er nå separatMac-kopiert og
+uavhengigSHA/F_FULLFSYNC/fsync-verifisert inkl diagnostikk/stderr.
+RECOVERY768_PRESTART_BACKUP001 binder beviset. Neste er fersk signert
+host/boot/idle er kontrollert; eksakt1gangsadmisjon for9ee8bcbc er nå gitt.
+RECOVERY768_ADMITTED_POLICY001 og FROZEN_CLAIM_INPUTS001 binder produsentautoritet. Kunrestenavsammeepoke; ingen nyINITIAL/ekstraepoke/baseline.
+Tidligere9ee8bcbc erconsumed0/false, og originalterminal bekrefter stopp. Ingen nyepoke/INITIAL/baseline eller None-FINAL/edge.
+
+Recovery768 stoppet17:13UTC påhost_maintenance_active. Checkpoint2560 er
+96876311B/245760rader; post-bookendverifiserer allekilder/inputs/plan/policy/
+beggeboot og fysiskCPSHA471ea25d…,stoppetPID og0payload/NN/CUDA.
+GPUpeak62/70C199,06W9772MiB,CPU45C33,54W;hostminledig54,66GB. Ingenressurs-
+overskridelse. Neste:separatbackup,avsluttetvedlikehold,fersksignertkontroll
+og nyeksaktscopefra2560.1134updates/108790rader+fullFINALgjenstår.
+Ingen nyINITIAL/epoke/baseline/TEST eller None-FINAL-/edgepåstand.
+
+Checkpointserien1024..2560(7PT)+originalmetadata37filer686953048B er nå
+separatMac-kopiert og faktiskSHA/F_FULLFSYNC/fsync-verifisert inkl
+diagnostikk/stderr,0deserialisering. CHECKPOINT2560_BACKUP001 binder bevis.
+RECOVERY2560_SCOPE001/plan6cfd2c6e er nå consumed0/false. Faktisk restore2560
+var godkjent. Produsenten stoppet18:03:01UTC påhost_maintenance_active under
+adapter.score_final. CP3584 er97289111B/SHA58cbb541; etterkontrollen bekrefter
+stoppetPID, uendrede kilder/inputs/innrømmetpolicy/beggeboot og fysiskCPSHA.
+GPUpeak62/70C189,75W9798MiB; CPU45C31,76W; minst54,19GBhostledig.
+Ingen temperatur-, effekt- eller minnegrense ble brutt. Ingen OS-/vaktendring.
+STOP_REVIEW001 og STOPPED_BOOKEND001 binder originalene. Fire nye checkpoints
+2816..3584 og originalmetadata er separatdiskkopiert:17filer388601853B.
+Uavhengig Mac-SHA/F_FULLFSYNC/fsync av alle artefakter/diagnostic/stderr PASS.
+CHECKPOINT3584_BACKUP001 binder beviset; ingen payload-/vektdeserialisering.
+Konkret mangel: TRAIN_END-checkpoint skrives ikke før fullFINAL. Avbruddet
+gjør at110oppdateringer/10486rader etter3584 ikke er varig sikret. Minste
+foreslåtte rettelse er checkpoint ved3694 før scoring og eksakt score-only
+recovery fra denne grensen. Recovery-v2 i learningowner/schema-vakten er kildekvalifisert:453gamle
+cases gjenbrukt fra002 og37nye fra003, allePASS. To testfixturefeil er
+rettet uten produksjonsendring; originale feilbevis er bevart. V1-numerikk, gamle eiere og begge eksisterende
+testfiler er bytebevart. SOURCE_IMPLEMENTATION001 og SOURCE_QUALIFICATION001 binder fryst kilde.
+Eksisterende INITIAL003/replay og numeriske eiere skal gjenbrukes uendret.
+Neste er kildepublisering, faktisk v2-inputmetadata og eksakt
+preflight/vertskontroll før én ny fortsettelse fra3584. Alle porter er false.
+Ingen nyINITIAL/ekstraepoke/TEST eller None-FINAL-/edgepåstand.

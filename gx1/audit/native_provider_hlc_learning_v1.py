@@ -687,6 +687,7 @@ ALL_TF_NAME='NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002'
 ALL_TF_STAGE=ALL_TF_NAME.lower();ALL_TF_PLAN=REPO/'configs/research'/(ALL_TF_NAME+'.json');ALL_TF_ROOT=ROOT.parent/ALL_TF_NAME
 ALL_TF_RECOVERY_STAGE=ALL_TF_STAGE+'_recovery';ALL_TF_ANCHOR='1d83a588c21af611973afdfda6a7c960fd060436'
 ALL_TF_TEST='tests/test_native_provider_hlc_all_tf_learning_v1.py';ALL_TF_GUARD_TEST='tests/test_native_provider_hlc_all_tf_learning_guard_v1.py'
+ALL_TF_V2_TEST='tests/test_native_provider_hlc_all_tf_train_end_recovery_v2.py'
 ALL_TF_CONTROL={'path':str(PLAN),'sha256':'68dd2bf33283ed72109e835228f964d54ebf075eb37297aba8a21d2b7826860c'}
 ALL_TF_BASE={'path':str(REPO/'configs/research/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003.json'),'sha256':'540af664bb61af9fee0b445eff34bd0159a07d921db9419e1ddf573c0d1957c8'}
 ALL_TF_REPLAY={'path':str(REPO/'configs/research/NATIVE_PROVIDER_HLC_ALL_TF_COLD_REPLAY_20261124_001.json'),'sha256':'b0182365244c7be0b71ba2f37af34d8f65de75ccfa8ff7c3298016a377280486'}
@@ -754,22 +755,25 @@ def build_all_tf_plan(runtime,source_commit=None):
 def all_tf_recovery_root(sha):
  need(type(sha)is str and len(sha)==64 and all(c in '0123456789abcdef'for c in sha),'ALL_TF_RECOVERY_SHA256');return ALL_TF_ROOT/('RECOVERY_'+sha)
 
-def all_tf_recovery_metadata(original,scope):
+def all_tf_recovery_metadata(original,scope,*,phase_recovery=False):
  """Authenticate a stopped, consumed producer and its durable original trajectory."""
+ need(type(phase_recovery)is bool,'ALL_TF_RECOVERY_PHASE_AUTHORITY')
  keys={'schema_version','original_plan','producer_plan','producer_claim','producer_terminal','producer_admitted_policy','checkpoint_receipt','checkpoint','stop_review','backup'}
- need(type(scope)is dict and set(scope)==keys and scope['schema_version']=='gx1_native_provider_hlc_all_tf_recovery_scope_v1','ALL_TF_RECOVERY_SCOPE_SCHEMA')
+ need(type(scope)is dict and set(scope)==keys and scope['schema_version']==('gx1_native_provider_hlc_all_tf_recovery_scope_v2'if phase_recovery else'gx1_native_provider_hlc_all_tf_recovery_scope_v1'),'ALL_TF_RECOVERY_SCOPE_SCHEMA')
  for key in keys-{'schema_version'}:resume_reference(scope[key])
  original_ref=scope['original_plan'];need(original_ref['path']==str(ALL_TF_PLAN)and original['schema_version']=='gx1_native_provider_hlc_all_tf_one_epoch_plan_v1'and original['stage']==ALL_TF_STAGE and original['output_root']==str(ALL_TF_ROOT)and original['backbone_gradient_policy']is None and original['execution']==EXECUTION,'ALL_TF_RECOVERY_ORIGINAL_IDENTITY')
  all_tf_validate_clock(original['recipe'],original['schedule']);control=read(ALL_TF_CONTROL)
  need(original['inputs']['comparison_control_plan']==ALL_TF_CONTROL and original['inputs']['comparison_design']==ALL_TF_DESIGN and original['inputs']['paired_provenance']==ALL_TF_PROVENANCE and original['recipe']==control['recipe']and original['schedule']==control['schedule'],'ALL_TF_RECOVERY_AUTHENTIC_ORIGINAL_CLOCK')
  initial=read(original['inputs']['baseline_initial_receipt']);need(original['initial_reference']==initial and initial['model_state_sha256']=='55ce06ac8df8fdf3892003d571a3902ffa9616909edb26d8a60372bd09432fb9'and initial['model_contract_sha256']==original['model_contract']['contract_sha256']=='6d6ac22819e54c7b12aebcf4e1afe27b990d8a4d90d16500e352c7353d99cca0','ALL_TF_RECOVERY_OWN_INITIAL_CONTRACT')
- traj=trajectory(original);receipt=read(scope['checkpoint_receipt']);proof=train.require_recovery_checkpoint_proof(receipt['proof']);cursor=receipt['logical_cursor'];producer=read(scope['producer_plan']);producer_ref=scope['producer_plan']
- need(set(receipt)=={'schema_version','checkpoint','original_plan','execution_plan','producer_lane','producer_runtime','logical_cursor','optimizer_updates','trajectory_sha256','proof'}and receipt['schema_version']=='gx1_native_future_state_training_checkpoint_receipt_v1'and receipt['checkpoint']==scope['checkpoint']and receipt['original_plan']==original_ref and receipt['execution_plan']==producer_ref and receipt['producer_lane']=='main'and type(cursor)is int and 0<cursor<original['schedule']['logical_batches']and cursor%256==0 and type(receipt['optimizer_updates'])is int and receipt['optimizer_updates']==cursor,'ALL_TF_RECOVERY_EXACT_DURABLE_CURSOR')
+ traj=trajectory(original);receipt=read(scope['checkpoint_receipt']);proof=train.require_recovery_checkpoint_proof(receipt['proof']);cursor=receipt['logical_cursor'];producer=read(scope['producer_plan']);producer_ref=scope['producer_plan'];end=original['schedule']['logical_batches'];train_end=phase_recovery and type(cursor)is int and cursor==end
+ need(set(receipt)=={'schema_version','checkpoint','original_plan','execution_plan','producer_lane','producer_runtime','logical_cursor','optimizer_updates','trajectory_sha256','proof'}and receipt['schema_version']=='gx1_native_future_state_training_checkpoint_receipt_v1'and receipt['checkpoint']==scope['checkpoint']and receipt['original_plan']==original_ref and receipt['execution_plan']==producer_ref and receipt['producer_lane']=='main'and type(cursor)is int and (train_end or(0<cursor<end and cursor%256==0)) and type(receipt['optimizer_updates'])is int and receipt['optimizer_updates']==cursor,'ALL_TF_RECOVERY_EXACT_DURABLE_CURSOR')
  producer_root=ALL_TF_ROOT
  if producer_ref!=original_ref:
-  producer_root=all_tf_recovery_root(producer_ref['sha256']);need(producer_ref['path']==str(ALL_TF_ROOT/'RECOVERY_PLANS'/(producer_ref['sha256']+'.json'))and producer['schema_version']=='gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v1'and producer['stage']==ALL_TF_RECOVERY_STAGE and producer['output_root']==str(ALL_TF_ROOT)and producer['output_directory_prefix']=='RECOVERY_'and producer['metadata']['original']==original and producer['metadata']['original_plan']==original_ref and producer['metadata']['trajectory']==traj and producer['starting_cursor']<cursor and producer['model_contract']==original['model_contract']and producer['initial_reference']==original['initial_reference']and producer['backbone_gradient_policy']is None and producer['recipe']==original['recipe']and producer['schedule']==original['schedule']and producer['execution']==EXECUTION,'ALL_TF_RECOVERY_PREVIOUS_SUFFIX_LINEAGE')
+  producer_root=all_tf_recovery_root(producer_ref['sha256']);need(producer_ref['path']==str(ALL_TF_ROOT/'RECOVERY_PLANS'/(producer_ref['sha256']+'.json'))and producer['schema_version']in(('gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v1','gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v2')if phase_recovery else('gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v1',))and producer['stage']==ALL_TF_RECOVERY_STAGE and producer['output_root']==str(ALL_TF_ROOT)and producer['output_directory_prefix']=='RECOVERY_'and producer['metadata']['original']==original and producer['metadata']['original_plan']==original_ref and producer['metadata']['trajectory']==traj and producer['starting_cursor']<cursor and producer['model_contract']==original['model_contract']and producer['initial_reference']==original['initial_reference']and producer['backbone_gradient_policy']is None and producer['recipe']==original['recipe']and producer['schedule']==original['schedule']and producer['execution']==EXECUTION,'ALL_TF_RECOVERY_PREVIOUS_SUFFIX_LINEAGE')
  else:need(producer==original,'ALL_TF_RECOVERY_ORIGINAL_PRODUCER')
- resume_reference(scope['checkpoint_receipt'],producer_root/('UPDATE%06d.json'%cursor));resume_reference(scope['checkpoint'],producer_root/('UPDATE%06d.pt'%cursor))
+ if train_end:need(producer['schema_version']=='gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v2'and producer['train_end_checkpoint_before_score']is True and producer['score_only']is False,'ALL_TF_RECOVERY_AUTHENTIC_TRAIN_END_PRODUCER')
+ checkpoint_name='TRAIN_END'if train_end else'UPDATE%06d'%cursor
+ resume_reference(scope['checkpoint_receipt'],producer_root/(checkpoint_name+'.json'));resume_reference(scope['checkpoint'],producer_root/(checkpoint_name+'.pt'))
  need(receipt['trajectory_sha256']==traj['contract_sha256']and proof['trajectory']==core.state_sha(traj)and proof['position']==core.state_sha(train.position(original['schedule'],cursor))and proof['scheduler_state']==core.state_sha(None)and proof['training']==core.state_sha(True)and proof['scores']==core.state_sha({'INITIAL':{'reused_qualified_result':original['inputs']['baseline_result'],'no_repeated_initial_forwards':True}}),'ALL_TF_RECOVERY_AUTHENTIC_STATE_PROOFS')
  core.future_cuda_runtime_matches(producer['metadata']['runtime'],receipt['producer_runtime']);claim=read(scope['producer_claim']);terminal=read(scope['producer_terminal']);policy=read(scope['producer_admitted_policy'])
  resume_reference(scope['producer_claim'],producer_root/'CLAIM.json');resume_reference(scope['producer_terminal'],producer_root/'TERMINAL.json');train.require_recovery_ref(claim['policy_at_claim'],expected_path=POLICY)
@@ -781,27 +785,40 @@ def all_tf_recovery_metadata(original,scope):
  need(backup['schema_version']=='gx1_bound_separate_disk_backup_ack_v1'and backup['Mac_F_FULLFSYNC_and_disk_SHA_readback']is True and backup['checkpoint']==scope['checkpoint']and backup['checkpoint_receipt']==scope['checkpoint_receipt'],'ALL_TF_RECOVERY_DURABLE_BACKUP')
  return receipt,traj,producer
 
-def all_tf_resume_limits(original,cursor):
+def all_tf_resume_limits(original,cursor,*,phase_recovery=False):
+ need(type(phase_recovery)is bool,'ALL_TF_RECOVERY_PHASE_AUTHORITY')
+ if phase_recovery:need(type(cursor)is int and 0<cursor<=original['schedule']['logical_batches']and(cursor==original['schedule']['logical_batches']or cursor%256==0),'ALL_TF_RECOVERY_PHASE_CURSOR')
  schedule=original['schedule'];recipe=original['recipe'];before=train.position(schedule,cursor);remaining=schedule['logical_batches']-cursor;updates=schedule['optimizer_updates']-before['optimizer_updates'];final_forwards=(schedule['rows']+recipe['eval_batch_rows']-1)//recipe['eval_batch_rows']
  cadence=recipe['checkpoint_every_optimizer_updates'];cursors=list(range((cursor//cadence+1)*cadence,schedule['logical_batches'],cadence))+[schedule['logical_batches']]
- limits=copy.deepcopy(original['limits']);limits.update(model_forwards=remaining+final_forwards,backbone_forwards=remaining+final_forwards,readout_forwards=remaining+final_forwards,optimizer_steps=updates,backward_calls=updates,skipped_batches=remaining-updates,checkpoint_writes=len(cursors),checkpoint_readbacks=len(cursors),checkpoint_receipt_writes=len(cursors),checkpoint_loads=1,model_restores=1);return limits,cursors
+ checkpoint_count=len(cursors)+int(phase_recovery and remaining>0)
+ limits=copy.deepcopy(original['limits']);limits.update(model_forwards=remaining+final_forwards,backbone_forwards=remaining+final_forwards,readout_forwards=remaining+final_forwards,optimizer_steps=updates,backward_calls=updates,skipped_batches=remaining-updates,checkpoint_writes=checkpoint_count,checkpoint_readbacks=checkpoint_count,checkpoint_receipt_writes=checkpoint_count,checkpoint_loads=1,model_restores=1);return limits,cursors
 
-def build_all_tf_resume_plan(runtime,scope,source_commit=None):
- core.future_cuda_require_runtime(runtime);need(source_commit in (None,runtime['source_commit']),'ALL_TF_RECOVERY_RUNTIME_SOURCE_IDENTITY');resume_reference(scope);scope_value=read(scope);original=read(scope_value['original_plan']);receipt,traj,producer=all_tf_recovery_metadata(original,scope_value);train.runtime_compatible(traj['runtime_compatibility'],runtime)
+def build_all_tf_resume_plan(runtime,scope,source_commit=None,*,phase_recovery=False):
+ need(type(phase_recovery)is bool,'ALL_TF_RECOVERY_PHASE_AUTHORITY')
+ core.future_cuda_require_runtime(runtime);need(source_commit in (None,runtime['source_commit']),'ALL_TF_RECOVERY_RUNTIME_SOURCE_IDENTITY');resume_reference(scope);scope_value=read(scope);original=read(scope_value['original_plan']);receipt,traj,producer=all_tf_recovery_metadata(original,scope_value,phase_recovery=phase_recovery);train.runtime_compatible(traj['runtime_compatibility'],runtime)
  meta=original['metadata'];binding=read(meta['input_binding_ref']);normalization=read(meta['normalization']);need(binding==meta['input_binding']and binding['input_normalization_sha256']==normalization['contract_sha256']and binding['feature_provider_contract_sha256']==normalization['feature_provider_contract_sha256'],'ALL_TF_RECOVERY_PHYSICAL_INPUT_IDENTITY')
  from gx1.contracts.market_state_ta_integrated_model_v1 import native_future_state_model_contract
  contract=native_future_state_model_contract(binding,architecture=meta['architecture'],train_prior=read(meta['prior']),target_contract=meta['target_contract'],backbone_gradient_policy=None);need(contract==original['model_contract'],'ALL_TF_RECOVERY_NONE_FUNCTION')
  for plan in (original,producer):
   for name,digest in plan['source_owners'].items():need(hashlib.sha256(subprocess.check_output(['git','show',plan['source_commit']+':'+name],cwd=REPO)).hexdigest()==digest,'ALL_TF_RECOVERY_PRODUCER_GIT_IDENTITY')
- cursor=receipt['logical_cursor'];limits,cursors=all_tf_resume_limits(original,cursor);inputs={**original['inputs'],**{key:value for key,value in scope_value.items()if key!='schema_version'},'recovery_scope':copy.deepcopy(scope)}
- return {'schema_version':'gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v1','stage':ALL_TF_RECOVERY_STAGE,'source_commit':source_commit or runtime['source_commit'],'source_owners':all_tf_sources(original,producer),'source_bridge':all_tf_source_bridge(),'guard_source_bridge':all_tf_guard_bridge(),'metadata':{'original':original,'original_plan':scope_value['original_plan'],'receipt':receipt,'trajectory':traj,'runtime':copy.deepcopy(runtime)},'inputs':inputs,'recipe':copy.deepcopy(original['recipe']),'schedule':copy.deepcopy(original['schedule']),'model_contract':contract,'initial_reference':copy.deepcopy(original['initial_reference']),'backbone_gradient_policy':None,'starting_cursor':cursor,'remaining_TRAIN_rows':original['schedule']['rows']-cursor*original['recipe']['train_batch_rows'],'remaining_FINAL_rows':original['schedule']['rows'],'checkpoint_global_cursors':cursors,'execution':copy.deepcopy(EXECUTION),'limits':limits,'output_root':str(ALL_TF_ROOT),'output_directory_prefix':'RECOVERY_','scientific_scope':copy.deepcopy(original['scientific_scope']),'authority':'EXACT_ORIGINAL_NONE_EPOCH_SUFFIX_NO_NEW_EPOCH_VAL_TEST_SELECTION_OR_EDGE','original_trajectory_preserved_verbatim':True,'new_INITIAL_writes':0}
+ cursor=receipt['logical_cursor'];limits,cursors=all_tf_resume_limits(original,cursor,phase_recovery=phase_recovery);inputs={**original['inputs'],**{key:value for key,value in scope_value.items()if key!='schema_version'},'recovery_scope':copy.deepcopy(scope)}
+ owners=all_tf_sources(original,producer)
+ if phase_recovery:owners[ALL_TF_V2_TEST]=ref(REPO/ALL_TF_V2_TEST)['sha256']
+ plan={'schema_version':('gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v2'if phase_recovery else'gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v1'),'stage':ALL_TF_RECOVERY_STAGE,'source_commit':source_commit or runtime['source_commit'],'source_owners':owners,'source_bridge':all_tf_source_bridge(),'guard_source_bridge':all_tf_guard_bridge(),'metadata':{'original':original,'original_plan':scope_value['original_plan'],'receipt':receipt,'trajectory':traj,'runtime':copy.deepcopy(runtime)},'inputs':inputs,'recipe':copy.deepcopy(original['recipe']),'schedule':copy.deepcopy(original['schedule']),'model_contract':contract,'initial_reference':copy.deepcopy(original['initial_reference']),'backbone_gradient_policy':None,'starting_cursor':cursor,'remaining_TRAIN_rows':original['schedule']['rows']-min(cursor*original['recipe']['train_batch_rows'],original['schedule']['rows']),'remaining_FINAL_rows':original['schedule']['rows'],'checkpoint_global_cursors':cursors,'execution':copy.deepcopy(EXECUTION),'limits':limits,'output_root':str(ALL_TF_ROOT),'output_directory_prefix':'RECOVERY_','scientific_scope':copy.deepcopy(original['scientific_scope']),'authority':'EXACT_ORIGINAL_NONE_EPOCH_SUFFIX_NO_NEW_EPOCH_VAL_TEST_SELECTION_OR_EDGE','original_trajectory_preserved_verbatim':True,'new_INITIAL_writes':0}
+ if phase_recovery:plan.update(train_end_checkpoint_before_score=True,score_only=cursor==original['schedule']['logical_batches'])
+ return plan
+
+def build_all_tf_resume_plan_v2(runtime,scope,source_commit=None):
+ """Explicit phase recovery: retain trained cursor3694 before full scoring."""
+ return build_all_tf_resume_plan(runtime,scope,source_commit,phase_recovery=True)
 
 def inspect_all_tf(sha,admitted):
  binding={'path':str(ALL_TF_PLAN),'sha256':sha};plan=read(binding);need(plan==build_all_tf_plan(plan['metadata']['runtime'],plan['source_commit']),'ALL_TF_EXACT_PLAN');check_sources_inputs(plan);pref=ref(POLICY);policy=read(pref);validate_flags(policy,admitted);need(policy[ALL_TF_STAGE]==all_tf_gate(binding,admitted),'ALL_TF_ONE_USE_GATE');need(not ALL_TF_ROOT.exists()and not ALL_TF_ROOT.is_symlink(),'ALL_TF_FRESH_OUTPUT');live=core.collect_future_cuda_runtime_metadata();core.future_cuda_runtime_matches(plan['metadata']['runtime'],live);return plan,binding,pref,live
 
 def inspect_all_tf_resume(sha,admitted):
  output=all_tf_recovery_root(sha);path=ALL_TF_ROOT/'RECOVERY_PLANS'/(sha+'.json');binding={'path':str(path),'sha256':sha};resume_reference(binding,path);plan=read(binding)
- need(plan==build_all_tf_resume_plan(plan['metadata']['runtime'],plan['inputs']['recovery_scope'],plan['source_commit']),'ALL_TF_RECOVERY_EXACT_PLAN');check_sources_inputs(plan);pref=ref(POLICY);policy=read(pref);validate_flags(policy,admitted);need(policy[ALL_TF_RECOVERY_STAGE]==all_tf_resume_gate(binding,admitted,plan['starting_cursor']),'ALL_TF_RECOVERY_ONE_USE_GATE')
+ builder=build_all_tf_resume_plan_v2 if plan['schema_version']=='gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v2'else build_all_tf_resume_plan
+ need(plan==builder(plan['metadata']['runtime'],plan['inputs']['recovery_scope'],plan['source_commit']),'ALL_TF_RECOVERY_EXACT_PLAN');check_sources_inputs(plan);pref=ref(POLICY);policy=read(pref);validate_flags(policy,admitted);need(policy[ALL_TF_RECOVERY_STAGE]==all_tf_resume_gate(binding,admitted,plan['starting_cursor']),'ALL_TF_RECOVERY_ONE_USE_GATE')
  original_gate=policy[ALL_TF_STAGE];need(original_gate['plan']==plan['metadata']['original_plan']and original_gate['remaining_invocations']==0 and all(original_gate[key]is False for key in ('execution_authorized','full_epoch_training_allowed','additional_epochs_allowed','test_authorized','relaunch_allowed')),'ALL_TF_RECOVERY_ORIGINAL_GATE_CONSUMED')
  need(not output.exists()and not output.is_symlink(),'ALL_TF_RECOVERY_FRESH_OUTPUT');live=core.collect_future_cuda_runtime_metadata();core.future_cuda_runtime_matches(plan['metadata']['runtime'],live);return plan,binding,pref,live
 
@@ -847,7 +864,7 @@ def physical_all_tf(plan,binding,pref,live):
   for hook in hooks:hook.remove()
 
 def physical_all_tf_resume(plan,binding,pref,live):
- output=all_tf_recovery_root(binding['sha256'])
+ output=all_tf_recovery_root(binding['sha256']);phase_recovery=plan['schema_version']=='gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v2'
  import torch
  from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_future_state_model
  from gx1.contracts.market_state_ta_integrated_objective_v1 import _native_future_state_truth
@@ -879,7 +896,11 @@ def physical_all_tf_resume(plan,binding,pref,live):
    need(counts['optimizer_steps']+before['optimizer_updates']==train.position(original['schedule'],cursor)['optimizer_updates']and len(steps)==cursor and counts['skipped_batches']==0,'RESUME_EXACT_LOGICAL_CURSOR');del packet,masks
    if cursor%original['recipe']['checkpoint_every_optimizer_updates']==0 and cursor<len(batches):
     checkpoint_ref=checkpoint(cursor,'UPDATE%06d.pt'%cursor);pub(output,'PROGRESS_%06d.json'%cursor,{'cursor':cursor,'rows_done':min(cursor*original['recipe']['train_batch_rows'],original['schedule']['rows']),'rows_total':original['schedule']['rows'],'starting_cursor':start,'new_optimizer_updates':counts['optimizer_steps'],'checkpoint_receipt':checkpoint_ref,'last_step':steps[-1],'policy':pref,'elapsed_training_scope_seconds':time.monotonic()-began})
-  optimizer.zero_grad(set_to_none=True);boundary=train.release_phase_allocator_cache(model,optimizer,label='TRAIN_TO_FULL_V2_FINAL_SCORE')
+  optimizer.zero_grad(set_to_none=True)
+  if phase_recovery:
+   need(model.training is True and len(steps)==len(batches)and scores=={'INITIAL':{'reused_qualified_result':original['inputs']['baseline_result'],'no_repeated_initial_forwards':True}},'TRAIN_END_EXACT_TRAINING_STEPS_INITIAL_ONLY_SCORES')
+   train_end_receipt=checkpoint(len(batches),'TRAIN_END.pt')if start<len(batches)else plan['inputs']['checkpoint_receipt']
+  boundary=train.release_phase_allocator_cache(model,optimizer,label='TRAIN_TO_FULL_V2_FINAL_SCORE')
   scores['PASS1'],outputs=adapter.score_final(model,context,batch_rows=original['recipe']['eval_batch_rows'],device='cuda');quality=quality_panels(context,outputs)
   for tf in train.TF:
    for task in ('activity','side'):
@@ -890,7 +911,9 @@ def physical_all_tf_resume(plan,binding,pref,live):
   import io
   memory=io.BytesIO();np.savez_compressed(memory,issue_ns=context['truth']['issue_ns'],**outputs);capture=pub(output,'FINAL_LOGITS.npz',memory.getvalue())
   final=checkpoint(len(batches),'FINAL.pt');need(counts==plan['limits'],'RESUME_EXACT_COUNTS');need(torch.cuda.max_memory_reserved()<=EXECUTION['cuda_peak_reserved_bytes_max'],'RESUME_VRAM_CAP')
-  return {'counts':counts,'trajectory':traj,'original_plan':meta['original_plan'],'execution_plan':binding,'restored_checkpoint_receipt':plan['inputs']['checkpoint_receipt'],'restore_proof':restore_proof,'starting_cursor':start,'remaining_TRAIN_rows':plan['remaining_TRAIN_rows'],'fresh_initial_state_sha256':initial['model_state_sha256'],'logical_batches':len(batches),'new_optimizer_updates':counts['optimizer_steps'],'actual_optimizer_updates':before['optimizer_updates']+counts['optimizer_steps'],'passes':1,'full_TRAIN_rows':354550,'whole_FINAL_score':scores['PASS1'],'final_quality':score_ref,'final_logits':capture,'final_checkpoint_receipt':final,'all_checkpoint_receipts':receipts,'allocator_boundary':boundary,'cuda_peak_reserved_bytes':int(torch.cuda.max_memory_reserved()),'TRAIN_side_fit_status':quality['all5_pooled_side_TRAIN_fit'],'later_generalization':'UNKNOWN','economic_edge':'UNKNOWN','all20_approved':False}
+  report={'counts':counts,'trajectory':traj,'original_plan':meta['original_plan'],'execution_plan':binding,'restored_checkpoint_receipt':plan['inputs']['checkpoint_receipt'],'restore_proof':restore_proof,'starting_cursor':start,'remaining_TRAIN_rows':plan['remaining_TRAIN_rows'],'fresh_initial_state_sha256':initial['model_state_sha256'],'logical_batches':len(batches),'new_optimizer_updates':counts['optimizer_steps'],'actual_optimizer_updates':before['optimizer_updates']+counts['optimizer_steps'],'passes':1,'full_TRAIN_rows':354550,'whole_FINAL_score':scores['PASS1'],'final_quality':score_ref,'final_logits':capture,'final_checkpoint_receipt':final,'all_checkpoint_receipts':receipts,'allocator_boundary':boundary,'cuda_peak_reserved_bytes':int(torch.cuda.max_memory_reserved()),'TRAIN_side_fit_status':quality['all5_pooled_side_TRAIN_fit'],'later_generalization':'UNKNOWN','economic_edge':'UNKNOWN','all20_approved':False}
+  if phase_recovery:report.update(train_end_checkpoint_receipt=train_end_receipt,score_only=start==len(batches))
+  return report
  finally:
   for hook in hooks:hook.remove()
 
@@ -912,6 +935,7 @@ def run_all_tf(sha,mode='main'):
   allowed|={str(output/name)for name in ['FINAL.pt','FINAL_LOGITS.npz']+['UPDATE%06d.pt'%j for j in cursors if j<3694]}
   if mode=='main':allowed.add(str(output/'INITIAL.pt'))
   else:allowed.add(plan['inputs']['checkpoint']['path'])
+  if mode=='resume'and plan['schema_version']=='gx1_native_provider_hlc_all_tf_remaining_epoch_plan_v2'and plan['starting_cursor']<plan['schedule']['logical_batches']:allowed.add(str(output/'TRAIN_END.pt'))
   def audit(event,args):
    if event in ('socket.connect','socket.getaddrinfo','urllib.Request'):raise RuntimeError('ALL_TF_LEARNING_NETWORK_FORBIDDEN')
    if event=='open'and isinstance(args[0],(str,bytes,os.PathLike)):
