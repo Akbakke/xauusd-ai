@@ -837,3 +837,15 @@ beregninger er uavklart under samme4GiB/870s-intern/900s-ytre grense.
 Kilde/transferbevis/test/faktisk metadata/preflight/backup/host og eksakt ny
 engangsadmisjon gjenstår. Ingen modell-/autograd-/treningsjobb er innrømmet.
 Alle fem globale treningsporter er false.13PASS/3FAIL/4UNKNOWN består.
+
+All-TF-kilden er kvalifisert:32 nye tester bestod, deretter fem berørte
+tester etter en referanseendring. De121 gamle testtilfellene er bytebevart.
+Ny transferkontroll bruker bytehasher og avviser forskjellig fortegn på
+null der byte-likhet kreves. Planen peker på sikret CPU-baseline medSHA,
+i stedet for å kopiere hele den radvise prognosefilen. Matematikk/budsjett/
+porter er uendret. Faktisk blokkert metadata002 bestod med86eiere og null
+modell/checkpoint/feature- eller målarraydekoding/forward/autograd/claim.
+SOURCE_QUALIFICATION001 og uavhengig kilde/controller-review binder dette.
+Koden må committes/pushes, og eksakt preflight, separat kilde-/planbackup,
+fersk maskinvarekontroll og engangsadmisjon må bestå før kjøring.
+Alle fem treningsporter er false; aktuell CPU-admisjon eies av policy.

@@ -910,7 +910,286 @@ def run_cpu_conditional(sha):
         for sig,handler in handlers.items():signal.signal(sig,handler)
 
 
+# All-TF frozen CPU contrast; original receipts remain unchanged.
+ALL_NAME='NATIVE_PROVIDER_HLC_ALL_TF_CPU_GRADIENT_CONTRAST_20261124_001'; ALL_STAGE=ALL_NAME.lower()
+ALL_PLAN=REPO/'configs/research'/(ALL_NAME+'.json'); ALL_ROOT=Path('/home/andre2/GX1_RUNS')/ALL_NAME
+ALL_SCOPE={'path':'/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_ALL_TF_CPU_GRADIENT_CONTRAST_SCOPE001.json','sha256':'eb0384e9c3fcc5905cbdd0300700e55192b9fb0ec7aab1ea24e6d4e250ce57ef'}
+ALL_PARENT='77287c59c03f16cc88240fd1db543a090e0096ca'; ALL_EXECUTION=dict(EXECUTION)
+ALL_ROUTE=dict(CPU_ROUTE)
+ALL_TERMS=('canonical_all_TF','independent_M5_activity','independent_M5_side','independent_sum_auxiliary_activity','independent_M15_side','independent_H1_side','independent_H4_side','independent_D1_side')
+ALL_EVIDENCE={
+ 'predecessor_acceptance':{'path':'/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_CPU_CONDITIONAL_GRADIENT_ACCEPTANCE001.json','sha256':'4e32c23a0b29581a8e350498358217dfd4d3185a3fb116c1fde865cdf7d9eed1'},
+ 'predecessor_backup':{'path':'/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PROVIDER_HLC_CPU_CONDITIONAL_GRADIENT_BACKUP001.json','sha256':'75892f70020aaa825c68ff9eaf1c8fc76c8483894fa192e79c64b4d7a93597b6'}}
+
+
+def build_all_tf_plan(*,source_base_commit=None):
+    scope=read(ALL_SCOPE); r=scope['resource_budget']; base=build_cpu_conditional_plan(source_base_commit=source_base_commit)
+    need(scope['schema_version']=='gx1_provider_hlc_allTF_CPU_gradient_contrast_scope_v1' and scope['proposed_plan_name']==ALL_NAME
+         and scope['execution_authorized']is False and scope['new_model_or_autograd_execution_authorized']is False and scope['training_authorized']is False and scope['test_authorized']is False
+         and scope['existing_candidate_policy']['explicit_backbone_gradient_policy']is None and tuple(scope['second_pass']['terms'])==ALL_TERMS
+         and r['NN_forwards_max']==192 and r['autograd_calls_max']==768 and r['model_constructions']==r['checkpoint_deserializations']==1
+         and r['memory']=='4G' and r['swap']=='512M' and r['numerical_threads']==1 and r['pids']==64 and r['outer_timeout_seconds']==900 and r['inner_timeout_seconds']==870
+         and r['kill_after_seconds']==10 and r['fallback_or_budget_extension']is False and all(r[key]==0 for key in ('backward_calls','checkpoint_RNG_restore_calls','optimizer_constructions','optimizer_restores','optimizer_updates','fits','new_source_HTTP_calls','VAL_TEST_selected_rows')),'ALL_TF_LOCKED_SCOPE')
+    for binding in ALL_EVIDENCE.values():reference(binding)
+    reference(scope['current_model_owner']); need(scope['current_model_owner']['path']==str(REPO/'gx1/contracts/market_state_ta_integrated_model_v1.py') and scope['original_checkpoint']==base['inputs']['final_checkpoint'],'ALL_TF_ORIGINAL_OWNER_CHECKPOINT')
+    accepted=read(ALL_EVIDENCE['predecessor_acceptance']); result=read(scope['predecessor_result']); terminal=read(accepted['terminal']); old=read(accepted['plan']); baseline=read(scope['predecessor_CPU_baseline']); report=result['report']
+    need(accepted['result']==scope['predecessor_result'] and result['plan']==terminal['plan']==accepted['plan'] and terminal['status']=='COMPLETE' and terminal['exit_code']==0
+         and terminal['result']==accepted['result'] and terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False and result['source_unchanged']is True
+         and report['cpu_baseline']==scope['predecessor_CPU_baseline'] and report['original_saved_CUDA_gate']=='FAILED' and report['full96_gradient_qualification']is False
+         and report['gradient_proof']['actual_auxiliary_shared_gradient_zero']is True and baseline['status']=='CPU_BASELINE_COMPLETE_BEFORE_DERIVATIVES'
+         and baseline['plan']==accepted['plan'] and baseline['counts']['NN_forwards']==96 and baseline['counts']['autograd_calls']==0 and baseline['bookends_passed']is True,'ALL_TF_ACCEPTED_PREDECESSOR')
+    cpu_conditional_validate_counts(report['counts'],old['budget'])
+    need(old['inputs']==base['inputs'] and all(old[key]==base[key]for key in ('metadata','model_contract','target_contract','budget','panel','prior_CPU_anchor','tolerances')),'ALL_TF_SAME_NUMERIC_POINT')
+    for name,digest in old['source_owners'].items():
+        if name not in (SELF,TEST):need(saved.native.sha(REPO/name)==digest,'ALL_TF_PREVIOUS_OWNER_UNCHANGED')
+    need(read(ALL_EVIDENCE['predecessor_backup'])['status']=='ALL26_FILES_SEPARATE_MAC_DISK_SHA_FULLFSYNC_READBACK_VERIFIED','ALL_TF_PREDECESSOR_BACKUP')
+    m=base['metadata']['adapter_metadata']; candidate=model_owner.native_future_state_model_contract(m['input_binding'],architecture=m['architecture'],train_prior=read(m['prior']),target_contract=m['target_contract'],backbone_gradient_policy=None)
+    budget={**base['budget'],'autograd_calls_max':768,'autograd_terms':list(ALL_TERMS),'transfer_artifact_writes':1}
+    inputs={**base['inputs'],'CPU_scope':base['inputs']['scope'],**ALL_EVIDENCE,'predecessor_plan':accepted['plan'],'predecessor_result':accepted['result'],'predecessor_terminal':accepted['terminal'],
+            'predecessor_CPU_baseline':scope['predecessor_CPU_baseline'],'current_model_owner':scope['current_model_owner'],'scope':ALL_SCOPE}
+    plan={**base,'schema_version':'gx1_provider_hlc_allTF_CPU_gradient_contrast_plan_v1','stage':ALL_STAGE,'plan_path':str(ALL_PLAN),'output_root':str(ALL_ROOT),'inputs':inputs,
+          'execution':ALL_EXECUTION,'budget':budget,'scope':scope,'source_parent_commit':ALL_PARENT,'original_model_contract':base['model_contract'],'candidate_model_contract':candidate,'model_contract':candidate,
+          'route':ALL_ROUTE,'question':scope['question'],'input_roles_not_JSON':sorted(set(base['input_roles_not_JSON'])|{'current_model_owner'}),
+          'limits':[scope['decision_before_run'],scope['numeric_transfer_contract']['scope_limit'],r['measured_predecessor'],'One fixed CPU B96 diagnostic only; no optimizer/backward/parameter update, checkpoint RNG restore, fit warmstart, refit, new HTTP, selected VAL/TEST, Entry/Exit or trading.'],
+          'method':scope}
+    checked_inputs(plan); return plan
+
+
+def gate_all_tf_expected(binding,admitted):
+    return {'status':'ADMITTED_EXACT_ALL_TF_CPU_GRADIENT_CONTRAST'if admitted else'PREPARED_NOT_ADMITTED','plan':binding,'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':False,'test_authorized':False}
+
+
+def inspect_all_tf(sha,*,admitted):
+    need(Path.cwd().resolve()==REPO and type(sha)is str and len(sha)==64 and all(c in '0123456789abcdef'for c in sha),'ALL_TF_CWD_SHA')
+    binding={'path':str(ALL_PLAN),'sha256':sha}; plan=read(binding); need(plan==build_all_tf_plan(source_base_commit=plan['source_base_commit'])and source_clean(plan),'ALL_TF_EXACT_PLAN_SOURCE')
+    pref=ref(POLICY); policy=read(pref); need(all(policy.get(key)is False for key in saved.FLAGS)and policy[ALL_STAGE]==gate_all_tf_expected(binding,admitted),'ALL_TF_ONE_USE_FLAGS')
+    for stage,role in ((STAGE,'failed_gradient_plan'),(PARITY_STAGE,'first_parity_plan'),(BATCH_STAGE,'batch_geometry_plan'),(CPU_STAGE,'predecessor_plan')):
+        old=policy[stage]; need(old['plan']==plan['inputs'][role]and old['execution_authorized']is False and old['remaining_invocations']==0 and old['relaunch_allowed']is False and old['training_authorized']is False and old['test_authorized']is False,'ALL_TF_OLD_PLANS_CLOSED')
+    need(not ALL_ROOT.exists()and not ALL_ROOT.is_symlink(),'ALL_TF_FRESH_ROOT'); return plan,binding,pref
+
+
+def all_tf_numeric_transfer(candidate,original_state,*,original_contract,candidate_contract):
+    before=core.state_sha(original_state); constructor=candidate.state_dict(); identity='future_state_model_sha256'
+    need(candidate.research_objective==candidate_contract and 'backbone_gradient_policy'not in candidate_contract
+         and original_contract['backbone_gradient_policy']['policy']=='M5_primary'
+         and {key:value for key,value in original_contract.items()if key not in ('backbone_gradient_policy','contract_sha256')}=={key:value for key,value in candidate_contract.items()if key!='contract_sha256'},'ALL_TF_TRANSFER_CONTRACTS')
+    need(list(constructor)==list(original_state)and identity in constructor,'ALL_TF_TRANSFER_STATE_KEYS')
+    named=tuple(candidate.named_parameters(remove_duplicate=False)); names=[name for name,_ in named]; parameter_names=set(names); need(bool(named)and parameter_names<=set(constructor),'ALL_TF_TRANSFER_PARAMETER_AXIS')
+    aliases={}
+    for name,parameter in named:aliases.setdefault(id(parameter),[]).append(name)
+    for key,value in original_state.items():
+        expected=constructor[key]; need(isinstance(value,torch.Tensor)and value.device.type=='cpu'and expected.device.type=='cpu'and value.shape==expected.shape and value.dtype==expected.dtype and not value.requires_grad and bool(torch.isfinite(value).all()),'ALL_TF_TRANSFER_STATE_DOMAIN')
+        if key not in parameter_names and key!=identity:need(core.state_sha(value)==core.state_sha(expected),'ALL_TF_TRANSFER_IMMUTABLE_BUFFER')
+    for group in aliases.values():need(all(core.state_sha(original_state[group[0]])==core.state_sha(original_state[name])for name in group),'ALL_TF_TRANSFER_ALIAS_VALUES')
+    for value,contract in ((original_state[identity],original_contract),(constructor[identity],candidate_contract)):
+        need(value.dtype==torch.uint8 and tuple(value.shape)==(32,)and value.tolist()==list(bytes.fromhex(contract['contract_sha256'])),'ALL_TF_TRANSFER_IDENTITY')
+    state={key:value.detach().clone()for key,value in constructor.items()}
+    for name in names:state[name]=original_state[name].detach().clone()
+    candidate.load_state_dict(state,strict=True); installed=candidate.state_dict()
+    need(list(installed)==list(original_state)and all(installed[key].shape==value.shape and installed[key].dtype==value.dtype for key,value in original_state.items())
+         and installed[identity].tolist()==list(bytes.fromhex(candidate_contract['contract_sha256'])),'ALL_TF_TRANSFER_INSTALLED_STATE_DOMAIN')
+    differences=[key for key in original_state if core.state_sha(original_state[key])!=core.state_sha(installed[key])]
+    need(differences==[identity]and all(core.state_sha(installed[name])==core.state_sha(original_state[name])for name in names)and core.state_sha(original_state)==before,'ALL_TF_TRANSFER_SOLE_IDENTITY_DIFFERENCE')
+    return {'original_model_contract_sha256':original_contract['contract_sha256'],'candidate_model_contract_sha256':candidate_contract['contract_sha256'],
+            'original_model_state_sha256':before,'candidate_model_state_sha256':core.state_sha(installed),'numeric_parameter_state_sha256':core.state_sha({name:installed[name]for name in names}),
+            'parameter_names':names,'parameter_alias_groups':[group for group in aliases.values()if len(group)>1],'sole_state_difference':differences,'all_named_parameters_exact':True,
+            'all_other_persistent_buffers_exact':True,'strict_load':True,'original_state_unmutated':True,'diagnostic_only_no_fit_warmstart':True}
+
+
+def all_tf_gradient_report(gradients,*,tolerances):
+    need(set(gradients)==set(ALL_TERMS)and tolerances==TOLERANCES,'ALL_TF_GRADIENT_TERMS_TOLERANCE'); total=gradients[ALL_TERMS[0]]; n=len(total); need(n>0 and all(len(value)==n for value in gradients.values()),'ALL_TF_GRADIENT_AXIS')
+    def combine(vectors):
+        result=[None]*n
+        for value in vectors:accumulate_gradients(result,value)
+        return result
+    need(all(value is None or isinstance(value,torch.Tensor)and value.device.type=='cpu'and value.dtype==torch.float64 and bool(torch.isfinite(value).all())for vector in gradients.values()for value in vector),'ALL_TF_FINITE_F64_GRADIENTS')
+    zero=[None]*n; norm=lambda value:core.shared_gradient_measures(value,zero)['g5_l2']
+    components=[gradients[name]for name in ALL_TERMS[1:]]; reconstructed=combine(components); difference=combine((total,[None if value is None else -value for value in reconstructed]))
+    error=norm(difference); nt=norm(total); nr=norm(reconstructed); floor=tolerances['component_gradient_absolute_L2_floor']
+    need(error<=max(floor,tolerances['component_gradient_global_relative_L2_max']*max(nt,nr)),'ALL_TF_COMPONENT_CONTRACT')
+    reference=combine(components[:2]); auxiliary=combine(components[2:]); auxnorm=norm(auxiliary); per_tf={}
+    for j,tf in enumerate(train.TF):
+        side=components[1]if j==0 else components[j+2]; ns=norm(side); cells={}
+        for name,direction in (('gRef',reference),('gAll',total)):
+            nd=norm(direction); dot=core.shared_gradient_measures(side,direction)['cross_dot']; margin=tolerances['sign_margin_relative_to_normS_times_normTotal']*ns*nd
+            cells[name]={'dot':dot,'side_L2':ns,'direction_L2':nd,'cosine':dot/(ns*nd)if ns*nd>0 else None,'sign_margin':margin,'local_verdict':'LOCAL_CONFLICT'if dot < -margin else'NOT_LOCAL_CONFLICT'if dot > margin else'INDETERMINATE'}
+        direct=cells['gAll']['dot']; decomposed=sum(core.shared_gradient_measures(side,value)['cross_dot']for value in components); scale=max(abs(direct),abs(decomposed),ns*nt)
+        need(abs(direct-decomposed)<=max(floor*floor,tolerances['dot_identity_relative_error_max']*scale),'ALL_TF_DOT_IDENTITY'); cells['dot_identity_absolute_error']=abs(direct-decomposed); per_tf[tf]=cells
+    return {'component_gradient_contract_verified':True,'component_error_L2':error,'component_error_relative_L2':error/max(floor,nt,nr),'gRef_L2':norm(reference),'gAll_L2':nt,
+            'auxiliary_L2':auxnorm,'aux_gradient_status':'ZERO'if auxnorm==0 else'NONZERO','per_tf':per_tf,'reference_auxiliary_zero_is_historical_only':True,'scope':'Counterfactual frozen CPU B96 local directions; no selected policy or historical cause.'}
+
+
+def all_tf_validate_counts(counts,budget):
+    expected={'full_feature_archive_loads':1,'feature_arrays_decoded':27,'target_archive_loads':1,'target_arrays_decoded':14,'capture_archive_loads':1,'capture_arrays_decoded':3,
+              'checkpoint_deserializations':1,'model_constructions':1,'model_state_install_calls':1,'baseline_forwards':96,'gradient_forwards':96,'NN_forwards':192,'autograd_calls':768,
+              'backward_calls':0,'optimizer_constructions':0,'optimizer_restores':0,'optimizer_updates':0,'checkpoint_RNG_restore_calls':0,'fits':0,'prior_refits':0,'new_source_HTTP_calls':0,
+              'canonical_loss_calls':96,'independent_BCE_calls':192,'baseline_artifact_writes':1,'transfer_artifact_writes':1,'grad_enabled_forward_calls':192,'no_grad_forward_calls':0}
+    need(counts==expected and all(type(value)is int for value in counts.values())and budget['NN_forwards_max']==192 and budget['autograd_calls_max']==768,'ALL_TF_EXACT_COUNTS');return True
+
+def calculate_all_tf(plan,*,progress=None):
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    torch.set_num_threads(1); need(torch.get_num_threads()==1 and not torch.cuda.is_initialized(),'ALL_TF_THREADS_CUDA')
+    progress={}if progress is None else progress; refs=progress.get('execution_refs')
+    need(type(refs)is dict and set(refs)=={'plan','claim','policy_at_claim'} and all(type(value)is dict and set(value)=={'path','sha256'}for value in refs.values()),'ALL_TF_EXECUTION_REFS')
+    need(refs['plan']['path']==str(ALL_PLAN) and refs['claim']['path']==str(ALL_ROOT/'CLAIM.json') and refs['policy_at_claim']['path']==str(POLICY),'ALL_TF_EXECUTION_REF_PATHS')
+    for value in refs.values():reference(value)
+    need(read(refs['plan'])==plan,'ALL_TF_EXECUTION_PLAN_BINDING')
+    claim=read(refs['claim']); policy=read(refs['policy_at_claim'])
+    need(claim['stage']==ALL_STAGE and claim['plan']==refs['plan'] and claim['policy_at_claim']==refs['policy_at_claim'] and claim['remaining_invocations']==0 and claim['relaunch_allowed']is False
+         and all(policy.get(key)is False for key in saved.FLAGS) and policy[ALL_STAGE]==gate_all_tf_expected(refs['plan'],True),'ALL_TF_EXECUTION_CLAIM_POLICY_BINDING')
+    budget=plan['budget']; counts=dict.fromkeys(('full_feature_archive_loads','feature_arrays_decoded','target_archive_loads','target_arrays_decoded','capture_archive_loads','capture_arrays_decoded','checkpoint_deserializations','model_constructions','model_state_install_calls','baseline_forwards','gradient_forwards','NN_forwards','autograd_calls','backward_calls','optimizer_constructions','optimizer_restores','optimizer_updates','checkpoint_RNG_restore_calls','fits','prior_refits','new_source_HTTP_calls','canonical_loss_calls','independent_BCE_calls','baseline_artifact_writes','transfer_artifact_writes','grad_enabled_forward_calls','no_grad_forward_calls'),0)
+    progress.update(phase='ALL_TF_CANONICAL_CONTEXT_B96',counts=counts,second_pass_rows=[])
+    context=adapter.load_context(plan['metadata']['adapter_metadata']); counts.update(full_feature_archive_loads=1,feature_arrays_decoded=27,target_archive_loads=1,target_arrays_decoded=14)
+    need(bool(np.all(context['provider'].bar_start_ns<1782864000000000000)),'ALL_TF_PRETEST_SOURCE_CUTOFF')
+    take=np.arange(96,dtype=np.int64); packet=adapter.packet(context,take); selected_source_row=int(context['source_rows'][0])
+    need(len(packet['truth']['issue_ns'])==96 and core.digest(packet['truth']['issue_ns'])==plan['panel']['issue_ns_sha256'] and core.digest(context['source_rows'][take])==plan['panel']['source_rows_sha256']
+         and bool(np.all((packet['truth']['issue_ns']>=train.START)&(packet['truth']['issue_ns']<train.UPPER))) and len(packet['features'])==9
+         and sum(v.numel()*v.element_size()for v in packet['features'].values())==budget['packet_feature_bytes'],'ALL_TF_EXACT_B96_PACKET')
+    normalization=context['normalization']; prior=context['prior']; binding=context['input_binding']; target=context['target_contract']; del context; gc.collect()
+    row0_proof={key:{'shape':list(value[:1].shape),'dtype':str(value.dtype),'sha256':core.digest(value[:1].detach().cpu().numpy())}for key,value in packet['features'].items()}
+    anchor=plan['prior_CPU_anchor']; need(row0_proof==anchor['feature_proof'] and int(packet['truth']['issue_ns'][0])==anchor['selected_issue_ns'] and selected_source_row==anchor['selected_source_row'],'ALL_TF_PRIOR_INPUT_IDENTITY')
+    progress['phase']='ALL_TF_CONTEXT_RELEASED_CAPTURE3'; capture=saved.load_fields(plan['inputs']['capture'],CAPTURE,plan['capture_array_headers']); counts.update(capture_archive_loads=1,capture_arrays_decoded=3)
+    need(sum(v.nbytes for v in capture.values())==budget['capture_ndarray_bytes_decoded'] and core.digest(capture['issue_ns'])==plan['TRAIN_issue_ns_sha256'] and np.array_equal(capture['issue_ns'][:96],packet['truth']['issue_ns']),'ALL_TF_SAVED_CLOCK_BYTES')
+    gpu={key:np.ascontiguousarray(capture[key][:96]).copy()for key in CAPTURE[1:]}; del capture; gc.collect()
+    progress['phase']='ALL_TF_FACTORY_STRICT_FINAL'
+    cp=safe_load_final(plan); counts['checkpoint_deserializations']+=1
+    model=model_owner.build_native_future_state_model(input_normalization=normalization,input_binding=binding,architecture=plan['metadata']['original_epoch_plan']['metadata']['architecture'],device=torch.device('cpu'),train_prior=prior,target_contract=target,backbone_gradient_policy=None); counts['model_constructions']+=1
+    transfer=all_tf_numeric_transfer(model,cp['model_state'],original_contract=plan['original_model_contract'],candidate_contract=plan['candidate_model_contract']); counts['model_state_install_calls']+=1
+    need(train.checkpoint_proof(cp)==plan['metadata']['final_receipt']['proof'],'ALL_TF_ORIGINAL_CHECKPOINT_UNMUTATED'); del cp; gc.collect(); model.eval()
+    transfer_artifact={'status':'TRANSFER_PROOF_COMPLETE_BEFORE_FORWARD','stage':ALL_STAGE,**refs,'scope':ALL_SCOPE,'counts':dict(counts),'proof':transfer,'original_checkpoint_proof_verified':True,
+                       'original_model_contract':plan['original_model_contract'],'candidate_model_contract':plan['candidate_model_contract'],'diagnostic_only_no_fit_warmstart':True}
+    transfer_ref=all_tf_publish('TRANSFER_PROOF.json',transfer_artifact); counts['transfer_artifact_writes']+=1; progress['transfer_proof']=transfer_ref
+    state_before=core.state_sha(model.state_dict()); rng_before=core.shared_gradient_rng(); packet_before=core.state_sha(packet); ambient_grad=torch.is_grad_enabled()
+    need(all(p.grad is None and p.device.type=='cpu'and p.dtype==torch.float32 for p in model.parameters()),'ALL_TF_PARAMETER_GRAD_NONE')
+    denominator=int(packet['truth']['activity_known'].sum()); need(denominator>0,'ALL_TF_FULL_B96_DENOMINATOR')
+    identity={'issue_ns_sha256':core.digest(packet['truth']['issue_ns']),'source_rows_sha256':plan['panel']['source_rows_sha256'],'packet_sha256':packet_before,'row0_feature_proof':row0_proof}
+    baseline={key:np.empty((96,5),np.float32)for key in CAPTURE[1:]}; replay={key:np.empty((96,5),np.float32)for key in CAPTURE[1:]}; phase='baseline_forwards'
+    def record_array(value):return {'values':value.astype(np.float64).tolist(),'shape':list(value.shape),'dtype':value.dtype.str,'sha256':core.digest(value)}
+    def context_bookend():need(body._BATCH_EQUAL_LENGTH_MTF_EVAL.get()is False and body._MODEL_FINITE_CHECK_SCOPE.get()is None and torch.is_grad_enabled()==ambient_grad,'ALL_TF_CONTEXT_RESTORE')
+    def books():
+        context_bookend(); measurement_bookend(model,state_before,rng_before); need(core.state_sha(packet)==packet_before,'ALL_TF_PACKET_MUTATION'); return True
+    def count_forward(*_):
+        counts['NN_forwards']+=1; counts[phase]+=1; counts['grad_enabled_forward_calls'if torch.is_grad_enabled()else'no_grad_forward_calls']+=1
+        need(counts['NN_forwards']<=budget['NN_forwards_max'],'ALL_TF_FORWARD_BUDGET')
+    def chunk(index):return {'features':{key:value[index:index+1]for key,value in packet['features'].items()},'truth':train.slice_provider_hlc_truth(packet['truth'],np.array([index],np.int64),target_contract=target)}
+    def forward(current):
+        output,hidden,activation=core.future_cuda_forward(model,current['features'],grouped=True,equal_tf=False,capture=False)
+        groups={}
+        for tf in train.TF:groups.setdefault(str(current['features']['seq_'+tf.lower()].shape[1]),[]).append(tf)
+        need(hidden is None and set(output)==set(CAPTURE[1:]) and activation=={'batch_eval_active':False,'model_training':False,'grad_enabled':True,'scope_enabled':False,'eligible_equal_length_TF_groups':groups},'ALL_TF_ACTUAL_ROUTE')
+        need(all(value.dtype==torch.float32 and value.device.type=='cpu'and tuple(value.shape)==(1,5)and bool(torch.isfinite(value).all())for value in output.values()),'ALL_TF_FINITE_HEADS'); return output
+    context_bookend(); hook=model.register_forward_pre_hook(count_forward); anchor_comparison={}
+    try:
+        progress['phase']='ALL_TF_FULL_BASELINE_BEFORE_DERIVATIVES'
+        try:
+            with torch.enable_grad():
+                for index in range(96):
+                    current=chunk(index); output=forward(current)
+                    for key,value in output.items():baseline[key][index:index+1]=value.detach().cpu().numpy()
+                    if index==0:
+                        for key in CAPTURE[1:]:
+                            record=anchor['route']['logits'][key]; reference_value=np.array([record['values']],np.float32)
+                            need(core.digest(reference_value)==record['sha256'] and list(reference_value.shape)==record['shape']==[1,5] and reference_value.dtype.str==record['dtype'],'ALL_TF_ANCHOR_LOGIT_SHA')
+                            anchor_comparison[key]=first_parity_compare(reference_value,baseline[key][:1],tolerance=plan['fixed_original_tolerance'])
+                        progress['prior_CPU_anchor_comparison']=anchor_comparison
+                        need(all(cell['all_within_original_tolerance']for cell in anchor_comparison.values()),'ALL_TF_PRIOR_CPU_ANCHOR_MISMATCH')
+                    del output,current
+        finally:context_bookend()
+        books(); need(counts['NN_forwards']==counts['baseline_forwards']==96 and counts['autograd_calls']==0,'ALL_TF_BASELINE_BEFORE_GRADIENTS')
+        predecessor=read(plan['inputs']['predecessor_CPU_baseline']); predecessor_outputs={}
+        for key in CAPTURE[1:]:
+            record=predecessor['outputs'][key]; value=np.array(record['values'],np.float32)
+            need(list(value.shape)==record['shape']==[96,5]and value.dtype.str==record['dtype']and core.digest(value)==record['sha256'],'ALL_TF_PREDECESSOR_BASELINE_SHA'); predecessor_outputs[key]=value
+        candidate_parity={key:cpu_conditional_compare(predecessor_outputs[key],value,tolerance=plan['fixed_original_tolerance'])for key,value in baseline.items()}; progress['candidate_vs_predecessor_CPU_baseline']=candidate_parity
+        need(all(value['all_within_original_tolerance']for value in candidate_parity.values()),'ALL_TF_CANDIDATE_BASELINE_MISMATCH_BEFORE_DERIVATIVES')
+        gpu_comparison={key:cpu_conditional_compare(gpu[key],value,tolerance=plan['fixed_original_tolerance'])for key,value in baseline.items()}
+        baseline_counts=dict(counts)
+        artifact={'status':'ALL_TF_CPU_BASELINE_COMPLETE_BEFORE_DERIVATIVES','stage':ALL_STAGE,'plan':refs['plan'],'claim':refs['claim'],'policy_at_claim':refs['policy_at_claim'],'scope':ALL_SCOPE,
+                  'route':plan['route'],'panel':plan['panel'],'transfer_proof':transfer_ref,'candidate_vs_predecessor_CPU_baseline':candidate_parity,'counts':baseline_counts,'outputs':{key:record_array(value)for key,value in baseline.items()},'saved_CUDA_comparison':gpu_comparison,
+                  'prior_CPU_anchor_comparison':anchor_comparison,'input_identity':identity,'known_activity_denominator_full_B96':denominator,'model_state_sha256':state_before,
+                  'local_RNG_sha256':core.state_sha(rng_before),'bookends_passed':True,'original_saved_CUDA_gate':'FAILED','full96_gradient_qualification':False,'autograd_calls_before_publication':0}
+        baseline_ref=all_tf_publish('CPU_BASELINE.json',artifact); counts['baseline_artifact_writes']+=1; progress.update(cpu_baseline=baseline_ref,baseline_counts=baseline_counts,phase='ALL_TF_REPLAY_AND_COMPONENT_GRADIENTS')
+        named=tuple((name,p)for name,p in model.backbone.named_parameters()if p.requires_grad); params=tuple(p for _,p in named); need(bool(params),'ALL_TF_PARAMETER_AXIS')
+        sums={term:[None]*len(params)for term in ALL_TERMS}; losses={term:0. for term in ALL_TERMS}; phase='gradient_forwards'
+        try:
+            with torch.enable_grad():
+                for index in range(96):
+                    current=chunk(index); output=forward(current); comparisons={}
+                    for key,value in output.items():
+                        replay[key][index:index+1]=value.detach().cpu().numpy(); comparisons[key]=first_parity_compare(baseline[key][index:index+1],replay[key][index:index+1],tolerance=plan['fixed_original_tolerance'])
+                    progress['second_pass_rows'].append({'index':index,'issue_ns':int(current['truth']['issue_ns'][0]),'outputs':{key:record_array(value[index:index+1])for key,value in replay.items()},'vs_CPU_baseline':comparisons})
+                    need(all(cell['all_within_original_tolerance']for cell in comparisons.values()),'ALL_TF_REPLAY_MISMATCH_BEFORE_DERIVATIVES')
+                    canonical=objective.native_future_state_loss(model_output=output,truth=current['truth'],fold_upper_ns=train.UPPER,target_contract=target); counts['canonical_loss_calls']+=1
+                    values={}
+                    for name,key,label,mask in (('activity','activity_logits','activity','activity_known'),('side','side_logits','side_up','side_known')):
+                        y=torch.as_tensor(current['truth'][label].copy(),dtype=output[key].dtype); known=torch.as_tensor(current['truth'][mask].copy(),dtype=torch.bool)
+                        bce=torch.nn.functional.binary_cross_entropy_with_logits(output[key],y,reduction='none'); counts['independent_BCE_calls']+=1; values[name]=torch.where(known,bce,torch.zeros_like(bce))
+                    terms=(scaled_canonical_loss(canonical['loss'],canonical['count'],denominator),values['activity'][:,0].sum()/denominator,values['side'][:,0].sum()/denominator,values['activity'][:,1:].sum()/denominator,*(values['side'][:,j].sum()/denominator for j in range(1,5)))
+                    for j,(name,loss)in enumerate(zip(ALL_TERMS,terms)):
+                        need(bool(torch.isfinite(loss)),'ALL_TF_FINITE_COMPONENT_LOSS'); gradients=torch.autograd.grad(loss,params,retain_graph=j<7,allow_unused=True); counts['autograd_calls']+=1
+                        need(counts['autograd_calls']<=budget['autograd_calls_max'],'ALL_TF_AUTOGRAD_BUDGET'); accumulate_gradients(sums[name],gradients); losses[name]+=float(loss.detach()); del gradients
+                    del output,current,canonical,values,terms,loss
+        finally:context_bookend()
+        proof=all_tf_gradient_report(sums,tolerances=plan['tolerances']); del sums
+        bookend=books(); all_tf_validate_counts(counts,budget)
+    finally:hook.remove()
+    progress['phase']='COMPLETE_ALL_TF_GRADIENT_MEASUREMENT'
+    return {'payload_budget':budget,'counts':counts,'route':plan['route'],'transfer_proof':transfer_ref,'candidate_model_contract':plan['candidate_model_contract'],'original_model_contract':plan['original_model_contract'],'candidate_vs_predecessor_CPU_baseline':candidate_parity,'cpu_baseline':baseline_ref,'baseline_counts':baseline_counts,'cpu_baseline_outputs':artifact['outputs'],
+            'cpu_replay_outputs':{key:record_array(value)for key,value in replay.items()},'cpu_replay_comparison':{key:cpu_conditional_compare(baseline[key],value,tolerance=plan['fixed_original_tolerance'])for key,value in replay.items()},
+            'saved_CUDA_comparison':gpu_comparison,'original_saved_CUDA_gate':'FAILED','saved_CUDA_comparison_is_informational':True,'full96_gradient_qualification':False,
+            'gradient_proof':proof,'known_activity_denominator_full_B96':denominator,'normalized_loss_components':losses,'per_TF_support':{tf:{name+'_rows':int(packet['truth'][mask][:,j].sum())for name,mask in (('activity','activity_known'),('side','side_known'))}|{name+'_distinct_target_start_ns':int(np.unique(packet['truth']['target_start_ns'][packet['truth'][mask][:,j],j]).size)for name,mask in (('activity','activity_known'),('side','side_known'))}for j,tf in enumerate(train.TF)},
+            'parameter_axis':{'names':[name for name,_ in named],'tensors':len(named),'aggregation_dtype':'float64','None_is_mathematical_zero_only':True},'input_identity':identity,'prior_CPU_anchor_comparison':anchor_comparison,
+            'TRANSFER_PROOF_published_before_forward':True,'CPU_baseline_published_before_derivatives':True,'old_context_released_before_model_construction':True,'final_all_ten_checkpoint_proofs_verified':True,'strict_candidate_owned_state_installed':True,
+            'model_state_and_local_RNG_bookend_passed':bookend,'context_bookends_passed':True,'ambient_grad_mode_restored':True,'all_parameter_grad_fields_None':True,'retained_B96_packet_unmutated':True,
+            'local_RNG_bookend_scope':['python','numpy','torch_cpu'],'measurement_completed':True,'ALL_TF_counterfactual_local_interaction_only':True,'no_candidate_fit_warmstart':True,'actual_training_cause':'UNKNOWN','selected_causal_fix':'UNKNOWN','later_generalization':'UNKNOWN','economic_edge':'UNKNOWN','all20_approved':False,'limits':plan['limits']}
+
+
+def all_tf_publish(name,value):
+    path=ALL_ROOT/name; saved._publish_bytes(path,(json.dumps(value,sort_keys=True,indent=2,allow_nan=False)+'\n').encode()); return ref(path)
+
+
+def run_all_tf(sha):
+    began=time.monotonic(); cap=require_capped_cpu_audit_execution(); lock=require_capped_lock_ancestry()
+    need(cap['memory_max']==cap['memory_high']==4*1024**3 and cap['swap']==512*1024**2 and cap['numerical_threads']==1 and cap['pids']==64
+         and lock['scope']==cap['cgroup_path'][len('/sys/fs/cgroup'):],'ALL_TF_CAPS')
+    plan,binding,pref=inspect_all_tf(sha,admitted=True); checked_inputs(plan); boot=Path('/proc/sys/kernel/random/boot_id').read_text().strip(); ALL_ROOT.mkdir(parents=True,exist_ok=False)
+    handlers={sig:signal.getsignal(sig)for sig in (signal.SIGALRM,signal.SIGTERM,signal.SIGINT)}; claim=result=None; progress={'phase':'CLAIM'}
+    try:
+        def expired(*_):raise TimeoutError('PROVIDER_HLC_ALL_TF_WALL')
+        def stopped(sig,*_):raise InterruptedError('PROVIDER_HLC_ALL_TF_SIGNAL_'+str(sig))
+        signal.signal(signal.SIGALRM,expired); signal.signal(signal.SIGTERM,stopped); signal.signal(signal.SIGINT,stopped)
+        claim=all_tf_publish('CLAIM.json',{'stage':ALL_STAGE,'plan':binding,'policy_at_claim':pref,'boot_id':boot,'remaining_invocations':0,'relaunch_allowed':False,'training_authorized':False,'test_data_used':False}); progress['execution_refs']={'plan':binding,'claim':claim,'policy_at_claim':pref}
+        remaining=ALL_EXECUTION['internal_seconds']-(time.monotonic()-began); need(remaining>0,'ALL_TF_TIME_BEFORE_DECODE'); signal.setitimer(signal.ITIMER_REAL,remaining)
+        allowed={plan['inputs'][role]['path']for role in ('feature_archive','capture','target_arrays','final_checkpoint')}
+        def audit(event,args):
+            if event in ('socket.connect','socket.getaddrinfo','urllib.Request'):raise RuntimeError('PROVIDER_HLC_ALL_TF_NETWORK_FORBIDDEN')
+            if event=='open'and isinstance(args[0],(str,bytes,os.PathLike)):
+                name=os.fsdecode(args[0])
+                if name.endswith(('.npz','.pt','.pth','.parquet','.safetensors','.pkl'))and str(Path(name).resolve())not in allowed:raise RuntimeError('PROVIDER_HLC_ALL_TF_PAYLOAD_FORBIDDEN')
+        sys.addaudithook(audit); report=calculate_all_tf(plan,progress=progress); checked_inputs(plan)
+        need(source_clean(plan)and ref(POLICY)==pref and ref(ALL_PLAN)==binding and Path('/proc/sys/kernel/random/boot_id').read_text().strip()==boot,'ALL_TF_SOURCE_INPUT_PLAN_POLICY_BOOT_BOOKEND')
+        result=all_tf_publish('RESULT.json',{'status':'COMPLETE_CONDITIONAL_PROVIDER_HLC_ALL_TF_GRADIENT_CONTRAST','stage':ALL_STAGE,'plan':binding,'claim':claim,'policy_at_claim':pref,'boot_id':boot,'report':report,'source_unchanged':True,'test_data_used':False,'economic_edge_proven':False,'elapsed_seconds':time.monotonic()-began})
+        terminal=all_tf_publish('TERMINAL.json',{'status':'COMPLETE','exit_code':0,'stage':ALL_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'source_unchanged':True,'test_data_used':False}); return {'result':result,'terminal':terminal}
+    except BaseException as error:
+        signal.setitimer(signal.ITIMER_REAL,0); all_tf_publish('TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'stage':ALL_STAGE,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False,'progress':progress,'error':type(error).__name__+':'+str(error)[:2000],'test_data_used':False}); raise
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0)
+        for sig,handler in handlers.items():signal.signal(sig,handler)
+
+
+def main_all_tf():
+    parser=argparse.ArgumentParser(); parser.add_argument('--first-parity-plan-sha256',required=True); parser.add_argument('--cpu-conditional-gradient',action='store_true',required=True); parser.add_argument('--all-tf',action='store_true',required=True); parser.add_argument('--preflight',action='store_true'); args=parser.parse_args()
+    need(sys.argv[1:]==['--first-parity-plan-sha256',args.first_parity_plan_sha256,'--cpu-conditional-gradient','--all-tf']+(['--preflight']if args.preflight else[]),'ALL_TF_EXACT_CLI')
+    if args.preflight:
+        plan,binding,pref=inspect_all_tf(args.first_parity_plan_sha256,admitted=False)
+        print(json.dumps({'status':'PREFLIGHT_PROVIDER_HLC_ALL_TF_CPU_GRADIENT_CONTRAST_PASS','plan':binding,'policy':pref,'claim_created':False,'checkpoint_deserializations':0,'NPZ_arrays_decoded':0,'models':0,'NN_forwards':0,'autograd_calls':0,'CUDA_initialized':False}))
+    else:print(json.dumps(run_all_tf(args.first_parity_plan_sha256),sort_keys=True))
+# End all-TF frozen CPU contrast.
+
 def main_cpu_conditional():
+    if sys.argv[4:5]==['--all-tf']:
+        return main_all_tf()
+
     parser=argparse.ArgumentParser(); parser.add_argument('--first-parity-plan-sha256',required=True); parser.add_argument('--cpu-conditional-gradient',action='store_true',required=True); parser.add_argument('--preflight',action='store_true'); args=parser.parse_args()
     need(sys.argv[1:]==['--first-parity-plan-sha256',args.first_parity_plan_sha256,'--cpu-conditional-gradient']+(['--preflight']if args.preflight else[]),'CPU_CONDITIONAL_EXACT_CLI')
     if args.preflight:

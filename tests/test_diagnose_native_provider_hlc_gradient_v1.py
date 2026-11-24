@@ -1633,3 +1633,525 @@ def test_cpu_conditional_builder_uses_only_CPU_limits_and_preserves_gradient_bud
         'NN_forwards_max': 192, 'autograd_calls_max': 384, 'packet_feature_bytes': 63407616,
         'original_packet_rows': 96, 'panel_rows': 96}
     assert 'parity_forwards' not in result['budget']
+
+
+# All-TF contrast tests; earlier qualification cases remain unchanged.
+def all_tf_strip_source(source):
+    begin = '# All-TF frozen CPU contrast; original receipts remain unchanged.\n'
+    end = '# End all-TF frozen CPU contrast.\n\n'
+    dispatch = "    if sys.argv[4:5]==['--all-tf']:\n        return main_all_tf()\n\n"
+    assert source.count(begin) == source.count(end) == 1
+    first, tail = source.split(begin)
+    _, last = tail.split(end)
+    assert last.count(dispatch) == 1
+    return first + last.replace(dispatch, '', 1)
+
+
+def test_all_tf_source_addition_strips_to_exact_prior_CPU_owner_and_test_prefix():
+    import subprocess
+    anchor = '77287c59c03f16cc88240fd1db543a090e0096ca'
+    before = subprocess.check_output(['git', 'show', anchor + ':' + m.SELF], cwd=m.REPO, text=True)
+    assert all_tf_strip_source(Path(m.__file__).read_text()) == before
+    old_tests = subprocess.check_output(['git', 'show', anchor + ':' + m.TEST], cwd=m.REPO)
+    assert Path(__file__).read_bytes().startswith(old_tests)
+
+
+class AllTFTransferState(torch.nn.Module):
+    def __init__(self, contract):
+        super().__init__()
+        self.parameter = torch.nn.Parameter(torch.zeros((1, 2), dtype=torch.float32))
+        self.parameter_alias = self.parameter
+        self.register_buffer('immutable', torch.tensor([3, 4], dtype=torch.int64))
+        self.register_buffer('future_state_model_sha256', torch.tensor(
+            list(bytes.fromhex(contract['contract_sha256'])), dtype=torch.uint8))
+        self._contract = contract
+        self._backbone_gradient_policy = None
+    @property
+    def research_objective(self):
+        return self._contract
+
+
+def all_tf_transfer_fixture():
+    candidate_contract = {'schema_version': 'gx1_native_future_state_forward_model_v1', 'contract_sha256': 'b'*64}
+    original_contract = {**candidate_contract, 'contract_sha256': 'a'*64,
+                         'backbone_gradient_policy': {'policy': 'M5_primary'}}
+    candidate = AllTFTransferState(candidate_contract)
+    original_state = candidate.state_dict()
+    original_weight = torch.tensor([[2., -3.]], dtype=torch.float32)
+    original_state['parameter'] = original_weight
+    original_state['parameter_alias'] = original_weight
+    original_state['immutable'] = original_state['immutable'].clone()
+    original_state['future_state_model_sha256'] = torch.tensor(list(bytes.fromhex('a'*64)), dtype=torch.uint8)
+    return candidate, original_state, original_contract, candidate_contract
+
+
+def test_all_tf_numeric_transfer_preserves_original_and_candidate_identity_with_exact_aliases(monkeypatch):
+    candidate, original, old_contract, new_contract = all_tf_transfer_fixture()
+    original_sha = m.core.state_sha(original)
+    candidate_id = candidate.future_state_model_sha256.clone()
+    strict_loads = []; load = candidate.load_state_dict
+    def strict(state, *args, **kwargs):
+        strict_loads.append((list(state), kwargs.copy()))
+        assert kwargs['strict'] is True and kwargs.get('assign', False) is False
+        assert torch.equal(state['future_state_model_sha256'], candidate_id)
+        assert list(state) == list(original)
+        return load(state, *args, **kwargs)
+    monkeypatch.setattr(candidate, 'load_state_dict', strict)
+    proof = m.all_tf_numeric_transfer(candidate, original, original_contract=old_contract, candidate_contract=new_contract)
+    assert len(strict_loads) == 1
+    assert torch.equal(candidate.parameter, original['parameter'])
+    assert candidate.parameter_alias is candidate.parameter
+    assert torch.equal(candidate.future_state_model_sha256, candidate_id)
+    assert torch.equal(candidate.immutable, original['immutable'])
+    assert m.core.state_sha(original) == original_sha
+    assert proof['sole_state_difference'] == ['future_state_model_sha256']
+    assert all(proof[key] is True for key in ('all_named_parameters_exact', 'all_other_persistent_buffers_exact',
+                                            'strict_load', 'original_state_unmutated'))
+    aliases = json.dumps(proof['parameter_alias_groups'])
+    assert 'parameter_alias' in aliases and 'parameter' in aliases
+
+
+@pytest.mark.parametrize('bad', ['missing', 'extra', 'shape', 'dtype', 'nan', 'alias', 'buffer', 'old_identity', 'new_identity', 'order'])
+def test_all_tf_numeric_transfer_rejects_invalid_state_without_mutating_candidate_or_original(bad):
+    from collections import OrderedDict
+    candidate, original, old_contract, new_contract = all_tf_transfer_fixture()
+    if bad == 'missing': del original['parameter_alias']
+    elif bad == 'extra': original['unclaimed_buffer'] = torch.zeros(1)
+    elif bad == 'shape': original['parameter'] = torch.zeros(3, dtype=torch.float32)
+    elif bad == 'dtype': original['parameter'] = original['parameter'].double()
+    elif bad == 'nan': original['parameter'] = torch.full((1, 2), float('nan'))
+    elif bad == 'alias': original['parameter_alias'] = original['parameter'].clone() + 1.
+    elif bad == 'buffer': original['immutable'][0] += 1
+    elif bad == 'old_identity': original['future_state_model_sha256'][0] ^= 1
+    elif bad == 'new_identity': candidate.future_state_model_sha256[0] ^= 1
+    else: original = OrderedDict(reversed(list(original.items())))
+    candidate_before, original_before = m.core.state_sha(candidate.state_dict()), m.core.state_sha(original)
+    with pytest.raises(ValueError):
+        m.all_tf_numeric_transfer(candidate, original, original_contract=old_contract, candidate_contract=new_contract)
+    assert m.core.state_sha(candidate.state_dict()) == candidate_before
+    assert m.core.state_sha(original) == original_before
+
+
+def all_tf_contrast_vectors():
+    # gRef=[1,0], gAll=[-1,0]; the candidate auxiliary direction is nonzero.
+    values = [[-1., 0.], [2., 0.], [-1., 0.], [0., 1.], [-2., 0.], [0., -1.], [0., 0.], [0., 0.]]
+    return {name: vector(value) for name, value in zip(m.ALL_TERMS, values)}
+
+
+def test_all_tf_gradient_report_accepts_nonzero_auxiliary_and_contrasts_each_TF_direction():
+    report = m.all_tf_gradient_report(all_tf_contrast_vectors(), tolerances=TOLERANCES)
+    assert report['aux_gradient_status'] == 'NONZERO'
+    assert set(report['per_tf']) == {'M5', 'M15', 'H1', 'H4', 'D1'}
+    for tf, expected_ref, expected_all in (('M5', -1., 1.), ('M15', -2., 2.)):
+        assert report['per_tf'][tf]['gRef']['dot'] == expected_ref
+        assert report['per_tf'][tf]['gAll']['dot'] == expected_all
+        assert report['per_tf'][tf]['gRef']['local_verdict'] == 'LOCAL_CONFLICT'
+        assert report['per_tf'][tf]['gAll']['local_verdict'] == 'NOT_LOCAL_CONFLICT'
+    for tf in ('H1', 'H4', 'D1'):
+        assert report['per_tf'][tf]['gRef']['local_verdict'] == 'INDETERMINATE'
+        assert report['per_tf'][tf]['gAll']['local_verdict'] == 'INDETERMINATE'
+    assert report['per_tf']['H4']['gAll']['side_L2'] == 0.
+    json.dumps(report, allow_nan=False)
+
+
+def test_all_tf_gradient_report_retains_zero_auxiliary_as_measured_instead_of_forcing_nonzero():
+    gradients = {name: [None] for name in m.ALL_TERMS}
+    gradients[m.ALL_TERMS[0]], gradients[m.ALL_TERMS[1]], gradients[m.ALL_TERMS[2]] = vector([2.]), vector([1.]), vector([1.])
+    report = m.all_tf_gradient_report(gradients, tolerances=TOLERANCES)
+    assert report['aux_gradient_status'] == 'ZERO'
+    assert report['per_tf']['M5']['gRef']['local_verdict'] == 'NOT_LOCAL_CONFLICT'
+    assert report['per_tf']['D1']['gAll']['local_verdict'] == 'INDETERMINATE'
+
+
+@pytest.mark.parametrize('bad', ['component_mismatch', 'missing', 'extra', 'nan', 'tolerance'])
+def test_all_tf_gradient_report_rejects_broken_component_axis_or_unlocked_tolerance(bad):
+    gradients = all_tf_contrast_vectors(); tolerances = copy.deepcopy(TOLERANCES)
+    if bad == 'component_mismatch': gradients[m.ALL_TERMS[0]] = vector([1., 0.])
+    elif bad == 'missing': del gradients[m.ALL_TERMS[-1]]
+    elif bad == 'extra': gradients['unclaimed_component'] = vector([0., 0.])
+    elif bad == 'nan': gradients[m.ALL_TERMS[1]] = vector([float('nan'), 0.])
+    else: tolerances['component_gradient_global_relative_L2_max'] = .1
+    with pytest.raises(ValueError): m.all_tf_gradient_report(gradients, tolerances=tolerances)
+
+
+def all_tf_calculation(monkeypatch, tmp_path, *, baseline_mismatch=False, mismatch_row=None):
+    from collections import OrderedDict
+    from types import SimpleNamespace
+    import weakref
+    from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as body
+    class Context(dict): pass
+    class Body(torch.nn.Module):
+        def __init__(self):
+            super().__init__(); self.weight = torch.nn.Parameter(torch.tensor(0., dtype=torch.float32))
+    candidate_contract = {'schema_version': 'gx1_native_future_state_forward_model_v1', 'contract_sha256': 'b'*64}
+    original_contract = {**candidate_contract, 'contract_sha256': 'a'*64,
+                         'backbone_gradient_policy': {'policy': 'M5_primary'}}
+    class Candidate(torch.nn.Module):
+        def __init__(self):
+            super().__init__(); self.backbone = Body(); self._backbone_gradient_policy = None
+            self.register_buffer('immutable', torch.tensor([3, 4], dtype=torch.int64))
+            self.register_buffer('future_state_model_sha256', torch.tensor(list(bytes.fromhex('b'*64)), dtype=torch.uint8))
+        @property
+        def research_objective(self): return candidate_contract
+        def forward(self, **features):
+            z = self.backbone.weight * features['seq_x'][:, 0, :]
+            coefficients = torch.arange(1, 6, dtype=torch.float32).view(1, 5)
+            return {'activity_logits': z*coefficients, 'side_logits': (-2*z)*coefficients}
+    original_state = OrderedDict((('immutable', torch.tensor([3, 4], dtype=torch.int64)),
+        ('future_state_model_sha256', torch.tensor(list(bytes.fromhex('a'*64)), dtype=torch.uint8)),
+        ('backbone.weight', torch.tensor(.25, dtype=torch.float32))))
+    cp = {'model_state': original_state}; cp_sha = m.core.state_sha(cp); stored_proof = {'synthetic_all_ten_authentication': True}
+    n = 96; issues = np.arange(n, dtype=np.int64)*300_000_000_000 + int(m.train.START); rows = np.arange(n, dtype=np.int64)
+    x = np.linspace(.1, .3, n, dtype=np.float32).reshape(n, 1)
+    features = {'seq_x': torch.from_numpy(np.repeat(x[:, None, :], 96, axis=1)),
+                'snap_x': torch.from_numpy(x.copy()), 'ctx_cont': torch.from_numpy(x.copy()),
+                'ctx_cat': torch.zeros((n, 1), dtype=torch.int64)}
+    windows = {'m5': 16, 'm15': 64, 'h1': 96, 'h4': 96, 'd1': 252}
+    features.update({'seq_'+tf: torch.from_numpy(np.repeat(x[:, None, :], length, axis=1)) for tf, length in windows.items()})
+    side_known = np.zeros((n, 5), bool); side_known[:, 0] = True
+    side_known[::2, 1] = True; side_known[::6, 2] = True; side_known[::24, 3] = True; side_known[:4, 4] = True
+    starts = np.column_stack([int(m.train.START)+((np.arange(n)//group)+1)*group*300_000_000_000
+                              for group in (1, 3, 12, 48, 288)]).astype(np.int64)
+    truth = {'issue_ns': issues, 'activity': np.zeros((n, 5), np.float32), 'side_up': np.zeros((n, 5), np.float32),
+             'activity_known': np.ones((n, 5), bool), 'side_known': side_known, 'target_start_ns': starts}
+    packet = {'features': features, 'truth': truth}
+    coefficients = np.arange(1, 6, dtype=np.float32).reshape(1, 5)
+    baseline = {'activity_logits': (x*.25)*coefficients, 'side_logits': (-2*(x*.25))*coefficients}
+    capture = {'issue_ns': issues.copy(), **{head: value-np.float32(.01) for head, value in baseline.items()}}
+    def record(value):
+        return {'values': value.astype(np.float64).tolist(), 'shape': list(value.shape), 'dtype': value.dtype.str, 'sha256': m.core.digest(value)}
+    predecessor = {'status': 'CPU_BASELINE_COMPLETE_BEFORE_DERIVATIVES',
+                   'counts': {'NN_forwards': 96, 'autograd_calls': 0}, 'outputs': {head: record(value) for head, value in baseline.items()}}
+    if baseline_mismatch:
+        changed = baseline['side_logits'].copy(); changed[95, 4] += .02
+        predecessor['outputs']['side_logits'] = record(changed)
+    predecessor_path = tmp_path / 'PREDECESSOR_CPU_BASELINE.json'
+    predecessor_path.write_text(json.dumps(predecessor, sort_keys=True, allow_nan=False))
+    predecessor_ref = m.ref(predecessor_path)
+    anchor = {'name': 'CPU_GRAD_ENABLED_UNMERGED', 'logits': {
+        head: {**record(value[:1]), 'values': value[0].astype(np.float64).tolist()} for head, value in baseline.items()}}
+    row0_proof = {key: {'shape': list(value[:1].shape), 'dtype': str(value.dtype),
+                       'sha256': m.core.digest(value[:1].numpy())} for key, value in features.items()}
+    plan = {'metadata': {'adapter_metadata': {}, 'original_epoch_plan': {'metadata': {'architecture': {}}},
+                        'final_receipt': {'proof': stored_proof}}, 'original_model_contract': original_contract,
+            'candidate_model_contract': candidate_contract,
+            'prior_CPU_anchor': {'route': anchor, 'selected_issue_ns': int(issues[0]), 'selected_source_row': 0, 'feature_proof': row0_proof},
+            'inputs': {'capture': {'path': '/synthetic/ALL_CAPTURE.npz', 'sha256': 'a'*64},
+                       'predecessor_CPU_baseline': predecessor_ref},
+            'panel': {'issue_ns_sha256': m.core.digest(issues), 'source_rows_sha256': m.core.digest(rows)},
+            'TRAIN_issue_ns_sha256': m.core.digest(issues), 'capture_array_headers': {},
+            'budget': {'packet_feature_bytes': sum(value.numel()*value.element_size() for value in features.values()),
+                       'capture_ndarray_bytes_decoded': sum(value.nbytes for value in capture.values()),
+                       'NN_forwards_max': 192, 'autograd_calls_max': 768}, 'route': copy.deepcopy(m.ALL_ROUTE),
+            'tolerances': copy.deepcopy(TOLERANCES), 'fixed_original_tolerance': copy.deepcopy(TOLERANCES['saved_FINAL_logits']),
+            'cache_scope': {'synthetic': True}, 'limits': []}
+    monkeypatch.setattr(m, 'ALL_ROOT', tmp_path / 'ALL_CLAIMED'); m.ALL_ROOT.mkdir()
+    monkeypatch.setattr(m, 'ALL_PLAN', tmp_path / 'ALL_PLAN.json'); monkeypatch.setattr(m, 'POLICY', tmp_path / 'POLICY.json')
+    m.ALL_PLAN.write_text(json.dumps(plan, sort_keys=True, allow_nan=False)); plan_ref = m.ref(m.ALL_PLAN)
+    policy = dict.fromkeys(m.saved.FLAGS, False); policy[m.ALL_STAGE] = m.gate_all_tf_expected(plan_ref, True)
+    m.POLICY.write_text(json.dumps(policy, sort_keys=True)); policy_ref = m.ref(m.POLICY)
+    claim = {'stage': m.ALL_STAGE, 'plan': plan_ref, 'policy_at_claim': policy_ref, 'remaining_invocations': 0, 'relaunch_allowed': False}
+    claim_path = m.ALL_ROOT/'CLAIM.json'; claim_path.write_text(json.dumps(claim, sort_keys=True))
+    refs = {'plan': plan_ref, 'claim': m.ref(claim_path), 'policy_at_claim': policy_ref}
+    released, models, calls, events, grad_rows, gates, scales, checkpoint_checks, proof_calls = [], [], [], [], [], [], [], [], []
+    original_grad, original_compare, original_scale, original_report = torch.autograd.grad, m.first_parity_compare, m.scaled_canonical_loss, m.all_tf_gradient_report
+    def load_context(_):
+        context = Context(provider=SimpleNamespace(bar_start_ns=np.array([int(m.train.START)], np.int64)),
+                          source_rows=rows, normalization={}, prior={}, input_binding={}, target_contract={})
+        released.append(weakref.ref(context)); return context
+    def factory(**kwargs):
+        assert kwargs['backbone_gradient_policy'] is None and kwargs['device'] == torch.device('cpu')
+        assert released[0]() is None
+        model = Candidate(); models.append(model); return model
+    def checkpoint_proof(value):
+        assert value is cp and m.core.state_sha(cp) == cp_sha
+        checkpoint_checks.append(True); return stored_proof.copy()
+    def helper(model, bound_features, *, grouped, equal_tf, capture):
+        assert grouped is True and equal_tf is capture is False and torch.is_grad_enabled() is True and model.training is False
+        assert events and events[0][0] == 'TRANSFER_PROOF.json'
+        assert len(model._forward_pre_hooks) == 1
+        assert all(not child._forward_hooks and not child._forward_pre_hooks for child in model.modules() if child is not model)
+        index = len(calls); calls.append(index)
+        with body.model_finite_check_scope('grouped'): output = model(**bound_features)
+        if index >= 96 and index-96 == mismatch_row: output['side_logits'] = output['side_logits'] + .02
+        activation = {'batch_eval_active': False, 'model_training': False, 'grad_enabled': True, 'scope_enabled': False,
+                      'eligible_equal_length_TF_groups': {'16': ['M5'], '64': ['M15'], '96': ['H1', 'H4'], '252': ['D1']}}
+        return output, None, activation
+    def compare(reference, candidate, *, tolerance):
+        result = original_compare(reference, candidate, tolerance=tolerance)
+        if len(calls) > 96:
+            gates.append((len(calls)-97, 'activity_logits' if candidate[0, 0] > 0 else 'side_logits', result['all_within_original_tolerance']))
+        return result
+    def gradient(*args, **kwargs):
+        row = len(calls)-97
+        assert [name for name, _ in events] == ['TRANSFER_PROOF.json', 'CPU_BASELINE.json']
+        assert {head for index, head, passed in gates if index == row and passed} == {'activity_logits', 'side_logits'}
+        grad_rows.append(row); return original_grad(*args, **kwargs)
+    def publish(name, value):
+        if name == 'TRANSFER_PROOF.json': assert calls == grad_rows == []
+        elif name == 'CPU_BASELINE.json': assert len(calls) == 96 and grad_rows == []
+        else: raise AssertionError('UNBUDGETED_PUBLICATION')
+        events.append((name, copy.deepcopy(value)))
+        return {'path': str(m.ALL_ROOT/name), 'sha256': ('e' if name.startswith('TRANSFER') else 'f')*64}
+    def canonical(*, model_output, truth, **kwargs):
+        losses = []
+        for head, label, mask in (('activity_logits', 'activity', 'activity_known'), ('side_logits', 'side_up', 'side_known')):
+            y, known = torch.from_numpy(truth[label]), torch.from_numpy(truth[mask])
+            bce = torch.nn.functional.binary_cross_entropy_with_logits(model_output[head], y, reduction='none')
+            losses.append(torch.where(known, bce, torch.zeros_like(bce)).sum())
+        count = int(truth['activity_known'].sum()); return {'loss': sum(losses)/count, 'count': count}
+    def scaling(loss, chunk_denominator, full_denominator):
+        assert (chunk_denominator, full_denominator) == (5, 480)
+        scales.append(True); return original_scale(loss, chunk_denominator, full_denominator)
+    def report(gradients, **kwargs):
+        assert all(value is None or value.dtype == torch.float64 for values in gradients.values() for value in values)
+        proof_calls.append(True); return original_report(gradients, **kwargs)
+    monkeypatch.setattr(m.adapter, 'load_context', load_context); monkeypatch.setattr(m.adapter, 'packet', lambda *a: packet)
+    monkeypatch.setattr(m.train, 'slice_provider_hlc_truth', lambda value, take, **k: {key: array[take].copy() for key, array in value.items()})
+    monkeypatch.setattr(m.saved, 'load_fields', lambda binding, fields, headers: {key: capture[key] for key in fields})
+    monkeypatch.setattr(m.model_owner, 'build_native_future_state_model', factory); monkeypatch.setattr(m, 'safe_load_final', lambda plan: cp)
+    monkeypatch.setattr(m.train, 'checkpoint_proof', checkpoint_proof); monkeypatch.setattr(m.core, 'future_cuda_forward', helper)
+    monkeypatch.setattr(m, 'first_parity_compare', compare); monkeypatch.setattr(torch.autograd, 'grad', gradient)
+    monkeypatch.setattr(m, 'all_tf_publish', publish); monkeypatch.setattr(m.objective, 'native_future_state_loss', canonical)
+    monkeypatch.setattr(m, 'scaled_canonical_loss', scaling); monkeypatch.setattr(m, 'all_tf_gradient_report', report)
+    monkeypatch.setattr(torch, 'set_num_threads', lambda count: None); monkeypatch.setattr(torch, 'get_num_threads', lambda: 1)
+    monkeypatch.setattr(torch.cuda, 'is_initialized', lambda: False)
+    trace = {'refs': refs, 'calls': calls, 'events': events, 'grad_rows': grad_rows, 'scales': scales,
+             'checkpoint_checks': checkpoint_checks, 'proof_calls': proof_calls, 'cp': cp, 'cp_sha': cp_sha}
+    return plan, baseline, packet, models, trace
+
+
+def all_tf_counts():
+    counts = cpu_conditional_counts(); counts.update(autograd_calls=768, transfer_artifact_writes=1)
+    return counts
+
+
+def test_all_tf_complete_contrast_transfers_only_parameters_and_gates_all96_before_any_gradient(monkeypatch, tmp_path):
+    plan, baseline, packet, models, trace = all_tf_calculation(monkeypatch, tmp_path)
+    progress = {'execution_refs': trace['refs']}; report = m.calculate_all_tf(plan, progress=progress)
+    assert report['counts'] == all_tf_counts() and len(models) == 1
+    assert len(trace['calls']) == 192 and trace['grad_rows'] == [row for row in range(96) for _ in range(8)]
+    assert len(trace['scales']) == 96 and trace['checkpoint_checks'] == trace['proof_calls'] == [True]
+    assert [name for name, _ in trace['events']] == ['TRANSFER_PROOF.json', 'CPU_BASELINE.json']
+    transfer, artifact = [value for _, value in trace['events']]
+    assert transfer['status'] == 'TRANSFER_PROOF_COMPLETE_BEFORE_FORWARD'
+    assert transfer['counts']['NN_forwards'] == transfer['counts']['autograd_calls'] == 0
+    assert transfer['proof']['sole_state_difference'] == ['future_state_model_sha256']
+    assert artifact['status'] == 'ALL_TF_CPU_BASELINE_COMPLETE_BEFORE_DERIVATIVES'
+    assert artifact['counts']['NN_forwards'] == 96 and artifact['counts']['autograd_calls'] == 0
+    assert all(value['all_within_original_tolerance'] for value in report['candidate_vs_predecessor_CPU_baseline'].values())
+    assert report['known_activity_denominator_full_B96'] == 480
+    assert report['gradient_proof']['aux_gradient_status'] == 'NONZERO'
+    assert report['gradient_proof']['component_gradient_contract_verified'] is True
+    assert report['strict_candidate_owned_state_installed'] is report['no_candidate_fit_warmstart'] is True
+    assert report['original_model_contract'] != report['candidate_model_contract']
+    assert m.core.state_sha(trace['cp']) == trace['cp_sha']
+    for head in baseline:
+        assert report['cpu_baseline_outputs'][head]['values'] == baseline[head].astype(np.float64).tolist()
+        assert report['cpu_replay_comparison'][head]['failed_cells'] == 0
+        assert report['saved_CUDA_comparison'][head]['failed_cells'] == 480
+    expected_side_rows = [96, 48, 16, 4, 4]
+    expected_distinct = [96, 32, 8, 2, 1]
+    for j, tf in enumerate(('M5', 'M15', 'H1', 'H4', 'D1')):
+        assert report['per_TF_support'][tf] == {'activity_rows': 96, 'side_rows': expected_side_rows[j],
+            'activity_distinct_target_start_ns': expected_distinct[j], 'side_distinct_target_start_ns': expected_distinct[j]}
+    assert report['per_TF_support']['D1']['side_rows'] == 4 and report['per_TF_support']['D1']['side_distinct_target_start_ns'] == 1
+    assert report['original_saved_CUDA_gate'] == 'FAILED' and report['full96_gradient_qualification'] is False
+    assert report['ALL_TF_counterfactual_local_interaction_only'] is report['TRANSFER_PROOF_published_before_forward'] is True
+    assert report['retained_B96_packet_unmutated'] is report['model_state_and_local_RNG_bookend_passed'] is True
+    assert models[0].backbone.weight.item() == .25 and models[0].backbone.weight.grad is None and not models[0]._forward_pre_hooks
+    assert report['actual_training_cause'] == report['selected_causal_fix'] == report['economic_edge'] == 'UNKNOWN'
+    json.dumps(report, allow_nan=False)
+
+
+def test_all_tf_candidate_baseline_failure_after_row95_blocks_every_derivative(monkeypatch, tmp_path):
+    plan, _, _, models, trace = all_tf_calculation(monkeypatch, tmp_path, baseline_mismatch=True)
+    progress = {'execution_refs': trace['refs']}
+    with pytest.raises(ValueError, match='CANDIDATE_BASELINE_MISMATCH_BEFORE_DERIVATIVES'):
+        m.calculate_all_tf(plan, progress=progress)
+    assert len(trace['calls']) == 96 and trace['grad_rows'] == trace['scales'] == trace['proof_calls'] == []
+    assert [name for name, _ in trace['events']] == ['TRANSFER_PROOF.json']
+    assert progress['counts']['autograd_calls'] == progress['counts']['baseline_artifact_writes'] == 0
+    assert progress['candidate_vs_predecessor_CPU_baseline']['side_logits']['failed_cells'] == 1
+    assert models[0].backbone.weight.grad is None and not models[0]._forward_pre_hooks
+
+
+def test_all_tf_late_replay_mismatch_preserves_transfer_and_baseline_but_invalidates_entire_gradient(monkeypatch, tmp_path):
+    plan, _, _, models, trace = all_tf_calculation(monkeypatch, tmp_path, mismatch_row=3)
+    progress = {'execution_refs': trace['refs']}
+    with pytest.raises(ValueError, match='REPLAY_MISMATCH_BEFORE_DERIVATIVES'):
+        m.calculate_all_tf(plan, progress=progress)
+    assert len(trace['calls']) == 100 and trace['grad_rows'] == [row for row in range(3) for _ in range(8)]
+    assert [name for name, _ in trace['events']] == ['TRANSFER_PROOF.json', 'CPU_BASELINE.json']
+    assert progress['counts']['autograd_calls'] == 24 and len(trace['scales']) == 3
+    assert progress['second_pass_rows'][-1]['index'] == 3
+    assert progress['second_pass_rows'][-1]['vs_CPU_baseline']['side_logits']['all_within_original_tolerance'] is False
+    assert trace['proof_calls'] == [] and 'gradient_proof' not in progress
+    assert m.core.state_sha(trace['cp']) == trace['cp_sha']
+    assert models[0].backbone.weight.grad is None and not models[0]._forward_pre_hooks
+    json.dumps(progress, allow_nan=False)
+
+
+def test_all_tf_execution_refs_are_required_before_payload_or_factory(monkeypatch, tmp_path):
+    plan, _, _, models, trace = all_tf_calculation(monkeypatch, tmp_path)
+    def forbidden(*a, **k): raise AssertionError('NO_ALL_TF_PAYLOAD_BEFORE_EXECUTION_BINDING')
+    monkeypatch.setattr(m.adapter, 'load_context', forbidden)
+    wrong = copy.deepcopy(trace['refs']); wrong['plan'] = wrong['policy_at_claim'].copy()
+    for progress in ({}, {'execution_refs': None}, {'execution_refs': wrong}):
+        with pytest.raises(ValueError, match='EXECUTION_REF'):
+            m.calculate_all_tf(plan, progress=progress)
+    assert models == trace['calls'] == trace['events'] == trace['grad_rows'] == []
+
+
+def test_all_tf_exact_counts_require_768_derivatives_and_one_transfer_artifact():
+    assert m.all_tf_validate_counts(all_tf_counts(), {'NN_forwards_max': 192, 'autograd_calls_max': 768}) is True
+    for key in ('autograd_calls', 'transfer_artifact_writes', 'baseline_artifact_writes', 'optimizer_updates'):
+        counts = all_tf_counts(); counts[key] += 1
+        with pytest.raises(ValueError): m.all_tf_validate_counts(counts, {'NN_forwards_max': 192, 'autograd_calls_max': 768})
+
+
+def all_tf_lifecycle(monkeypatch, tmp_path):
+    plan, _, pref, hooks, timers = cpu_conditional_lifecycle(monkeypatch, tmp_path)
+    monkeypatch.setattr(m, 'ALL_ROOT', tmp_path / 'ALL_OUT'); monkeypatch.setattr(m, 'ALL_PLAN', tmp_path / 'ALL_PLAN.json')
+    m.ALL_PLAN.write_text('{"synthetic_all_tf":true}'); binding = m.ref(m.ALL_PLAN)
+    monkeypatch.setattr(m, 'inspect_all_tf', lambda *a, **k: (plan, binding, pref))
+    monkeypatch.setattr(m, 'calculate_all_tf', lambda *a, **k: {'original_saved_CUDA_gate': 'FAILED'})
+    return plan, binding, pref, hooks, timers
+
+
+def test_all_tf_exact_nested_opt_in_preflight_cannot_load_payload_or_publish_transfer(monkeypatch, tmp_path, capsys):
+    _, binding, _, hooks, _ = all_tf_lifecycle(monkeypatch, tmp_path)
+    def forbidden(*a, **k): raise AssertionError('NO_ALL_TF_PAYLOAD_IN_PREFLIGHT')
+    monkeypatch.setattr(m, 'calculate_all_tf', forbidden); monkeypatch.setattr(torch, 'load', forbidden); monkeypatch.setattr(np, 'load', forbidden)
+    monkeypatch.setattr(sys, 'argv', ['audit', '--first-parity-plan-sha256', binding['sha256'], '--cpu-conditional-gradient', '--all-tf', '--preflight'])
+    m.main(); result = json.loads(capsys.readouterr().out)
+    assert result['plan'] == binding and result['claim_created'] is False
+    assert all(result[key] == 0 for key in ('NN_forwards', 'autograd_calls', 'checkpoint_deserializations', 'NPZ_arrays_decoded', 'models'))
+    assert result['CUDA_initialized'] is False and hooks == []
+    assert not any(root.exists() for root in (m.ALL_ROOT, m.CPU_ROOT, m.BATCH_ROOT, m.PARITY_ROOT, m.ROOT))
+    monkeypatch.setattr(sys, 'argv', sys.argv + ['--all-tf'])
+    with pytest.raises(ValueError, match='EXACT_CLI'): m.main()
+    monkeypatch.setattr(sys, 'argv', ['audit', '--first-parity-plan-sha256', binding['sha256'], '--cpu-conditional-gradient', '--preflight', '--all-tf'])
+    with pytest.raises(SystemExit): m.main()
+
+
+@pytest.mark.parametrize('failure', [False, True])
+def test_all_tf_lifecycle_preserves_distinct_transfer_baseline_and_failed_original_identity(monkeypatch, tmp_path, failure):
+    _, binding, pref, _, timers = all_tf_lifecycle(monkeypatch, tmp_path)
+    def calculate(plan, *, progress):
+        transfer = m.all_tf_publish('TRANSFER_PROOF.json', {'status': 'TRANSFER_PROOF_COMPLETE_BEFORE_FORWARD', 'NN_forwards': 0})
+        baseline = m.all_tf_publish('CPU_BASELINE.json', {'status': 'ALL_TF_CPU_BASELINE_COMPLETE_BEFORE_DERIVATIVES', 'NN_forwards': 96, 'autograd_calls': 0})
+        progress.update(transfer_proof=transfer, cpu_baseline=baseline, counts={'NN_forwards': 100, 'autograd_calls': 24})
+        if failure: raise ValueError('SYNTHETIC_ALL_TF_LATE_FAILURE')
+        return {'transfer_proof': transfer, 'cpu_baseline': baseline, 'original_saved_CUDA_gate': 'FAILED',
+                'full96_gradient_qualification': False, 'no_candidate_fit_warmstart': True}
+    monkeypatch.setattr(m, 'calculate_all_tf', calculate)
+    if failure:
+        with pytest.raises(ValueError, match='SYNTHETIC_ALL_TF_LATE_FAILURE'): m.run_all_tf(binding['sha256'])
+    else:
+        outputs = m.run_all_tf(binding['sha256']); assert outputs['result'] == m.ref(m.ALL_ROOT/'RESULT.json')
+        result = json.loads((m.ALL_ROOT/'RESULT.json').read_text())
+        assert result['report']['original_saved_CUDA_gate'] == 'FAILED'
+        assert result['report']['full96_gradient_qualification'] is False and result['report']['no_candidate_fit_warmstart'] is True
+    terminal = json.loads((m.ALL_ROOT/'TERMINAL.json').read_text()); claim = json.loads((m.ALL_ROOT/'CLAIM.json').read_text())
+    assert terminal['status'] == ('FAILED_CONSUMED' if failure else 'COMPLETE') and terminal['exit_code'] == int(failure)
+    assert terminal['stage'] == claim['stage'] == m.ALL_STAGE and terminal['plan'] == binding
+    assert terminal['remaining_invocations'] == 0 and terminal['relaunch_allowed'] is claim['training_authorized'] is False
+    assert claim['policy_at_claim'] == pref and (m.ALL_ROOT/'RESULT.json').exists() is (not failure)
+    assert (m.ALL_ROOT/'TRANSFER_PROOF.json').is_file() and (m.ALL_ROOT/'CPU_BASELINE.json').is_file()
+    if failure:
+        assert terminal['result'] is None and terminal['progress']['counts']['autograd_calls'] == 24
+        assert terminal['progress']['transfer_proof'] == m.ref(m.ALL_ROOT/'TRANSFER_PROOF.json')
+    assert not any(root.exists() for root in (m.CPU_ROOT, m.BATCH_ROOT, m.PARITY_ROOT, m.ROOT))
+    assert timers[-1] == (m.signal.ITIMER_REAL, 0)
+    with pytest.raises(FileExistsError): m.run_all_tf(binding['sha256'])
+
+
+@pytest.mark.parametrize('admitted', [False, True])
+def test_all_tf_gate_is_read_only_one_use_and_never_fit_warmstart_authority(admitted):
+    binding = {'path': '/synthetic/ALL_PLAN.json', 'sha256': 'e'*64}
+    gate = m.gate_all_tf_expected(binding, admitted)
+    assert gate['plan'] == binding and gate['execution_authorized'] is admitted and gate['remaining_invocations'] == int(admitted)
+    assert gate['training_authorized'] is gate['test_authorized'] is gate['relaunch_allowed'] is False
+
+
+def test_all_tf_inspection_keeps_all_four_predecessors_and_global_training_flags_closed(monkeypatch, tmp_path):
+    planfile, policyfile = tmp_path/'ALL_PLAN.json', tmp_path/'POLICY.json'
+    monkeypatch.setattr(m, 'ALL_PLAN', planfile); monkeypatch.setattr(m, 'POLICY', policyfile)
+    monkeypatch.setattr(m, 'ALL_ROOT', tmp_path/'ALL_OUT'); monkeypatch.setattr(m, 'REPO', Path.cwd())
+    predecessors = ((m.STAGE, 'failed_gradient_plan'), (m.PARITY_STAGE, 'first_parity_plan'),
+                    (m.BATCH_STAGE, 'batch_geometry_plan'), (m.CPU_STAGE, 'predecessor_plan'))
+    inputs = {role: {'path': '/synthetic/'+role+'.json', 'sha256': 'a'*64} for _, role in predecessors}
+    plan = {'source_base_commit': '1'*40, 'inputs': inputs}; planfile.write_text(json.dumps(plan)); binding = m.ref(planfile)
+    policy = dict.fromkeys(m.saved.FLAGS, False)
+    for stage, role in predecessors:
+        policy[stage] = {'plan': inputs[role], 'execution_authorized': False, 'remaining_invocations': 0,
+                        'relaunch_allowed': False, 'training_authorized': False, 'test_authorized': False}
+    policy[m.ALL_STAGE] = m.gate_all_tf_expected(binding, False)
+    monkeypatch.setattr(m, 'build_all_tf_plan', lambda **k: plan); monkeypatch.setattr(m, 'source_clean', lambda value: True)
+    def inspect():
+        policyfile.write_text(json.dumps(policy)); return m.inspect_all_tf(binding['sha256'], admitted=False)
+    assert inspect()[0] == plan
+    for key in m.saved.FLAGS:
+        policy[key] = True
+        with pytest.raises(ValueError, match='ONE_USE_FLAGS'): inspect()
+        policy[key] = False
+    for stage, _ in predecessors:
+        policy[stage]['remaining_invocations'] = 1
+        with pytest.raises(ValueError, match='OLD_PLANS_CLOSED'): inspect()
+        policy[stage]['remaining_invocations'] = 0
+    policy[m.ALL_STAGE]['training_authorized'] = True
+    with pytest.raises(ValueError, match='ONE_USE_FLAGS'): inspect()
+    policy[m.ALL_STAGE]['training_authorized'] = False; m.ALL_ROOT.mkdir()
+    with pytest.raises(ValueError, match='FRESH_ROOT'): inspect()
+
+
+@pytest.mark.parametrize('case', ['buffer', 'parameter_alias'])
+def test_all_tf_numeric_transfer_rejects_signed_zero_byte_difference_despite_numeric_equality(case):
+    candidate, original, old_contract, new_contract = all_tf_transfer_fixture()
+    if case == 'buffer':
+        candidate.register_buffer('zero_buffer', torch.tensor([0.], dtype=torch.float32))
+        original['zero_buffer'] = torch.tensor([-0.], dtype=torch.float32)
+        left, right = candidate.zero_buffer, original['zero_buffer']
+    else:
+        original['parameter'] = torch.tensor([[0., 1.]], dtype=torch.float32)
+        original['parameter_alias'] = torch.tensor([[-0., 1.]], dtype=torch.float32)
+        left, right = original['parameter'], original['parameter_alias']
+    assert torch.equal(left, right) is True
+    assert m.core.state_sha(left) != m.core.state_sha(right)
+    candidate_before, original_before = m.core.state_sha(candidate.state_dict()), m.core.state_sha(original)
+    with pytest.raises(ValueError, match='TRANSFER_IMMUTABLE_BUFFER|TRANSFER_ALIAS_VALUES'):
+        m.all_tf_numeric_transfer(candidate, original, original_contract=old_contract, candidate_contract=new_contract)
+    assert m.core.state_sha(candidate.state_dict()) == candidate_before
+    assert m.core.state_sha(original) == original_before
+
+
+def test_all_tf_builder_keeps_external_baseline_reference_without_embedding_forecast_rows():
+    tree = ast.parse(Path(m.__file__).read_text())
+    builder = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'build_all_tf_plan')
+    assignments = {target.id: node for node in builder.body if isinstance(node, ast.Assign)
+                   for target in node.targets if isinstance(target, ast.Name) and target.id in ('inputs', 'plan')}
+    assert set(assignments) == {'inputs', 'plan'}
+    baseline_ref = {'path': '/synthetic/PRIVATE_PREDECESSOR_CPU_BASELINE.json', 'sha256': 'a'*64}
+    binding = lambda name: {'path': '/synthetic/'+name+'.json', 'sha256': 'b'*64}
+    baseline = {'status': 'CPU_BASELINE_COMPLETE_BEFORE_DERIVATIVES',
+                'outputs': {'side_logits': {'values': [['DO_NOT_EMBED_PRIVATE_ROW_FORECASTS']]}}}
+    scope = {'predecessor_CPU_baseline': baseline_ref, 'current_model_owner': binding('owner'),
+             'question': 'Frozen same-point all-TF gradient contrast.', 'decision_before_run': 'No selected policy or causal history.',
+             'numeric_transfer_contract': {'scope_limit': 'Diagnostic parameter transfer only.'}}
+    base = {'inputs': {'scope': binding('CPU_scope'), 'capture': binding('capture')},
+            'model_contract': {'contract_sha256': 'c'*64}, 'input_roles_not_JSON': ['capture']}
+    environment = {'scope': scope, 'baseline': baseline, 'base': base,
+        'accepted': {role: binding(role) for role in ('plan', 'result', 'terminal')},
+        'candidate': {'contract_sha256': 'd'*64}, 'budget': {'NN_forwards_max': 192, 'autograd_calls_max': 768},
+        'r': {'measured_predecessor': 'Predecessor capacity is not a new-gradient peak guarantee.'},
+        **{name: getattr(m, name) for name in ('ALL_SCOPE', 'ALL_EVIDENCE', 'ALL_STAGE', 'ALL_PLAN', 'ALL_ROOT',
+                                              'ALL_EXECUTION', 'ALL_PARENT', 'ALL_ROUTE')}}
+    statements = ast.Module(body=[copy.deepcopy(assignments['inputs']), copy.deepcopy(assignments['plan'])], type_ignores=[])
+    exec(compile(ast.fix_missing_locations(statements), '<actual_ALL_plan_reference_only>', 'exec'), environment)
+    plan = environment['plan']
+    assert plan['inputs']['predecessor_CPU_baseline'] == baseline_ref
+    assert set(plan['inputs']['predecessor_CPU_baseline']) == {'path', 'sha256'}
+    assert 'predecessor_CPU_baseline' not in plan and 'outputs' not in plan
+    assert 'DO_NOT_EMBED_PRIVATE_ROW_FORECASTS' not in json.dumps(plan, sort_keys=True)
+    assert plan['budget'] == {'NN_forwards_max': 192, 'autograd_calls_max': 768}
