@@ -1441,7 +1441,73 @@ configure_native_provider_hlc_all_tf_replay() {
 }
 # END GX1 PROVIDER HLC ALL TF ROUTES 20261124 001 MATCHERS
 
+# BEGIN GX1 ALL TF INITIAL SEGMENT ROUTE 20261124 003 MATCHERS
+matches_bound_native_provider_hlc_all_tf_initial_segment() {
+  if [[ $# -eq 6 ]]; then
+    [[ "$6" == --preflight ]] || return 1
+    set -- "${@:1:5}"
+  fi
+  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$NATIVE_PROVIDER_HLC_INITIAL_MODULE" \
+    && "$4" == --all-tf-score-segment-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1
+  local base_root=/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003
+  local plan_dir="$base_root/PLANS"
+  local expected_plan="$plan_dir/$5.json"
+  [[ -d "$base_root" && ! -L "$base_root" && "$(readlink -f "$base_root")" == "$base_root" \
+    && -d "$plan_dir" && ! -L "$plan_dir" && "$(readlink -f "$plan_dir")" == "$plan_dir" \
+    && -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]
+}
+
+configure_native_provider_hlc_all_tf_initial_segment() {
+  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \
+    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \
+    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {
+    echo "FATAL: provider HLC INITIAL requires exact canonical trainer containment" >&2
+    exit 75
+  }
+  matches_bound_native_provider_hlc_all_tf_initial_segment "$@" || {
+    echo "FATAL: provider HLC INITIAL CLI/plan is not exactly bound" >&2
+    exit 75
+  }
+  local initial_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/SEGMENT_$5"
+  [[ ! -e "$initial_output" && ! -L "$initial_output" \
+    && -d "${initial_output%/*}" && ! -L "${initial_output%/*}" \
+    && "$(readlink -f "${initial_output%/*}")" == "${initial_output%/*}" ]] || {
+    echo "FATAL: provider HLC INITIAL output is not fresh canonical scope" >&2
+    exit 75
+  }
+  NATIVE_PROVIDER_HLC_ALL_TF_INITIAL=true
+  NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256="$5"
+  TRAINER_DEVICE=cuda
+  TRAINER_EXECUTION_MODE=canonical
+  TRAINER_OUT_BUNDLE_DIR="$initial_output"
+  TRAINER_MAX_WALL_SECONDS=3600
+  TRAINER_MODEL_MAX_WALL_SECONDS=3570
+  TRAINER_GPU_INDEX=0
+  TRAINER_GPU_MAX_POWER_LIMIT_W=250
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_MEMORY_TEMP_C=80
+  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+  TRAINER_CPU_MAX_TEMP_C=80
+  TRAINER_CPU_MAX_PACKAGE_POWER_W=125
+  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592
+  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592
+}
+
+# END GX1 ALL TF INITIAL SEGMENT ROUTE 20261124 003 MATCHERS
+
 validate_target_command() {
+# BEGIN GX1 ALL TF INITIAL SEGMENT ROUTE 20261124 003 DISPATCH
+  if [[ "${4:-}" == --all-tf-score-segment-plan-sha256 ]]; then
+    configure_native_provider_hlc_all_tf_initial_segment "$@"
+    return
+  fi
+# END GX1 ALL TF INITIAL SEGMENT ROUTE 20261124 003 DISPATCH
 # BEGIN GX1 PROVIDER HLC ALL TF ROUTES 20261124 001 DISPATCH
   if [[ "${4:-}" == --all-tf-plan-sha256 ]]; then
     case "${3:-}" in

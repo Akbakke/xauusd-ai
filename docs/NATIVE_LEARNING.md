@@ -141,6 +141,33 @@ en liten forward-probe erstatter ikke denne fullstendige NN-startmålingen.
 En ny INITIAL-state og RNG sikres separat; ingen gammel v1-state tilpasses
 for å få identitetene til å passe. Ingen optimizer eller oppdatering følger.
 
+Ved målte avbrudd kan en egen, eksplisitt INITIAL-scoringrute bevare arbeid
+som autentiserte batchoutputs. Hver ferdige originale kildeklokkebatch må
+først ha faktisk native NN-forward, samme ferske modelltilstand, uendret
+RNG og ingen gradient. Begge CPU-F32-logitarrayene lagres med readback og
+immutabel kvittering sist; kilde, klokke, input, norm, fasit, attest, prior,
+modell/RNG og faktisk kjøreclaim følger outputen. Progress-tall eller
+priorgenererte logits er ingen erstatning for slike faktiske outputs.
+
+Hvert nytt segment har egen eksakt engangsplan og fersk outputsti under
+samme fryste baselinetrajektorie. Det konstruerer ferske parametre med
+samme seed og krever bitidentisk modell-/RNG-hash mot original INITIAL;
+vekter eller optimizer lastes ikke. Bare et sammenhengende prefiks med
+lukkede source/input/model/RNG/policy/bootbevis kan leses igjen. Manglende
+bevis feiler lukket. Kilde holdes fryst over hele baselinetrajektorien;
+hvert segment må fortsatt ha fersk preflight, backup og signert hostadmisjon.
+Alle maskinvare- og vedlikeholdsvakter beholdes, og segmenter relanseres ikke.
+
+Den endelige initialmålingen skal fortsatt dekke hele TRAIN-klokken med
+faktiske NN-outputs og samme fulle kanoniske skår mot matchet prior. Unike
+fullførte batcher/NN-rader skilles fra fysiske konstruksjoner, cachelastinger
+og forwards som ble avbrutt. Fullbaseline-kvitteringen publiseres sist og
+binder en fullført segmentsluttkvittering; et komplett cacheprefiks kan
+valideres ferdig med null nye forwards, uten å kalle gamle outputs nye.
+Dette gir ingen treningsadgang, selv om faktisk INITIAL og egen kald replay
+senere blir teknisk godkjent. Læring, senere generalisering og edge må måles.
+
+
 ACTIVE og UP|ACTIVE gir DOWN=a(1−s), FLAT=1−a, UP=as. Kjent aktivitets-BCE og
 sertifisert side-BCE deles på kjente aktivitetsceller. Ukjent side gir null
 direkte sidehodegradient med bevart aktivitetsgradient; helt ukjent celle er

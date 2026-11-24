@@ -372,7 +372,8 @@ def test_all_tf_nested_mode_hash_and_profile_must_match_parent(field):
     assert result.returncode == (75 if field else 0), result.stderr
 
 
-def test_all_tf_source_bridge_requires_exact_f33_old_guard_bytes():
+def test_all_tf_source_bridge_requires_exact_f33_old_guard_bytes(monkeypatch):
+    use_historical_guard_snapshot(monkeypatch, '9d7b39da9214f74dcf6a7b8bf1a0fd3a719da29f')
     function = getattr(g, 'native_provider_hlc_all_tf_' + ALL_KIND + '_source_bridge')
     proof = function(ALL_GUARDS, producer_commit=ALL_PARENT)
     assert proof['checked_guard_owners'] == 2 and proof['old_guard_routes_preserved'] is True
@@ -380,7 +381,8 @@ def test_all_tf_source_bridge_requires_exact_f33_old_guard_bytes():
 
 
 @pytest.mark.parametrize('case', ['producer', 'hash', 'extra'])
-def test_all_tf_source_bridge_rejects_unbound_parent(case):
+def test_all_tf_source_bridge_rejects_unbound_parent(monkeypatch, case):
+    use_historical_guard_snapshot(monkeypatch, '9d7b39da9214f74dcf6a7b8bf1a0fd3a719da29f')
     owners = dict(ALL_GUARDS); parent = ALL_PARENT
     if case == 'producer': parent = 'f' * 40
     elif case == 'hash': owners['scripts/gx1_capped_run.sh'] = 'f' * 64
@@ -391,6 +393,7 @@ def test_all_tf_source_bridge_rejects_unbound_parent(case):
 
 @pytest.mark.parametrize('name', ['gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh'])
 def test_all_tf_source_bridge_rejects_unrelated_parent_edit(monkeypatch, name):
+    use_historical_guard_snapshot(monkeypatch, '9d7b39da9214f74dcf6a7b8bf1a0fd3a719da29f')
     path = Path(g.__file__).resolve().parents[2] / name
     before = Path.read_bytes
     def changed(candidate):
@@ -422,3 +425,236 @@ def test_all_tf_invalid_sha_stops_before_scope(monkeypatch, bad):
     monkeypatch.setattr(g, 'require_guarded_cuda_trainer_execution', lambda: pytest.fail('bad SHA reached kernel'))
     with pytest.raises(RuntimeError):
         all_tf_require(bad)
+
+
+# Only one fixed003 scoring lineage; no caller-controlled plan or output path.
+SEGMENT_BASE = 'NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003'
+SEGMENT_PARENT = '9d7b39da9214f74dcf6a7b8bf1a0fd3a719da29f'
+SEGMENT_RECIPE = {'backbone_gradient_policy': None, 'batch_rows': 256, 'batches': 1385, 'drop_last': False, 'last_rows': 246, 'no_optimization': True, 'rows': 354550, 'seed': 20260911, 'shuffle': False}
+SEGMENT_EXECUTION = {'GPU_core_stop_C': 75, 'GPU_memory_stop_C': 80, 'GPU_power_draw_stop_W': 250, 'GPU_power_limit_W': 250, 'class': 'trainer', 'cpu_affinity': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18], 'cuda_peak_reserved_bytes_max': 12884901888, 'device': 'cuda:0', 'host_CPU_package_stop_W': 125, 'host_CPU_stop_C': 80, 'host_min_available_bytes': 8589934592, 'host_min_commit_headroom_bytes': 8589934592, 'internal_seconds': 3570, 'kill_after_seconds': 10, 'memory': '20G', 'numerical_threads': 8, 'outer_seconds': 3600, 'swap': '512M', 'tasks_max': 128, 'watchdog_interval_seconds': 1}
+SEGMENT_GUARDS = {
+    'gx1/contracts/gx1_capped_execution_v1.py': '926fbdf60e1a4204b3f4c38a39440d519a3a62b6c2cc76e4b5d8b5bd2db8ca3f',
+    'scripts/gx1_capped_run.sh': '0450ec5f0393807c618e7112cb4a67b0ecceba480649b465282543f4d9ca3b66',
+}
+
+
+def initial_segment_fixture(monkeypatch, tmp_path, *, preflight=False):
+    import copy
+    import json
+    import sys
+    old_path, _, _, _ = all_tf_python_fixture(monkeypatch, tmp_path)
+    repo = old_path.parents[2]
+    base_root = tmp_path / 'runs' / SEGMENT_BASE
+    (base_root / 'PLANS').mkdir(parents=True)
+    base_path = repo / 'configs/research' / (SEGMENT_BASE + '.json')
+    base = {'schema_version': 'gx1_native_provider_hlc_all_tf_resumable_initial_base_plan_v1',
+            'stage': SEGMENT_BASE.lower(), 'output_root': str(base_root), 'recipe': copy.deepcopy(SEGMENT_RECIPE),
+            'execution': copy.deepcopy(SEGMENT_EXECUTION), 'model_contract': {'contract_sha256': ALL_MODEL_SHA}}
+    base_path.write_text(json.dumps(base, sort_keys=True))
+    base_ref = {'path': str(base_path), 'sha256': hashlib.sha256(base_path.read_bytes()).hexdigest()}
+    segment = {'schema_version': 'gx1_native_provider_hlc_all_tf_initial_segment_plan_v1',
+               'stage': SEGMENT_BASE.lower(), 'base_root': str(base_root), 'base_plan': base_ref,
+               'recipe': copy.deepcopy(SEGMENT_RECIPE), 'execution': copy.deepcopy(SEGMENT_EXECUTION),
+               'model_contract': {'contract_sha256': ALL_MODEL_SHA}}
+    digest = initial_segment_write(base_root, segment, monkeypatch)
+    if preflight: sys.argv += ['--preflight']
+    monkeypatch.setattr(g, 'require_guarded_cuda_trainer_execution', lambda: {'kernel_scope': True})
+    return {'base_root': base_root, 'base_path': base_path, 'base': base, 'segment': segment,
+            'digest': digest, 'plan_path': base_root / 'PLANS' / (digest + '.json'),
+            'output_root': base_root / ('SEGMENT_' + digest)}
+
+
+def initial_segment_write(base_root, segment, monkeypatch):
+    import json
+    import sys
+    raw = json.dumps(segment, sort_keys=True).encode()
+    digest = hashlib.sha256(raw).hexdigest()
+    (base_root / 'PLANS' / (digest + '.json')).write_bytes(raw)
+    monkeypatch.setattr(sys, 'argv', [sys.argv[0], '--all-tf-score-segment-plan-sha256', digest])
+    for key, value in all_tf_environment_values(digest).items(): monkeypatch.setenv(key, value)
+    return digest
+
+
+@pytest.mark.parametrize('preflight', [False, True])
+def test_initial_segment_exact_sha_derived_plan_root_and_none_profile(monkeypatch, tmp_path, preflight):
+    fixture = initial_segment_fixture(monkeypatch, tmp_path, preflight=preflight)
+    proof = g.require_native_provider_hlc_all_tf_initial_segment_execution(plan_sha256=fixture['digest'])
+    assert proof['kernel_scope'] and proof['kind'] == 'provider_hlc_all_tf_initial_segment'
+    assert proof['plan'] == {'path': str(fixture['plan_path']), 'sha256': fixture['digest']}
+    assert proof['base_plan'] == fixture['segment']['base_plan']
+    assert proof['output_root'] == str(fixture['output_root'])
+    assert proof['read_only'] is True and proof['training_authority_granted'] is proof['optimizer_authority_granted'] is False
+    assert (proof['outer_seconds'], proof['internal_seconds'], proof['kill_after_seconds']) == (3600, 3570, 10)
+
+
+@pytest.mark.parametrize('case', ['own_plan_path', 'own_output_root', 'base_root', 'base_ref_path', 'base_ref_sha',
+                                  'base_ref_extra', 'stage', 'schema', 'model_sha', 'model_policy', 'policy',
+                                  'rows', 'batch', 'deadline', 'memory'])
+def test_initial_segment_rejects_arbitrary_paths_wrong_lineage_policy_and_profile(monkeypatch, tmp_path, case):
+    fixture = initial_segment_fixture(monkeypatch, tmp_path); segment = fixture['segment']
+    if case == 'own_plan_path': segment['plan_path'] = '/tmp/arbitrary.json'
+    elif case == 'own_output_root': segment['output_root'] = '/tmp/arbitrary-output'
+    elif case == 'base_root': segment['base_root'] += '_other'
+    elif case == 'base_ref_path': segment['base_plan']['path'] = '/tmp/arbitrary-base.json'
+    elif case == 'base_ref_sha': segment['base_plan']['sha256'] = 'f' * 64
+    elif case == 'base_ref_extra': segment['base_plan']['bytes'] = 1
+    elif case == 'stage': segment['stage'] = 'arbitrary'
+    elif case == 'schema': segment['schema_version'] = 'arbitrary'
+    elif case == 'model_sha': segment['model_contract']['contract_sha256'] = 'f' * 64
+    elif case == 'model_policy': segment['model_contract']['backbone_gradient_policy'] = None
+    elif case == 'policy': segment['recipe']['backbone_gradient_policy'] = 'M5_primary'
+    elif case == 'rows': segment['recipe']['rows'] -= 1
+    elif case == 'batch': segment['recipe']['batch_rows'] = 64
+    elif case == 'deadline': segment['execution']['outer_seconds'] = 7200
+    elif case == 'memory': segment['execution']['memory'] = '4G'
+    digest = initial_segment_write(fixture['base_root'], segment, monkeypatch)
+    monkeypatch.setattr(g, 'require_guarded_cuda_trainer_execution', lambda: pytest.fail('bad segment reached kernel'))
+    with pytest.raises(RuntimeError): g.require_native_provider_hlc_all_tf_initial_segment_execution(plan_sha256=digest)
+
+
+@pytest.mark.parametrize('case', ['schema', 'stage', 'root', 'model', 'recipe', 'execution'])
+def test_initial_segment_authenticates_bound_base_bytes_and_fields(monkeypatch, tmp_path, case):
+    import json
+    fixture = initial_segment_fixture(monkeypatch, tmp_path); base = fixture['base']
+    if case == 'schema': base['schema_version'] = 'arbitrary'
+    elif case == 'stage': base['stage'] = 'arbitrary'
+    elif case == 'root': base['output_root'] += '_other'
+    elif case == 'model': base['model_contract']['contract_sha256'] = 'f' * 64
+    elif case == 'recipe': base['recipe']['backbone_gradient_policy'] = 'M5_primary'
+    elif case == 'execution': base['execution']['GPU_power_limit_W'] = 300
+    fixture['base_path'].write_text(json.dumps(base, sort_keys=True))
+    fixture['segment']['base_plan']['sha256'] = hashlib.sha256(fixture['base_path'].read_bytes()).hexdigest()
+    digest = initial_segment_write(fixture['base_root'], fixture['segment'], monkeypatch)
+    monkeypatch.setattr(g, 'require_guarded_cuda_trainer_execution', lambda: pytest.fail('bad base reached kernel'))
+    with pytest.raises(RuntimeError): g.require_native_provider_hlc_all_tf_initial_segment_execution(plan_sha256=digest)
+
+
+@pytest.mark.parametrize('case', ['segment_symlink', 'base_symlink', 'plans_symlink', 'root_symlink',
+                                  'existing_output', 'output_symlink', 'old_flag', 'extra', 'wrong_owner',
+                                  'wrong_python', 'missing_sha_plan'])
+def test_initial_segment_rejects_noncanonical_path_or_inexact_argv(monkeypatch, tmp_path, case):
+    import sys
+    fixture = initial_segment_fixture(monkeypatch, tmp_path)
+    if case in ('segment_symlink', 'base_symlink'):
+        path = fixture['plan_path'] if case == 'segment_symlink' else fixture['base_path']
+        target = path.with_suffix('.original'); path.rename(target); path.symlink_to(target)
+    elif case in ('plans_symlink', 'root_symlink'):
+        path = fixture['base_root'] / 'PLANS' if case == 'plans_symlink' else fixture['base_root']
+        target = path.with_name(path.name + '_real'); path.rename(target); path.symlink_to(target)
+    elif case == 'existing_output': fixture['output_root'].mkdir()
+    elif case == 'output_symlink': fixture['output_root'].symlink_to(tmp_path / 'absent')
+    elif case == 'old_flag': sys.argv[1] = '--all-tf-plan-sha256'
+    elif case == 'extra': sys.argv += ['--unsafe']
+    elif case == 'wrong_owner': sys.argv[0] = str(tmp_path / 'arbitrary.py')
+    elif case == 'wrong_python': monkeypatch.setattr(sys, 'executable', '/usr/bin/python3')
+    elif case == 'missing_sha_plan': fixture['plan_path'].unlink()
+    monkeypatch.setattr(g, 'require_guarded_cuda_trainer_execution', lambda: pytest.fail('bad route reached kernel'))
+    with pytest.raises(RuntimeError): g.require_native_provider_hlc_all_tf_initial_segment_execution(plan_sha256=fixture['digest'])
+
+
+@pytest.mark.parametrize('field', ['GX1_CAPPED_MEMORY_BYTES', 'GX1_CAPPED_TASKS_MAX', 'OMP_NUM_THREADS',
+                                   'GX1_TRAINER_MODEL_MAX_WALL_SECONDS', 'GX1_TRAINER_GPU_MAX_POWER_DRAW_W',
+                                   'GX1_TRAINER_GPU_MAX_CORE_TEMP_C', 'GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES',
+                                   'GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL', 'GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256'])
+def test_initial_segment_keeps_every_existing_containment_class(monkeypatch, tmp_path, field):
+    fixture = initial_segment_fixture(monkeypatch, tmp_path)
+    monkeypatch.setenv(field, all_tf_environment_values(fixture['digest'])[field] + 'wrong')
+    monkeypatch.setattr(g, 'require_guarded_cuda_trainer_execution', lambda: pytest.fail('bad profile reached kernel'))
+    with pytest.raises(RuntimeError, match='ENV_INVALID'):
+        g.require_native_provider_hlc_all_tf_initial_segment_execution(plan_sha256=fixture['digest'])
+
+
+def test_initial_segment_cannot_borrow_normal_initial_authority(monkeypatch, tmp_path):
+    fixture = initial_segment_fixture(monkeypatch, tmp_path)
+    monkeypatch.setattr(g, 'require_guarded_cuda_trainer_execution', lambda: pytest.fail('segment reached old authority'))
+    with pytest.raises(RuntimeError):
+        g.require_native_provider_hlc_all_tf_initial_execution(plan_sha256=fixture['digest'])
+
+
+def initial_segment_shell_harness(tmp_path, *, case=None, configure=False):
+    repo = tmp_path / 'repo'; repo.mkdir()
+    base = tmp_path / 'runs' / SEGMENT_BASE; plans = base / 'PLANS'; plans.mkdir(parents=True)
+    raw = b'{"fixture":true}\n'; digest = hashlib.sha256(raw).hexdigest()
+    path = plans / (digest + '.json'); path.write_bytes(raw)
+    output = base / ('SEGMENT_' + digest)
+    argv = [str(repo / '.venv/bin/python'), '-m', MODULE, '--all-tf-score-segment-plan-sha256', digest]
+    if case == 'preflight': argv += ['--preflight']
+    elif case == 'extra': argv += ['--unsafe']
+    elif case == 'wrong_module': argv[2] = 'gx1.audit.native_provider_hlc_replay_v1'
+    elif case == 'wrong_python': argv[0] = '/usr/bin/python3'
+    elif case == 'old_flag': argv[3] = '--all-tf-plan-sha256'
+    elif case == 'wrong_sha': argv[4] = 'f' * 64
+    elif case == 'missing_plan': path.unlink()
+    elif case == 'plan_symlink':
+        target = path.with_suffix('.original'); path.rename(target); path.symlink_to(target)
+    elif case == 'plans_symlink':
+        target = base / 'REAL_PLANS'; plans.rename(target); plans.symlink_to(target)
+    elif case == 'root_symlink':
+        target = base.with_name(base.name + '_real'); base.rename(target); base.symlink_to(target)
+    elif case == 'existing_output': output.mkdir()
+    elif case == 'output_symlink': output.symlink_to(tmp_path / 'absent')
+    additions = g._NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_SEGMENT_GUARD_SHELL_ADDITIONS
+    state = g._NATIVE_PROVIDER_HLC_INITIAL_GUARD_SHELL_ADDITIONS[0][2]
+    state += g._NATIVE_PROVIDER_HLC_REPLAY_GUARD_SHELL_ADDITIONS[0][2]
+    state += g._NATIVE_PROVIDER_HLC_ALL_TF_GUARD_SHELL_ADDITIONS[0][2]
+    functions = additions[0][2].replace('/home/andre2/GX1_RUNS/' + SEGMENT_BASE, str(base))
+    script = state + functions + '\nREPO_ROOT=' + shlex.quote(str(repo))
+    script += '\nCANONICAL_TRAINER_PYTHON=' + shlex.quote(str(repo / '.venv/bin/python'))
+    if configure:
+        values = {'JOB_CLASS': 'trainer', 'ATTENDED_SMOKE': 'false', 'CUDA_PRODUCER_GUARD': 'false',
+                  'MEM': '20G', 'SWAP': '512M', 'POWER_BENCHMARK_SCOPE_JSON': '', 'POWER_BENCHMARK_SCOPE_SHA256': ''}
+        if case == 'audit_class': values['JOB_CLASS'] = 'audit'
+        elif case == 'wrong_memory': values['MEM'] = '4G'
+        script += ''.join('\n' + key + '=' + shlex.quote(value) for key, value in values.items())
+        script += '\nvalidate_target_command() {\n' + additions[1][2] + '\nreturn 88\n}\nvalidate_target_command '
+        script += ' '.join(map(shlex.quote, argv))
+        script += '\nprintf "%s,%s,%s,%s,%s,%s\\n" "$NATIVE_PROVIDER_HLC_ALL_TF_INITIAL" "$TRAINER_MAX_WALL_SECONDS" "$TRAINER_MODEL_MAX_WALL_SECONDS" "$TRAINER_GPU_MAX_POWER_DRAW_W" "$TRAINER_OUT_BUNDLE_DIR" "$NATIVE_PROVIDER_HLC_INITIAL"\n'
+    else:
+        script += '\nmatches_bound_native_provider_hlc_all_tf_initial_segment ' + ' '.join(map(shlex.quote, argv)) + '\n'
+    return subprocess.run(['bash', '-c', script], cwd=repo, text=True, capture_output=True), output
+
+
+@pytest.mark.parametrize('case', [None, 'preflight'])
+def test_initial_segment_shell_only_accepts_sha_named_fixed_lineage(tmp_path, case):
+    result, _ = initial_segment_shell_harness(tmp_path, case=case)
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize('case', ['extra', 'wrong_module', 'wrong_python', 'old_flag', 'wrong_sha', 'missing_plan',
+                                  'plan_symlink', 'plans_symlink', 'root_symlink'])
+def test_initial_segment_shell_rejects_arbitrary_commands_paths_and_aliases(tmp_path, case):
+    assert initial_segment_shell_harness(tmp_path, case=case)[0].returncode != 0
+
+
+def test_initial_segment_configure_retains_profile_and_derives_output(tmp_path):
+    result, output = initial_segment_shell_harness(tmp_path, configure=True)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == 'true,3600,3570,250,' + str(output) + ',false'
+
+
+@pytest.mark.parametrize('case', ['existing_output', 'output_symlink', 'audit_class', 'wrong_memory'])
+def test_initial_segment_configure_rejects_nonfresh_or_other_profile(tmp_path, case):
+    assert initial_segment_shell_harness(tmp_path, case=case, configure=True)[0].returncode == 75
+
+
+def test_initial_segment_source_bridge_restores_9d_then_full_f33():
+    proof = g.native_provider_hlc_all_tf_initial_segment_source_bridge(SEGMENT_GUARDS, producer_commit=SEGMENT_PARENT)
+    assert proof['checked_guard_owners'] == 2 and proof['old_guard_routes_preserved'] is proof['f33_guard_routes_preserved'] is True
+    assert all(value['normalized_sha256'] == value['original_sha256'] for value in proof['owners'].values())
+
+
+@pytest.mark.parametrize('name', ['gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh'])
+def test_initial_segment_source_bridge_rejects_nonsegment_parent_edit(monkeypatch, name):
+    path = Path(g.__file__).resolve().parents[2] / name
+    original = Path.read_bytes
+    def changed(candidate):
+        value = original(candidate)
+        return value + b'\n# unrelated parent mutation\n' if candidate == path else value
+    monkeypatch.setattr(Path, 'read_bytes', changed)
+    with pytest.raises(RuntimeError):
+        g.native_provider_hlc_all_tf_initial_segment_source_bridge(SEGMENT_GUARDS, producer_commit=SEGMENT_PARENT)
+
+
+def test_initial_segment_old_all_tf_source_bridge_rejects_new_generation():
+    with pytest.raises(RuntimeError):
+        g.native_provider_hlc_all_tf_initial_source_bridge(ALL_GUARDS, producer_commit=ALL_PARENT)

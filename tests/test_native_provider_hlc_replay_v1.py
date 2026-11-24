@@ -300,3 +300,56 @@ def test_all_tf_replay_preflight_uses_new_lane_command_and_zero_payloads(monkeyp
  assert hooks==[] and not any(root.exists()for root in m.ALL_ROOTS.values())
  monkeypatch.setattr(sys,'argv',sys.argv+['--preflight'])
  with pytest.raises(ValueError,match='EXACT_CLI'):m.main()
+
+# Explicit aggregate-baseline metadata acceptance; no payload/model is used here.
+def segmented_initial_fixture(monkeypatch):
+ from gx1.audit import native_future_state_provider_hlc_initial_v1 as owner
+ base_ref={'path':str(owner.SEG_BASE_PLAN),'sha256':'a'*64};initial_ref={'path':str(owner.SEG_ROOT/'INITIAL.json'),'sha256':'b'*64};cp_ref={'path':str(owner.SEG_ROOT/'INITIAL.pt'),'sha256':'c'*64};dataset_ref={'path':'/fixture/segmented_dataset.json','sha256':'d'*64};certificate={'path':'/fixture/certificate.json','sha256':'e'*64};state='1'*64;rng='2'*64
+ sha='3'*64;_,last_root=owner.segment_paths(sha);execution_ref={'path':str(owner.segment_paths(sha)[0]),'sha256':sha};result_ref={'path':str(last_root/'RESULT.json'),'sha256':'4'*64};terminal_ref={'path':str(last_root/'TERMINAL.json'),'sha256':'5'*64};claim={'path':str(last_root/'CLAIM.json'),'sha256':'6'*64}
+ base={'schema_version':owner.SEG_BASE_SCHEMA,'stage':owner.SEG_STAGE,'output_root':str(owner.SEG_ROOT),'recipe':copy.deepcopy(owner.SEG_RECIPE),'model_contract':{'contract_sha256':m.ALL_CONTRACT_SHA},'metadata':{'target_contract':{'contract_sha256':'7'*64},'truth_sha256':'8'*64,'dataset':dataset_ref}}
+ receipt={'plan':base_ref,'initial_only':True,'optimizer_updates':0,'checkpoint':cp_ref,'model_contract_sha256':m.ALL_CONTRACT_SHA,'target_contract_sha256':'7'*64,'model_state_sha256':state,'rng_sha256':rng}
+ c1=owner.segment_limits(0,True);c1.update(model_forwards=15,backbone_forwards=14,readout_forwards=14,output_archive_write_calls=14,output_archive_readbacks=14,completed_batch_receipt_write_calls=14,committed_batches=14)
+ c2=owner.segment_limits(14,False);nodes=[{'counts':c1},{'counts':c2}];counts={k:sum(x['counts'][k]for x in nodes)for k in owner.SEG_COUNT_KEYS}
+ score={'rows':m.ROWS,'batch_count':owner.BATCHES,'batch_rows':owner.BATCH,'initial_prior_exact':True,'whole_TRAIN_initial':True,'state_sha256_before_and_after':state,'rng_sha256_before_and_restored':rng,'truth_sha256':'8'*64,'target_observation_certificate_ref':certificate,'output_sha256':{'activity_logits':'9'*64,'side_logits':'a'*64},'output_arrays_collected':2}
+ report={'whole_TRAIN_initialbaseline_qualified':True,'unique_complete_batches':owner.BATCHES,'actual_NN_forward_rows':m.ROWS,'initial':score,'source_inputs_unchanged_across_segments':True,'each_segment_policy_boot_unchanged':True,'initial_checkpoint':initial_ref,'initial_state_sha256':state,'initial_rng_sha256':rng,'physical_execution_counts':counts,'counts':c2}
+ result={'status':'COMPLETE_NATIVE_PROVIDER_HLC_ALL_TF_SEGMENTED_WHOLE_TRAIN_INITIAL','plan':base_ref,'execution_plan':execution_ref,'claim':claim,'report':report,'source_inputs_unchanged_across_segments':True,'each_segment_policy_boot_unchanged':True,'completed_execution_terminal':terminal_ref,'completed_execution_result':result_ref}
+ acceptance={'full_initialbaseline_qualified':True,'result':{'path':str(owner.SEG_ROOT/'RESULT.json'),'sha256':'b'*64},'initial_receipt':initial_ref};terminal={'status':'COMPLETE','exit_code':0,'plan':execution_ref,'base_plan':base_ref,'claim':claim,'result':result_ref};execution_result=copy.deepcopy(result)
+ parent={'prefix':{'cursor':owner.BATCHES,'rows_done':m.ROWS},'initial_receipt':initial_ref,'initial':receipt,'segments':nodes,'receipts':[None]*owner.BATCHES}
+ values={terminal_ref['path']:terminal,result_ref['path']:execution_result,dataset_ref['path']:{'target_observation_certificate_ref':certificate}}
+ monkeypatch.setattr(m,'read',lambda b:values[b['path']]);monkeypatch.setattr(m,'ref',lambda p:cp_ref);monkeypatch.setattr(owner,'segment_closed_parent',lambda *args:parent)
+ return acceptance,result,base,receipt,parent,terminal,execution_result
+
+
+def test_segmented_initial_accepts_complete_own_aggregate_not_single_process_counts(monkeypatch):
+ a,r,b,i,*_=segmented_initial_fixture(monkeypatch)
+ assert m.all_tf_require_segmented_initial_metadata(a,r,b,i)is True
+ assert r['report']['physical_execution_counts']['model_constructions']==2
+ assert r['report']['physical_execution_counts']['model_forwards']==1386
+
+
+@pytest.mark.parametrize('change',['partial','prior','old_root','old_policy','wrong_recipe','updated','restored','missing_commit','missing_parent_receipt','bad_final_terminal','wrong_final_result','rng','truth','certificate','counter_mismatch'])
+def test_segmented_initial_rejects_incomplete_foreign_or_updated_proof(monkeypatch,change):
+ a,r,b,i,parent,t,execution=segmented_initial_fixture(monkeypatch)
+ if change=='partial':r['report']['actual_NN_forward_rows']=3584
+ elif change=='prior':r['report']['initial']['initial_prior_exact']=False
+ elif change=='old_root':a['result']['path']=str(m.ALL_INITIAL_ROOT/'RESULT.json')
+ elif change=='old_policy':b['model_contract']['backbone_gradient_policy']='M5_primary'
+ elif change=='wrong_recipe':b['recipe']['batch_rows']=96
+ elif change=='updated':r['report']['physical_execution_counts']['optimizer_steps']=1
+ elif change=='restored':r['report']['physical_execution_counts']['model_state_restores']=1
+ elif change=='missing_commit':parent['prefix']['cursor']-=1
+ elif change=='missing_parent_receipt':parent['receipts'].pop()
+ elif change=='bad_final_terminal':t['status']='FAILED_CONSUMED'
+ elif change=='wrong_final_result':execution['report']['initial']['rows']=3584
+ elif change=='rng':i['rng_sha256']='f'*64
+ elif change=='truth':r['report']['initial']['truth_sha256']='f'*64
+ elif change=='certificate':r['report']['initial']['target_observation_certificate_ref']={'path':'/foreign','sha256':'f'*64}
+ elif change=='counter_mismatch':r['report']['physical_execution_counts']['model_forwards']+=1
+ with pytest.raises(ValueError):m.all_tf_require_segmented_initial_metadata(a,r,b,i)
+
+
+def test_segmented_replay_inspect_uses_explicit_schema_builder(monkeypatch,tmp_path):
+ planfile=tmp_path/'segmented_replay.json';planfile.write_text('{}');monkeypatch.setattr(m,'ALL_PLAN',planfile);monkeypatch.setattr(m,'ALL_ROOTS',{'warm':tmp_path/'warm','cold':tmp_path/'cold'});policy=tmp_path/'policy.json';monkeypatch.setattr(m,'POLICY',policy)
+ binding=m.ref(planfile);p={'schema_version':m.SEGMENTED_REPLAY_SCHEMA,'metadata':{'runtime':{'fixture':True}},'inputs':{'baseline_acceptance':{'fixture':True}},'source_commit':'a'*40};v={k:False for k in m.FLAGS};v[m.ALL_STAGE]=m.all_tf_gate(binding,False);policy.write_text(json.dumps(v));original_read=m.read;monkeypatch.setattr(m,'read',lambda b:p if b['path']==str(planfile)else original_read(b));calls=[]
+ monkeypatch.setattr(m,'build_all_tf_segmented_replay_plan',lambda *args:(calls.append(args),p)[1]);monkeypatch.setattr(m,'build_all_tf_plan',lambda *args:pytest.fail('segmented plan reached legacy builder'));monkeypatch.setattr(m,'all_tf_check_sources_inputs',lambda *args:None);monkeypatch.setattr(m.core,'collect_future_cuda_runtime_metadata',lambda:{'fixture':True});monkeypatch.setattr(m.core,'future_cuda_runtime_matches',lambda *args:None)
+ assert m.all_tf_inspect(binding['sha256'],'warm',False)[0]is p and len(calls)==1

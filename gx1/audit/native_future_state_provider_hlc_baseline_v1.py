@@ -298,3 +298,173 @@ def score_final(model, context, *, batch_rows=256, device='cuda', progress_callb
         'score_utility_counters': {'model_forwards': batch_count, 'optimizer_updates': 0,
             'backward_calls': 0, 'fits': 0, 'checkpoint_loads': 0, 'checkpoint_writes': 0},
         'score_scope': 'actual_v2_whole_TRAIN_final_not_OOF_generalization_or_edge'}, arrays
+
+
+# Durable fresh INITIAL scoring; old scoring functions remain byte-identical.
+def score_initial_segmented(model, context, *, batch_rows=256, device='cuda',
+                            progress_callback=None, completed_prefix=None, commit_batch=None):
+    """Score the fixed original clock after an authenticated, actual-NN prefix.
+
+    The producer owns provenance and atomic publication. No model state is
+    loaded here, and cached logits are never manufactured from the prior.
+    """
+    import torch
+    need(type(batch_rows) is int and batch_rows > 0, 'BATCH_ROWS')
+    need(progress_callback is None or callable(progress_callback), 'PROGRESS_CALLBACK')
+    need(commit_batch is None or callable(commit_batch), 'COMMIT_CALLBACK')
+    requested = torch.device(device)
+    parameters = tuple(model.parameters())
+    need(requested.type in ('cpu', 'cuda') and len(parameters) > 0
+        and all(p.device.type == requested.type and
+                (requested.index is None or p.device.index == requested.index) for p in parameters),
+        'MODEL_DEVICE')
+    need(all(p.grad is None for p in parameters), 'PREEXISTING_GRADIENTS')
+    target = require_provider_hlc_state_contract(context['target_contract'])
+    prior = objective.require_native_future_state_train_prior(context['prior'], target_contract=target)
+    truth = context['truth']
+    issues = truth['issue_ns']
+    source_rows = context['source_rows']
+    need(isinstance(issues, np.ndarray) and issues.dtype == np.int64 and issues.shape == (ROWS,)
+        and np.all(np.diff(issues) > 0) and np.all((issues >= START) & (issues < UPPER))
+        and core.digest(issues) == TRAIN_SHA and isinstance(source_rows, np.ndarray)
+        and source_rows.dtype == np.int64 and source_rows.shape == (ROWS,)
+        and np.all(np.diff(source_rows) > 0)
+        and core.digest(source_rows) == context['normalization']['fit_population']['selected_source_rows_sha256'],
+        'FULL_INITIAL_CLOCK')
+    truth_sha = objective.native_future_state_truth_sha256(truth, target_contract=target)
+    need(truth_sha == prior['fit_population']['truth_sha256'] == context['truth_sha256']
+        and prior['fit_population']['issue_rows'] == ROWS
+        and prior['fit_population']['issue_ns_sha256'] == TRAIN_SHA
+        and prior['fit_population']['cutoff_ns'] == UPPER, 'FULL_INITIAL_PRIOR_TRUTH')
+    full_masks = objective._native_future_state_truth(truth, rows=ROWS, fold_upper_ns=UPPER,
+                                        target_contract=target)
+    before_state = core.state_sha(model.state_dict())
+    rng = core.training_rng()
+    before_rng = core.state_sha(rng)
+    original_training = model.training
+    outputs = {key: torch.empty((ROWS, 5), dtype=torch.float32, device='cpu')
+               for key in OUTPUT_KEYS}
+    batches = []
+    batch_count = (ROWS + batch_rows - 1) // batch_rows
+    prefix_rows = 0
+    if completed_prefix is not None:
+        need(type(completed_prefix) is dict and set(completed_prefix) ==
+             {'rows_done', 'batches', 'outputs'}, 'COMPLETED_PREFIX_SCHEMA')
+        prefix_rows = completed_prefix['rows_done']
+        records = completed_prefix['batches']; saved = completed_prefix['outputs']
+        need(type(prefix_rows) is int and 0 <= prefix_rows <= ROWS
+             and type(records) is list and len(records) <= batch_count
+             and prefix_rows == min(len(records) * batch_rows, ROWS)
+             and type(saved) is dict and set(saved) == set(OUTPUT_KEYS), 'COMPLETED_PREFIX_CLOCK')
+        for key in OUTPUT_KEYS:
+            value = saved[key]
+            need(isinstance(value, np.ndarray) and value.dtype == np.float32
+                 and value.shape == (prefix_rows, 5) and np.isfinite(value).all(),
+                 'COMPLETED_PREFIX_OUTPUT_HEADER')
+            outputs[key][:prefix_rows].copy_(torch.from_numpy(value.copy()))
+        reference = objective.native_future_state_train_prior_logits(prior,
+            rows=prefix_rows, target_contract=target) if prefix_rows else None
+        need(not prefix_rows or all(torch.equal(outputs[key][:prefix_rows], reference[key])
+             for key in OUTPUT_KEYS), 'COMPLETED_PREFIX_EXACT_PRIOR')
+        for index, record in enumerate(records):
+            left = index * batch_rows; right = min(left + batch_rows, ROWS)
+            need(type(record) is dict and set(record) == {'cursor', 'rows', 'rows_done',
+                 'known_activity_cells', 'partial_NLL', 'output_sha256', 'activation'}
+                 and record['cursor'] == index + 1 and record['rows'] == right - left
+                 and record['rows_done'] == right
+                 and record['known_activity_cells'] == int(full_masks['activity'][left:right].sum())
+                 and np.isfinite(record['partial_NLL'])
+                 and record['output_sha256'] == {key: core.digest(saved[key][left:right])
+                                                for key in OUTPUT_KEYS}, 'COMPLETED_PREFIX_RECORD')
+            batches.append(dict(record))
+    prefix_batches = len(batches)
+    new_forwards = 0
+    model.eval()
+    try:
+        with torch.no_grad():
+            for cursor, left in enumerate(range(prefix_rows, ROWS, batch_rows),
+                                          start=prefix_batches + 1):
+                right = min(left + batch_rows, ROWS)
+                take = np.arange(left, right, dtype=np.int64)
+                current = packet(context, take)
+                new_forwards += 1
+                output, _, activation = core.future_cuda_forward(model, current['features'],
+                    grouped=True, equal_tf=True, capture=False)
+                objective._native_future_state_output(output)
+                cpu = {key: value.detach().cpu() for key, value in output.items()}
+                reference = objective.native_future_state_train_prior_logits(prior,
+                    rows=len(take), target_contract=target)
+                need(all(torch.equal(cpu[key], reference[key]) for key in OUTPUT_KEYS),
+                     'INITIAL_EXACT_MATCHED_PRIOR')
+                loss = objective.native_future_state_loss(model_output=output,
+                    truth=current['truth'], fold_upper_ns=UPPER, target_contract=target)
+                for key in OUTPUT_KEYS:
+                    outputs[key][left:right].copy_(cpu[key])
+                record = {'cursor': cursor, 'rows': len(take), 'rows_done': right,
+                    'known_activity_cells': loss['count'], 'partial_NLL': float(loss['loss']),
+                    'output_sha256': {key: core.digest(value.numpy()) for key, value in cpu.items()},
+                    'activation': activation}
+                need(core.state_sha(model.state_dict()) == before_state
+                     and all(p.grad is None for p in parameters)
+                     and core.state_sha(core.training_rng()) == before_rng,
+                     'COMPLETED_BATCH_MODEL_RNG_GRAD_UNCHANGED')
+                event = {'batch_cursor': cursor, 'batch_count': batch_count,
+                    'rows_done': right, 'rows_total': ROWS, 'batch': dict(record)}
+                if commit_batch is not None:
+                    values = {key: value.numpy() for key, value in cpu.items()}
+                    for value in values.values():
+                        value.flags.writeable = False
+                    commit_batch({**event, 'left': left, 'right': right,
+                        'issue_ns_sha256': core.digest(issues[take]),
+                        'source_rows_sha256': core.digest(source_rows[take]),
+                        'model_state_sha256': before_state, 'rng_sha256': before_rng,
+                        'gradients_none': True}, values)
+                batches.append(record)
+                if progress_callback is not None:
+                    progress_callback({'batch_cursor': cursor, 'batch_count': batch_count,
+                        'rows_done': right, 'rows_total': ROWS, 'batch': dict(record)})
+                del current, output, cpu, reference, loss
+            need(len(batches) == batch_count and sum(b['rows'] for b in batches) == ROWS,
+                 'FULL_INITIAL_ROW_COVERAGE')
+            scores = objective.native_future_state_score_sums(model_output=outputs, truth=truth,
+                fold_upper_ns=UPPER, target_contract=target)
+            constant = objective.native_future_state_train_prior_logits(prior, rows=1,
+                                                                        target_contract=target)
+            reference = {key: value.expand(ROWS, 5) for key, value in constant.items()}
+            reference_scores = objective.native_future_state_score_sums(model_output=reference,
+                truth=truth, fold_upper_ns=UPPER, target_contract=target)
+            need(scores == reference_scores, 'INITIAL_FULL_PROPER_SCORE_EXACT')
+            count = sum(b['known_activity_cells'] for b in batches)
+            need(count == sum(cell['activity']['count'] for cell in scores['per_tf'].values()),
+                 'FULL_ACTIVITY_SUPPORT')
+            total = sum(cell['partial_log_loss_sum'] for cell in scores['per_tf'].values())
+            partial = total / count if count else None
+            batch_partial = sum(b['partial_NLL'] * b['known_activity_cells'] for b in batches) / count if count else None
+            need(count > 0 and np.isfinite(partial) and np.isfinite(batch_partial)
+                and np.isclose(partial, batch_partial, rtol=1e-6, atol=1e-7),
+                'PARTIAL_LOSS_CANONICAL_SCORE')
+    finally:
+        model.train(original_training)
+        core.restore_training_rng(rng)
+        need(core.state_sha(model.state_dict()) == before_state
+            and all(p.grad is None for p in parameters), 'SCORE_STATE_GRAD_MUTATION')
+        need(core.state_sha(core.training_rng()) == before_rng, 'SCORE_RNG_RESTORE')
+    return {'rows': ROWS, 'batch_count': batch_count, 'batch_rows': batch_rows,
+        'batches': batches, 'scores': scores, 'known_activity_cells': count,
+        'proper_partial_NLL': partial, 'batch_weighted_partial_NLL': batch_partial,
+        'loss_score_abs_delta': abs(partial - batch_partial), 'initial_prior_exact': True,
+        'whole_TRAIN_initial': True, 'actual_NN_forward_rows': ROWS,
+        'output_sha256': {key: core.digest(value.numpy()) for key, value in outputs.items()},
+        'output_arrays_collected': 2,
+        'output_ndarray_bytes': sum(value.numel() * value.element_size() for value in outputs.values()),
+        'truth_sha256': truth_sha,
+        'target_observation_certificate_ref': dict(truth['target_observation_certificate_ref']),
+        'state_sha256_before_and_after': before_state, 'rng_sha256_before_and_restored': before_rng,
+        'model_training_mode_restored': original_training, 'device': str(requested),
+        'score_utility_counters': {'model_forwards': new_forwards, 'optimizer_updates': 0,
+            'backward_calls': 0, 'fits': 0, 'checkpoint_loads': 0, 'checkpoint_writes': 0},
+        'completed_prefix_rows': prefix_rows, 'completed_prefix_batches': prefix_batches,
+        'new_model_forwards': new_forwards, 'new_NN_forward_rows': ROWS - prefix_rows,
+        'unique_complete_batches': batch_count,
+        'score_scope': 'actual_fresh_v2_whole_TRAIN_initial_across_closed_segments_not_learning_OOF_or_edge'}
+# End durable fresh INITIAL scoring.

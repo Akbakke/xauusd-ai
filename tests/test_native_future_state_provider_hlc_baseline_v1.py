@@ -217,3 +217,170 @@ def test_packet_rejects_certificate_metadata_in_provider_features(monkeypatch):
     provider.extra_metadata = True
     with pytest.raises(ValueError, match='FEATURE_KEYS'):
         owner.packet(context, np.array([0], dtype=np.int64))
+
+
+# Durable INITIAL scoring: synthetic outputs only, never a native payload.
+class SegmentedTinyModel(TinyModel):
+    def forward(self, **features):
+        assert not self.training and not torch.is_grad_enabled()
+        assert 'target_observation_certificate_ref' not in features
+        self.calls += 1
+        output = owner.objective.native_future_state_train_prior_logits(self.context['prior'],
+            rows=len(features['seq_x']), target_contract=self.context['target_contract'])
+        output = {key: value + self.anchor * 0 for key, value in output.items()}
+        if self.bad == 'RNG':
+            torch.rand(1)
+        elif self.bad == 'parameter':
+            self.anchor.add_(1)
+        elif self.bad == 'gradient':
+            self.anchor.grad = torch.zeros_like(self.anchor)
+        elif self.bad == 'wrong_prior':
+            output['side_logits'][0, 0] += 1
+        elif self.bad == 'nonfinite':
+            output['activity_logits'][0, 0] = float('nan')
+        return output
+
+
+def _segmented_case(monkeypatch):
+    provider, meta, _, _, _, _ = _setup(monkeypatch)
+    context = owner.load_context(meta)
+    calls = _mock_forward(monkeypatch)
+    return provider, context, calls
+
+
+def _segmented_capture(context, *, batch_rows=3):
+    import copy
+    committed = []
+    def commit(event, values):
+        arrays = {key: (value.detach().cpu().numpy().copy() if isinstance(value, torch.Tensor)
+                       else value.copy()) for key, value in values.items()}
+        committed.append((copy.deepcopy(event), arrays))
+    report = owner.score_initial_segmented(SegmentedTinyModel(context), context,
+        batch_rows=batch_rows, device='cpu', commit_batch=commit)
+    return report, committed
+
+
+def _segmented_prefix(committed, batches):
+    import copy
+    chosen = committed[:batches]
+    return {'rows_done': sum(len(values['activity_logits']) for _, values in chosen),
+        'batches': [copy.deepcopy(event['batch']) for event, _ in chosen],
+        'outputs': {key: np.concatenate([values[key] for _, values in chosen], axis=0)
+                    if chosen else np.empty((0, 5), dtype=np.float32)
+                    for key in owner.OUTPUT_KEYS}}
+
+
+def test_segmented_initial_addition_preserves_every_old_adapter_byte():
+    import pathlib
+    import subprocess
+    path = 'gx1/audit/native_future_state_provider_hlc_baseline_v1.py'
+    original = subprocess.check_output(['git', 'show',
+        '9d7b39da9214f74dcf6a7b8bf1a0fd3a719da29f:'+path], cwd=owner.core.REPO)
+    current = (pathlib.Path(owner.core.REPO)/path).read_bytes()
+    assert current.startswith(original)
+    assert current.count(b'def score_initial_segmented(') == 1
+
+
+@pytest.mark.parametrize('prefix_batches,expected_calls', [(0, [3, 3, 2]), (1, [3, 2]), (3, [])])
+def test_segmented_initial_authenticated_prefix_matches_uninterrupted_full_scores(monkeypatch, prefix_batches, expected_calls):
+    provider, context, calls = _segmented_case(monkeypatch)
+    full, committed = _segmented_capture(context)
+    prefix = _segmented_prefix(committed, prefix_batches)
+    calls.clear(); provider.calls.clear()
+    model = SegmentedTinyModel(context)
+    before_rng = torch.get_rng_state().clone()
+    before_state = owner.core.state_sha(model.state_dict())
+    progress, new_commits = [], []
+    report = owner.score_initial_segmented(model, context, batch_rows=3, device='cpu',
+        completed_prefix=prefix, commit_batch=lambda event, values: new_commits.append(event),
+        progress_callback=progress.append)
+    assert calls == expected_calls and model.calls == len(expected_calls)
+    assert len(provider.calls) == len(expected_calls)
+    assert report['actual_NN_forward_rows'] == 8 and report['new_NN_forward_rows'] == 8-prefix['rows_done']
+    assert report['new_model_forwards'] == len(expected_calls)
+    assert report['completed_prefix_rows'] == prefix['rows_done'] and report['completed_prefix_batches'] == prefix_batches
+    assert report['unique_complete_batches'] == 3
+    assert report['score_utility_counters'] == {'model_forwards': len(expected_calls), 'optimizer_updates': 0,
+        'backward_calls': 0, 'fits': 0, 'checkpoint_loads': 0, 'checkpoint_writes': 0}
+    for key in ('rows', 'batch_count', 'batches', 'scores', 'output_sha256',
+                'known_activity_cells', 'proper_partial_NLL', 'batch_weighted_partial_NLL'):
+        assert report[key] == full[key]
+    assert [event['batch_cursor'] for event in new_commits] == list(range(prefix_batches+1, 4))
+    assert [event['rows_done'] for event in progress] == [event['rows_done'] for event in new_commits]
+    assert model.training and torch.equal(torch.get_rng_state(), before_rng)
+    assert owner.core.state_sha(model.state_dict()) == before_state
+    assert all(parameter.grad is None for parameter in model.parameters())
+
+
+@pytest.mark.parametrize('bad', ['rows', 'gap', 'duplicate', 'shape', 'dtype', 'head', 'nonfinite', 'hash', 'prior'])
+def test_segmented_initial_rejects_bad_prefix_before_any_new_forward(monkeypatch, bad):
+    provider, context, calls = _segmented_case(monkeypatch)
+    _, committed = _segmented_capture(context)
+    prefix = _segmented_prefix(committed, 1)
+    if bad == 'rows': prefix['rows_done'] += 1
+    elif bad == 'gap': prefix['batches'][0]['cursor'] = 2
+    elif bad == 'duplicate': prefix['batches'].append(dict(prefix['batches'][0]))
+    elif bad == 'shape': prefix['outputs']['activity_logits'] = np.zeros((2, 5), np.float32)
+    elif bad == 'dtype': prefix['outputs']['side_logits'] = prefix['outputs']['side_logits'].astype(np.float64)
+    elif bad == 'head': prefix['outputs']['unexpected'] = np.zeros((3, 5), np.float32)
+    elif bad == 'nonfinite': prefix['outputs']['side_logits'][0, 0] = np.nan
+    elif bad == 'hash': prefix['batches'][0]['output_sha256']['side_logits'] = '0'*64
+    else:
+        prefix['outputs']['side_logits'][0, 0] += 1
+        prefix['batches'][0]['output_sha256']['side_logits'] = owner.core.digest(prefix['outputs']['side_logits'])
+    calls.clear(); provider.calls.clear()
+    with pytest.raises(ValueError):
+        owner.score_initial_segmented(SegmentedTinyModel(context), context,
+            batch_rows=3, device='cpu', completed_prefix=prefix)
+    assert calls == [] and provider.calls == []
+
+
+@pytest.mark.parametrize('bad', ['RNG', 'parameter', 'gradient', 'wrong_prior', 'nonfinite'])
+def test_segmented_initial_proves_every_batch_state_RNG_gradients_and_outputs_before_commit(monkeypatch, bad):
+    provider, context, calls = _segmented_case(monkeypatch)
+    model = SegmentedTinyModel(context, bad=bad)
+    before_rng = torch.get_rng_state().clone()
+    commits = []
+    with pytest.raises(ValueError):
+        owner.score_initial_segmented(model, context, batch_rows=3, device='cpu',
+            commit_batch=lambda *args: commits.append(args))
+    assert commits == [] and calls == [3] and len(provider.calls) == 1
+    assert model.training and torch.equal(torch.get_rng_state(), before_rng)
+
+
+def test_segmented_initial_commit_exposes_exact_cpu_batch_proof_before_progress(monkeypatch):
+    _, context, _ = _segmented_case(monkeypatch)
+    model = SegmentedTinyModel(context)
+    events = []
+    def commit(event, values):
+        left, right = event['left'], event['right']
+        assert set(values) == set(owner.OUTPUT_KEYS)
+        assert event['model_state_sha256'] == owner.core.state_sha(model.state_dict())
+        assert event['rng_sha256'] == owner.core.state_sha(owner.core.training_rng())
+        assert event['gradients_none'] is True
+        assert event['issue_ns_sha256'] == owner.core.digest(context['truth']['issue_ns'][left:right])
+        assert event['source_rows_sha256'] == owner.core.digest(context['source_rows'][left:right])
+        for key, value in values.items():
+            array = value.numpy() if isinstance(value, torch.Tensor) else value
+            assert array.dtype == np.float32 and array.shape == (right-left, 5)
+            assert owner.core.digest(array) == event['batch']['output_sha256'][key]
+        events.append(('commit', event['batch_cursor']))
+    owner.score_initial_segmented(model, context, batch_rows=3, device='cpu', commit_batch=commit,
+        progress_callback=lambda event: events.append(('progress', event['batch_cursor'])))
+    assert events == [(kind, cursor) for cursor in range(1, 4) for kind in ('commit', 'progress')]
+
+
+def test_segmented_initial_commit_failure_does_not_report_progress_and_restores_caller_state(monkeypatch):
+    _, context, calls = _segmented_case(monkeypatch)
+    model = SegmentedTinyModel(context)
+    before_rng = torch.get_rng_state().clone()
+    before_state = owner.core.state_sha(model.state_dict())
+    progress = []
+    def fail(event, values): raise OSError('SYNTHETIC_DURABILITY_FAILURE')
+    with pytest.raises(OSError, match='SYNTHETIC_DURABILITY_FAILURE'):
+        owner.score_initial_segmented(model, context, batch_rows=3, device='cpu',
+            commit_batch=fail, progress_callback=progress.append)
+    assert calls == [3] and progress == []
+    assert model.training and torch.equal(torch.get_rng_state(), before_rng)
+    assert owner.core.state_sha(model.state_dict()) == before_state
+    assert all(parameter.grad is None for parameter in model.parameters())

@@ -413,7 +413,8 @@ def test_all_tf_nested_mode_hash_and_profile_must_match_parent(field):
     assert result.returncode == (75 if field else 0), result.stderr
 
 
-def test_all_tf_source_bridge_requires_exact_f33_old_guard_bytes():
+def test_all_tf_source_bridge_requires_exact_f33_old_guard_bytes(monkeypatch):
+    use_historical_guard_snapshot(monkeypatch, '9d7b39da9214f74dcf6a7b8bf1a0fd3a719da29f')
     function = getattr(g, 'native_provider_hlc_all_tf_' + ALL_KIND + '_source_bridge')
     proof = function(ALL_GUARDS, producer_commit=ALL_PARENT)
     assert proof['checked_guard_owners'] == 2 and proof['old_guard_routes_preserved'] is True
@@ -421,7 +422,8 @@ def test_all_tf_source_bridge_requires_exact_f33_old_guard_bytes():
 
 
 @pytest.mark.parametrize('case', ['producer', 'hash', 'extra'])
-def test_all_tf_source_bridge_rejects_unbound_parent(case):
+def test_all_tf_source_bridge_rejects_unbound_parent(monkeypatch, case):
+    use_historical_guard_snapshot(monkeypatch, '9d7b39da9214f74dcf6a7b8bf1a0fd3a719da29f')
     owners = dict(ALL_GUARDS); parent = ALL_PARENT
     if case == 'producer': parent = 'f' * 40
     elif case == 'hash': owners['scripts/gx1_capped_run.sh'] = 'f' * 64
@@ -432,6 +434,7 @@ def test_all_tf_source_bridge_rejects_unbound_parent(case):
 
 @pytest.mark.parametrize('name', ['gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh'])
 def test_all_tf_source_bridge_rejects_unrelated_parent_edit(monkeypatch, name):
+    use_historical_guard_snapshot(monkeypatch, '9d7b39da9214f74dcf6a7b8bf1a0fd3a719da29f')
     path = Path(g.__file__).resolve().parents[2] / name
     before = Path.read_bytes
     def changed(candidate):

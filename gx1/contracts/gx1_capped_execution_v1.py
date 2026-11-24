@@ -2060,6 +2060,214 @@ def native_provider_hlc_all_tf_replay_source_bridge(previous_guard_owners, *,
     return _native_provider_hlc_all_tf_source_bridge(previous_guard_owners, producer_commit=producer_commit)
 # END GX1 PROVIDER HLC ALL TF GUARD ROUTES 20261124 001
 
+# BEGIN GX1 ALL TF INITIAL SEGMENT GUARD ROUTE 20261124 003
+_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_SEGMENT_GUARD_SHELL_ADDITIONS = (('validate_target_command() {\n', 'before', '# BEGIN GX1 ALL TF INITIAL SEGMENT ROUTE 20261124 003 MATCHERS\nmatches_bound_native_provider_hlc_all_tf_initial_segment() {\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1\n  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == "$NATIVE_PROVIDER_HLC_INITIAL_MODULE" \\\n    && "$4" == --all-tf-score-segment-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  local base_root=/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003\n  local plan_dir="$base_root/PLANS"\n  local expected_plan="$plan_dir/$5.json"\n  [[ -d "$base_root" && ! -L "$base_root" && "$(readlink -f "$base_root")" == "$base_root" \\\n    && -d "$plan_dir" && ! -L "$plan_dir" && "$(readlink -f "$plan_dir")" == "$plan_dir" \\\n    && -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1\n  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\n\nconfigure_native_provider_hlc_all_tf_initial_segment() {\n  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \\\n    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo "FATAL: provider HLC INITIAL requires exact canonical trainer containment" >&2\n    exit 75\n  }\n  matches_bound_native_provider_hlc_all_tf_initial_segment "$@" || {\n    echo "FATAL: provider HLC INITIAL CLI/plan is not exactly bound" >&2\n    exit 75\n  }\n  local initial_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003/SEGMENT_$5"\n  [[ ! -e "$initial_output" && ! -L "$initial_output" \\\n    && -d "${initial_output%/*}" && ! -L "${initial_output%/*}" \\\n    && "$(readlink -f "${initial_output%/*}")" == "${initial_output%/*}" ]] || {\n    echo "FATAL: provider HLC INITIAL output is not fresh canonical scope" >&2\n    exit 75\n  }\n  NATIVE_PROVIDER_HLC_ALL_TF_INITIAL=true\n  NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$initial_output"\n  TRAINER_MAX_WALL_SECONDS=3600\n  TRAINER_MODEL_MAX_WALL_SECONDS=3570\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n\n# END GX1 ALL TF INITIAL SEGMENT ROUTE 20261124 003 MATCHERS\n\n'), ('validate_target_command() {\n', 'after', '# BEGIN GX1 ALL TF INITIAL SEGMENT ROUTE 20261124 003 DISPATCH\n  if [[ "${4:-}" == --all-tf-score-segment-plan-sha256 ]]; then\n    configure_native_provider_hlc_all_tf_initial_segment "$@"\n    return\n  fi\n# END GX1 ALL TF INITIAL SEGMENT ROUTE 20261124 003 DISPATCH\n'))
+
+
+def require_native_provider_hlc_all_tf_initial_segment_execution(*, plan_sha256: str) -> dict[str, Any]:
+    """Read-only full TRAIN containment; no optimizer or training authority."""
+    if type(plan_sha256) is not str or re.fullmatch(r"[0-9a-f]{64}", plan_sha256) is None:
+        raise RuntimeError("[GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256_INVALID]")
+    bound = _native_provider_hlc_all_tf_initial_segment_bound_plan(plan_sha256=plan_sha256)
+    expected = {
+        "GX1_CAPPED_MEMORY_BYTES": "21474836480",
+        "GX1_CAPPED_SWAP_BYTES": "536870912",
+        "GX1_CAPPED_TASKS_MAX": "128",
+        "OMP_NUM_THREADS": "8",
+        "MKL_NUM_THREADS": "8",
+        "OPENBLAS_NUM_THREADS": "8",
+        "NUMEXPR_NUM_THREADS": "8",
+        "VECLIB_MAXIMUM_THREADS": "8",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL": "true",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256": plan_sha256,
+        "GX1_NATIVE_PROVIDER_HLC_INITIAL": "false",
+        "GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_REPLAY": "false",
+        "GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE": "",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY": "false",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE": "",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING": "false",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME": "false",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE": "false",
+        "GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT": "false",
+        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING": "false",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING_LANE": "",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION": "false",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS": "false",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_LANE": "",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE": "",
+        "GX1_TRAINER_MAX_WALL_SECONDS": "3600",
+        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": "3570",
+        "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": "false",
+        "GX1_TRAINER_GPU_INDEX": "0",
+        "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": "250",
+        "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": "250",
+        "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "75",
+        "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "80",
+        "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": "12288",
+        "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
+        "GX1_TRAINER_CPU_MAX_TEMP_C": "80",
+        "GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W": "125",
+        "GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES": "8589934592",
+        "GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES": "8589934592",
+        "GX1_POWER_BENCHMARK_SCOPE_JSON": "",
+        "GX1_POWER_BENCHMARK_SCOPE_SHA256": "",
+    }
+    for name, value in expected.items():
+        if os.environ.get(name) != value:
+            raise RuntimeError(f"[GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_ENV_INVALID] field={name}")
+    proof = require_guarded_cuda_trainer_execution()
+    plan_path = Path(bound["plan"]["path"])
+    output_root = Path(bound["output_root"])
+    return {**proof, "class": "trainer", "execution_mode": "canonical", "kind": "provider_hlc_all_tf_initial_segment",
+            "training_authority_granted": False, "optimizer_authority_granted": False, "read_only": True,
+            "base_plan": bound["base_plan"], "plan": {"path": str(plan_path), "sha256": plan_sha256},
+            "plan_path": str(plan_path), "output_root": str(output_root),
+            "outer_seconds": 3600, "internal_seconds": 3570, "kill_after_seconds": 10,
+            "cpu_affinity": list(range(19)), "numerical_threads": 8}
+
+
+def _native_provider_hlc_all_tf_initial_segment_bound_plan(*, plan_sha256):
+    """Allow only SHA-named scoring segments inside the fixed fresh003 lineage."""
+    import hashlib
+    import json
+    def require(ok, reason):
+        if not ok:
+            raise RuntimeError("[GX1_PROVIDER_HLC_INITIAL_SEGMENT_BINDING_" + reason + "]")
+    require(type(plan_sha256) is str and re.fullmatch("[0-9a-f]{64}", plan_sha256) is not None, "SHA")
+    repo = Path(__file__).resolve().parents[2]
+    arguments = ["--all-tf-score-segment-plan-sha256", plan_sha256]
+    if sys.argv[-1:] == ["--preflight"]:
+        arguments += ["--preflight"]
+    require(Path.cwd().resolve() == repo
+            and Path(sys.argv[0]).resolve() == repo / "gx1/audit/native_future_state_provider_hlc_initial_v1.py"
+            and Path(sys.executable).absolute() == repo / ".venv/bin/python"
+            and sys.argv[1:] == arguments, "EXACT_ARGV")
+    basename = "NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_003"
+    base_root = Path("/home/andre2/GX1_RUNS") / basename
+    plans = base_root / "PLANS"
+    require(base_root.is_dir() and not base_root.is_symlink() and base_root.resolve() == base_root
+            and plans.is_dir() and not plans.is_symlink() and plans.resolve() == plans, "CANONICAL_BASE_ROOT")
+    plan_path = plans / (plan_sha256 + ".json")
+    output_root = base_root / ("SEGMENT_" + plan_sha256)
+    require(not output_root.exists() and not output_root.is_symlink(), "FRESH_SEGMENT_ROOT")
+    def read_bound(path, digest):
+        require(type(digest) is str and re.fullmatch("[0-9a-f]{64}", digest) is not None, "REFERENCE_SHA")
+        require(path.is_file() and not path.is_symlink() and path.resolve() == path, "CANONICAL_PLAN")
+        try:
+            raw = path.read_bytes()
+            require(hashlib.sha256(raw).hexdigest() == digest, "PLAN_SHA")
+            value = json.loads(raw)
+        except (OSError, ValueError, UnicodeError) as error:
+            raise RuntimeError("[GX1_PROVIDER_HLC_INITIAL_SEGMENT_BINDING_PLAN_JSON]") from error
+        require(type(value) is dict, "PLAN_OBJECT")
+        return value
+    segment = read_bound(plan_path, plan_sha256)
+    require(segment.get("schema_version") == "gx1_native_provider_hlc_all_tf_initial_segment_plan_v1"
+            and segment.get("stage") == basename.lower() and segment.get("base_root") == str(base_root)
+            and "plan_path" not in segment and "output_root" not in segment, "SEGMENT_SCHEMA")
+    base_ref = segment.get("base_plan")
+    base_path = repo / "configs/research" / (basename + ".json")
+    require(type(base_ref) is dict and set(base_ref) == {"path", "sha256"}
+            and base_ref["path"] == str(base_path), "FIXED_BASE_PLAN")
+    base = read_bound(base_path, base_ref["sha256"])
+    require(base.get("schema_version") == "gx1_native_provider_hlc_all_tf_resumable_initial_base_plan_v1"
+            and base.get("stage") == basename.lower() and base.get("output_root") == str(base_root), "BASE_SCHEMA")
+    recipe = {'backbone_gradient_policy': None, 'batch_rows': 256, 'batches': 1385, 'drop_last': False, 'last_rows': 246, 'no_optimization': True, 'rows': 354550, 'seed': 20260911, 'shuffle': False}
+    execution = {'GPU_core_stop_C': 75, 'GPU_memory_stop_C': 80, 'GPU_power_draw_stop_W': 250, 'GPU_power_limit_W': 250, 'class': 'trainer', 'cpu_affinity': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18], 'cuda_peak_reserved_bytes_max': 12884901888, 'device': 'cuda:0', 'host_CPU_package_stop_W': 125, 'host_CPU_stop_C': 80, 'host_min_available_bytes': 8589934592, 'host_min_commit_headroom_bytes': 8589934592, 'internal_seconds': 3570, 'kill_after_seconds': 10, 'memory': '20G', 'numerical_threads': 8, 'outer_seconds': 3600, 'swap': '512M', 'tasks_max': 128, 'watchdog_interval_seconds': 1}
+    for value in (base, segment):
+        contract = value.get("model_contract")
+        require(value.get("recipe") == recipe and value.get("execution") == execution
+                and type(contract) is dict and "backbone_gradient_policy" not in contract
+                and contract.get("contract_sha256") == "6d6ac22819e54c7b12aebcf4e1afe27b990d8a4d90d16500e352c7353d99cca0",
+                "NONE_WHOLE_TRAIN_CONTRACT")
+    require(segment["model_contract"] == base["model_contract"], "SAME_BASE_MODEL")
+    return {"base_plan": base_ref, "plan": {"path": str(plan_path), "sha256": plan_sha256},
+            "output_root": str(output_root)}
+
+
+def native_provider_hlc_all_tf_initial_segment_source_bridge(previous_guard_owners, *,
+        producer_commit="9d7b39da9214f74dcf6a7b8bf1a0fd3a719da29f"):
+    """Prove exact scoring-route additions, then retain the earlier f33 byte proof."""
+    import ast
+    import hashlib
+    import subprocess
+    def require(ok, reason):
+        if not ok:
+            raise RuntimeError("[GX1_PROVIDER_HLC_INITIAL_SEGMENT_SOURCE_BRIDGE_" + reason + "]")
+    require(producer_commit == "9d7b39da9214f74dcf6a7b8bf1a0fd3a719da29f", "PRODUCER_COMMIT")
+    parents = {"gx1/contracts/gx1_capped_execution_v1.py": "926fbdf60e1a4204b3f4c38a39440d519a3a62b6c2cc76e4b5d8b5bd2db8ca3f",
+               "scripts/gx1_capped_run.sh": "0450ec5f0393807c618e7112cb4a67b0ecceba480649b465282543f4d9ca3b66"}
+    f33_hashes = {"gx1/contracts/gx1_capped_execution_v1.py": "bbe6d6fe74ae289365759718bef1b045550c8250df08f937d87716b93a6d2c90",
+                  "scripts/gx1_capped_run.sh": "ca334f3e843bd0d227883b783421c6bbc475a808b3b9a3d8c4ef6a0b622c5cc1"}
+    require(type(previous_guard_owners) is dict and previous_guard_owners == parents, "EXACT_PARENT_GUARDS")
+    repo = Path(__file__).resolve().parents[2]
+    report = {}
+    for name, digest in parents.items():
+        original = subprocess.check_output(["git", "show", producer_commit + ":" + name], cwd=repo)
+        require(hashlib.sha256(original).hexdigest() == digest, "AUTHENTIC_PARENT_HASH")
+        current = (repo / name).read_bytes()
+        if name.endswith(".py"):
+            begin = b"# BEGIN GX1 ALL TF INITIAL SEGMENT GUARD ROUTE 20261124 003\n"
+            end = b"# END GX1 ALL TF INITIAL SEGMENT GUARD ROUTE 20261124 003\n\n"
+            require(current.count(begin) == current.count(end) == 1, "SINGLE_ADDITIVE_BLOCK")
+            first, tail = current.split(begin); block, last = tail.split(end)
+            nodes = ast.parse(block).body
+            functions = {"require_native_provider_hlc_all_tf_initial_segment_execution",
+                         "_native_provider_hlc_all_tf_initial_segment_bound_plan",
+                         "native_provider_hlc_all_tf_initial_segment_source_bridge"}
+            names = [node.name for node in nodes if isinstance(node, ast.FunctionDef)]
+            constants = [node for node in nodes if isinstance(node, ast.Assign)]
+            require(set(names) == functions and len(names) == len(functions) and len(nodes) == 4
+                    and len(constants) == 1 and len(constants[0].targets) == 1
+                    and isinstance(constants[0].targets[0], ast.Name)
+                    and constants[0].targets[0].id == "_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_SEGMENT_GUARD_SHELL_ADDITIONS"
+                    and ast.literal_eval(constants[0].value) == _NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_SEGMENT_GUARD_SHELL_ADDITIONS,
+                    "EXACT_ADDITIVE_SYMBOLS")
+            normalized = first + last
+            old_begin = b"# BEGIN GX1 PROVIDER HLC ALL TF GUARD ROUTES 20261124 001\n"
+            old_end = b"# END GX1 PROVIDER HLC ALL TF GUARD ROUTES 20261124 001\n\n"
+            require(original.count(old_begin) == original.count(old_end) == 1, "PARENT_ALL_TF_BLOCK")
+            first, tail = original.split(old_begin); _, last = tail.split(old_end)
+            f33 = first + last
+        else:
+            text = current.decode()
+            require(len(_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_SEGMENT_GUARD_SHELL_ADDITIONS) == 2, "EXACT_FRAGMENT_COUNT")
+            for anchor, position, fragment in reversed(_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_SEGMENT_GUARD_SHELL_ADDITIONS):
+                composite = fragment + anchor if position == "before" else anchor + fragment
+                require(text.count(fragment) == text.count(composite) == 1, "EXACT_SHELL_INSERTION")
+                text = text.replace(composite, anchor, 1)
+            normalized = text.encode()
+            text = original.decode()
+            for anchor, position, fragment in reversed(_NATIVE_PROVIDER_HLC_ALL_TF_GUARD_SHELL_ADDITIONS):
+                composite = fragment + anchor if position == "before" else anchor + fragment
+                require(text.count(fragment) == text.count(composite) == 1, "PARENT_ALL_TF_INSERTION")
+                text = text.replace(composite, anchor, 1)
+            f33 = text.encode()
+        require(normalized == original, "ALL_PARENT_BYTES_UNCHANGED")
+        reference = subprocess.check_output(["git", "show", "f33da18dd6a0e3d59e4876fa26f8e62ec5ab97b8:" + name], cwd=repo)
+        require(f33 == reference and hashlib.sha256(f33).hexdigest() == f33_hashes[name], "FULL_F33_BYTES_PRESERVED")
+        report[name] = {"original_sha256": digest, "current_sha256": hashlib.sha256(current).hexdigest(),
+                        "normalized_sha256": hashlib.sha256(normalized).hexdigest(), "f33_sha256": f33_hashes[name]}
+    return {"producer_commit": producer_commit, "checked_guard_owners": 2,
+            "old_guard_routes_preserved": True, "f33_guard_routes_preserved": True, "owners": report}
+# END GX1 ALL TF INITIAL SEGMENT GUARD ROUTE 20261124 003
+
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")
     operation = parser.add_mutually_exclusive_group(required=True)

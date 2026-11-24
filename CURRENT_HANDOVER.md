@@ -39,6 +39,11 @@ Alle tidligere RAW/inputcensus/fullsource/batchrisk/projectionmoment002/
 macrokeys001 er COMPLETE_CONSUMED og stengt. Projectionmoment001 ble aldri
 claimed: gammelGPU-entrypoint ble korrekt nektet; ingen vakt ble svekket.
 
+Statuskontroll24.11 rettet fire foreldede aktive statusreferanser fra siste
+kildekvalifikasjon og REVIEW026; ACTIVE_READINESS_STATUS_RECONCILIATION002
+binder endringen. Ny003-kilde er testet; Git/terminalkvittering avgjør commit-/pushstatus.
+Dette åpner ingen modellkjøring eller stortrening.
+
 ## Gjort og målt
 
 Bevisrot: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001.
@@ -900,9 +905,30 @@ inkludert faktisk39177784BINITIAL.pt, er separatdiskkopiert og uavhengig
 SHA/F_FULLFSYNC-kontrollert (manifestf5d6e396…). Source103/Stop26 sikrer
 kilde/plan og egneCP/kvitteringer uten deserialisering.
 001/002skalaldri relanseres.
-Før noen ny modell kreves fersk signert full vedlikeholds-/ressurskontroll
-og ny eksakt scope/plan/preflight/backupadmisjon. FullNonebaseline og egen
-kald replay er fortsatt ikke kvalifisert; all fit/epokeserie er stengt.
+Etter to målte avbrudd klargjøres nå en smal gjenopptakbar INITIAL-rute,
+bundet i RESUMABLE_INITIAL_DESIGN001. Gamle score_initial/defaults og
+modell-/tap-/normaliseringsmatematikk beholdes. Hver fullførte B256-batch
+kan lagre sine to faktisk NN-beregnede CPU-F32-logitarrayer og en varig
+kvittering sist, etter modellstate/RNG/.grad-bevis. Bare et sammenhengende,
+autentisert003-prefiks med lukkede source/input/model/RNG/policy/bootbevis
+kan brukes igjen.001/002 mangler slike outputs og gjenbrukes ikke.
+Ny003-plan/SHA/fersksegmentroot gir ingen automatisk løkke eller fit.
+Hvert segment konstruerer ferske, identiske parametre/RNG uten vektlasting;
+alle354550issues/1385heleoriginalbatcher og fullcanonicalscore/prior må
+fortsatt avstemmes. Fysiske/avbrutte forwards og konstruksjoner telles separat.
+Samme20G/512M/8tråder/3600-3570s og ALLEhardware-/vedlikeholdsvakter beholdes.
+RESUMABLE_INITIAL003_SOURCE_QUALIFICATION001 består144fokuserte kontroller,
+faktisk blokkert base-/førstesegmentmetadatabygger og to privatecontroller-
+lukkingsveier. Gamle adapter-/produsentfunksjoner er bytebevart, kun eksplisitt
+CLI-/replaymetadatadispatch er utvidet; NN-/tap-/trenings-/restorematematikk
+er uendret. Full modellstate/RNG/.grad kontrolleres før hver commit. Global
+BASE-completion publiseres sist, etter fullført segmentterminal; feil der
+kan ferdigvalideres i nytt0-forwardsegment uten å omskrive gammelterminal.
+Kildekvalifikasjon er ikke modelladmisjon;003base/segment er ikke klargjort
+eller kjørt, globale5flaggfalse. Commit-/IO-ekstratid er fortsatt umålt.
+Før ny modell kreves fersk signert full vedlikeholds-/ressurskontroll,
+eksakt preflight, separatdiskbackup og engangsadmisjon. FullNonebaseline
+og egen kald replay er fortsatt ikke kvalifisert; all fit/epokeserie er stengt.
 
 Neste INITIAL må bruke virkelig fersk kandidattilstand/RNG og ny fullTRAIN354550-raders
 nulloppdateringsbaseline med riktig kandidatidentitet og matched prior.
