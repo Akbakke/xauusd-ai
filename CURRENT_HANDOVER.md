@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT019:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT020:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -574,39 +574,54 @@ historisk13PASS/3FAIL/4UNKNOWN og kildekalender/firstvintage/latergeneral-
 isering/edgegrenser består. Primarylearning_gate currentbaseline/scope er
 avstemt medv2; eldre selected-cohortstatus bevart navngitthistorisk.
 
-NyconditionalTRAINbatchrisikodiagnose er kildekvalifisert, ingenrunadmisjon.
-PROVIDER_HLC_BATCH_RISK_DESIGN002 bindersamme354550clock/v2logits/targets/
-prior.001relativplanreferanse ble korrigert tilabsolutt i002førplan/CLAIM;
-originalbevart, ingenresolverunntak. Gammel kausaldesigns kalender/vintage-
-preconditions er fortsattuoppfylt; nyanalyse gjelderbarealgebra gittlagrede
-bytes ogkvalifisererikke historiskinputtilgjengelighet/optimizerhistorie.
+ConditionalTRAINbatchrisikodiagnosen er COMPLETE_CONSUMED_CLOSED,0/false.
+Plan7ad3c00c...ebfc1fc/sourcef16f71ee6.28nye cases+3MarkdownregresjonerPASS;
+actualblockedmetadata002PASS,82kildeeiere. Gamle34funksjoner/ownerbytes og
+testbytes gjenoppretteseksakt utenappendblock+førstetokendispatch; gammel
+batch_risk_statistics ogalle guardfiler urørt. Design001relativsti rettet
+ieksplicit002, førsteMD-JSONparsefeil/helper/log bevart,0payload/CLAIMførfix.
+18sourcefiler/6122235B separatMacdisk-SHA/readback/F_FULLFSYNCPASS,
+manifestb9674180...971f301; sourcepublisert/obligatoriskprecommitPASS.
 
-SOURCE_QUALIFICATION001:28nye cases PASS,3målrettede Markdownregresjoner
-PASS;13uendredebatchriskcases gjenbrukt. Actualblockedmetadatabuilder002
-PASS:0payload/priser/modell/CP/NN/CUDA,82kildefiler. Førsteactualbuilder
-forsøkteJSONparse main_goal.md; kun denparsen fjernet, sti/SHA/bookends og
-andreJSONroller beholdt. Originalfeil/helper/log bevart,0plan/CLAIM.
-Alle34gamlefunksjoner/heleownerbytes oggamletestbytes gjenoppretteseksakt
-uten nyttappendblock+mainførstetokendispatch; batch_risk_statistics urørt.
-Ingen guardfil endret. Uavhengigreview fantingenkonkretblokkering.
-18kilde-/kvalifikasjonsfiler/6122235B er separatMacdisk-SHA/F_FULLFSYNC/
-readback-sikret, manifestb9674180...971f301. Ingenpayload/CPmodellerkopiert.
+KanoniskcappedreadonlypreflightPASS. Første2svertsjekktimetutføradmisjon;
+originalHOST_QUERY001/logbevart. Fersksignert002medsammegrenserPASS.
+NyoneuseCPUadmisjon bevartealle5treningsporterfalse. Faktiskjobb3,234409s,
+4G/512M/1tråd/64tasks,insidecapped600souter/570sinner/kill10. Hele354550
+issueaksen/3694originaleB96issuehashes/siste22 ogv2truth/prior/scoresavstemt.
+NPZ3capture+14truth=67719050B; kanoniskcachetsertifikatreauth1290candles/
+15480MBAprisskalare,0HTTP/features/CP/modeller/NN/autograd/parametergrad/
+optimizer/fit/VALTEST. Budsjettgjelderdekoderoperasjoner, ikkeshahash/headerIO.
+`updates=3694` iarvetresultatskjema betyrstøttedebatcher, ikkeoptimizerupdates.
+SOURCE/INPUT/PLAN/POLICY/WSLbootbookendsPASS,ingenjobbkjører,alle5false.
 
-Planlagt payload:3capture+14kanoniskev2truth-arrays=67719050NPZbytes;
-kanoniskcachetsertifikatreauth:response614909B/cert3460B,1290candles/
-15480MBAOHLCpristall+1290volume/tidsstempelkontroller,0HTTP. Dekoder-
-operasjoner, ikkepåstandomtotal fysiskSHA/headerIO;51600Breturnertecert-
-arrays erikketotalallokering/peak.4G/512M/1tråd oginsidecapped600souter/
-570sinner/kill10 bevares.0features/CP/modeller/NN/autograd/parametergrad/
-optimizer/fit/VALTEST; analytisk dL/dside_logit er tillattaritmetikk.
+ACCEPTANCE001:denavgrensede denominator-onlykonstantreferanseforklaringen
+fårikkestøtte. Maksendringrow-UP→meanB96vektetUP er.0191835prosentpoeng
+(M15);D1.00687417pp(54,49221→54,49908%), motFINALq69,99591%/feil15,50370pp.
+FINALsidekoordinatderivat erpositivtalle5TF,bådeglobal/meanB96ogalleissueår
+2021–25. Det eretfrossetlogitregnskap, ikkeactualparametergradient/AdamWhistorie.
+Globalactivitytapendring−.026752125/side+.011814337,total−.014937789;
+meanB96−.026824562/+ .011814967/−.015009596. Beggeviserlaverefellestap
+mensretningstapøker. Fireårskryssendebatcher739/1477/2213/2955beholder
+originaldenominatorer; årsbidragavstemt. TargetUTCår erannen navngittkohort.
 
-Neste:fryscommittetkilde, nyeksakt NATIVE_PROVIDER_HLC_BATCH_RISK_20261124_001
-plan/stage/fersktoutput, canonicalreadonlypreflight+fersksignertroligvert
-før separatengangsCPUadmisjon. Alle5treningsporter forblirfalse.
-Verifiserheleissueaksen+3694B96issuehashes; ikkeoppfinn manglendesource_rows/
-historiskstephistorie. Målbatch/global/conditional-side-derivater ogBCE-
-oppgavebidrag; issueUTCår beholderoriginalebatchdenominatorer overårsskifter.
-EksisterendetargetUTCår erannen navngittkohort. Ikkeinstaller diagnostisk
-vektetklassefrekvens som nyprior/kalibrator; ingen terskel-/klassekvote/
-featuredrop/morefit eller gammelplanrelansering. Faktisktreningsårsak og
-valgtcausalfix UNKNOWN;20steg/kalender/vintage/generalisering/edgeuoppnådd.
+D1har927batcherutensidefasit,288episoder,max14sammenhengende,finale6;
+H4har379, mensM5/M15haringen. Det åpnerhypoteser ommoment/sharedbodydrift,
+menforklarerikkealene skjevhetpåalleTF ogbeviserikkeactualhistorie.
+Uniformbiasjustering reparererikkerangering; ingen reset/frys/kvote/fit valgt.
+Actualtrainingcause/selectedcausalfix/OOF/generalisering/edgeforblirUNKNOWN;
+heleTRAINsidefitFAILall5 og03/07/09/11/12/15/19grenseruendret.
+
+RESULT_BACKUP001:27filer/23025941B/originalkvitteringer separatMacdisk-
+SHA/F_FULLFSYNC/readbackPASS, manifestc3382692...12872b0. IngenCP/vekter
+endret/kopiertavdenneaudit. REVIEW020beholder13PASS/3FAIL/4UNKNOWN,
+all20false; globallearning_gateBLOCKogbaselinepointerefortsattkorrekte.
+
+Neste:READOUT_ATTRIBUTION_SCOPE001 erdesignreview, ingenpayloadadmisjon.
+Leseksisterendeattributionowner ogdagensNNreadoutformula førnyjobb.
+Eventueltminste separatqualifiedCPUcheckpoint-only/0forwarddekomponering
+avINITIAL002→FINALmeanlogitshift:direktebias vsnon-biasprojectionresidual.
+Eksaktekilder/CPbytes/roller/proofs/lastebudsjetter/CPUcaps/preflight/fersk
+vert/oneuseadmisjonførnydecode. V2logitsmanglerhiddenstates:ikkeoppfinn
+weight-only/body/historiskeeffekter; gammelv1attributionerikkenyv2evidens.
+Ingen modell-/parameter-/optimizerendring,moreepoker,featuredrop,quota/
+terskelkalibrering/TEST/VAL/promotion. Alle20/hovedmålfortsattACTIVE/uoppnådd.
