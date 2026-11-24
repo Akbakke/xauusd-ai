@@ -686,3 +686,22 @@ FINAL skal gA+gS samsvare med faktisk kanonisk shared-gradient. Negativ
 gS·(gA+gS) støtter bare lokal førsteordens aktivitet/side-konflikt; dette
 er ikke faktisk historisk AdamW-årsak eller alle-TF-bevis. Ingen optimizer-
 oppdatering eller modell-/autogradadmisjon følger av designspørsmålet.
+
+Fryst gradientdesign001 er låst for kildekvalifisering, ingen payloadadmisjon.
+Første originale fulleB96, mikro1/eval, uendret fullbatchnevner; 192FW/384
+autograd maks, 0optimizer/update. Gjenbruk helcache1,433GB og frigjør
+context før modell; pakke63,4MB. CPU4G/éntråd/900sekunder, intern870.
+Faktisk minnetopp og CPU/CUDA-outputparitet er uavklart; ingen vakt svekkes.
+
+Cache-scope avklart før payload: hele27-arraypreTESTcachen dekodes, også
+warmup og gjenbruktDEVVAL-featurehistorikk. BudsjettVAL_TEST_rows0 betyr
+0valgte modell-/autograd-/targetrader fraVAL/TEST; det betyr ikke0off-TRAIN
+featurebytes fysisk lest. Kun første originale96TRAINrader velges. Uendrede
+kildecutoff2026-07-01UTC og alle1,433GB er bundet i CACHE_SCOPE001.
+Ingen budsjett-/TEST-/kjøringsutvidelse følger av presiseringen.
+
+Gradientkildekvalifisering: 52 fokuserte syntetiske cases PASS, faktisk
+blokkert metadatabuilder PASS/86kildeeiere/0payload/0NN/0autograd.
+SOURCE_QUALIFICATION001 binder originale logger/hjelper/preview og fryste
+kildehashes. Alle tidligere gx1/scripts/tests uendret. Faktisk4GiB og
+CPU/lagretCUDA-paritet er fortsatt UNMEASURED. Ingen payloadadmisjon.
