@@ -1519,9 +1519,9 @@ matches_bound_native_provider_hlc_all_tf_learning() {
   local expected_plan
   case "$4" in
     --all-tf-learning-plan-sha256)
-      expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_001.json" ;;
+      expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002.json" ;;
     --all-tf-learning-resume-plan-sha256)
-      expected_plan="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_001/RECOVERY_PLANS/$5.json" ;;
+      expected_plan="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002/RECOVERY_PLANS/$5.json" ;;
     *) return 1 ;;
   esac
   [[ -f "$expected_plan" && ! -L "$expected_plan" \
@@ -1538,7 +1538,7 @@ configure_native_provider_hlc_all_tf_learning() {
   matches_bound_native_provider_hlc_all_tf_learning "$@" || {
     echo "FATAL: ALL-TF learning requires its exact canonical command/plan" >&2; exit 75
   }
-  local learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_001"
+  local learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002"
   local learning_mode=main learning_env_name
   if [[ "$4" == --all-tf-learning-resume-plan-sha256 ]]; then
     learning_output="$learning_output/RECOVERY_$5"
@@ -2816,7 +2816,6 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
       && "${GX1_CUDA_PRODUCER_GUARD:-}" == "false" \
       && "${GX1_TRAINER_DEVICE:-}" == "cuda" \
       && "${GX1_TRAINER_EXECUTION_MODE:-}" == "canonical" \
-      && "${GX1_CPU_AFFINITY:-}" == "0-18" \
       && "${BLIS_NUM_THREADS:-}" == "8" \
       && "${ARROW_NUM_THREADS:-}" == "1" \
       && "${POLARS_MAX_THREADS:-}" == "1" ]] || {

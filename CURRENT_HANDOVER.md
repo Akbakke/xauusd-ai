@@ -11,7 +11,7 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT031:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
+REVIEW_CHECKPOINT034:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
 verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
 retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
 påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
@@ -96,14 +96,29 @@ NumBa-cacheprober ved import og stengte alle writes før runtime/builder:
 0payload/NN/optimizer/autograd/CUDA/nett/builderwrites,0PLAN/ROOT/CLAIM.
 13filer/630709B med kilde/test-/metadata-/feilbevis er separatMac-
 diskkopiert og faktiskSHA/F_FULLFSYNC/fsync-verifisert, ogsådiagnostikk/stderr.
-V2_ALL_TF_LEARNING_SOURCE_QUALIFICATION002 og SOURCE_BACKUP002 binder gjeldende
-bevis;001 bevares. Commitkontrollen fant én ekstra EOF-blanklinje i nytest.
+Tidligere V2_ALL_TF_LEARNING_SOURCE_QUALIFICATION002 og SOURCE_BACKUP002
+bevarer første kildekvalifikasjon; nyeste003 gjelder rettelsen nedenfor. Commitkontrollen fant én ekstra EOF-blanklinje i nytest.
 Bare denne ene byten ble fjernet; fullAST inkl linjeposisjoner er identisk,
 453cases gjenbrukes.3nye filer/19386B er separatdiskverifisert som tillegg
 til de13originalene; produksjonskilden og all numerisk funksjon er uendret.
-Neste: bygg eksakt ny engangsplan fra fryst commit, faktisk cappedCLIpreflight,
-planbackup og fersk signert vert-/ressurskontroll før eventuell admisjon.
-Ingen None-plan eller læring er opprettet/innrømmet; globale porter forblirfalse. All5porterfalse; TRAIN-diagnostikk,
+Plan001 SHAa9d68b10… er bevart og RETIRED førROOT/CLAIM. Faktisk cappedCLI-
+preflight stoppet på nyguards forventning om GX1_CPU_AFFINITY: ytreSCOPE_GUARD
+har allerede brukt og unset denne før taskset/Python. Fellesguard kontrollerer
+faktisk sched_getaffinity0–18; denne og alle grenser beholdes. Første signerte
+hostquery timeout2s er bevart; fersk002PASS viste fysisk200W/CPU29C/8,58W,
+GPU32/38C/22,28W/79MiB og60,05GB ledig. Tre løpende guardsamples var trygge;
+childexit1 utenNN/updates/ROOT/CLAIM. Originalguard-/trainerlogger er bundet i
+V2_ALL_TF_LEARNING_PREFLIGHT_FAILURE_REVIEW001. Rettet: bare ny Python-/nested-
+envforventning fjernet; faktisk fellesCPUguard/historiskSCOPE_GUARD/taskset
+og allecaps er byteuendret. Main/resume med manglendehint+korrekt faktisk
+affinitet passerer; misvisendehint+feil faktisk affinitet stoppes.453cases
+inkl4nye regresjoner og faktiskmetadata004/79eiere PASS,0payload/NN/CUDA.
+Learningeieren har bare eksakt001→002-navnebytte; all annen byte bevart.
+SOURCE_QUALIFICATION003 og ENV_REPAIR_BACKUP001 binder24filer1802028B,
+uavhengigMacSHA/F_FULLFSYNC/fsync ogsådiagnostikk/stderr. Nyplan002 er ennå
+ikke opprettet; bygg fra rettet frystcommit og kvalifiser faktiskCLI/host/
+planbackup før engangsadmisjon. Original001/feillogger beholdes stengt.
+Ingen None-læring startet; alle5porterfalse. Ingen baseline-/recipe-/targetendring. All5porterfalse; TRAIN-diagnostikk,
 ikkeOOF ellerutvalg påTEST; kalender/vintage/generalisering/edge fortsattåpent.
 
 ## Gjeldende hele-TRAIN støttekontroll

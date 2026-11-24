@@ -683,7 +683,7 @@ def main_resume():
 # End cursor512 resume authority.
 
 # All-TF learning authority: additive orchestration only.
-ALL_TF_NAME='NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_001'
+ALL_TF_NAME='NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002'
 ALL_TF_STAGE=ALL_TF_NAME.lower();ALL_TF_PLAN=REPO/'configs/research'/(ALL_TF_NAME+'.json');ALL_TF_ROOT=ROOT.parent/ALL_TF_NAME
 ALL_TF_RECOVERY_STAGE=ALL_TF_STAGE+'_recovery';ALL_TF_ANCHOR='1d83a588c21af611973afdfda6a7c960fd060436'
 ALL_TF_TEST='tests/test_native_provider_hlc_all_tf_learning_v1.py';ALL_TF_GUARD_TEST='tests/test_native_provider_hlc_all_tf_learning_guard_v1.py'

@@ -11,7 +11,9 @@ from pathlib import Path
 import pytest
 from gx1.contracts import gx1_capped_execution_v1 as g
 
-NAME = 'NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_001'
+ACTUAL_CUDA_TRAINER_GUARD = g.require_guarded_cuda_trainer_execution
+
+NAME = 'NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002'
 MODULE = 'gx1.audit.native_provider_hlc_learning_v1'
 PARENT = '1d83a588c21af611973afdfda6a7c960fd060436'
 GUARDS = {
@@ -82,7 +84,6 @@ ENV = {'GX1_CAPPED_MEMORY_BYTES': '21474836480',
  'GX1_CUDA_PRODUCER_GUARD': 'false',
  'GX1_TRAINER_DEVICE': 'cuda',
  'GX1_TRAINER_EXECUTION_MODE': 'canonical',
- 'GX1_CPU_AFFINITY': '0-18',
  'BLIS_NUM_THREADS': '8',
  'ARROW_NUM_THREADS': '1',
  'POLARS_MAX_THREADS': '1'}
@@ -175,6 +176,33 @@ def test_exact_main_or_fresh_recovery_only_proves_resources(monkeypatch, scope, 
     assert proof['plan'] == {'path': str(scope['plan']), 'sha256': scope['sha']}
     assert proof['output_root'] == str(scope['output'])
     assert not scope['output'].exists()
+
+
+@pytest.mark.parametrize('wrong_actual_affinity', [False, True])
+def test_consumed_affinity_hint_uses_actual_process_affinity(monkeypatch, scope, wrong_actual_affinity):
+    # SCOPE_GUARD consumes/unsets GX1_CPU_AFFINITY before taskset launches Python.
+    if wrong_actual_affinity:
+        monkeypatch.setenv('GX1_CPU_AFFINITY', '0-18')
+    else:
+        monkeypatch.delenv('GX1_CPU_AFFINITY', raising=False)
+    monkeypatch.setattr(g, 'require_guarded_cuda_trainer_execution', ACTUAL_CUDA_TRAINER_GUARD)
+    monkeypatch.setattr(g.os, 'sched_getaffinity', lambda pid: set(range(18 if wrong_actual_affinity else 19)))
+    proofs = []
+    def actual_scope(**kwargs):
+        proofs.append(kwargs)
+        assert kwargs['max_memory_bytes'] == 20 * 1024**3 and kwargs['max_pids'] == 128
+        return {'kernel_scope': True}
+    monkeypatch.setattr(g, '_require_capped_cgroup_limits', actual_scope)
+    monkeypatch.setattr(g, 'require_capped_lock_ancestry', lambda: {'canonical_lock': True})
+    if wrong_actual_affinity:
+        with pytest.raises(RuntimeError, match='GX1_CUDA_TRAINER_AFFINITY_INVALID'):
+            _proof(scope)
+        assert not proofs
+    else:
+        proof = _proof(scope)
+        assert proof['kernel_scope'] is True and proof['lock'] == {'canonical_lock': True}
+        assert len(proofs) == 1
+        assert proof['training_authority_granted'] is proof['optimizer_authority_granted'] is False
 
 
 @pytest.mark.parametrize('field', list(ENV))
