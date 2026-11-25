@@ -102,6 +102,12 @@ NATIVE_FUTURE_STATE_BIAS_CONTINUE_MODULE=gx1.audit.continue_native_future_state_
 NATIVE_FUTURE_STATE_BIAS_CONTINUE=false
 NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256=
 # END GX1 BIAS CONTINUE ROUTE 20261122 004 STATE
+# BEGIN GX1 PROVIDER HLC ROW MEMBERSHIP QUALIFICATION ROUTE 20261125 001 STATE
+NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_MODULE=gx1.audit.native_provider_hlc_row_membership_qualification_v1
+NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION=false
+NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_PLAN_SHA256=
+NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_LANE=
+# END GX1 PROVIDER HLC ROW MEMBERSHIP QUALIFICATION ROUTE 20261125 001 STATE
 # BEGIN GX1 PROVIDER HLC GRADIENT PROFILE ROUTE 20261125 001 STATE
 NATIVE_PROVIDER_HLC_GRADIENT_PROFILE_MODULE=gx1.audit.diagnose_native_provider_hlc_gradient_profile_v1
 NATIVE_PROVIDER_HLC_GRADIENT_PROFILE=false
@@ -1841,7 +1847,117 @@ configure_native_provider_hlc_gradient_profile() {
   TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592
 }
 # END GX1 PROVIDER HLC GRADIENT PROFILE ROUTE 20261125 001 MATCHERS
+# BEGIN GX1 PROVIDER HLC ROW MEMBERSHIP QUALIFICATION ROUTE 20261125 001 MATCHERS
+matches_bound_native_provider_hlc_row_membership_qualification() {
+  if [[ $# -eq 8 ]]; then
+    [[ "$8" == --preflight ]] || return 1
+    set -- "${@:1:7}"
+  fi
+  [[ $# -eq 7 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_MODULE" \
+    && "$4" == --membership-qualification-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ \
+    && "$6" == --lane && ( "$7" == warm || "$7" == cold ) ]] || return 1
+  local profile_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_20261125_001.json"
+  [[ -f "$profile_plan" && ! -L "$profile_plan" \
+    && "$(readlink -f "$profile_plan")" == "$profile_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$profile_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]
+}
+
+require_native_provider_hlc_row_membership_qualification_environment() {
+  local profile_nested="$1" profile_env profile_state profile_expected
+  # Reuse the declared inactive native states; never accept another route's authority.
+  for profile_env in ${!GX1_NATIVE_@}; do
+    case "$profile_env" in
+      GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION|GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_PLAN_SHA256|GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_LANE) continue ;;
+      GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256) profile_state=NATIVE_FUTURE_STATE_CPU_MECHANICS_SHA256 ;;
+      *) profile_state="${profile_env#GX1_}" ;;
+    esac
+    [[ "$profile_state" != *_MODULE && -v "$profile_state" \
+      && ( "${!profile_state}" == false || -z "${!profile_state}" ) \
+      && "${!profile_env}" == "${!profile_state}" ]] || {
+      echo "FATAL: row membership qualification forbids mixed or unknown native environment" >&2; exit 75
+    }
+  done
+  if [[ "$profile_nested" == true ]]; then
+    for profile_state in ${!NATIVE_@}; do
+      case "$profile_state" in
+        *_MODULE|NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION|NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_PLAN_SHA256|NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_LANE) continue ;;
+        NATIVE_FUTURE_STATE_CPU_MECHANICS_SHA256) profile_env=GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256 ;;
+        *) profile_env="GX1_$profile_state" ;;
+      esac
+      [[ -v "$profile_env" && "${!profile_env}" == "${!profile_state}" ]] || {
+        echo "FATAL: row membership qualification requires every inactive protected native state" >&2; exit 75
+      }
+    done
+  fi
+}
+
+configure_native_provider_hlc_row_membership_qualification() {
+  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \
+    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \
+    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {
+    echo "FATAL: row membership qualification requires exact canonical CUDA containment" >&2; exit 75
+  }
+  matches_bound_native_provider_hlc_row_membership_qualification "$@" || {
+    echo "FATAL: row membership qualification command/plan is not exactly bound" >&2; exit 75
+  }
+  local profile_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_20261125_001_$7"
+  [[ ! -e "$profile_output" && ! -L "$profile_output" \
+    && -d "${profile_output%/*}" && ! -L "${profile_output%/*}" \
+    && "$(readlink -f "${profile_output%/*}")" == "${profile_output%/*}" ]] || {
+    echo "FATAL: row membership qualification requires a fresh canonical output" >&2; exit 75
+  }
+  if [[ -n "${GX1_CAPPED_CLASS:-}${GX1_CAPPED_MEMORY_BYTES:-}${GX1_CAPPED_SWAP_BYTES:-}${GX1_CAPPED_TASKS_MAX:-}" ]]; then
+    require_native_provider_hlc_row_membership_qualification_environment true
+    [[ "${GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION:-}" == true \
+      && "${GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_PLAN_SHA256:-}" == "$5" \
+      && "${GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_LANE:-}" == "$7" ]] || {
+      echo "FATAL: row membership qualification mode/plan differs from protected parent" >&2; exit 75
+    }
+  else
+    require_native_provider_hlc_row_membership_qualification_environment false
+    [[ "${GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION:-false}" == false \
+      && -z "${GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_PLAN_SHA256:-}" \
+      && -z "${GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_LANE:-}" ]] || {
+      echo "FATAL: unprotected row membership qualification environment pollution" >&2; exit 75
+    }
+  fi
+  NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION=true
+  NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_PLAN_SHA256="$5"
+  NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_LANE="$7"
+  TRAINER_DEVICE=cuda
+  TRAINER_EXECUTION_MODE=canonical
+  TRAINER_OUT_BUNDLE_DIR="$profile_output"
+  TRAINER_MAX_WALL_SECONDS=1800
+  TRAINER_MODEL_MAX_WALL_SECONDS=1770
+  TRAINER_GPU_INDEX=0
+  TRAINER_GPU_MAX_POWER_LIMIT_W=250
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_MEMORY_TEMP_C=80
+  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+  TRAINER_CPU_MAX_TEMP_C=80
+  TRAINER_CPU_MAX_PACKAGE_POWER_W=125
+  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592
+  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592
+}
+# END GX1 PROVIDER HLC ROW MEMBERSHIP QUALIFICATION ROUTE 20261125 001 MATCHERS
 validate_target_command() {
+# BEGIN GX1 PROVIDER HLC ROW MEMBERSHIP QUALIFICATION ROUTE 20261125 001 DISPATCH
+  local gradient_profile_arg gradient_profile_reference=false
+  for gradient_profile_arg in "$@"; do
+    case "$gradient_profile_arg" in
+      "$NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_MODULE"|*/gx1/audit/native_provider_hlc_row_membership_qualification_v1.py|gx1/audit/native_provider_hlc_row_membership_qualification_v1.py)
+        gradient_profile_reference=true ;;
+    esac
+  done
+  if [[ "$gradient_profile_reference" == true ]]; then
+    configure_native_provider_hlc_row_membership_qualification "$@"
+    return
+  fi
+# END GX1 PROVIDER HLC ROW MEMBERSHIP QUALIFICATION ROUTE 20261125 001 DISPATCH
 # BEGIN GX1 PROVIDER HLC GRADIENT PROFILE ROUTE 20261125 001 DISPATCH
   local gradient_profile_arg gradient_profile_reference=false
   for gradient_profile_arg in "$@"; do
@@ -2987,6 +3103,44 @@ if [[ -n "${GX1_CAPPED_CLASS:-}" \
     }
   fi
 # END GX1 BIAS CONTINUE ROUTE 20261122 004 NESTED
+# BEGIN GX1 PROVIDER HLC ROW MEMBERSHIP QUALIFICATION ROUTE 20261125 001 NESTED
+  [[ "${GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION:-false}" == "$NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_PLAN_SHA256" \
+    && "${GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_LANE:-}" == "$NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_LANE" ]] || {
+    echo "FATAL: nested row membership qualification mode/plan differs from protected parent" >&2; exit 75
+  }
+  if [[ "$NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION" == true ]]; then
+    require_native_provider_hlc_row_membership_qualification_environment true
+    [[ "${GX1_CAPPED_CLASS:-}" == trainer \
+      && "${GX1_CAPPED_MEMORY_BYTES:-}" == 21474836480 \
+      && "${GX1_CAPPED_SWAP_BYTES:-}" == 536870912 \
+      && "${GX1_CAPPED_TASKS_MAX:-}" == 128 \
+      && "${GX1_CUDA_PRODUCER_GUARD:-}" == false \
+      && "${GX1_POWER_BENCHMARK_SCOPE_JSON:-}" == "" \
+      && "${GX1_POWER_BENCHMARK_SCOPE_SHA256:-}" == "" ]] || {
+      echo "FATAL: nested row membership qualification containment differs from protected parent" >&2; exit 75
+    }
+    for profile_state in TRAINER_DEVICE TRAINER_EXECUTION_MODE \
+      TRAINER_MAX_WALL_SECONDS TRAINER_MODEL_MAX_WALL_SECONDS TRAINER_ATTENDED_STAGE_REQUIRED \
+      TRAINER_GPU_INDEX TRAINER_GPU_MAX_POWER_LIMIT_W TRAINER_GPU_MAX_POWER_DRAW_W \
+      TRAINER_GPU_MAX_CORE_TEMP_C TRAINER_GPU_MAX_MEMORY_TEMP_C TRAINER_GPU_MAX_MEMORY_USED_MIB \
+      TRAINER_GPU_MONITOR_INTERVAL_SECONDS TRAINER_CPU_MAX_TEMP_C TRAINER_CPU_MAX_PACKAGE_POWER_W \
+      TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES; do
+      profile_env="GX1_$profile_state"
+      [[ -v "$profile_env" && "${!profile_env}" == "${!profile_state}" ]] || {
+        echo "FATAL: nested row membership qualification deadline/hardware differs from protected parent" >&2; exit 75
+      }
+    done
+    for profile_env in OMP_NUM_THREADS MKL_NUM_THREADS OPENBLAS_NUM_THREADS NUMEXPR_NUM_THREADS VECLIB_MAXIMUM_THREADS BLIS_NUM_THREADS; do
+      [[ "${!profile_env:-}" == 8 ]] || {
+        echo "FATAL: nested row membership qualification numerical threads differ from protected parent" >&2; exit 75
+      }
+    done
+    [[ "${ARROW_NUM_THREADS:-}" == 1 && "${POLARS_MAX_THREADS:-}" == 1 ]] || {
+      echo "FATAL: nested row membership qualification auxiliary threads differ from protected parent" >&2; exit 75
+    }
+  fi
+# END GX1 PROVIDER HLC ROW MEMBERSHIP QUALIFICATION ROUTE 20261125 001 NESTED
 # BEGIN GX1 PROVIDER HLC GRADIENT PROFILE ROUTE 20261125 001 NESTED
   [[ "${GX1_NATIVE_PROVIDER_HLC_GRADIENT_PROFILE:-false}" == "$NATIVE_PROVIDER_HLC_GRADIENT_PROFILE" \
     && "${GX1_NATIVE_PROVIDER_HLC_GRADIENT_PROFILE_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_GRADIENT_PROFILE_PLAN_SHA256" ]] || {
@@ -3776,6 +3930,9 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256" \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE="$NATIVE_FUTURE_STATE_BIAS_CONTINUE" \
   --setenv=GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256="$NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION="$NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION" \
+  --setenv=GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_PLAN_SHA256="$NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_LANE="$NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_QUALIFICATION_LANE" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_GRADIENT_PROFILE="$NATIVE_PROVIDER_HLC_GRADIENT_PROFILE" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_GRADIENT_PROFILE_PLAN_SHA256="$NATIVE_PROVIDER_HLC_GRADIENT_PROFILE_PLAN_SHA256" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS="$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS" \
