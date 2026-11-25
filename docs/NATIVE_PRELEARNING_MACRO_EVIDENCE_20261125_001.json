@@ -1,0 +1,680 @@
+{
+  "actual_consumed_fields": {
+    "DXY_absence_basis": "All61 actual field names and11panel instruments from bound pipeline review; no DXY source is consumed.",
+    "DXY_present": false,
+    "active_manifest_refs": {
+      "cot": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/CFTC_COT_ARCHIVE_SOURCE_20261011_002.json",
+        "sha256": "2eeb8aa2ed1843439836e85bc1ea12c4683e9aeecdbf3ea12b0177a5f4bf9300"
+      },
+      "gld": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/GLD_HOLDINGS_SOURCE_20261011_003.json",
+        "sha256": "98fe97717ee219076da83c2f9973a0f61d79f219b8609a90c1bf9dc783445aee"
+      },
+      "panel": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/OANDA_PANEL_DAILY_SOURCE_20261011_004.json",
+        "sha256": "c421e1b7b97b1532f4ae155886ea81ce6c51d4215db99161cea198d0289a3dd9"
+      },
+      "treasury": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/TREASURY_YIELDS_SOURCE_20261011_002.json",
+        "sha256": "6344102b86a080fa7edc3bdfb9cb9844f0af5776db3ef081735babf0fb42c5c9"
+      },
+      "vix": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/CBOE_VIX_SOURCE_20261011_002.json",
+        "sha256": "60529527c2228b5a66e64c596840fad83b56b79c5dc4ef4a056901a5930e523e"
+      }
+    },
+    "availability_clock_group_count": 4,
+    "counts": {
+      "cot": 4,
+      "gld": 2,
+      "panel": 44,
+      "treasury": 9,
+      "vix": 2
+    },
+    "fields_by_source_family": {
+      "cot": [
+        "cot_noncommercial_net_over_oi",
+        "cot_change4reports",
+        "cot_open_interest_log_change4reports",
+        "cot_commercial_net_over_oi"
+      ],
+      "gld": [
+        "gld_log_level",
+        "gld_log_change21D"
+      ],
+      "panel": [
+        "BCO_USD_logret_1D",
+        "BCO_USD_logret_5D",
+        "BCO_USD_logret_20D",
+        "BCO_USD_rv_20D",
+        "EUR_USD_logret_1D",
+        "EUR_USD_logret_5D",
+        "EUR_USD_logret_20D",
+        "EUR_USD_rv_20D",
+        "SPX500_USD_logret_1D",
+        "SPX500_USD_logret_5D",
+        "SPX500_USD_logret_20D",
+        "SPX500_USD_rv_20D",
+        "USB10Y_USD_logret_1D",
+        "USB10Y_USD_logret_5D",
+        "USB10Y_USD_logret_20D",
+        "USB10Y_USD_rv_20D",
+        "USD_JPY_logret_1D",
+        "USD_JPY_logret_5D",
+        "USD_JPY_logret_20D",
+        "USD_JPY_rv_20D",
+        "WTICO_USD_logret_1D",
+        "WTICO_USD_logret_5D",
+        "WTICO_USD_logret_20D",
+        "WTICO_USD_rv_20D",
+        "XAG_USD_logret_1D",
+        "XAG_USD_logret_5D",
+        "XAG_USD_logret_20D",
+        "XAG_USD_rv_20D",
+        "XAU_USD_logret_1D",
+        "XAU_USD_logret_5D",
+        "XAU_USD_logret_20D",
+        "XAU_USD_rv_20D",
+        "XCU_USD_logret_1D",
+        "XCU_USD_logret_5D",
+        "XCU_USD_logret_20D",
+        "XCU_USD_rv_20D",
+        "XPD_USD_logret_1D",
+        "XPD_USD_logret_5D",
+        "XPD_USD_logret_20D",
+        "XPD_USD_rv_20D",
+        "XPT_USD_logret_1D",
+        "XPT_USD_logret_5D",
+        "XPT_USD_logret_20D",
+        "XPT_USD_rv_20D"
+      ],
+      "treasury": [
+        "real10y_level",
+        "real10y_change1D",
+        "real10y_change5D",
+        "real10y_change21D",
+        "nominal10y_level",
+        "slope10y2y_level",
+        "slope10y2y_change21D",
+        "breakeven10y_level",
+        "breakeven10y_change21D"
+      ],
+      "vix": [
+        "vix_log_level",
+        "vix_log_change5D"
+      ]
+    },
+    "macro_binding_sha256": "0964325df5685470a8dbbc375d04fce0854ba0511c3ee581845f09f7a23c29af",
+    "macro_contract_sha256": "f8b69d225325ae66f9a489ac4cb1154bad7da1e2bad05ce88cd21e8844be1a52",
+    "source_family_count": 5
+  },
+  "availability_clock_groups": {
+    "cot": {
+      "actual_rule": "available_at=max(as_of00:00UTC+7calendar_days, midnightAmerica/New_York following any bound exceptional publication_date_ny)",
+      "bound_exception_rows": 21,
+      "field_count": 4,
+      "join": "strict issue_time > available_at",
+      "normal_clock_contradiction_measured": false,
+      "official_normal_clock": "Tuesday positions normally released Friday15:30Eastern",
+      "primary_source_ids": [
+        "cftc_faq",
+        "cftc_special_announcements",
+        "cftc_2025_catchup"
+      ],
+      "unknown": "Full consumed-report release-delay coverage and exact historical intraday times are not proven by existing exception subset."
+    },
+    "panel": {
+      "actual_rule": "H1 rows grouped into fixedUTC22 D1 bins; last actual H1 row is the close key. Bin available at label+DAY. This is fixedUTC22, not a claimed DST-varying NewYork-close definition.",
+      "field_count": 44,
+      "join": "inclusive issue_time >= D1label+24h",
+      "normal_clock_contradiction_measured": false,
+      "primary_source_ids": [],
+      "unknown": "Original H1 response/status/version/finality and historical first-available values for exact11practice instruments remain unproven; current receipts bind parquet identity only."
+    },
+    "treasury": {
+      "actual_rule": "Observation dateD normalized inAmerica/New_York plus pd.DateOffset(days=2), then convertedUTC. EndofD+1 is D+2local00:00; calendar-day lag, DST-preserving, no business-day assumption.",
+      "field_count": 9,
+      "join": "strict issue_time > available_at",
+      "normal_clock_contradiction_measured": false,
+      "official_normal_clock": "Usually public by18:00Eastern on observationD, possible delays.",
+      "primary_source_ids": [
+        "treasury_historical_clock",
+        "treasury_current_clock"
+      ],
+      "unknown": "Dated first value, actual delayed release beyond cutoff and same-definition reference agreement."
+    },
+    "vix_gld": {
+      "actual_rule": "Same D+2midnightAmerica/New_York rule as Treasury; no same-day daytime assumption.",
+      "field_count": 4,
+      "join": "strict issue_time > available_at",
+      "normal_clock_contradiction_measured": false,
+      "primary_source_ids": [
+        "gld_clock",
+        "vix_history",
+        "vix_historical_calculation_clock"
+      ],
+      "source_families": [
+        "vix",
+        "gld"
+      ],
+      "unknown": "Historical CSV/XLSX first-publication timestamps, versions and applicable nonrevision policies; ordinary calculation/holdings times alone do not establish this."
+    }
+  },
+  "completion_limits": [
+    "This sole JSON is documentary evidence/design, not run authority or a source/model/guard/policy change.",
+    "No raw financial payload, key, model weight or private response is embedded.",
+    "Historical vintage/source-known gaps and all scientific UNKNOWNs stay open until relevant bounded evidence is measured.",
+    "Root owns source freeze, exact new manifests/admission, capped network collection and acceptance. No mainfit, spending or TEST access is admitted."
+  ],
+  "configured_key_presence_checks": {
+    "Mac_environment": {
+      "key_names": {
+        "ALFRED_API_KEY": false,
+        "FRED_API_KEY": false,
+        "STLOUISFED_API_KEY": false
+      },
+      "observer": "root"
+    },
+    "Mac_workspace_files": {
+      "files": [
+        {
+          "exists": false,
+          "path": "/Users/andrekildalbakke/Desktop/GX1 XAUUSD/.env"
+        },
+        {
+          "exists": false,
+          "path": "/Users/andrekildalbakke/Desktop/GX1 XAUUSD/.env.local"
+        }
+      ],
+      "observer": "root"
+    },
+    "WSL_CURRENT_dotenv": {
+      "assignment_names_present": {
+        "ALFRED_API_KEY": false,
+        "FRED_API_KEY": false,
+        "STLOUISFED_API_KEY": false
+      },
+      "exists": true,
+      "inspection": "Assignment names only; no file execution or secret values output.",
+      "path": "/home/andre2/src/GX1_CURRENT/.env"
+    },
+    "WSL_noninteractive_SSH_bash_environment": {
+      "key_names": {
+        "ALFRED_API_KEY": false,
+        "FRED_API_KEY": false,
+        "STLOUISFED_API_KEY": false
+      },
+      "meaning": "Not defined in checked process environment; no global absence claim."
+    },
+    "WSL_other_explicit_files": [
+      {
+        "exists": false,
+        "path": "/home/andre2/src/GX1_CURRENT/.env.local"
+      },
+      {
+        "exists": false,
+        "path": "/home/andre2/.env"
+      },
+      {
+        "exists": false,
+        "observer": "root",
+        "path": "/home/andre2/.config/gx1/.env"
+      }
+    ],
+    "scope_limit": "Only enumerated locations and three names checked. Other user-provided path/env name remains pending; not proof of global absence. No secret values retained in this document."
+  },
+  "existing_evidence": {
+    "alfred_download_form_inventory": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_DOWNLOAD_FORM_INVENTORY003.json",
+      "sha256": "a58593113ea9603aba1338f135c16a2e112aa84f2c95e6b309e5b928baede993"
+    },
+    "alfred_treasury_metadata_route": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_TREASURY_METADATA_ROUTE002.json",
+      "sha256": "7deef3bbe57282ecdc5f4cd2fda2259f702aad9f2cfdc7c1e6a3df27e3d1c6a3"
+    },
+    "macro_origin_vintage_path_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/MACRO_ORIGIN_VINTAGE_PATH_REVIEW001.json",
+      "sha256": "93c5d902a704d8986a60c8d267b69fb433d5ae1cc644a5743dc17a5fd14ca9f6"
+    },
+    "macro_source_key_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/MACRO_SOURCE_KEY_ACCEPTANCE001.json",
+      "sha256": "3f953eba5ea22200a5523134a99f0a6b5c923f47aa73840fb5b9446a14642a69"
+    },
+    "required_external_evidence_blocked_audit": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/REQUIRED_EXTERNAL_EVIDENCE_BLOCKED_AUDIT001.json",
+      "sha256": "77e658255e19e68e283c5a0a76d3da136787c522f860c515605157ad1aca8692"
+    },
+    "treasury_initial_release_failed_attempt_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_INITIAL_RELEASE_FAILED_ATTEMPT_REVIEW002.json",
+      "sha256": "69e298336be45552352f508c80262fe04d4a60eb1b5a5950105539f9d1986323"
+    },
+    "treasury_initial_release_reference_manifest": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_INITIAL_RELEASE_REFERENCE_MANIFEST001.json",
+      "sha256": "bec6075acba9c62c2c3ef2f6c70935493b3c94d1cdf97e75439796a987dc4413"
+    },
+    "treasury_initial_release_source_design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_INITIAL_RELEASE_SOURCE_DESIGN001.json",
+      "sha256": "f69d9292f5d0e3f724be69b8d150a399ec3bf69c1d1d36bef27f0ad1443bbc70"
+    },
+    "treasury_mac_relay_failure_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_MAC_RELAY_FAILURE_REVIEW002.json",
+      "sha256": "d52c08855caafbebd0dc3ae41bf099442d261d61f7c44a7e3e46ade21fc810c7"
+    }
+  },
+  "interpretation": {
+    "current_source_match": "All61 current-source matches establish current dependency support, not historical first availability.",
+    "first_vintage_PASS": false,
+    "first_vintage_absence": "No new first-vintage payload was obtained. Historical OANDA44/Treasury9/VIX2/GLD2 remain UNKNOWN; COT4 retains partial official nonrevision-policy support and incomplete historical release coverage.",
+    "new_causal_clock_bug_measured": false,
+    "normal_schedule_consistency_is_historical_proof": false,
+    "reference_identity": "FRED/H15 candidate identity, date, units, tenor, rounding and calendar must match active Treasury primitives before a value comparison is relevant. No reference values automatically replace active input bytes.",
+    "release_DATE": "A public initial-release date can bound end-of-day availability conservatively but does not identify exact intraday publication. Observation date, source release date, FRED arrival/vintage date and retrieval timestamp must remain separate.",
+    "revision_flags": "Manifest revised_after_publication flags copied by fetch_bounded_files are declarations, not empirical revision tests. A policy allowing restatements does not prove a consumed observation changed."
+  },
+  "observed_utc": "2026-11-25T16:22:28.322285+00:00",
+  "primary_sources": {
+    "pages": [
+      {
+        "id": "treasury_historical_clock",
+        "limits": "Usual publication schedule is not a dated guarantee for every consumed observation.",
+        "supports": "Archived 2020 methodology: indicative bids approximately15:30Eastern; yield curve usually public by18:00Eastern each trading day, possible delays. Discontinued2021-12-06.",
+        "url": "https://home.treasury.gov/quasi-cubic-hermite-spline-treasury-yield-curve-methodology"
+      },
+      {
+        "id": "treasury_current_clock",
+        "limits": "Current page alone is not historical first-vintage or delay proof.",
+        "supports": "Current methodology: usual18:00Eastern publication, possible delays; method changed2021-12-06.",
+        "url": "https://home.treasury.gov/policy-issues/financing-the-government/interest-rate-statistics/treasury-yield-curve-methodology"
+      },
+      {
+        "id": "cftc_faq",
+        "limits": "Retain legacy088691/futures-only identity; no complete historical release-date ledger supplied by FAQ.",
+        "supports": "Normally Tuesday positions released Friday15:30Eastern; historical data not updated once published.",
+        "url": "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm"
+      },
+      {
+        "id": "cftc_special_announcements",
+        "limits": "No new exception or new clock correction measured in this review.",
+        "supports": "Documented delayed releases, including2023/2025 disruptions. Existing21exception rows already bound.",
+        "url": "https://www.cftc.gov/MarketReports/CommitmentsofTraders/HistoricalSpecialAnnouncements/index.htm"
+      },
+      {
+        "id": "cftc_2025_catchup",
+        "limits": "Date-level evidence is not exact intraday metadata.",
+        "supports": "Official2025 catch-up schedule underlying existing exceptions.",
+        "url": "https://www.cftc.gov/PressRoom/PressReleases/9147-25"
+      },
+      {
+        "id": "gld_clock",
+        "limits": "Current schedule is not effective-dated2021–25 release/version proof. Bid/ask-price update21:30–22:30 is a different field and is not used as tonnes clock.",
+        "supports": "Trust information ounces/tonnes/shares updated10:30–10:45 and16:00–16:45NewYork. Website holdings use trade date; bar list uses settlement date.",
+        "url": "https://www.spdrgoldshares.com/usa/gld/"
+      },
+      {
+        "id": "vix_history",
+        "limits": "Rolling CSV is not an archive of first-published values or historical upload timestamps.",
+        "supports": "Official rolling daily closing VIX CSV.",
+        "url": "https://www.cboe.com/tradable_products/vix/vix_historical_data"
+      },
+      {
+        "id": "vix_historical_calculation_clock",
+        "limits": "Calculation end is not proof of freeCSV upload time or historical nonrevision.",
+        "supports": "Historical methodology regular trading calculation08:30–15:15Central (09:30–16:15Eastern).",
+        "url": "https://cdn.cboe.com/resources/vix/VIX_Methodology.pdf"
+      },
+      {
+        "id": "alfred_output_semantics",
+        "limits": "DATE does not establish an intraday source-provider timestamp; series/source identity and consumed-cutoff applicability must be proved.",
+        "supports": "Initial Release Only contains first released values; realtime_start_date is initial public-release date; later revisions excluded.",
+        "url": "https://alfred.stlouisfed.org/help/downloaddata"
+      },
+      {
+        "id": "fred_observations_api",
+        "limits": "Documented API key requirement is not a proof that every public no-key route is unavailable.",
+        "supports": "Registered API key required; output_type4 Initial Release Only; observation/realtime bounds supported.",
+        "url": "https://fred.stlouisfed.org/docs/api/fred/series_observations.html"
+      },
+      {
+        "id": "fred_dgs2_identity",
+        "limits": "Candidate same-definition reference; no blind replacement of active Treasury CSV.",
+        "supports": "Nominal2year Treasury constant maturity, daily percent, H15 source.",
+        "url": "https://fred.stlouisfed.org/series/DGS2"
+      },
+      {
+        "id": "fred_dfii10_identity",
+        "limits": "Candidate same-definition reference; row dates/rounding/calendar/value agreement still required.",
+        "supports": "Inflation-indexed10year Treasury constant maturity, daily percent, H15 source.",
+        "url": "https://fred.stlouisfed.org/series/DFII10"
+      },
+      {
+        "id": "fraser_h15_scope",
+        "limits": "Does not cover consumed2020–25 observations; no archival payload requested.",
+        "supports": "Official H15 archival title covers1966–2016.",
+        "url": "https://fraser.stlouisfed.org/title/h15-selected-interest-rates-86"
+      }
+    ],
+    "review_kind": "Official metadata reviewed through browser/search; pages not saved or content-hash authenticated in this phase."
+  },
+  "prior_attempts": {
+    "key_absence_is_absolute_external_blocker": false,
+    "known_outcomes": "Existing directWSL/Mac initial-release POST attempts produced no qualified first-vintage values. Prior handover also records API400 and POST200/identicalHTML; those are not treated as data success or authorization to retry.",
+    "old_one_shot_plans_relaunch_allowed": false,
+    "reused_bound_refs": [
+      "treasury_initial_release_reference_manifest",
+      "treasury_initial_release_failed_attempt_review",
+      "treasury_mac_relay_failure_review"
+    ]
+  },
+  "proposed_keyed_treasury_collection": {
+    "bounds": {
+      "cookies": false,
+      "max_requests": 3,
+      "max_response_bytes_each": 1048576,
+      "max_response_observations_per_series": 10000,
+      "max_total_response_bytes": 3145728,
+      "paid_requests_or_spending": false,
+      "proxy": false,
+      "redirects": false,
+      "retry": false,
+      "timeout_seconds_per_request": 20
+    },
+    "credential_handling": "Resolve explicitly supplied key location privately at runtime; inject only in memory; redact api_key from request metadata, URLs, exceptions and logs. Never place key in command line, source, receipts or this document.",
+    "endpoint": "https://api.stlouisfed.org/fred/series/observations",
+    "expected_scope": "Three reference-series collections can examine3755 accepted primitive keys supporting9 Treasury fields; this is not a qualification of other52 fields or exact intraday source clocks.",
+    "key_in_document": false,
+    "key_location_question_pending": true,
+    "method": "GET",
+    "registered_free_key_required_for_this_documented_API": true,
+    "requests": [
+      {
+        "consumed_signal_key_count": 1245,
+        "primitive": "nominal2y",
+        "query_without_credentials": {
+          "file_type": "json",
+          "limit": 10000,
+          "observation_end": "2025-12-29",
+          "observation_start": "2020-11-30",
+          "offset": 0,
+          "output_type": 4,
+          "realtime_end": "2026-11-25",
+          "realtime_start": "1776-07-04",
+          "series_id": "DGS2",
+          "sort_order": "asc",
+          "units": "lin"
+        },
+        "series_id": "DGS2"
+      },
+      {
+        "consumed_signal_key_count": 1245,
+        "primitive": "nominal10y",
+        "query_without_credentials": {
+          "file_type": "json",
+          "limit": 10000,
+          "observation_end": "2025-12-29",
+          "observation_start": "2020-11-30",
+          "offset": 0,
+          "output_type": 4,
+          "realtime_end": "2026-11-25",
+          "realtime_start": "1776-07-04",
+          "series_id": "DGS10",
+          "sort_order": "asc",
+          "units": "lin"
+        },
+        "series_id": "DGS10"
+      },
+      {
+        "consumed_signal_key_count": 1265,
+        "primitive": "real10y",
+        "query_without_credentials": {
+          "file_type": "json",
+          "limit": 10000,
+          "observation_end": "2025-12-29",
+          "observation_start": "2020-11-30",
+          "offset": 0,
+          "output_type": 4,
+          "realtime_end": "2026-11-25",
+          "realtime_start": "1776-07-04",
+          "series_id": "DFII10",
+          "sort_order": "asc",
+          "units": "lin"
+        },
+        "series_id": "DFII10"
+      }
+    ],
+    "required_validation": [
+      "Preserve bounded rawresponse, HTTPstatus, retrievalUTC and SHA; redacted exactquery, source/policy/boot bookends under root-owned capped collector.",
+      "Reject HTML/error bodies, wrong schema, missing first-release date, duplicate observation keys, nonfinite numeric values, or observations outside fixed requested domain. Preserve explicit missing rates; never infer them as zero.",
+      "Retain explicit missing values; validate yield sign using series definition, not positivity assumed for nominal/real rates. Negative real or nominal yields are valid possible source values.",
+      "Join only actual accepted consumed source dates; compare definition/date/units/rounding and exact current primitive values. Report missing, changed and delayed-reference dates separately; do not silently replace active inputs.",
+      "ReleaseDATE later than current cutoff identifies a reference-timing discrepancy requiring source-specific investigation; same date/value alone does not prove exact Treasury intraday first availability.",
+      "No inference of first-release proof from today-only values or normal publication schedules; no API continuation/pagination/retry without a new exact plan."
+    ],
+    "status": "DESIGN_ONLY_NEW_PLAN_AND_ROOT_ADMISSION_REQUIRED"
+  },
+  "proposed_single_keyless_probe": {
+    "acceptance_checks": [
+      "HTTP200 and CSV payload, not HTML/error or current-series fallback.",
+      "Exact two-column inventory: observation_date/DATE and DGS2_20201207; reject unlabelled/current-vintage columns, unexpected additional series or mismatched requested-vintage label.",
+      "Observation dates unique/ordered and strictly within2020-11-30..2020-12-04; explicit missing values allowed, other values finite; no future observation.",
+      "Preserve request metadata/rawbytes/hash/status/retrievaltime; vintage-labelled CSV alone is a scoped historicalasof sample, not verified first-release coverage.",
+      "No expansion to more series/dates or replacing current inputs on this probe result alone."
+    ],
+    "candidate_behavior_verified": false,
+    "cookies": false,
+    "exact_url": "https://alfred.stlouisfed.org/graph/alfredgraph.csv?id=DGS2&vintage_date=2020-12-07&cosd=2020-11-30&coed=2020-12-04",
+    "financial_payload_request_executed": false,
+    "key_required_by_candidate": false,
+    "limitation": "The route is a candidate, not an established remedy or an absolute network blocker. A historicalasof sample does not prove earliest-publication value/date, same Treasury source identity, or exact intraday availability.",
+    "max_requests": 1,
+    "max_response_bytes": 65536,
+    "method": "GET",
+    "observation_end": "2020-12-04",
+    "observation_start": "2020-11-30",
+    "official_parameter_documentation_found": false,
+    "paid_requests_or_spending": false,
+    "proxy": false,
+    "redirects": false,
+    "requested_asof_vintage_date": "2020-12-07",
+    "retry": false,
+    "series_id": "DGS2",
+    "status": "UNVERIFIED_CANDIDATE_NEW_PLAN_AND_ROOT_ADMISSION_REQUIRED",
+    "timeout_seconds": 20
+  },
+  "reused_census": {
+    "all122_supported": true,
+    "census_reexecuted": false,
+    "context_rows": 354550,
+    "fields": 61,
+    "ledger": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_MACRO_SOURCE_KEYS_20261123_001/SOURCE_KEYS.json",
+      "sha256": "008376579f4dfe843743f4631615275f386e52508fdbf45722b8ffdd9fa5200f"
+    },
+    "ledger_reread_this_phase": false,
+    "raw_invalid_keys_consumed": 0,
+    "signal_history_only_extra_keys": 16,
+    "signal_history_rows": 354645,
+    "source_domain_count_scope": "Exact domains/counts copied from accepted signal/history dependency census; do not relabel them as per-family context-only counts.",
+    "source_domains": {
+      "COT_GOLD_088691": {
+        "first": "2020-11-24",
+        "last": "2025-12-23",
+        "unique_keys": 266
+      },
+      "PANEL_BCO_USD": {
+        "first": "2020-11-30T22:00:00+00:00",
+        "last": "2025-12-30T22:00:00+00:00",
+        "unique_keys": 1313
+      },
+      "PANEL_EUR_USD": {
+        "first": "2020-11-30T22:00:00+00:00",
+        "last": "2025-12-30T22:00:00+00:00",
+        "unique_keys": 1487
+      },
+      "PANEL_SPX500_USD": {
+        "first": "2020-11-30T22:00:00+00:00",
+        "last": "2025-12-30T22:00:00+00:00",
+        "unique_keys": 1314
+      },
+      "PANEL_USB10Y_USD": {
+        "first": "2020-11-30T22:00:00+00:00",
+        "last": "2025-12-30T22:00:00+00:00",
+        "unique_keys": 1314
+      },
+      "PANEL_USD_JPY": {
+        "first": "2020-12-01T22:00:00+00:00",
+        "last": "2025-12-30T22:00:00+00:00",
+        "unique_keys": 1487
+      },
+      "PANEL_WTICO_USD": {
+        "first": "2020-11-30T22:00:00+00:00",
+        "last": "2025-12-30T22:00:00+00:00",
+        "unique_keys": 1312
+      },
+      "PANEL_XAG_USD": {
+        "first": "2020-11-30T22:00:00+00:00",
+        "last": "2025-12-30T22:00:00+00:00",
+        "unique_keys": 1312
+      },
+      "PANEL_XAU_USD": {
+        "first": "2020-11-30T22:00:00+00:00",
+        "last": "2025-12-30T22:00:00+00:00",
+        "unique_keys": 1312
+      },
+      "PANEL_XCU_USD": {
+        "first": "2020-11-30T22:00:00+00:00",
+        "last": "2025-12-30T22:00:00+00:00",
+        "unique_keys": 1312
+      },
+      "PANEL_XPD_USD": {
+        "first": "2020-11-30T22:00:00+00:00",
+        "last": "2025-12-30T22:00:00+00:00",
+        "unique_keys": 1294
+      },
+      "PANEL_XPT_USD": {
+        "first": "2020-11-30T22:00:00+00:00",
+        "last": "2025-12-30T22:00:00+00:00",
+        "unique_keys": 1294
+      },
+      "gld_tonnes": {
+        "first": "2020-11-30",
+        "last": "2025-12-29",
+        "unique_keys": 1251
+      },
+      "nominal10y": {
+        "first": "2020-11-30",
+        "last": "2025-12-29",
+        "unique_keys": 1245
+      },
+      "nominal2y": {
+        "first": "2020-11-30",
+        "last": "2025-12-29",
+        "unique_keys": 1245
+      },
+      "real10y": {
+        "first": "2020-11-30",
+        "last": "2025-12-29",
+        "unique_keys": 1265
+      },
+      "vix_close": {
+        "first": "2020-12-22",
+        "last": "2025-12-29",
+        "unique_keys": 1037
+      }
+    },
+    "status": "EXACT_ALL61_CURRENT_TRAIN_SOURCE_KEYS_QUALIFIED_VINTAGE_UNPROVEN",
+    "surfaces": 2,
+    "unique_raw_keys": {
+      "context": 21044,
+      "signal": 21060
+    },
+    "unsupported_issue_rows": 0
+  },
+  "schema_version": "gx1_native_prelearning_macro_evidence_v1",
+  "scope": {
+    "TEST_opened": false,
+    "branch": "work/gx1-current",
+    "execution_authorized_by_document": false,
+    "native_input_changes": false,
+    "new_array_decodes": 0,
+    "new_financial_payload_requests": 0,
+    "new_source_key_census_runs": 0,
+    "policy_is_only_run_authority": true,
+    "repository": "/home/andre2/src/GX1_CURRENT",
+    "sole_owned_path": "docs/NATIVE_PRELEARNING_MACRO_EVIDENCE_20261125_001.json",
+    "source_commit": "3f522a825d8661787eceead4c4043359677eb1ed",
+    "training_authorized": false,
+    "web_metadata_only_review": true
+  },
+  "source_family_evidence": {
+    "cot": {
+      "field_count": 4,
+      "first_vintage": "PARTIAL_PRIMARY_POLICY_SUPPORT_RELEASE_COVERAGE_UNKNOWN",
+      "measured_finding": "Active17relays+1direct; all18rawSHA/bytecounts/ZIPmember inventories match SOURCE001. Original receipts have official CFTC finalURL/memberSHA but no provenancefield; no retroactive DIRECT_HTTPS/TLS attestation.",
+      "minimum_path": "Reuse legacy annual bytes, matched weekly official legacy archive and scoped no-postpublication-update policy. Qualify release-date/late-publication coverage for consumed report keys. New annual archive unnecessary merely because newer. If policy/sourceidentity insufficient require dated original weekly artifacts/correction announcements.",
+      "precondition": "Preserve legacy088691/futures-only and exact4report changes. No disaggregated backcasts, reportdate as release date, or universal7day guarantee.",
+      "source_origin": "RECORDED_OFFICIAL_ORIGINAL_URL_AND_MEMBER_IDENTITY_CHAIN"
+    },
+    "gld": {
+      "field_count": 2,
+      "first_vintage": "UNKNOWN",
+      "measured_finding": "Direct rolling XLSX has no observation-level release/revision metadata; official provider page confirms archive, not rowimmutability.",
+      "minimum_path": "Require original dated daily holdings releases/versioned snapshots or effective-dated provider nonrevision/publication guarantee covering consumed dates; reconcile existing daily series.",
+      "precondition": "No replacing trade-date holdings with settlement barlist, quarterly filings or price. New rolling XLSX alone cannot prove past firstvintage.",
+      "source_origin": "RECORDED_DIRECT_HTTPS_OFFICIAL_SPDR_XLSX"
+    },
+    "panel": {
+      "field_count": 44,
+      "first_vintage": "UNKNOWN",
+      "measured_finding": "All11actual receipts bind H1 rows/timebounds/columns/parquetSHA, with no HTTPstatus/rawresponseSHA. Manifest prose promises those extras; actual bound evidence is narrower.",
+      "minimum_path": "Establish provider original candle/version history or effective-dated correction/finality policy for same11practice instruments and H1 contract. Existing parquets remainfixed. Later separatelyqualified collector may bind requestparams, responsebytes/status, retrievaltime and provider-version evidence.",
+      "precondition": "Fresh2026history/newforwardjournal cannot retro-certify2021firstavailable values. Vendor historical point-in-time evidence needed unless original snapshots already exist. Retain all44fields/instruments; no proxies/drop.",
+      "source_origin": "BOUND_PRACTICE_CLIENT_OUTPUT_AND_PARQUET_METADATA"
+    },
+    "treasury": {
+      "field_count": 9,
+      "first_vintage": "UNKNOWN",
+      "measured_finding": "Active34relays point to registered SOURCE001 rawpaths; all36metadata rawSHA/bytecounts match original36DIRECT_HTTPS receipts. Active2direct2026files also match original identities. No independent payload rehash/TLS-session replay here.",
+      "minimum_path": "Reuse original files/receipts as origin witnesses. Qualify same-definition3underlying series via ALFRED/H15 initial-release metadata for actual consumed source dates; separately authorize bounded value/availability comparison. Reuse current values only if matched to values available by declared issue cutoff.",
+      "precondition": "Verify source/tenor/observationdate/rounding/calendar identity and earliest vintages; date provenance may be source/provider/FRED arrival. No blind substitution/rebuild.",
+      "source_origin": "RECORDED_OFFICIAL_DIRECT_ORIGIN_CHAIN_RECOVERED_36_OF36"
+    },
+    "vix": {
+      "field_count": 2,
+      "first_vintage": "UNKNOWN",
+      "measured_finding": "Direct CSV origin-traceable as collected2026; no-revisionflag copied from manifest. Current policy permits restatement, not proof a specific historical observation changed.",
+      "minimum_path": "Obtain official original VIX EOD release/correction-version history or provider-supported effective-dated firstavailable export; compare only consumed dates to cached CLOSE under separate bounded collector authority.",
+      "precondition": "Establish historical VIX-specific policy applicability and releaseavailability; current CSV or arbitrary extra lag is not firstvintage proof.",
+      "source_origin": "RECORDED_DIRECT_HTTPS_OFFICIAL_CBOE_HISTORY"
+    }
+  },
+  "source_owners": {
+    "gx1/audit/audit_native_macro_source_keys_v1.py": {
+      "relevant_lines": [
+        45,
+        75,
+        209,
+        246
+      ],
+      "sha256": "42d28b32002ded5a93e8a5a80a9dc736d8aa3b2382e881895af3d484529dfe4f"
+    },
+    "gx1/features/d1_macro_context_v1.py": {
+      "relevant_lines": [
+        93,
+        149,
+        155,
+        159
+      ],
+      "sha256": "1d61f70381a912a275115a35bb97b103919bc23515d79faed7016f0985ae3d56"
+    },
+    "gx1/scripts/research_ta_campaign_v1.py": {
+      "relevant_lines": [
+        3360,
+        3369,
+        3473
+      ],
+      "sha256": "146d58e5242501827d671341cf5b99ec97b747c56d5e8e1e013b42f3ca03b7e2"
+    }
+  },
+  "status": "READ_ONLY_EVIDENCE_DESIGN_NO_NEW_COLLECTION_OR_VINTAGE_PASS"
+}

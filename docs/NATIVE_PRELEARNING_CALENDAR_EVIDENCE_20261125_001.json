@@ -1,0 +1,370 @@
+{
+  "authority": {
+    "execution_authorized": false,
+    "external_message_sent": false,
+    "run_authority": false,
+    "slot_reclassification_authorized": false,
+    "spending_authorized": false,
+    "training_authorized": false
+  },
+  "canonical_branch": "work/gx1-current",
+  "canonical_repository": "/home/andre2/src/GX1_CURRENT",
+  "criteria": {
+    "effect_of_this_document": "No status upgrade; criterion 03 remains UNKNOWN. No assertion that 11 or 12 is satisfied.",
+    "recorded_policy_status": {
+      "03": "UNKNOWN",
+      "11": "FAIL",
+      "12": "FAIL"
+    },
+    "requirements": [
+      {
+        "acceptance": "Forventet \u00e5pen/stengt/ukjent tid har kvalifisert historisk autoritet for samme feed og gyldighetsdomene; daglige/helligdagsgap gis ikke stengtstatus ved gjetning fra frav\u00e6r.",
+        "id": "03",
+        "title": "Historisk kalender og kildeobservasjon"
+      },
+      {
+        "acceptance": "Neste helt framtidige TF-bar, targetstart/end/maturity/cutoff, kausal ATR og kilde-/kalendermasker er riktig bundet; framtidige m\u00e5l/masker mates ikke til modellen.",
+        "id": "11",
+        "title": "Framtidsm\u00e5l og tidskausalitet"
+      },
+      {
+        "acceptance": "Aktivitet, sertifisert side, FLAT, tvetydighet og manglende observasjon regnes sant; gjentatte M5-labels og unike TF-m\u00e5l skilles; l\u00e6ringsgrunnlagets tids-/klasse-/ukedagsrepresentativitet er kvalifisert for den p\u00e5st\u00e5tte funksjonen.",
+        "id": "12",
+        "title": "OPP/NED/FLAT og l\u00e6rerens dekning"
+      }
+    ],
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_QUALIFICATION_20_STEPS.json",
+      "sha256": "de91ac040c389679f7702a93de4624cf6014fb80246c8e8cd520d6f94e616338"
+    }
+  },
+  "decision_rules": [
+    "Never infer market closure from absent saved candles.",
+    "Provider-observed HLC does not prove execution availability or every underlying quote.",
+    "A no-order interval is not automatically a no-quote interval.",
+    "Require feed/instrument/environment/effective-domain mapping before slot classification changes.",
+    "Keep UNKNOWN for unqualified slots; never fill missing prices or turn unknown outcomes into FLAT.",
+    "Any future calendar-driven functional/mask change needs its own source-bound generation and matched fresh qualification."
+  ],
+  "external_calendar_contract_required_fields": {
+    "counterevidence": [
+      "observed_quotes_or_bars_inside_candidate_closed_interval",
+      "different_regional_entity_or_server",
+      "different_live_practice_environment",
+      "conflicting_session_versions",
+      "order_pause_with_quotes_still_updating",
+      "mismatch_between_reported_incident_clock_and_stored_gap",
+      "retroactive_backfill_or_revision_not_proven_absent"
+    ],
+    "distinct_scopes": [
+      "order_execution_allowed_or_unknown",
+      "quote_updates_expected_or_unknown",
+      "candle_production_expected_or_unknown",
+      "scheduled_closure_versus_unscheduled_outage",
+      "no_trade_versus_no_quote_versus_no_published_candle"
+    ],
+    "effective_domain": [
+      "effective_from_inclusive",
+      "effective_to_exclusive",
+      "instrument_session_version_or_change_event",
+      "covered_holiday_dates_and_exceptions"
+    ],
+    "identity": [
+      "publisher",
+      "feed_host_or_endpoint",
+      "instrument",
+      "environment",
+      "price_components",
+      "source_series_or_granularity",
+      "entity_or_server",
+      "explicit_mapping_evidence_to_project_feed"
+    ],
+    "provenance": [
+      "exact_primary_URL",
+      "document_publication_or_effective_date",
+      "retrieval_time",
+      "immutable_archived_bytes_path",
+      "content_SHA256",
+      "HTTP_status_and_final_URL",
+      "translation_or_extraction_method",
+      "applicability_evidence_and_limitations"
+    ],
+    "time": [
+      "original_local_timestamp_or_schedule",
+      "explicit_timezone_IANA_or_documented_offset",
+      "DST_rule_and_effective_dates",
+      "UTC_interval_conversion_and_conversion_evidence"
+    ]
+  },
+  "gap_ledger": {
+    "all_missing_slots_already_absent_in_saved_raw": true,
+    "calendar_closed_slots_proven_by_raw_absence": 0,
+    "clock_list_hash_encoding": "UTF-8 canonical JSON; sort_keys=true,separators=(comma,colon),allow_nan=false",
+    "clock_list_sha256": "c6f426e20f7d39b7ca4067022ce159518c87b3edc5a57871dd3d89a43e3bf557",
+    "container": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_WINDOW_COVERAGE_20261123_001/RESULT.json",
+      "sha256": "4858d8a72d394ec5e022cd05817920466bab1c2d6d1b63f8dbb8acb023b0043f"
+    },
+    "contiguous_gaps": 1081,
+    "domain_end_utc_exclusive": "2026-01-01T00:00:00Z",
+    "domain_start_utc": "2021-01-01T00:00:00Z",
+    "endpoint": "/v3/instruments/XAU_USD/candles",
+    "feed_host": "api-fxpractice.oanda.com",
+    "granularity": "M5",
+    "instrument": "XAU_USD",
+    "json_pointer": "/report/missing_clock_patterns/all_missing_clocks_utc",
+    "missing_slots": 17870,
+    "observed_native_rows": 354550,
+    "price_components": "MBA",
+    "slot_reclassifications_by_this_document": 0,
+    "slot_seconds": 300,
+    "source_environment": "practice",
+    "weekly_only_expected_open_slots": 372420
+  },
+  "official_sources": [
+    {
+      "archive_status": "ROOT_COLLECTION_PENDING_NO_BYTES_OR_HTTP_HEADERS_BOUND",
+      "byte_archive_captured": false,
+      "id": "OANDA_JP_NY_OUTAGE_START_20211122",
+      "limits": [
+        "No explicit api-fxpractice.oanda.com mapping.",
+        "No XAU_USD coverage statement.",
+        "No exact outage-start timestamp or published timezone."
+      ],
+      "primary_source": true,
+      "publication_date": "2021-11-22",
+      "supported_facts": "The dated notice reports stopped rate updates on the NY services from trading start; Tokyo server was reported operating normally.",
+      "supported_scope": {
+        "environment": "live versus practice not specified",
+        "event_kind": "rate-update outage",
+        "event_start": "that day trading start; exact clock not specified",
+        "instrument_domain": "FX context; XAU_USD not identified",
+        "publisher": "OANDA Japan",
+        "service": "NY server MT4/fxTrade/TradingView/REST API"
+      },
+      "url": "https://www.oanda.jp/info/819"
+    },
+    {
+      "archive_status": "ROOT_COLLECTION_PENDING_NO_BYTES_OR_HTTP_HEADERS_BOUND",
+      "byte_archive_captured": false,
+      "id": "OANDA_JP_NY_OUTAGE_RECOVERY_20211122",
+      "limits": [
+        "09:13 has no explicit timezone on this notice.",
+        "Japan-time interpretation is conditional, not an admitted timestamp.",
+        "No instrument/practice-feed mapping or proof this caused the stored XAU gap."
+      ],
+      "primary_source": true,
+      "publication_date": "2021-11-22",
+      "supported_facts": "The recovery notice identifies the same start-of-trading incident and reports recovery at 09:13.",
+      "supported_scope": {
+        "environment": "live versus practice not specified",
+        "event_kind": "rate-update outage recovery",
+        "instrument_domain": "FX context; XAU_USD not identified",
+        "publisher": "OANDA Japan",
+        "recovery_clock_as_published": "09:13",
+        "recovery_timezone": null,
+        "service": "same NY MT4/fxTrade/TradingView/REST API rate-update incident"
+      },
+      "url": "https://www.oanda.jp/info/820"
+    },
+    {
+      "archive_status": "ROOT_COLLECTION_PENDING_NO_BYTES_OR_HTTP_HEADERS_BOUND",
+      "byte_archive_captured": false,
+      "id": "OANDA_JP_STANDARD_TIME_20211107",
+      "limits": [
+        "Not a gold daily-session schedule.",
+        "No complete 2021-2025 effective-date range.",
+        "Does not supply a timezone on the separate outage-recovery notice."
+      ],
+      "primary_source": true,
+      "publication_date": "2021-11-05",
+      "supported_facts": "The dated notice announces the US standard-time transition on 7 November 2021, moving the published Japanese weekly FX opening and closing clocks from 06:00 to 07:00.",
+      "supported_scope": {
+        "effective_from": "2021-11-07",
+        "effective_to": null,
+        "instrument_domain": "FX service",
+        "publisher": "OANDA Japan",
+        "timezone": "Japan time explicitly stated",
+        "weekly_close": "Saturday 07:00 Japan time",
+        "weekly_open": "Monday 07:00 Japan time"
+      },
+      "url": "https://www.oanda.jp/info/814"
+    },
+    {
+      "archive_status": "ROOT_COLLECTION_PENDING_NO_BYTES_OR_HTTP_HEADERS_BOUND",
+      "byte_archive_captured": false,
+      "id": "OANDA_JP_NY_MAINTENANCE_CORRECTION_20211129",
+      "limits": [
+        "FX scope; no XAU_USD practice mapping.",
+        "Five-minute interval is not evidence of the observed one-hour gold gaps.",
+        "Effective end and later changes are not established."
+      ],
+      "primary_source": true,
+      "publication_date": "2021-11-26",
+      "supported_facts": "The corrected notice introduces a five-minute NY maintenance interval from 29 November 2021 and explicitly states that rate updates do not occur during that interval.",
+      "supported_scope": {
+        "effective_from": "2021-11-29",
+        "effective_to": null,
+        "frequency": "every business day; correction of earlier weekly wording",
+        "order_execution": "unavailable during the stated maintenance",
+        "publisher": "OANDA Japan",
+        "quote_updates": "not performed during the stated maintenance",
+        "service": "NY server, FX context",
+        "summer_local_interval": "05:58-06:03 Japan time",
+        "timezone": "Japan time, with US standard/daylight alternatives",
+        "winter_local_interval": "06:58-07:03 Japan time"
+      },
+      "url": "https://www.oanda.jp/info/821"
+    },
+    {
+      "archive_status": "ROOT_COLLECTION_PENDING_NO_BYTES_OR_HTTP_HEADERS_BOUND",
+      "byte_archive_captured": false,
+      "id": "OANDA_JP_FXTRADE_TRADE_QUOTE_DISTINCTION_20211129",
+      "limits": [
+        "These are separate service domains.",
+        "Order closure cannot be substituted for quote absence or candle absence.",
+        "No XAU_USD practice or historical gold-session mapping is supplied."
+      ],
+      "primary_source": true,
+      "publication_date": "2021-11-29",
+      "supported_facts": "The dated amendment distinguishes fxTrade maintenance with no rate updates from the other FX service where rate updates and chart construction continue despite unavailable executions.",
+      "supported_scope": {
+        "OANDA_Japan_FX_interval": "US Eastern 16:55-17:10; quotes and charts continue while orders do not execute",
+        "document": "correction to FX trading explanation published 26 November 2021",
+        "fxTrade_interval": "US Eastern 16:58-17:03; quotes do not update and orders do not execute",
+        "instrument_domain": "FX currencies; not a gold session contract",
+        "publisher": "OANDA Japan"
+      },
+      "url": "https://www.oanda.jp/info/824"
+    },
+    {
+      "archive_status": "ROOT_COLLECTION_PENDING_NO_BYTES_OR_HTTP_HEADERS_BOUND",
+      "byte_archive_captured": false,
+      "id": "OANDA_JP_CURRENT_API_SCOPE",
+      "limits": [
+        "Current, undated page is not a 2021 instrument-availability statement.",
+        "It cannot establish that the 2021 NY incident included XAU_USD on api-fxpractice.oanda.com.",
+        "Its negative mapping evidence blocks automatic transfer of the notices to the project feed."
+      ],
+      "primary_source": true,
+      "publication_date": null,
+      "supported_facts": "The inspected current comparison limits its REST API instrument scope to FX and describes gold through the MT5/Tokyo route.",
+      "supported_scope": {
+        "REST_v20": "FX, NY server",
+        "gold_oil_indices": "MT5 standard API, Tokyo TY3 server",
+        "observation_date": "2026-11-25",
+        "publisher": "OANDA Japan"
+      },
+      "url": "https://www.oanda.jp/platform/api"
+    }
+  ],
+  "outage_candidate": {
+    "affected_project_slots_candidate": 12,
+    "calendar_closed": null,
+    "caused_project_XAU_gap": null,
+    "conditional_conversion_only": {
+      "assumption_not_admitted": "If 09:13 is Asia/Tokyo local time",
+      "project_gap_end_utc_exclusive": "2021-11-22T00:00:00Z",
+      "recovery_is_minutes_after_stored_gap_end": 13,
+      "recovery_utc": "2021-11-22T00:13:00Z"
+    },
+    "event_start_as_published": "2021-11-22 trading start; exact time unspecified",
+    "explicit_recovery_timezone": null,
+    "permitted_statement": "A dated official NY rate-update incident is a candidate relevant to the date. Project-gap causation and closure remain unproven.",
+    "recovery_as_published": "09:13 on 2021-11-22",
+    "scope_mismatch": [
+      "OANDA Japan NY FX services versus XAU_USD project instrument.",
+      "No historical practice-versus-live or api-fxpractice.oanda.com mapping.",
+      "Recovery timezone and exact start need explicit authority.",
+      "Temporal overlap does not prove identical rate/candle availability; the 13-minute endpoint difference remains unexplained."
+    ],
+    "source_ids": [
+      "OANDA_JP_NY_OUTAGE_START_20211122",
+      "OANDA_JP_NY_OUTAGE_RECOVERY_20211122"
+    ]
+  },
+  "recorded_host_utc": "2026-11-25T16:18:51.817854+00:00",
+  "references": {
+    "criteria": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_QUALIFICATION_20_STEPS.json",
+      "sha256": "de91ac040c389679f7702a93de4624cf6014fb80246c8e8cd520d6f94e616338"
+    },
+    "current_gap_ledger_container": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_FUTURE_WINDOW_COVERAGE_20261123_001/RESULT.json",
+      "sha256": "4858d8a72d394ec5e022cd05817920466bab1c2d6d1b63f8dbb8acb023b0043f"
+    },
+    "prior_external_authority_request": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/HISTORICAL_CALENDAR_EXTERNAL_EVIDENCE_REQUEST001.json",
+      "sha256": "9457e700e7c49353f29c6385f58edf872425ef82edc0ded9c3620a8f988a76b0"
+    },
+    "prior_public_candidate_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OANDA_PUBLIC_CALENDAR_CANDIDATE_REVIEW_20261124_001.json",
+      "sha256": "e670e10a07a6f8c69f0edff852bc12c0a16ae7c2a5fad71b4ee6b34ba18b5338"
+    },
+    "raw_absence_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_RAW_FEED_CLOCK_QUALIFICATION_20261123_001/RESULT.json",
+      "sha256": "e78dbdb31a5f624eb0a0e3b35ea67681c0b505ce943b1de6acfc416bbb5dfb73"
+    },
+    "raw_feed_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RAW_FEED_CLOCK_ACCEPTANCE001.json",
+      "sha256": "b56e7e492e78f695b21fba9508aea33d2d2c69142bd25c115a4137db38d4e666"
+    }
+  },
+  "schema_version": "gx1_native_prelearning_calendar_evidence_scope_v1",
+  "scope": "Phase-2 documentation of primary-source calendar/quote candidates only. No new model, fit, price/target/mask change, broker request, raw-data decode, source archive fetch or policy edit.",
+  "small_collection_limits_proposed_not_admitted": {
+    "HTTPS_GET_requests_max": 6,
+    "allowed_content": "The six public HTML documents and HTTP receipts only; no images/scripts/linked assets/third-party tracking requests.",
+    "automatic_redirect_following": false,
+    "automatic_retries": 0,
+    "broker_API_requests": 0,
+    "credentials_or_account_data": 0,
+    "exact_URLs": [
+      "https://www.oanda.jp/info/819",
+      "https://www.oanda.jp/info/820",
+      "https://www.oanda.jp/info/814",
+      "https://www.oanda.jp/info/821",
+      "https://www.oanda.jp/info/824",
+      "https://www.oanda.jp/platform/api"
+    ],
+    "execution_route": "Root must bind exact one-use collection and resource/timeout settings through existing capped audit owner before fetching; this document is not admission.",
+    "failure_rule": "Retain the original error/status and leave that source unqualified; no retry or substituted URL.",
+    "new_market_data_files": 0,
+    "requests_per_URL_max": 1,
+    "response_body_bytes_per_URL_cap": 2097152,
+    "total_response_body_bytes_cap": 12582912
+  },
+  "status": "PRIMARY_SOURCE_CANDIDATES_NO_SLOT_RECLASSIFICATION",
+  "timestamp_role": "Documentation recording only; not source publication-time or historical quote-availability evidence.",
+  "unresolved_groups": [
+    {
+      "classification": "UNKNOWN_CALENDAR_OR_QUOTE_AUTHORITY",
+      "gaps": 994,
+      "id": "daily_gold_pause_candidate",
+      "local_pattern": "Monday-Thursday 17:00-18:00 America/New_York",
+      "missing_slots": 11928,
+      "required_authority": "Effective-dated XAU_USD practice quote/candle schedule through 2021-2025, with NY DST and changes, explicit 17:00-18:00 and 18:00 versus 18:05 handling. Current trading hours alone are insufficient."
+    },
+    {
+      "classification": "UNPROVEN_RATE_OUTAGE_CANDIDATE_NOT_CERTIFIED_CLOSED",
+      "exact_stored_gap": {
+        "duration_minutes": 60,
+        "end_New_York_exclusive": "2021-11-21T19:00:00-05:00",
+        "end_utc_exclusive": "2021-11-22T00:00:00+00:00",
+        "missing_slots": 12,
+        "start_New_York": "2021-11-21T18:00:00-05:00",
+        "start_utc": "2021-11-21T23:00:00+00:00"
+      },
+      "gaps": 1,
+      "id": "sunday_NY_outage_candidate",
+      "missing_slots": 12
+    },
+    {
+      "classification": "UNKNOWN_INDIVIDUAL_HOLIDAY_SESSION_OR_OUTAGE",
+      "gaps": 86,
+      "id": "other_exceptions",
+      "missing_slots": 5930,
+      "required_authority": "A dated same-feed/instrument/environment holiday or exceptional-session/outage mapping for each affected interval; no blanket exemption."
+    }
+  ]
+}

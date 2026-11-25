@@ -1,0 +1,86 @@
+{
+  "V3_initial_base_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001.json",
+    "sha256": "6c72d84fe946c2a38a2a1dca3e68bd4c3758fef51525e0086d4d49336e71eadc"
+  },
+  "claim_limit": "Current input identity is unchanged and remains independently bound. This does not prove feature invariance under a hypothetical rebuilt historical source, historical market calendar or first-vintage source availability.",
+  "current_feature_archive": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001/FEATURE_INPUTS.npz",
+    "sha256": "b096bc2899a1cb8d831c1f120821a10dcfdccda25f8c9e1f81fbc8d00d414d36"
+  },
+  "current_input_identity": {
+    "input_binding_ref": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_NORMALIZATION_20261121_001/INPUT_BINDING.json",
+      "sha256": "14c4f1cea7ee8e551692ec12ef01c827ba6ecaee81523e76580d89f8b9b0970e"
+    },
+    "native_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca"
+    },
+    "normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_NORMALIZATION_20261121_001/NORMALIZATION.json",
+      "sha256": "46f1cb1c190af002c4dc7caa75f85fc6c72bbaddb3a76183b843fc2c798dc3dc"
+    },
+    "source_snapshot": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001/FEATURE_INPUTS.json",
+      "sha256": "2b8a35965f69ee04c66f85cecdd8531720afb176425d964d0cc0579da7f9cac7"
+    }
+  },
+  "existing_fail_closed_guards": {
+    "calibration_join": "build_native_m5_feature_surfaces requires registry/squeeze calibration native manifest equality",
+    "model_binding": "V3 INITIAL and replay exact-plan checks bind current snapshot/archive/input/normalization/manifest before construction",
+    "source_and_parts": "bind_native_m5_feature_source validates manifest/part hashes and binds actual raw clock/value digest"
+  },
+  "model_or_optimizer_updates": 0,
+  "new_reference_as_model_inputs_authorized": false,
+  "qualified_actual_INITIAL": {
+    "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_V3_INITIAL_ACCEPTANCE_20261125_001.json",
+    "sha256": "d937fc7686835dcadc04b2ac817627ff406706e9fb4b35c6daac72a0d6dddb25"
+  },
+  "recurrent_history": {
+    "function": "build_native_m5_feature_surfaces",
+    "hypothetical_rebuilt_feature_invariance_measured": false,
+    "materialization": "full_causal_owner_prefix_then_declared_issue_window_and_consumed_window_unions_v1",
+    "no_measured_TRAIN_internal_observability_or_formula_defect": true,
+    "no_model_input_change_justified_by_current_evidence": true,
+    "owner": "gx1/contracts/market_state_native_m5_feature_inputs_v1.py",
+    "pre2020_source_can_influence_later_state_or_frozen_feature_calibrations": true
+  },
+  "reference_only": {
+    "all_2020_to_preTEST_2026_observed_bar_comparisons_exact": true,
+    "bar_comparison_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_BAR_SCAN_ACCEPTANCE_20261125_001.json",
+      "sha256": "938a494af1867b645c19030b43b78c9fcb52e8332fab7edeb7b519a8dc97e211"
+    },
+    "bar_restoration_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_OBSERVED_BAR_REPAIR_ACCEPTANCE_20261125_001.json",
+      "sha256": "c0a8f96567b808bd07548e84429abc78d4e6b2af38d477ab81ca892d51c84a61"
+    },
+    "model_inputs_changed": false,
+    "observed_higher_TF_discrepancy_years": [
+      2009,
+      2019
+    ],
+    "restoration_result": {
+      "path": "/home/andre2/GX1_RUNS/RESTORED_NATIVE_BAR_OBSERVATIONS_20261125_001/RESULT.json",
+      "sha256": "f66327bb2a26aec5e35fc0343be416392e7bf52244c0e4dd298adc1aebac5e21"
+    },
+    "restored_M5_rows": 1410
+  },
+  "required_before_any_new_history_admission": [
+    "explicit source-function change scope without source/market completeness overclaim",
+    "qualify affected full-prefix recurrences and registry/squeeze calibration lineage on the new source",
+    "publish separately versioned genuine cache and unchanged-field/delta evidence",
+    "whole-TRAIN normalization bound to the actual new input union",
+    "new complete INITIAL and own-C2 cold replay for changed value function"
+  ],
+  "schema_version": "gx1_prelearning_input_history_admission_boundary_v1",
+  "source_base_commit": "3f522a825d8661787eceead4c4043359677eb1ed",
+  "status": "CURRENT_FUNCTION_BOUND_NEW_REFERENCE_NOT_ADMITTED",
+  "unchanged_boundaries": [
+    "M1 excluded",
+    "GC deferred",
+    "TEST sealed",
+    "all five timeframes and eight genuine specialist families retained"
+  ]
+}

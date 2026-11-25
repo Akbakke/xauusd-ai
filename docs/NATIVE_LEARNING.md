@@ -213,6 +213,27 @@ av berørte robuststatistikker, ikke bare like outputdimensjoner.
 CUDA-mekanikk bruker ny eksakt plan og aktuell idle-/boot-/bibliotek-/GPU-
 identitet uten CUDA-initialisering før CLAIM. Kvalifiser faktisk optimizer,
 alle Python/NumPy/CPU/CUDA-RNG-stater, disk-readback og bitidentisk kald replay.
+V3 provider-HLC på alle fem TF har en egen låst sammenligningsspec;
+D1-v2-kontrollene svekkes ikke. Uendret binær skåringsmatematikk brukes både
+med radvekting og lik vekting per observert målbar innen samme kjente task.
+Issue-spesifikke ATR-skalaer kan gi ulike etiketter for samme målbar; skår
+hver rad først og gjennomsnitt deretter innen målbaren. Gjennomsnitt av
+logits eller én valgt etikett per målbar er ikke den samme skåren.
+Alle fem TF og UTC-målårene2021–2025 beholdes. Side NLL/Brier må slå egen
+frossen V3-prior under begge vektinger; priorlik INITIAL er ett identitetsvitne.
+Rangering og faste tidsblokkers stabilitet rapporteres samlet med proper
+scores. Tom/ensidig støtte er UNKNOWN, ikke reseleksjon eller klassekvote.
+Kalibreringsavvik og faste sannsynlighetsbins er deskriptive; ingen kalibrator
+eller terskel fittes. TRAIN-evidens kvalifiserer ikke senere generalisering.
+
+Historisk kildeautoritet skal angi instrument, feed/miljø, effektive datoer,
+klokkesone og om beviset gjelder quotes, candle-tilgjengelighet eller handel.
+Normal publiseringsplan og dagens reviderte verdi beviser ikke historisk
+førstevintage. En datert FX-/NY-hendelse gir ikke automatisk XAU/practice-
+kalenderautoritet. Referanseobservasjoner innføres som modellhistorikk bare
+etter eksplisitt ny kilde-/kalibrerings-/cache-/normaliseringskvalifisering og
+fersk INITIAL/replay for den endrede funksjonen.
+
 Full INITIAL er en separat null-update-plan på hele ufiltrerte input-TRAIN.
 Equal-length-TF-optimalisering kvalifiseres i sin faktiske no_grad-evalrute;
 slik outputparitet er ikke alene bevis for treningsgradientparitet. Bevar

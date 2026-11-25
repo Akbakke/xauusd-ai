@@ -5,6 +5,28 @@ GX1_RULES.md er lest helt og uendret: SHA2c7f0fc9...683a58.
 NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
 terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
+<!-- BEGIN GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
+## Aktivt mål: avklar og rett forutsetningene før neste læringstest
+
+Brukeren25.11 ba «Ja lag deg et mål og rett opp i alt dette» etter gjennomgang
+av historisk source-known/asof/makro, gjentatte målbarer, låst læringsreview og
+mulig påvirkning fra eldre observasjonshistorikk. Root integrerer policy,
+kode og launch; egne agenter gransker kalender, makro og V3-populasjon/review.
+Bestått V3-fasit/prior/INITIAL/replay gjenbrukes. Ingen hovedfit, TEST, M1/GC,
+spending eller ny featurehistorikk er innrømmet. Alle seks globale flagg er
+false. Eksakt arbeidsstatus: prelearning_validity_remediation_20261125_001.
+Historiske13PASS/3FAIL/4UNKNOWN endres bare med relevante nye bevis.
+Målt blokkering: gammel quality_panels er korrekt D1-v2-avgrenset. Ny tynn
+V3-review gjenbruker binærmatematikken og binder faktisk V3-fasit/prior/INITIAL;
+18 fokuserte syntetiske tester PASS. Faste pooled/rad/målbar/25-årspaneler,
+rangering og deskriptiv kalibrering er låst før eventuell ny læring.
+Neste: bounded CPU-kvalifikasjon med lagrede ekte INITIAL-outputs, samt
+seks små kalenderkilder og én avgrenset nøkkelfri ALFRED-kandidatprobe.
+Ingen ny modell, checkpointdekoding, fit eller endret tapsvekt. En gratis
+FRED/ALFRED-nøkkel eller annen historisk autoritet er etterspurt som tekstlig
+lokasjon; fravær i sjekkede miljøvariabler/.env er ikke globalt fraværsbevis.
+<!-- END GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
+
 <!-- BEGIN GX1 ALL TF V3 TARGET GOAL 20261125 -->
 ## Kvalifisert: native fasit, full INITIAL og egen-C2 replay på fem TF
 

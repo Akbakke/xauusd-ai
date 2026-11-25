@@ -1,0 +1,406 @@
+{
+  "UTC_target_years": [
+    2021,
+    2022,
+    2023,
+    2024,
+    2025
+  ],
+  "candidate_FINAL_selected": false,
+  "contract_sha256": "656d3ed959c7e300cbe390e647f6363a47f5505e44e7a15f990d6079301c7bdd",
+  "execution_authorized": false,
+  "fit_population": {
+    "cutoff_ns": 1767225600000000000,
+    "first_issue_ns": 1609715100000000000,
+    "issue_ns_sha256": "c0805f39affb9bd80e679e0b41f69a558ea975d0e479ddeee815c7dd370997ea",
+    "issue_rows": 354550,
+    "last_issue_ns": 1767218400000000000,
+    "scope": "TRAIN",
+    "truth_sha256": "36be8f78a95bb95126d2df487f19ee3c7c88d15d1b47f661640087acea96c40c"
+  },
+  "initial_rng_sha256": "343bc9e441680c73e99ed7fe89595ed2d423ac91b7f2071cb19d74043494305d",
+  "initial_state_sha256": "be5b6266739021319e5fdc9f87bde70aa987e56c0979b2bda1586302a48b5491",
+  "main_fit_authorized": false,
+  "model_contract": {
+    "architecture": {
+      "cross_family_fusion_scale": 0.25,
+      "dropout": 0.05,
+      "multi_tf_num_layers": 2,
+      "multi_tf_scale": 0.5,
+      "specialist_fusion_scale": 0.25,
+      "specialist_num_layers": 1
+    },
+    "backbone": "same_fresh_native_eight_family_macro_five_post_cross_TF_representation",
+    "backbone_geometry": {
+      "D1": 252,
+      "H1": 96,
+      "H4": 96,
+      "M15": 64,
+      "M5": 16,
+      "local": 96
+    },
+    "contract_sha256": "ded7f2a05417d108ef8bed4d88f31d40ea1de21292e964586598ddaa818010c3",
+    "d_model_owner": "CtxModelConfig.d_model_used_by_existing_native_factory",
+    "forward_inputs": [
+      "ctx_cat",
+      "ctx_cont",
+      "seq_d1",
+      "seq_h1",
+      "seq_h4",
+      "seq_m15",
+      "seq_m5",
+      "seq_x",
+      "snap_x"
+    ],
+    "gradient_routing_and_task_weights": "unqualified_requires_separate_admission",
+    "input_binding_sha256": "0d5dad902a9ab0aec4a025522dee5017f14fc41812d514cca88a3c837e78d4ad",
+    "input_normalization_sha256": "f37b7d8b0df869f8ee63610ff4bd12c0d8fd3e83bce9b317600327e688760dd7",
+    "nonparameter_checkpoint_state": "immutable_exact_match_before_any_parameter_copy",
+    "objective_contract_sha256": "d6023c4a4ae016b2e5d0e0d3c5ad31e1b258c0420e5bba085882eac6a512d317",
+    "outputs": [
+      "activity_logits",
+      "side_logits"
+    ],
+    "production_training_admitted": false,
+    "raw_open_close_heads_constructed": false,
+    "readout": {
+      "backbone_routing_and_task_weights": "not_defined_by_this_component",
+      "contract_sha256": "c598fdaf5293c05dddb65e9a08258394824bc89ee893d129c4482329f761cad7",
+      "d_model": 128,
+      "feature_backbone_forward_qualified": false,
+      "heads": "independent_per_TF_Linear_d_model_to_1_for_activity_and_conditional_side",
+      "hidden": "float32_N_by_5_by_explicit_d_model",
+      "initial_biases": "exact_frozen_TRAIN_binary_prior_float32_logits",
+      "initial_weights": "exact_zero",
+      "objective_contract_sha256": "d6023c4a4ae016b2e5d0e0d3c5ad31e1b258c0420e5bba085882eac6a512d317",
+      "output": [
+        "activity_logits",
+        "side_logits"
+      ],
+      "production_training_admitted": false,
+      "role": "hidden_only_component_not_full_native_model_or_production_fit",
+      "schema_version": "gx1_native_future_state_readout_component_v1",
+      "target_contract_sha256": "58fd7f15bdf35646680829a718caa2991f2029ed99f48030e3a85c86aae380c5",
+      "timeframes": [
+        "M5",
+        "M15",
+        "H1",
+        "H4",
+        "D1"
+      ],
+      "train_prior_sha256": "42b2b7bb4d5fb7fd16e9a251da7eff6663ef4cd8ee844688488e7ff1afdc9c71"
+    },
+    "role": "native_forward_qualification_only_no_fit_or_trade_authority",
+    "schema_version": "gx1_native_future_state_forward_model_v1",
+    "target_contract_sha256": "58fd7f15bdf35646680829a718caa2991f2029ed99f48030e3a85c86aae380c5",
+    "target_metadata_as_model_input": false,
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "train_prior_sha256": "42b2b7bb4d5fb7fd16e9a251da7eff6663ef4cd8ee844688488e7ff1afdc9c71"
+  },
+  "populations": {
+    "activity": {
+      "D1": {
+        "class_counts": [
+          17617,
+          336657
+        ],
+        "count": 354274,
+        "fit_status": "FITTED",
+        "mask_sha256": "ded32dc67e40fcb53aed56e82a348ebc4fccdd1b0c4c4a12e138726c4751bd0b",
+        "population_sha256": "4dcc667b08f0026b13a1acb82d60323c6fa144d2bc1c16ef1305eeae55d7bc68",
+        "probabilities": [
+          0.04972958935970825,
+          0.9502704106402917
+        ],
+        "unique_target_starts": 1289
+      },
+      "H1": {
+        "class_counts": [
+          60757,
+          293781
+        ],
+        "count": 354538,
+        "fit_status": "FITTED",
+        "mask_sha256": "b58544a9773d0b78b97787cfbb41db9670af24b044e1283fb9ae718fb79855f9",
+        "population_sha256": "abc93cb95cb3adf446819fbf7e7af4874e3a30e109d7cef6266597bf9cc5abb3",
+        "probabilities": [
+          0.1713713544310938,
+          0.8286286455689061
+        ],
+        "unique_target_starts": 29566
+      },
+      "H4": {
+        "class_counts": [
+          53830,
+          300672
+        ],
+        "count": 354502,
+        "fit_status": "FITTED",
+        "mask_sha256": "e4f42340eefa0dee075c5f4d42b3f1fe19164bf5f6f3c05334e0372dae94c44a",
+        "population_sha256": "7b5e8e7039bcd5d292fc38ba0b482b07771f5ebacae697ce55e673229c8c4c9c",
+        "probabilities": [
+          0.15184878026764154,
+          0.8481512197323584
+        ],
+        "unique_target_starts": 7732
+      },
+      "M15": {
+        "class_counts": [
+          51542,
+          303005
+        ],
+        "count": 354547,
+        "fit_status": "FITTED",
+        "mask_sha256": "c077171079696605a69143ed3c64503b09c01b7de73db762189eff2b96273514",
+        "population_sha256": "5669908a7dc3b16632731cbc59413e494352f08beef71ded11e93d0b77478aff",
+        "probabilities": [
+          0.14537623854530685,
+          0.8546237614546931
+        ],
+        "unique_target_starts": 118206
+      },
+      "M5": {
+        "class_counts": [
+          35847,
+          318702
+        ],
+        "count": 354549,
+        "fit_status": "FITTED",
+        "mask_sha256": "a1383ed834a2ae66f95ea8c6672fe70094ae8f75f1610113feb8fc15bd98a16b",
+        "population_sha256": "a664abeac0f226debd2a09bb5910b52bacc663bf3bfd144d7a192622ae05fcb2",
+        "probabilities": [
+          0.10110816215438681,
+          0.8988918378456132
+        ],
+        "unique_target_starts": 354549
+      }
+    },
+    "side": {
+      "D1": {
+        "class_counts": [
+          108699,
+          130159
+        ],
+        "count": 238858,
+        "fit_status": "FITTED",
+        "mask_sha256": "83622ace80d14a7944aaec4ca40e12d2ce8e6e1f717321b5e05290fbc7b6a2dd",
+        "population_sha256": "78e48c9842ad1062273ec355326b4effa14bebe95d70f3fb939c7a1226b43fe8",
+        "probabilities": [
+          0.45507828853721843,
+          0.5449217114627816
+        ],
+        "unique_target_starts": 875
+      },
+      "H1": {
+        "class_counts": [
+          89632,
+          103685
+        ],
+        "count": 193317,
+        "fit_status": "FITTED",
+        "mask_sha256": "9e9dd0ccfc081a172a51acb1288bec6201abeca85975ee120492c8fb20395e24",
+        "population_sha256": "511bcab72a295fb68c91cde708dd74713a661033215ba5679a9b108a79a72843",
+        "probabilities": [
+          0.4636533398165726,
+          0.5363466601834274
+        ],
+        "unique_target_starts": 16602
+      },
+      "H4": {
+        "class_counts": [
+          90284,
+          111877
+        ],
+        "count": 202161,
+        "fit_status": "FITTED",
+        "mask_sha256": "87799577f2ed0ddc2100e380959daad74b2c9f74514cac0341e494febe7fa892",
+        "population_sha256": "786e4a72a8177b35fc374ded3f8ec067c5181ceca394c3b9e72e4f9bc56452be",
+        "probabilities": [
+          0.446595074271751,
+          0.553404925728249
+        ],
+        "unique_target_starts": 4478
+      },
+      "M15": {
+        "class_counts": [
+          101088,
+          108851
+        ],
+        "count": 209939,
+        "fit_status": "FITTED",
+        "mask_sha256": "5ad661ac7ac17bbfd904595c0b7ffc3799b913205238295d165112328d3e5fbb",
+        "population_sha256": "1481a44a2d24427c244b6af5d8be25eb91151c2b8f2261f782b6400edfa07e22",
+        "probabilities": [
+          0.48151147227078084,
+          0.5184885277292192
+        ],
+        "unique_target_starts": 71533
+      },
+      "M5": {
+        "class_counts": [
+          111916,
+          117035
+        ],
+        "count": 228951,
+        "fit_status": "FITTED",
+        "mask_sha256": "8f4577e6206f3d43942adac6cf869c2888999ea64d0cc079dddbeefa9b77140b",
+        "population_sha256": "d3dd49b05c39c150a3e8760fd55a0ee3b4b6291f66fe777e8dd568eafc32c1ed",
+        "probabilities": [
+          0.488820849694042,
+          0.511179150305958
+        ],
+        "unique_target_starts": 228951
+      }
+    }
+  },
+  "prior_contract_sha256": "42b2b7bb4d5fb7fd16e9a251da7eff6663ef4cd8ee844688488e7ff1afdc9c71",
+  "references": {
+    "dataset": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_TARGET_QUALIFICATION_20261125_001/FUTURE_STATE_HLC_DATASET001.json",
+      "sha256": "a2090061047f9befcca7befcf645aa9084e51cd2922b66836db2014efcba089d"
+    },
+    "initial_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_V3_INITIAL_ACCEPTANCE_20261125_001.json",
+      "sha256": "d937fc7686835dcadc04b2ac817627ff406706e9fb4b35c6daac72a0d6dddb25"
+    },
+    "initial_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001/INITIAL.json",
+      "sha256": "d051bedf553fc5f5a17993410bce718504302a3f12f3bde38120f0931fb00622"
+    },
+    "initial_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001/RESULT.json",
+      "sha256": "479026f5ac21801be1d5602b1aa5ddabfac26c8aff457a45701d32ad28e5f4c1"
+    },
+    "input_binding": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_NORMALIZATION_20261121_001/INPUT_BINDING.json",
+      "sha256": "14c4f1cea7ee8e551692ec12ef01c827ba6ecaee81523e76580d89f8b9b0970e"
+    },
+    "membership_manifest": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V2_NONE_BLOCK_ORDER_SOURCE_ROW_MEMBERSHIP_MANIFEST001.json",
+      "sha256": "579b6b04c0a8bdff96bbdbe1670c8fb1835aea41daf883074ad3fc3b1a7f368a"
+    },
+    "normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_NORMALIZATION_20261121_001/NORMALIZATION.json",
+      "sha256": "46f1cb1c190af002c4dc7caa75f85fc6c72bbaddb3a76183b843fc2c798dc3dc"
+    },
+    "prior": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_TARGET_QUALIFICATION_20261125_001/MATCHED_TRAIN_PRIOR001.json",
+      "sha256": "d8119d79c58d9fc02ddc2b9365f5e4836558e09371f7fcad3037658a2b5ad050"
+    },
+    "support": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_TARGET_QUALIFICATION_20261125_001/SUPPORT001.json",
+      "sha256": "00da8a928bc0cc5a74dad361858ac6a73ed15f7bda3bbd05a44943a4ccd1c095"
+    },
+    "target_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_PROVIDER_HLC_TARGET_ACCEPTANCE_20261125_001.json",
+      "sha256": "e208435f46d5f80afe1e1d1ee1144dfc93fc56e2ce6d4f8841f4c5fdcfe39eac"
+    }
+  },
+  "rules": {
+    "activity_and_singleton": "Report activity proper scores and singleton three-class scores separately; side unknown remains unknown, active unknown side is never FLAT.",
+    "calibration": "Side mean probability minus true UP fraction and fixed bins [0,.1,...,1] under row/equal_target weighting. Descriptive only; no calibrator, fitted threshold, or absolute calibration PASS.",
+    "candidate_verdict": "Combine pooled row/equal_target proper scores, all5 side rank guards and every fixed timeblock stability verdict; FAIL dominates UNKNOWN then PASS. This remains TRAIN comparison only, never learning/generalization/edge or execution admission.",
+    "dependence": "Repeated/overlapping targets, TF, years and the prior/INITIAL references are dependent; no independent sample, confidence interval or hypothesis-test claim.",
+    "equal_target": "Within each TF/known task support, average row proper scores inside each target_start_ns, then average target means; never score mean logits or collapse issue-specific labels.",
+    "loss_and_order": "No numeric loss/gradient/task-weight change. Existing source-only order may be reused only with fresh authenticated V3 per-batch activity masks/denominators; never reuse V2 support counts.",
+    "pooled_primary": "All5TF side NLL/Brier strictly below one frozen V3 prior in row AND equal_target weighting; 20 correlated comparisons. INITIAL is an identity witness of that same prior, not an independent reference.",
+    "scope": "TRAIN review only; no candidate FINAL exists or is selected by this spec. No fit/admission/extra epochs/HPO/VAL/TEST/edge or chosen correction.",
+    "side_rank_guard": "Both true classes, nonconstant logits and row AUC>0.5 per TF; one class/empty UNKNOWN. No argmax class quota.",
+    "timeblocks": "Every TF x UTC target-start year 2021..2025, each with row and equal_target weighting; NLL/Brier<=same pooled frozen prior for stability. Empty/one-class UNKNOWN, no omitted blocks. Equal-year macro is descriptive and requires all5 years nonempty."
+  },
+  "schema_version": "gx1_native_all_tf_provider_hlc_review_spec_v3",
+  "target_contract": {
+    "M5_observation_basis": "unchanged_native_mature_state_window_complete_and_reused_raw_proof_no_fresh_provider_flag",
+    "activity_known": "mature_and_observed_HLC_or_explicit_partial_positive_range_certificate",
+    "activity_rule": "positive_observed_range_ge_scale_proves_ACTIVE_complete_range_below_scale_or_exact_zero_proves_FLAT",
+    "activity_scale": "0.5_times_TF_Wilder_ATR14_last_closed_at_issue_no_future_scale",
+    "ambiguous_side": "both_or_neither_material_endpoint_excursions_remain_unknown_no_extrema_order_assumed",
+    "base_state_contract_sha256": "f680c6972ebb9b920770cfc68db7ae717b1ea48149fddf061f17f29f193dad5f",
+    "class_order": [
+      "DOWN",
+      "FLAT",
+      "UP"
+    ],
+    "contract_sha256": "58fd7f15bdf35646680829a718caa2991f2029ed99f48030e3a85c86aae380c5",
+    "coverage_owner": "gx1.contracts.xau_tape_provenance_v1.scheduled_weekly_closure_mask",
+    "future_bar_contract_sha256": "104cb5991b2f3ec65835e6d3e029c1e51164ed63d157e3b07f1b9852afd926d9",
+    "local_window": "high_low_of_next_entirely_future_TF_bar_operator_choice_20261121",
+    "missing_ATR": "nonzero_range_unknown_no_guessed_scale",
+    "nominal_complete": "retained_strict_calendar_clock_fact_never_overwritten",
+    "observation_fields": [
+      "activity_known",
+      "activity",
+      "side_known",
+      "side_up",
+      "provider_hlc_observed",
+      "state_hlc_observed"
+    ],
+    "partial_range_active": "unchanged_ACTIVE_and_not_state_window_complete_M5_clock_fact_not_HLC_unknown",
+    "probability_limits": "proper_scores_on_observed_support_do_not_establish_unconditional_calibration_or_utility",
+    "production_training_admitted": false,
+    "provider_close": "last_reported_provider_bar_close_no_nominal_end_second_or_publication_time_assertion",
+    "provider_hlc_certificate_schema": "gx1_native_all_TF_provider_hlc_certificate_v1",
+    "provider_hlc_limits": "no_input_restoration_calendar_tradeability_firstvintage_firsthitorder_or_learning_claim",
+    "provider_hlc_reference": {
+      "path": "/home/andre2/GX1_RUNS/RESTORED_NATIVE_BAR_OBSERVATIONS_20261125_001/RESULT.json",
+      "sha256": "f66327bb2a26aec5e35fc0343be416392e7bf52244c0e4dd298adc1aebac5e21"
+    },
+    "provider_hlc_scope": "original_whole_TRAIN_M15_H1_H4_D1_exact_parent_HLC_M5_native_complete_only",
+    "provider_hlc_source_binding_sha256": "e52cf0feb80c6f5ee09fdac758f3b1ac227dfee827f28aae59e1f5f941e7fddd",
+    "qualification": "all_five_TF_observed_HLC_only_new_generation_and_fresh_initial_required",
+    "schema_version": "gx1_native_m5_fully_future_state_dataset_v3_all_tf_provider_hlc",
+    "side_boundary": "positive_scale_ge_is_material_zero_scale_requires_strict_positive_excursion",
+    "side_certificate": "observed_HLC_unique_material_endpoint_excursion_C_minus_L_vs_H_minus_C_same_scale",
+    "side_known": "requires_known_ACTIVE_observed_HLC_and_exclusive_endpoint_excursion_certificate",
+    "source_closure_contract": "oanda_complete_true_scheduled_weekly_closure_excluded_v2",
+    "state_endpoint": "complete_window_last_expected_open_M5_close_incomplete_window_last_observed_close_only_no_invented_nominal_end_price",
+    "state_hlc_observed": "state_window_complete_OR_authenticated_provider_hlc_observed",
+    "state_window_complete": "every_expected_M5_start_outside_declared_weekly_closure_present_no_other_missing_bar_excused",
+    "target_arrays_and_metadata_as_model_input": false,
+    "tf_duration_ns": {
+      "D1": 86400000000000,
+      "H1": 3600000000000,
+      "H4": 14400000000000,
+      "M15": 900000000000,
+      "M5": 300000000000
+    },
+    "tf_origin_ns": {
+      "D1": 79200000000000,
+      "H1": 0,
+      "H4": 7200000000000,
+      "M15": 0,
+      "M5": 0
+    },
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "unknown_storage": "false_boolean_payload_is_not_an_observed_class",
+    "zero_range": "observed_HLC_exact_zero_is_FLAT_even_zero_or_missing_ATR_no_epsilon"
+  },
+  "target_observation_certificate_ref": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_TARGET_QUALIFICATION_20261125_001/ALL_TF_PROVIDER_HLC_CERTIFICATE001.json",
+    "sha256": "5d2df9f7ade9e29cd8dca17bb1d9b1ed7dd5ec88b6adc0c4a7bcb7153591bd2c",
+    "source_binding_sha256": "e52cf0feb80c6f5ee09fdac758f3b1ac227dfee827f28aae59e1f5f941e7fddd",
+    "target_contract_sha256": "58fd7f15bdf35646680829a718caa2991f2029ed99f48030e3a85c86aae380c5"
+  },
+  "test_authorized": false,
+  "timeframes": [
+    "M5",
+    "M15",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "training_authorized": false,
+  "truth_sha256": "36be8f78a95bb95126d2df487f19ee3c7c88d15d1b47f661640087acea96c40c"
+}
