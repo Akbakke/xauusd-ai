@@ -7,7 +7,164 @@
     "accepted_raw_key": "treasury|TREASURY_NOMINAL_2022|nominal10y|2022-04-01",
     "active_input_fault_proved": false,
     "active_inputs_patched": false,
-    "actual_first_model_consuming_row_measured": false,
+    "actual_first_historical_eligible_input_utc": "2022-04-03T22:05:00+00:00",
+    "actual_first_model_consuming_row_measured": true,
+    "actual_input_consumer_acceptance": {
+      "May18_actual_first_use_measured": false,
+      "NN_forwards": 0,
+      "acceptance": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_APR1_CONSUMER_CLOCK_ACCEPTANCE_20261125_001.json",
+        "sha256": "3ca1379a0d8b8cf3c192f9b6bd7fb6429d96f310aa41b99fb332382849cd2392"
+      },
+      "capture_arrays_decoded": 2,
+      "capture_ndarray_bytes": 5672800,
+      "claim": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_APR1_MACRO_CONSUMER_WITNESS_20261125_003/CLAIM.json",
+        "sha256": "ecba107d3bcbd4b17e362152074ee03a6d029db3196333e8a7d0d9ef6c57eb65"
+      },
+      "clock_rule_changes": 0,
+      "core_input_bytes": 18865311,
+      "declared_availability_bound_utc": "2022-04-03T04:00:00+00:00",
+      "field_positions": {
+        "breakeven10y_change21D": {
+          "actual_seq96_consumers": {
+            "first_issue_ns": 1649023500000000000,
+            "first_issue_utc": "2022-04-03T22:05:00+00:00",
+            "last_issue_ns": 1651751700000000000,
+            "last_issue_utc": "2022-05-05T11:55:00+00:00",
+            "rows": 1065
+          },
+          "context_minus1_rows": 251,
+          "context_plus1_rows": 624,
+          "eligible_context": {
+            "first_issue_ns": 1649023500000000000,
+            "first_issue_utc": "2022-04-03T22:05:00+00:00",
+            "last_issue_ns": 1651723200000000000,
+            "last_issue_utc": "2022-05-05T04:00:00+00:00",
+            "rows": 875
+          },
+          "same_feature_row_algebraic_cancellation_rows": 0
+        },
+        "breakeven10y_level": {
+          "actual_seq96_consumers": {
+            "first_issue_ns": 1649023500000000000,
+            "first_issue_utc": "2022-04-03T22:05:00+00:00",
+            "last_issue_ns": 1649246100000000000,
+            "last_issue_utc": "2022-04-06T11:55:00+00:00",
+            "rows": 719
+          },
+          "context_minus1_rows": 0,
+          "context_plus1_rows": 624,
+          "eligible_context": {
+            "first_issue_ns": 1649023500000000000,
+            "first_issue_utc": "2022-04-03T22:05:00+00:00",
+            "last_issue_ns": 1649217600000000000,
+            "last_issue_utc": "2022-04-06T04:00:00+00:00",
+            "rows": 624
+          },
+          "same_feature_row_algebraic_cancellation_rows": 0
+        },
+        "nominal10y_level": {
+          "actual_seq96_consumers": {
+            "first_issue_ns": 1649023500000000000,
+            "first_issue_utc": "2022-04-03T22:05:00+00:00",
+            "last_issue_ns": 1649246100000000000,
+            "last_issue_utc": "2022-04-06T11:55:00+00:00",
+            "rows": 719
+          },
+          "context_minus1_rows": 0,
+          "context_plus1_rows": 624,
+          "eligible_context": {
+            "first_issue_ns": 1649023500000000000,
+            "first_issue_utc": "2022-04-03T22:05:00+00:00",
+            "last_issue_ns": 1649217600000000000,
+            "last_issue_utc": "2022-04-06T04:00:00+00:00",
+            "rows": 624
+          },
+          "same_feature_row_algebraic_cancellation_rows": 0
+        },
+        "slope10y2y_change21D": {
+          "actual_seq96_consumers": {
+            "first_issue_ns": 1649023500000000000,
+            "first_issue_utc": "2022-04-03T22:05:00+00:00",
+            "last_issue_ns": 1651751700000000000,
+            "last_issue_utc": "2022-05-05T11:55:00+00:00",
+            "rows": 1065
+          },
+          "context_minus1_rows": 251,
+          "context_plus1_rows": 624,
+          "eligible_context": {
+            "first_issue_ns": 1649023500000000000,
+            "first_issue_utc": "2022-04-03T22:05:00+00:00",
+            "last_issue_ns": 1651723200000000000,
+            "last_issue_utc": "2022-05-05T04:00:00+00:00",
+            "rows": 875
+          },
+          "same_feature_row_algebraic_cancellation_rows": 0
+        },
+        "slope10y2y_level": {
+          "actual_seq96_consumers": {
+            "first_issue_ns": 1649023500000000000,
+            "first_issue_utc": "2022-04-03T22:05:00+00:00",
+            "last_issue_ns": 1649246100000000000,
+            "last_issue_utc": "2022-04-06T11:55:00+00:00",
+            "rows": 719
+          },
+          "context_minus1_rows": 0,
+          "context_plus1_rows": 624,
+          "eligible_context": {
+            "first_issue_ns": 1649023500000000000,
+            "first_issue_utc": "2022-04-03T22:05:00+00:00",
+            "last_issue_ns": 1649217600000000000,
+            "last_issue_utc": "2022-04-06T04:00:00+00:00",
+            "rows": 624
+          },
+          "same_feature_row_algebraic_cancellation_rows": 0
+        }
+      },
+      "first_historical_eligible_issue_utc": "2022-04-03T22:05:00+00:00",
+      "fresh_context_dependency_hashes": 13,
+      "independent_metadata_review": "PASS",
+      "limits": [
+        "Theseareactualeligibleinputpositions usingfreshdeclared-clock sourceeligibility plusreused exactfinite/observedmask and96source-indexgatherproof; sourcepublic-release-known status remainsUNKNOWN.",
+        "No feature,target,PT,normalizationarray or2026ratevalue decoded; onlytwoCAPTUREarrays. Extra2012file isDate-only,zerooldratefloatconversion.",
+        "Signedcoefficients refer tosame-feature-row algebraicdependency; zero isnot claimed bitexactfloatingpointinsensitivity. Differenthistorycoordinates donotcancelneuralinputs.",
+        "Actual consumer clock doesnot establish whenTreasury2.39becamepublic; no input/source/clockpatch orfit admitted."
+      ],
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_APR1_MACRO_CONSUMER_WITNESS_20261125_003/RESULT.json",
+        "sha256": "3fb890823e442da1e64bc8d7415eb74700497a9666493ccc871e6756c3a0d4ef"
+      },
+      "reused_proofs": {
+        "ctx_cont_rows": 354550,
+        "feature_archive_full_bytes_authentication": "REUSED_PREVIOUS_QUALIFIED_PROOFS_BINDING_MATCHED_NOT_FRESHLY_REHASHED",
+        "full354645_signal_axis_revalidated": false,
+        "full95preTRAIN_signal_prefix_revalidated": false,
+        "global_pre2020_primitive_origins_revalidated": false,
+        "metadata_lineage_predicates_PASS": true,
+        "native_finite_observed_masks": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_INPUT_OBSERVATION_CENSUS_20261123_001/RESULT.json",
+          "sha256": "a2dc6c8eb988c0499a53e48e241c9305d2b54ce04a382fac5f0f23288b2e78d3"
+        },
+        "signal_history_union_rows": 354645,
+        "unchanged_feature_archive_binding": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001/FEATURE_INPUTS.npz",
+          "sha256": "b096bc2899a1cb8d831c1f120821a10dcfdccda25f8c9e1f81fbc8d00d414d36"
+        }
+      },
+      "seconds_between_declared_and_first_actual_use": 65100,
+      "source_or_input_changes": 0,
+      "source_public_2_39_before_first_actual_use_proved": false,
+      "status": "QUALIFIED_FROZEN_TRAIN_INPUT_POSITIONS_ONLY_PUBLICATION_UNKNOWN",
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_APR1_MACRO_CONSUMER_WITNESS_20261125_003/TERMINAL.json",
+        "sha256": "e6c59c347adc24a8573a3975ce5ab10dab9858353b097ea2bc614702120c9511"
+      },
+      "witness": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_APR1_MACRO_CONSUMER_WITNESS_20261125_003/WITNESS.json",
+        "sha256": "9c632dde4341f0b8b66e05f2cf6f2fb1f3bfc2452616cb72b7c4a845f9387b72"
+      }
+    },
     "archive002_cell_evidence": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/CELL_EVIDENCE.json",
       "sha256": "3dd05414d2eb3b8446d40435ff44f3f96f23d5f073752b5b506757c931151b01"
@@ -107,6 +264,171 @@
       "2.39": 932,
       "<MISSING>": 331
     }
+  },
+  "May18_point_remaining_limit": "First eligible input use is now measured and current2.89 was authentically captured2467s before it. This does not prove first-ever publication or full61field chronology.",
+  "actual_Apr1_input_consumer_clock": {
+    "May18_actual_first_use_measured_by_this_Apr1_witness": false,
+    "NN_forwards": 0,
+    "acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_APR1_CONSUMER_CLOCK_ACCEPTANCE_20261125_001.json",
+      "sha256": "3ca1379a0d8b8cf3c192f9b6bd7fb6429d96f310aa41b99fb332382849cd2392"
+    },
+    "capture_arrays_decoded": 2,
+    "capture_ndarray_bytes": 5672800,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_APR1_MACRO_CONSUMER_WITNESS_20261125_003/CLAIM.json",
+      "sha256": "ecba107d3bcbd4b17e362152074ee03a6d029db3196333e8a7d0d9ef6c57eb65"
+    },
+    "clock_rule_changes": 0,
+    "core_input_bytes": 18865311,
+    "current_May18_measurement": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_MAY18_CONSUMER_CLOCK_ACCEPTANCE_20261125_001.json",
+      "sha256": "730cd97d4bda3d4dead39d0ea327939c5af6f48240d8e47ae3dc0f4e053a8b9c"
+    },
+    "declared_availability_bound_utc": "2022-04-03T04:00:00+00:00",
+    "field_positions": {
+      "breakeven10y_change21D": {
+        "actual_seq96_consumers": {
+          "first_issue_ns": 1649023500000000000,
+          "first_issue_utc": "2022-04-03T22:05:00+00:00",
+          "last_issue_ns": 1651751700000000000,
+          "last_issue_utc": "2022-05-05T11:55:00+00:00",
+          "rows": 1065
+        },
+        "context_minus1_rows": 251,
+        "context_plus1_rows": 624,
+        "eligible_context": {
+          "first_issue_ns": 1649023500000000000,
+          "first_issue_utc": "2022-04-03T22:05:00+00:00",
+          "last_issue_ns": 1651723200000000000,
+          "last_issue_utc": "2022-05-05T04:00:00+00:00",
+          "rows": 875
+        },
+        "same_feature_row_algebraic_cancellation_rows": 0
+      },
+      "breakeven10y_level": {
+        "actual_seq96_consumers": {
+          "first_issue_ns": 1649023500000000000,
+          "first_issue_utc": "2022-04-03T22:05:00+00:00",
+          "last_issue_ns": 1649246100000000000,
+          "last_issue_utc": "2022-04-06T11:55:00+00:00",
+          "rows": 719
+        },
+        "context_minus1_rows": 0,
+        "context_plus1_rows": 624,
+        "eligible_context": {
+          "first_issue_ns": 1649023500000000000,
+          "first_issue_utc": "2022-04-03T22:05:00+00:00",
+          "last_issue_ns": 1649217600000000000,
+          "last_issue_utc": "2022-04-06T04:00:00+00:00",
+          "rows": 624
+        },
+        "same_feature_row_algebraic_cancellation_rows": 0
+      },
+      "nominal10y_level": {
+        "actual_seq96_consumers": {
+          "first_issue_ns": 1649023500000000000,
+          "first_issue_utc": "2022-04-03T22:05:00+00:00",
+          "last_issue_ns": 1649246100000000000,
+          "last_issue_utc": "2022-04-06T11:55:00+00:00",
+          "rows": 719
+        },
+        "context_minus1_rows": 0,
+        "context_plus1_rows": 624,
+        "eligible_context": {
+          "first_issue_ns": 1649023500000000000,
+          "first_issue_utc": "2022-04-03T22:05:00+00:00",
+          "last_issue_ns": 1649217600000000000,
+          "last_issue_utc": "2022-04-06T04:00:00+00:00",
+          "rows": 624
+        },
+        "same_feature_row_algebraic_cancellation_rows": 0
+      },
+      "slope10y2y_change21D": {
+        "actual_seq96_consumers": {
+          "first_issue_ns": 1649023500000000000,
+          "first_issue_utc": "2022-04-03T22:05:00+00:00",
+          "last_issue_ns": 1651751700000000000,
+          "last_issue_utc": "2022-05-05T11:55:00+00:00",
+          "rows": 1065
+        },
+        "context_minus1_rows": 251,
+        "context_plus1_rows": 624,
+        "eligible_context": {
+          "first_issue_ns": 1649023500000000000,
+          "first_issue_utc": "2022-04-03T22:05:00+00:00",
+          "last_issue_ns": 1651723200000000000,
+          "last_issue_utc": "2022-05-05T04:00:00+00:00",
+          "rows": 875
+        },
+        "same_feature_row_algebraic_cancellation_rows": 0
+      },
+      "slope10y2y_level": {
+        "actual_seq96_consumers": {
+          "first_issue_ns": 1649023500000000000,
+          "first_issue_utc": "2022-04-03T22:05:00+00:00",
+          "last_issue_ns": 1649246100000000000,
+          "last_issue_utc": "2022-04-06T11:55:00+00:00",
+          "rows": 719
+        },
+        "context_minus1_rows": 0,
+        "context_plus1_rows": 624,
+        "eligible_context": {
+          "first_issue_ns": 1649023500000000000,
+          "first_issue_utc": "2022-04-03T22:05:00+00:00",
+          "last_issue_ns": 1649217600000000000,
+          "last_issue_utc": "2022-04-06T04:00:00+00:00",
+          "rows": 624
+        },
+        "same_feature_row_algebraic_cancellation_rows": 0
+      }
+    },
+    "first_historical_eligible_issue_utc": "2022-04-03T22:05:00+00:00",
+    "fresh_context_dependency_hashes": 13,
+    "independent_metadata_review": "PASS",
+    "limits": [
+      "Theseareactualeligibleinputpositions usingfreshdeclared-clock sourceeligibility plusreused exactfinite/observedmask and96source-indexgatherproof; sourcepublic-release-known status remainsUNKNOWN.",
+      "No feature,target,PT,normalizationarray or2026ratevalue decoded; onlytwoCAPTUREarrays. Extra2012file isDate-only,zerooldratefloatconversion.",
+      "Signedcoefficients refer tosame-feature-row algebraicdependency; zero isnot claimed bitexactfloatingpointinsensitivity. Differenthistorycoordinates donotcancelneuralinputs.",
+      "Actual consumer clock doesnot establish whenTreasury2.39becamepublic; no input/source/clockpatch orfit admitted."
+    ],
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_APR1_MACRO_CONSUMER_WITNESS_20261125_003/RESULT.json",
+      "sha256": "3fb890823e442da1e64bc8d7415eb74700497a9666493ccc871e6756c3a0d4ef"
+    },
+    "reused_proofs": {
+      "ctx_cont_rows": 354550,
+      "feature_archive_full_bytes_authentication": "REUSED_PREVIOUS_QUALIFIED_PROOFS_BINDING_MATCHED_NOT_FRESHLY_REHASHED",
+      "full354645_signal_axis_revalidated": false,
+      "full95preTRAIN_signal_prefix_revalidated": false,
+      "global_pre2020_primitive_origins_revalidated": false,
+      "metadata_lineage_predicates_PASS": true,
+      "native_finite_observed_masks": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_INPUT_OBSERVATION_CENSUS_20261123_001/RESULT.json",
+        "sha256": "a2dc6c8eb988c0499a53e48e241c9305d2b54ce04a382fac5f0f23288b2e78d3"
+      },
+      "signal_history_union_rows": 354645,
+      "unchanged_feature_archive_binding": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001/FEATURE_INPUTS.npz",
+        "sha256": "b096bc2899a1cb8d831c1f120821a10dcfdccda25f8c9e1f81fbc8d00d414d36"
+      }
+    },
+    "seconds_between_declared_and_first_actual_use": 65100,
+    "source_or_input_changes": 0,
+    "source_public_2_39_before_first_actual_use_proved": false,
+    "status": "QUALIFIED_FROZEN_TRAIN_INPUT_POSITIONS_ONLY_PUBLICATION_UNKNOWN",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_APR1_MACRO_CONSUMER_WITNESS_20261125_003/TERMINAL.json",
+      "sha256": "e6c59c347adc24a8573a3975ce5ab10dab9858353b097ea2bc614702120c9511"
+    },
+    "witness": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_APR1_MACRO_CONSUMER_WITNESS_20261125_003/WITNESS.json",
+      "sha256": "9c632dde4341f0b8b66e05f2cf6f2fb1f3bfc2452616cb72b7c4a845f9387b72"
+    }
+  },
+  "actual_May18_source_known_by_input_use": {
+    "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_MAY18_CONSUMER_CLOCK_ACCEPTANCE_20261125_001.json",
+    "sha256": "730cd97d4bda3d4dead39d0ea327939c5af6f48240d8e47ae3dc0f4e053a8b9c"
   },
   "actual_consumed_fields": {
     "DXY_absence_basis": "All61 actual field names and11panel instruments from bound pipeline review; no DXY source is consumed.",
@@ -517,13 +839,14 @@
   "completion_limits": [
     "ThisJSON records completed scoped evidence andremainingunknowns; NEXT_RUN_POLICY remainssole runauthority. No automaticplanrelaunch ornewrequestauthorization.",
     "Originalcomparison2898match/856missing/1diff, original36columnFAIL andalltruncatedreceipts arepreserved. Oneindependentoriginalpoint supportsactive2.89withoutrewritingtheALFREDcomparison.",
-    "OriginalTreasuryMay18value2.89wasarchived2167secondsbeforedeclaredMay20strictafter04:00UTC; actualfirstmodelconsumingrow andcauseofALFRED2.88 remainunknown.",
+    "May18 first actual eligible input is now measured2022-05-20T04:05Z; the authenticated original2.89capture03:23:53Z is2467seconds before it. CauseofALFRED2.88 andfirst-everpublication remainunknown.",
     "All75originalcandidateURLs wereattemptedexactlyonce. Final152cells:93MATCH,1DIFFERENT,54ROWABSENT,4networkUNKNOWN(021/042neverretried);73authenticatedpages/74dates,0neverrequested.001/002/003FAILED_CONSUMED and004/005COMPLETE receipts remainunchanged;001rawrepresentationbug andcachedraw-first recovery aredocumented.",
     "No promotionofall09,61fields,first-everpublication,globalintradaycoverage,other52fields,learning,generalization ortradingedge.",
     "No rawfinancialresponsebody,key,weights orfullprivatevalueledger isembedded. Only scopedaggregates,onepointmetadata andinternalhashrefs areincluded.",
     "Thisupdate startsnoHTTP/job andchangesno code,policy,activeinput,mask,normalizer,prior,baseline ormodel; rootownspolicy/handover/launch.",
     "Apr1key participatesinall5nominal10yfields onbothsignal/context surfaces. Capturedreference2.38Apr5→2.39Apr6 doesnotprovewhenTreasury2.39becamepublicrelativeApr3bound oractualfirstmodeluse. No activeinputpatch orclockpromotion.",
-    "The93strongoriginalmatches belongto the856missing-reference subset; May18originalpoint isseparate. Do notcombineweakdatelevelreferencecountswithstrongpointproofsascomplete09/61/intradaycoverage. All6globalflags remainfalse; no mainfitstarted."
+    "The93strongoriginalmatches belongto the856missing-reference subset; May18originalpoint isseparate. Do notcombineweakdatelevelreferencecountswithstrongpointproofsascomplete09/61/intradaycoverage. All6globalflags remainfalse; no mainfitstarted.",
+    "Apr1actualinput-clockunknownisnowresolvedonlyforits5fields:624context/719seq96perlevel;875context/1065seq96perchange21D,0same-rowcancellation. May18firstactualuseisnowmeasuredandqualifiedbysinglepointarchive; all61globalpublication/vintagecoverage remainsunproved."
   ],
   "configured_key_presence_checks": {
     "Mac_environment": {
@@ -808,6 +1131,7 @@
     }
   },
   "interpretation": {
+    "Apr1_actual_input_clock": "MeasuredhistoricalTRAINpositionsfirst2022-04-03T22:05Z,18h05afterdeclared04Z. Thisneitherproves2.39publicationnorNNpredictioneffect; all5fieldeligiblepositionsareboundtoCURRENTfrozensnapshotwithreusednativefinite-maskproof.",
     "current_source_match": "All61 current-source matches establish current dependency support, not historical first availability.",
     "first_vintage_PASS": false,
     "first_vintage_absence": "Completedkeylessdatelevelreferences andselectedoriginalsourceproofs nowinclude93matchingnominalcandidatecells plusaseparateMay18preboundpoint. Fullfirst-ever/intraday/sourcecoverage isunproved:Apr1difference unresolved,54capturerowabsences and4networkunknowns remain, alongwith418nominalcellswithoutmetadata candidate,286excludedrealcells andotherfamilylimits.",
@@ -1354,7 +1678,7 @@
     "status": "ORIGINAL75_CANDIDATE_SCOPE_CLOSED_93MATCH_1DIFF_54ROWABSENT_4NETWORK_UNKNOWN",
     "unqualified_after_followup_failure_cells": 4
   },
-  "observed_utc": "2026-11-25T20:13:06.907711+00:00",
+  "observed_utc": "2026-11-25T22:46:50.078390+00:00",
   "operating_gates_at_final_metadata_update": {
     "NEXT_RUN_POLICY_is_only_work_status": true,
     "full_step09_qualified": false,
@@ -1790,5 +2114,5 @@
       "sha256": "146d58e5242501827d671341cf5b99ec97b747c56d5e8e1e013b42f3ca03b7e2"
     }
   },
-  "status": "ORIGINAL75_NOMINAL_CANDIDATE_ATTEMPT_SCOPE_CLOSED_93_MATCH_1_DIFFERENT_54_ABSENT_4_NETWORK_UNKNOWN_FULL09_UNKNOWN"
+  "status": "APR1_INPUT_CLOCK_AND_SINGLE_MAY18_SOURCE_KNOWN_BY_USE_QUALIFIED_ALL61_PUBLICATION_VINTAGE_UNKNOWN"
 }

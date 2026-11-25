@@ -6,55 +6,63 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
 terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
 <!-- BEGIN GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
-## Pågående mål: interne rettelser kvalifisert; historiske kildebevis åpne
+## Pågående mål: kildebevis gjenstår; CURRENT-inputs beholdes
 
-Bruker25.11 ba om mål og rettelse før neste læring. Root eier policy/launch.
-Arbeidsstatus: prelearning_validity_remediation_20261125_001. Alle offentlige
-innhentingsplaner er konsumert/lukket; ingen arbeidere kjører. Ingen hovedfit,
-TEST/M1/GC, live/paper, spending eller input-/maskebitendring. Seks globalflagg
-false. Vitenskapelig status beholdes13PASS/3FAIL/4UNKNOWN; målet er ikke ferdig.
+Bruker25.11 ba om mål og rettelse før videre læring. Root eier policy/launch.
+Målet er fortsatt åpent; teknisk V3-delfase er ikke hele målet.
+NEXT_RUN_POLICY.prelearning_validity_remediation_20261125_001 er arbeidsstatus.
+Vitenskapelig kvalifikasjon står fortsatt13PASS/3FAIL/4UNKNOWN. Ingen tung jobb
+kjører; alle nye engangsplaner er konsumert/lukket. Seks globalflagg er false.
 
-Rettet konkret D1-v2-reviewblokkering med tynn V3-adapter på fem TF.
-18fokuserte tester og faktisk354550rader/1385lagredeINITIAL-batcher PASS:
-kanonisk score er nøyaktig original,0NN/PT/fit. EgenV3-prior, rad-/målbarvekting,
-25fasteTF-årspaneler, rangering og deskriptiv kalibrering er låst. INITIAL er
-priorlik og skal ikke bestå krav om strikt forbedring. Ingen V3-læring bevist.
+V3-reviewblokkeringen er rettet og kvalifisert med18 fokuserte tester og lagrede
+INITIAL-output på354550 TRAIN-posisjoner. Row/equal-target/year/kalibrerings- og
+UP/DOWN-paneler er låst. INITIAL lik egen prior kvalifiserer ikke læring/edge.
+Tidligere177 kvalifiserte tester og full INITIAL/egen-C2-replay gjenbrukes.
 
-316 nøkkelfrie ALFRED-GET er ferdige:3755Treasury-primitiver gir2898samsvar,
-856manglerD+1referanse,ettavvik. OriginalTreasury18.05.2022 viser2.89 før
-modellens erklærte bruksgrense; dette enkeltpunktet trenger ingen verdiretting.
-75originale arkivkandidater er forsøkt nøyaktigén gang:73autentiserte sider;
-152celler=93samsvar/ettavvik/54manglenderader/4nettverksukjente. Gzip/CDX-
-representasjonsfeil ble målt og minimalt rettet; råhash kontrolleres før dekoding.
-12parserkontroller er gjenbrukt, nyeksaktscope/uavhengigreview PASS. Ingenretry.
-Siste to20/13-partier fullførte; gamle feilede planer beholdes og relanseres aldri.
+Makro:316 lukkede keyless GET ga3755 nøkler:2898match/856missing/1diff.
+75 originale Treasury-arkivkandidater er forsøkt én gang hver; slutt152celler:
+93MATCH/1DIFF/54ROW_ABSENT/4NETWORK_UNKNOWN. Originalkvitteringer bevares.
+Apr1 faktisk første kvalifiserte input er2022-04-03T22:05Z; 2.39-publisering før
+bruk er fortsatt UNKNOWN. May18 første input er2022-05-20T04:05Z; autentisert
+2.89-capture03:23:53Z var2467s før bruk. Kun dette punktet er kjent-før-bruk-
+kvalifisert; det beviser ikke første publisering eller alle61 felters asof.
 
-Avvik01.04.2022: originalTreasury10Y2.38 var publikt16:10NY, aktivhistorikk2.39;
-ALFRED2.38 vedApr5→2.39 vedApr6. Original2.39 førApr3kl04:00UTC er ukjent.
-Allefem nominal10Y-felt brukerkey påbeggeoverflater; ingeninputpatchpåantakelse.
-93originale samsvar kvalifiserer bare sine punkter. Full61-felts source-known/
-first-vintage/release og eksakt XAU_USD/practice-kalender mangler fortsatt.
-17870klokkeabsenser er uklassifiserte;0fiktivebarer ellerkalenderomklassifiseringer.
-Eldre1410reparerte referansebarer er ikke nye genuineinputs. Nåværende cache/
-normalisering er uendret; eventuell senere funksjonsendring krever nykjede/
-normalisering/ferskINITIAL/replay. change21D følger21rader i mergeddriveraksen.
+Avklart viktig inputgrense: alle1410 gjenfunne observasjoner ble allerede
+bevist valgt av scheduled_weekly_closure_mask og DELTA_OLD_CLOSURE_ONLY.
+De er utenfor vedtatt PAIR_WEEKCLOSED-kontrakt, ikke en bevist mangel blant
+kvalifiserte CURRENT-inputbarer. Behold separat referanse, CURRENT og vakter.
+Dette er kontraktsmedlemskap, ikke uavhengig historisk kalenderbevis.
 
-Samletkvittering: E/PRELEARNING_VALIDITY_REMEDIATION_REVIEW_20261125_001.json.
-E=/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001.
-Råverdiholdige arkivplaner/originaler er private;001s eksakte flytting er bundet
-av PRELEARNING_ARCHIVE_PLAN_PRIVATE_RELOCATION_20261125_001.json. Aldri rådataGit.
-Sluttbackup Mac PRELEARNING_VALIDITY_FINAL_20261125_001 er PASS:1402filer/
-405146553B,allemedlemmerSHA-kontrollert og F_FULLFSYNC. Kvittering E/
-PRELEARNING_FINAL_SEPARATE_DISK_BACKUP_20261125_001.json.18kildetester og
-12collector-kontroller gjenbrukt;11syntaks/15JSON/stale-path0/diff--check PASS.
-Neste: autoritativ historisk markedskalender og kilde-/revisjonsbevis, særlig
-Apr1grensen. Ikke start ny lærings-/innhentingsplan fra gammel engangstillatelse.
+Privat prefix001 stoppet før bygg på arvet akseforsegling; minste metadata-
+rettelse i002 passerte dette. Prefix002 stoppet ved HTF-vakt. Egen presis
+HTF-diagnose634.41s/all6bokenderPASS fant M5:382NaN-rader/772celler i firefelt,
+alle i2011 før TRAIN. ØvrigeTF er NOT_EXECUTED. Full kontrafaktisk påvirkning
+på TRAIN er ikke målt; ingen bitidentiskhets- eller all5TF-påstand. Ingen
+featureformler/finite-/kausalitets-/readinessvakter endres for å ta inn det
+utelukkede settet. Ingen relaunch av001/002/diagnose og ingen CURRENT-admission.
+
+Autoritative nådokumenter:
+docs/NATIVE_PRELEARNING_SOURCE_CLOCK_BOUNDARY_20261125_001.json,
+docs/NATIVE_PRELEARNING_INPUT_HISTORY_BOUNDARY_20261125_001.json og
+docs/NATIVE_PRELEARNING_MACRO_EVIDENCE_20261125_001.json.
+Private kvitteringer er under GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001
+og de eksakte resultatstiene bundet i dokumentene/policy. Prestart Mac-backups
+bestod alle medlems-hasher, readback og F_FULLFSYNC. Host telemetry ble gjenopprettet
+ved én start av eksisterende oppgave, uten innstillings-/vaktendring; siste jobb
+hadde fersk signert nonce- og kapasitetsadmission. En før-admission-timeout er bevart.
+
+Gjenstår: eksakt historisk XAU_USD/practice kalender og17870uavklarte klokke-
+fravær, full61felters første-vintage/revisjon/publiseringskronologi, ubetinget
+representativitet, målt V3-læring og senere generalisering. Ingen ny hovedfit,
+TEST/M1/GC-tilpasning, live/paper, spending eller promotion. Ingen automatisk
+repetisjon av lukkede kildesøk. Ukjente kildefakta skal ikke erstattes med antagelser.
+Sluttkontroll: JSON-/aktive hashbindinger,8 private AST-syntakser, stale-worktree-stier, handover --check og git diff --check PASS; uendret kvalifikasjon13/3/4. Separat Mac-sluttbackup: PRELEARNING_CONTINUATION_FINAL_20261125_001,1153filer/868001935B; arkiv/readback/alle medlems-hasher/F_FULLFSYNC PASS. Eksakte kvitteringer er bundet i policy.
 <!-- END GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
 
 <!-- BEGIN GX1 ALL TF V3 TARGET GOAL 20261125 -->
 ## Kvalifisert: native fasit, full INITIAL og egen-C2 replay på fem TF
 
-Brukerens mål01a2114e-fe3f-7850-bfcd-b0cfe215aca7 er teknisk oppfylt:
+Den tidligere avgrensede V3-delfasen i tråd01a2114e-fe3f-7850-bfcd-b0cfe215aca7 er teknisk oppfylt; det bredere målet over er fortsatt åpent:
 V3 HLC/fasit/masker/loader/loss, full TRAIN-prior og fersk INITIAL, deretter
 teknisk egen-C2 kald replay. Root eier policy, launch og samlet kontroll.
 177 unike fokuserte kildetester PASS, inkludert faktisk readout-gradient ved

@@ -1,0 +1,81 @@
+{
+  "CURRENT_input_admission": false,
+  "CURRENT_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+    "sha256": "ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca"
+  },
+  "adopted_clock_contract": "oanda_complete_true_scheduled_weekly_closure_excluded_v2",
+  "decision": "Keep recovered provider observations as a separate reference. They are absent by the adopted clock contract, not a measured omission of eligible CURRENT inputs. No feature-value, finite, causal or readiness guard change is justified by admitting this excluded set.",
+  "goal_complete": false,
+  "limits": [
+    "This classifies membership in an adopted source contract; it does not independently prove the historical OANDA/practice trading calendar or all17870clockabsences.",
+    "Full hypothetical sensitivity to adding out-of-contract observations remains unmeasured; no bit-identical TRAIN or all5TF result is claimed.",
+    "Flat quote anchors support undefined denominator semantics, but6 radius3 neighborhoods are not a full14/20-window cause census for all772cells.",
+    "No source-observation deletion, CURRENT input/calibration/normalization change, NN forward, fit, TEST use or economic qualification."
+  ],
+  "predicate": "bar start in America/New_York [Friday17:00,Sunday18:00); Sunday18:00 is outside exclusion mask",
+  "predicate_function_source_sha256": "523a425b1682fc33b0952009e8655eadc51189f86e4b92a576b5aabc61e0d517",
+  "predicate_owner": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/xau_tape_provenance_v1.py",
+    "sha256": "402ccad76c08ae27f21d5bdbe315a8d087ba76bea706f0f058b886393183292d"
+  },
+  "private_counterfactual_attempts": {
+    "001_minimal_reseal_fix": "002 excludes inherited contract_sha256 before resealing the private TRAIN-view axes. No arrays or formulas changed.",
+    "001_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_M5_INPUT_PREFIX_COUNTERFACTUAL_20261125_001/RESULT.json",
+      "sha256": "a919e953efc0dbc538b4c6b2f6126210f7d51ec457d2dd33f9d0248fd7745c26"
+    },
+    "002_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_M5_INPUT_PREFIX_COUNTERFACTUAL_20261125_002/RESULT.json",
+      "sha256": "b8ea8494cb8e42c773c494735bd38b2af64bcf9d249c0dc4f941e5b0c7c337ff"
+    },
+    "all_consumed_plans_closed_no_relaunch": true,
+    "all_diagnosed_holes_before_TRAIN": true,
+    "diagnostic_TF": "M5",
+    "diagnostic_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_M5_PREFIX_HTF_FAILURE_DIAG_20261125_001/RESULT.json",
+      "sha256": "f507c7630abc4c6e2444c0ab1a377a2d900ed9c33ed542b262025d2975807d9d"
+    },
+    "diagnostic_summary": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_M5_PREFIX_HTF_FAILURE_DIAG_20261125_001/SUMMARY.json",
+      "sha256": "0d270695327caf1f487aac66b547deaf8a6bd046ebb4bcffbd0f717e07ef0e81"
+    },
+    "full_virtual_history_TRAIN_feature_impact_measured": false,
+    "interior_NaN_cells": 772,
+    "interior_NaN_rows": 382,
+    "other_TF_diagnosed": false
+  },
+  "restore_acceptance": {
+    "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_OBSERVED_BAR_REPAIR_ACCEPTANCE_20261125_001.json",
+    "sha256": "c0a8f96567b808bd07548e84429abc78d4e6b2af38d477ab81ca892d51c84a61"
+  },
+  "restore_manifest": {
+    "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/FILTERED_BAR_RESTORE_MANIFEST_20261125_001.json",
+    "sha256": "fbbb35cb38595b522353dc53984c908ff5ba780e1f53e8be61dfe050269186ec"
+  },
+  "restore_result": {
+    "path": "/home/andre2/GX1_RUNS/RESTORED_NATIVE_BAR_OBSERVATIONS_20261125_001/RESULT.json",
+    "sha256": "f66327bb2a26aec5e35fc0343be416392e7bf52244c0e4dd298adc1aebac5e21"
+  },
+  "restore_source": {
+    "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/FILTERED_BAR_RESTORE_RUNNER_20261125_001.py",
+    "sha256": "07ad57a9ca5cfa90d1503efce9564cb2f7915426fa72410697f16f8883a99ffe"
+  },
+  "restore_terminal": {
+    "path": "/home/andre2/GX1_RUNS/RESTORED_NATIVE_BAR_OBSERVATIONS_20261125_001/TERMINAL.json",
+    "sha256": "12eda2ef79c756a4ae04bae13119b70264d28fcfc5e939fe268bc693466fa310"
+  },
+  "reused_closed_domain_proof": {
+    "all13_retained_fields_exact": true,
+    "chunks": 105,
+    "combine_guard": "DELTA_OLD_CLOSURE_ONLY requires scheduled_weekly_closure_mask(delta).all()",
+    "fresh_full_raw_or_delta_decode": false,
+    "raw_rows": 312084,
+    "restore_chunk": "delta=frame[scheduled_weekly_closure_mask]",
+    "restored_excluded_rows": 1410,
+    "retained_rows": 310674
+  },
+  "schema_version": "gx1_prelearning_restored_observation_clock_boundary_v1",
+  "source_guard_changes": 0,
+  "status": "ALL_1410_OUTSIDE_ADOPTED_CURRENT_CLOCK_DOMAIN_NO_INPUT_OR_FEATURE_GUARD_PATCH"
+}

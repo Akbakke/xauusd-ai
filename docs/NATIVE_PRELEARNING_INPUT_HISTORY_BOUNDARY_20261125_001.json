@@ -3,7 +3,7 @@
     "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001.json",
     "sha256": "6c72d84fe946c2a38a2a1dca3e68bd4c3758fef51525e0086d4d49336e71eadc"
   },
-  "claim_limit": "Current input identity is unchanged and remains independently bound. This does not prove feature invariance under a hypothetical rebuilt historical source, historical market calendar or first-vintage source availability.",
+  "claim_limit": "Current qualified raw feature archive remains bound to the same native manifest. All1410 restored observations are excluded by its adopted weekly-closure contract. Counterfactual TRAIN feature sensitivity was not completed and is not claimed; no active input or feature guard correction follows from this excluded reference.",
   "current_feature_archive": {
     "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001/FEATURE_INPUTS.npz",
     "sha256": "b096bc2899a1cb8d831c1f120821a10dcfdccda25f8c9e1f81fbc8d00d414d36"
@@ -74,9 +74,13 @@
     "whole-TRAIN normalization bound to the actual new input union",
     "new complete INITIAL and own-C2 cold replay for changed value function"
   ],
+  "restored_observation_clock_boundary": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_PRELEARNING_SOURCE_CLOCK_BOUNDARY_20261125_001.json",
+    "sha256": "a2a353c39d6f73f8dfe32195f01d7a3c03aa8183082c34781a1e247fe2751d36"
+  },
   "schema_version": "gx1_prelearning_input_history_admission_boundary_v1",
   "source_base_commit": "3f522a825d8661787eceead4c4043359677eb1ed",
-  "status": "CURRENT_FUNCTION_BOUND_NEW_REFERENCE_NOT_ADMITTED",
+  "status": "CURRENT_FUNCTION_BOUND_RESTORED1410_EXCLUDED_BY_ADOPTED_CLOCK_REFERENCE_ONLY",
   "unchanged_boundaries": [
     "M1 excluded",
     "GC deferred",
