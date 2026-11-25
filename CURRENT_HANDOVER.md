@@ -43,6 +43,8 @@ referanse-C3 har560/20. Samme fryste policy og begge boots er bevart.
 Numerisk finite-check-gradientparitet og equal-TF evalparitet PASS.
 Aksept ALL_TF_V3_REPLAY_ACCEPTANCE_20261125_001.json under kvalifikasjonsroten.
 Alle seks globale tillatelser er false; ingen hovedfit er startet eller admittert.
+Statuskontroll25.11 avstemte også20-stegsnodens foreldede status/nestehandling
+mot V3-aksepten. Vitenskapelige13PASS/3FAIL/4UNKNOWN og alle porter er uendret.
 Neste arbeid er en separat spesifisert TRAIN-læringssammenligning mot den nye
 V3-prioren med fersk INITIAL; ingen fullført/avbrutt plan skal relanseres.
 Kalender/source-asof/makro-vintage og tidligere uavklarte20-stegsgrenser

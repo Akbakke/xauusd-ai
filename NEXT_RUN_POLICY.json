@@ -99430,7 +99430,7 @@
     }
   },
   "native_twenty_step_qualification_20261123_001": {
-    "status": "ALL_TF_V3_TARGET_PRIOR_QUALIFIED_FRESH_INITIAL_REPLAY_PENDING",
+    "status": "ALL_TF_V3_TARGET_PRIOR_FULL_INITIAL_OWN_C2_REPLAY_QUALIFIED_NO_MAIN_FIT",
     "goal_thread_id": "01a20035-2836-7f62-bb88-9e24603a51a5",
     "requirements": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_QUALIFICATION_20_STEPS.json",
@@ -101894,7 +101894,7 @@
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/RESUMABLE_INITIAL003_ACCEPTANCE001.json",
       "sha256": "07d186a74ba0691f2735b28cf0f0defad39604573d5f33e2f298c4cf2cc53e45"
     },
-    "next_action": "Reuse acceptedV3dataset/prior andwholeTRAINmaskqualification; all1772410matureactivitiesknown,340immaturecellsretained. Next ownfreshV3fullTRAININITIAL then ownC2coldreplay after realmetadata/checkpoint-contract/exactCLI/host/backup/admission gates. Fixactual32archive-versus14decodedtruth-budgetmetadata blockerbeforeINITIALclaim; no target rebuild orlearningfit. All6globalflagsfalse.",
+    "next_action": "V3 all-five-TF target/prior, whole354550TRAIN actual fresh INITIAL and own-C2 all10bitexact cold replay qualified. Preserve all receipts/checkpoints; no learning fit admitted. Next work is a separately specified TRAIN learning comparison against this matched V3 prior with fresh INITIAL, preserving calendar/source-asof/macro-vintage, M1/GC and sealed-TEST boundaries; generalization and edge UNKNOWN.",
     "v2_all_TF_segmented_replay_prepare_log": {
       "path": "/tmp/gx1_all_tf_segmented_replay_prepare001.log",
       "sha256": "3fc9ef76d5d0e95da25b6e4081469a4147fb6fba8c90b5edb512b7e16650fb06"
@@ -102883,6 +102883,10 @@
     "all_TF_observed_bar_reference_backup": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OBSERVED_BAR_REPAIR_SEPARATE_DISK_BACKUP_20261125_001.json",
       "sha256": "81951649e4a4badff02d575865879428405d7d368fcc78d811ebac5b00c74037"
+    },
+    "all_tf_V3_goal_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_V3_GOAL_QUALIFICATION_20261125_001.json",
+      "sha256": "58e074c3c20ae1d94315a383d2c77e2572ed6ff0d377d0086801b609df0f734d"
     }
   },
   "native_raw_feed_clock_qualification_20261123_001": {
