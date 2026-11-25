@@ -11,11 +11,11 @@ Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet
 01a20035-2836-7f62-bb88-9e24603a51a5 er uten tokenbudsjett.
 Kriterier: docs/NATIVE_QUALIFICATION_20_STEPS.json SHAde91ac04...16338.
 Status: native_twenty_step_qualification_20261123_001 i policy.
-REVIEW_CHECKPOINT078:13PASS/3FAIL/4UNKNOWN; samlet false. V1vitenskapelige
-verdicts beholdt; D1-HLCv2 har full INITIAL002/kaldreplay og én fullført
-retainedTRAIN-epoke/fullFINAL. Både NLL/Brier for conditional-side FAILER
-påalle5TF. Aktivitetslæring har TRAIN-gevinster påM5/M15/H1; senere
-generalisering og økonomisk edge er fortsatt UNKNOWN.
+REVIEW_CHECKPOINT079:13PASS/3FAIL/4UNKNOWN; samlet false. Nyblockorder-epoke
+er COMPLETE/full354550TRAINFINAL. M5/M15 slår egenINITIAL003/frossenprior og
+kronologiskNone; H1/H4/D1 slår barekronologiskNone, ikkeINITIAL/prior.
+Primær18/30PASS, gruppestabilitet11/37PASS. Dette erTRAIN, ikkesenere
+generalisering eller økonomiskedge. IngenTF/familier/makro er fjernet.
 Steg20 (administrativ sikring) er PASS; kildekalender/firstvintage og læring/generalisering
 har fortsatt åpne krav, med historiske v1FAIL beholdt.
 REQUIRED_EXTERNAL_EVIDENCE_BLOCKED_AUDIT001 eroppfylt over3målfortsettelser;
@@ -29,14 +29,13 @@ GC/orderbok er utsatt, ikke slettet; M30 trenger egen verdikvalifisering.
 M1 brukes aldri til retning/fasit/normalisering/utvalg. TEST er forseglet.
 Ingen live/paper, broker, ordre, spending eller promotion.
 
-Alle fem globale treningsporter er false. Main002 og alle recoveryprodusenter
-er consumed0/false. None-epoken er fullført:3694retainedlogiskeupdates,
-354550TRAINrader og fullFINAL1385batcher. Kjøringen avsluttet medexit0.
-TRAIN_END ble faktisk skrevet/readback før scoring; FINAL etterfullscore.
-Alle9ikke-scoreproofs eridentiske mellomTRAIN_END/FINAL.
-Paret review002 bekrefter høyere NLL/Brier påalle5TF enn egenINITIAL,
-frossenprior OG beholdtM5-kontroll. Sluttartefakter er separatdiskverifisert.
-Stortrening er ikke kvalifisert.
+Alle seks globale treningsflagg erfalse. Originala728 og begge recoveryer
+4f499/d86d er consumed0/false. Blockorder fullførteénoriginalepoke med3694
+retainedupdates ogfull354550TRAINFINAL,1385B256/tail246. TRAIN_END ble skrevet
+ogreadback førscoring, FINAL etterpå; alle9nonscoreproofs eridentiske.
+Alle17unikeCPpar/originaloutput/bevis er separatMac-disk SHA/F_FULLFSYNC/fsync-
+verifisert. Matchedreview534c2d75: alle5bedrekronologisk, bareM5/M15bedre
+INITIAL/prior; primærFAILoggruppestabilitetFAIL. Ingenstortrening klar.
 Én tung CURRENT-jobb via scripts/gx1_capped_run.sh, lås og eksisterende
 kapasitets-/temperatur-/effekt-/hostvakter. Ingen kilde-/policyendring under
 bundet kjøring. Stabile langjobber sjekkes15–30minutter, ikke minuttvis.
@@ -62,8 +61,15 @@ faktisk handoverPASS; launch-gaten og alle øvrige gamle funksjoner er byteuendr
 
 ## Gjeldende årsakskontroll og neste læringsdesign
 
-Aktuelt: full None-epoke er ferdig, men begge retningsskårer FAILER på alle5TF.
-Alle globale treningsflagg og engangsporter er stengt. Ingen tung modelljobb kjører.
+Én blockorder-epoke/fullTRAINFINAL er COMPLETE/exit0 og alle17CPpar sikret.
+Forhåndsregistrertreview534c2d75:18PASS/12FAIL blant30korrelerteprimærvitner;
+M5/M15PASSmotalle3refs,H1/H4/D1FAILmotINITIAL/prior. Alle5bedrekronologiskNone.
+37forhåndsvalgteår-/D1støttegrupper:11PASS/26FAIL, alleharstøtte. D1meanqUP
+er64,283% mot54,492%fasit, nedfra71,997% kronologisk. H4/D1girfortsattbareUP
+vedconditionalargmax. Dette målerordresensitivitet, ikkeunikbiasårsak/valgtfix,
+bidireksjonalgeneralisering elleredge. IngenTF/familie/makro er fjernet.
+Neste: målrestkalibrering moteksisterendekvalifisertebatch-risk/objectivbevis,
+utenågjentauendredeaudit. Ingennyfit/epoke/normalisering/VAL/TEST erinnrømmet.
 
 Korrigert endpointprobe002 fullførte48,889s ved fryst18c934aa6:12nativeFW,
 2CP/1NN/2strictinstalls/0updates på1526ALLrader i6blinde originalbatcher.
@@ -97,11 +103,38 @@ eksisterende kvalifisert helper004 ble gjenbrukt. Siste faktiskblokkertmetadata
 PASS med0payload/CP/modell/optimizer/CUDA/seed/nett/policywrites. Originalfeilbevis
 beholdes. Ingen modell-/loss-/optimizer-/normaliseringsrettelse er innført.
 
-Neste: fersk HEAD/runtimebundet eksakt engangsplan,
-CLI-preflight, separat source/planbackup og signert fersk vert/admisjon. Ingen
-ny plan/fit er publisert eller innrømmet ennå; alle seks globaleflagg erfalse.
+Plan a728776d fra edcc9de03 er CONSUMED_STOPPED, aldri relaunch.
+FaktiskCLAIM/stoppetPID835976 og originalTERMINAL/guard/stdio/outerlogger er bevart.
+CP1024/98304TRAINrader er varigskrevet/readback og fysiskSHA-verifisert:
+UPDATE001024.pt SHA b6bf239e…/receipt46aa2df1. Alle source/input/plan/policy/
+handover/beggeboot-bookends PASS;0payload/NN/CUDA ietterkontrollen.
+Vakten stoppet påWindowsmaintenance, ikke ressursoverskridelse. GPUpeak62/70C
+200,72W/9772MiB; CPU45C31,13W; minst54,85GBhostledig/49,32GBcommitheadroom.
+Ingen Windows-/vaktendring, modellfix eller nyepoke. Fire UPDATEcheckpoints og
+INITIAL bevares. STOP_REVIEW001/STOPPED_BOOKEND001 binder originale bevis.
+Alle5PT/5receipts/4progress og originalbevis er separatdiskverifisert:
+32filer439533374B, faktiskMac-SHA/F_FULLFSYNC/fsync inkl diagnostic/stderr.
+CP1024_BACKUP001 binder eksakt CP1024/receiptpar;0deserialisering.
+Blockorder maina728 og recovery1024/4f4991c9 stoppet på Windowsmaintenance,
+med alle checkpoint/originaler separatdiskverifisert. Recovery2816/d86d0da3
+fullførte01:02:45UTC/exit0 ved fryst edcc9de03:878nyeupdates/2263FW/5CP.
+Retainedtotal3694updates/354550TRAINrader og fullFINAL1385B256/tail246 PASS.
+Faktisk strictrestore2816 og alle source/input/plan/policy/handover/beggeboot-
+bookends PASS. TRAIN_END98614807B/SHA4994bfd2 ogFINAL er fysiskSHA-/statverifisert
+utenpayloaddecode; alle9nonscoreproofs er identiske. Beggescorefaser erkorrekt
+bundet. COMPLETED_BOOKEND001/FULL_EPOCH_COMPLETION001 binderoriginalene.
+Alletreningsflagg og engangsporter erlukket. Siste5CP/fulloutputs/originalbevis
+er nåseparatMac-disk SHA/F_FULLFSYNC/fsync-verifisert:35filer525636054B, inkl
+diagnostic/stderr. FULL_EPOCH_BACKUP001 gjenbruker tidligere5+7CPbackuper og
+binderalle17unikecheckpointpar. Ingenpayloaddecode eller fullmaskinbackup-påstand.
+Forhåndsregistrert30proper-/gruppereview534c2d75 er nåutført: M5/M15PASS,
+H1/H4/D1FAIL, samletFAILoggruppestabilitetFAIL. Fullsteg15/generalisering/edge
+erikke kvalifisert av tekniskfullføring; ingen nyepoke/normalisering/VAL/TEST.
 Primær-/gruppeskårPASS girikkeautomatisk steg15/bidireksjonalitet/biasårsak/edgePASS.
 13PASS/3FAIL/4UNKNOWN og alle tidligere vitenskapelige krav står vedlag.
+Pairedreview/helper/log/REVIEW_CHECKPOINT079/status er også separatdiskverifisert:
+8filer6328839B, faktiskMac-SHA/F_FULLFSYNC/fsync inkl diagnostic/stderr.
+REVIEW_STATUS_BACKUP001 binder kopien; alle17CPpar og nyresultatevidens er sikret.
 Source/design/bevis er separatdiskkopiert:19filer6237014B. Alle artefakter,
 diagnostic/stderr/manifest er uavhengig faktiskMac-SHA/F_FULLFSYNC/fsync-verifisert.
 SOURCE_BACKUP001 binder kopien; ingen checkpoints/markedsdata er deserialisert.
