@@ -91,10 +91,23 @@ GammelallTF-CPUmetode erbarelokaldiagnose: M5-primaryFINAL overførttilNone,
 289sideceller av480; maksdelta1,3923645e-4/3,5881996e-5; full96qualificationfalse.
 Ingenmean-q-/faktiskAdamW-retning målt. Dette kanikke kallesnativenyFINAL/B96-
 kvalifikasjon; toleranserendresikke oggamlegradientverdier overføresikke.
-Neste: kvalifiser minstemulig oppdateringsfri komponentprobe påfaktisknyFINAL;
-blindklokkepanel ogmean-q-spørsmål bindesførfasit. Nydevice-/numerisk-/støtte-/
-kilde-/ressurs-/IOkvalifikasjon krevesførNN/CPlesing. Ingenprobe erinnrømmet;
-ingenparameter-/optimizeroppdatering, fit/epoke/kalibrator/normalisering/VAL/TEST.
+Klokkepanel d0061d57 erfrystførfasit/prognoser:6heleoriginalB96-batcher
+369/1108/1846/2585/3324/3691,576rader innen6tidligereblindeB256ankre,
+alle12source-/issuehasherbundet. Design90a14be7 binder førstprofilindeks0
+uavhengigavstøtte:3nativeFW(B256no_grad/B96no_grad/B96grad),maks12autograd
+etterbeggehodersparitet1e-6/1e-5. Meanq påfaktiskkjentsidestøtte/FP64sigmoid;
+emptyUNKNOWN/ingenreseleksjon. GammelalleTF-scoringsruteequalTFTruekanikke
+brukesmedgrad; nygradrouteequalTFFalsemåmåles, ikkebareantaslik.
+Nytynnprofilautoritet/ruting erimplementert:270fokusertecasesPASS/exit0,
+alle81øvrigeoriginaleierebyteuendret; eksakt5deltadditivshellbrobevarergammelcap.
+Støttecensus5ce26730 fullførte0,412s med1NPZ/5felt/22336650B/0NN/CP.
+D1:278kjenterader,5distinktemål(4DOWN/1UP); tailD1UNKNOWNutenreseleksjon.
+Førsteprofil haralle5TFsidestøttet/exakt12autograd, menD1bareettDOWNmål/65rader.
+Dette kvalifisererkilde/støtte, ikkerepresentativitet, nativeparitet ellerlæring.
+Eksaktmetadata/import/kommandopreflight gjenstår; ingenmodellprobe/6panel/fit
+erinnrømmet, alle6globalflaggfalse.
+Source/import/kommando/metadata/rapport/resource/IO/bootporter består førclaim;
+ingenparameter-/optimizeroppdatering, nyepoke/kalibrator/normalisering/VAL/TEST.
 
 Korrigert endpointprobe002 fullførte48,889s ved fryst18c934aa6:12nativeFW,
 2CP/1NN/2strictinstalls/0updates på1526ALLrader i6blinde originalbatcher.
