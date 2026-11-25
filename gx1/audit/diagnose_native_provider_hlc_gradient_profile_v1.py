@@ -120,6 +120,7 @@ def profile_runtime_blockers():
 
 
 def checked_inputs(plan):
+ need('provider_response'in plan['inputs'],'EXPLICIT_PROVIDER_RESPONSE')
  for binding in plan['inputs'].values():reference(binding)
  for item in plan['input_inventory'].values():
   need(reference(item['binding']).stat().st_size==item['archive_bytes'],'ARCHIVE_BYTES');saved.archive_headers(item['binding'],item['array_headers'],exact_inventory=item['archive_inventory'])
@@ -140,7 +141,7 @@ def build_plan(*,runtime,source_base_commit=None,support_ref=None):
  need(manifest['schema_version']=='gx1_block_order_gradient_source_clock_panel_v1'and manifest['canonical_population_main_plan']==inputs['original_epoch_plan']and manifest['selection_uses_labels_predictions_support_or_model_state']is False and manifest['canonical_schedule_contract_sha256']==original['schedule']['canonical_schedule']['contract_sha256'],'BLIND_CANONICAL_PANEL')
  need(census['schema_version']=='gx1_fixed_clock_native_gradient_panel_support_v1'and census['status']=='COMPLETE_FIXED_CLOCK_SUPPORT_CENSUS_NO_NN'and census['design']==DESIGN and census['panel']==inputs['panel_manifest']and census['first_profile_panel_index']==0 and census['all_bound_file_stat_SHA_bookends_passed']is True,'AUTHENTIC_FIXED_SUPPORT_CENSUS')
  panel=manifest['panel'][0];need(panel['rows']==96 and panel['original_B96_id_zero_based']==369 and panel['start_issue_index']==35424 and panel['stop_issue_index_exclusive']==35520 and panel['anchor_start_issue_index']==35328 and panel['anchor_stop_issue_index_exclusive']==35584,'EXACT_FIRST_CLOCK_POINT')
- inputs.update(completed_plan=result['plan'],quality=report['final_quality'],source_snapshot=m['source_snapshot'],feature_archive=original['inputs']['feature_archive'],dataset=m['dataset'],target_arrays=original['inputs']['target_arrays'],normalization=m['normalization'],prior=m['prior'],input_binding=m['input_binding_ref'])
+ inputs.update(provider_response=original['inputs']['provider_response'],completed_plan=result['plan'],quality=report['final_quality'],source_snapshot=m['source_snapshot'],feature_archive=original['inputs']['feature_archive'],dataset=m['dataset'],target_arrays=original['inputs']['target_arrays'],normalization=m['normalization'],prior=m['prior'],input_binding=m['input_binding_ref'])
  expected_support=census['per_panel'][0]
  need(expected_support['original_B96_id_zero_based']==panel['original_B96_id_zero_based']and expected_support['rows']==96 and expected_support['issue_ns_sha256']==panel['issue_ns_sha256']and expected_support['source_rows_sha256_from_sealed_metadata']==panel['source_rows_sha256'],'CENSUS_FIRST_CLOCK_IDENTITY')
  need(census['first_profile_exact_autograd_calls_if_native_parity_passes']==profile_plan_budget([expected_support['per_TF'][tf]['side_known_rows']for tf in TF])['actual_autograd_calls'],'CENSUS_EXACT_AUTOGRAD_BUDGET')

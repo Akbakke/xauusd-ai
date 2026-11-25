@@ -104,8 +104,37 @@ Støttecensus5ce26730 fullførte0,412s med1NPZ/5felt/22336650B/0NN/CP.
 D1:278kjenterader,5distinktemål(4DOWN/1UP); tailD1UNKNOWNutenreseleksjon.
 Førsteprofil haralle5TFsidestøttet/exakt12autograd, menD1bareettDOWNmål/65rader.
 Dette kvalifisererkilde/støtte, ikkerepresentativitet, nativeparitet ellerlæring.
-Eksaktmetadata/import/kommandopreflight gjenstår; ingenmodellprobe/6panel/fit
-erinnrømmet, alle6globalflaggfalse.
+Faktiskmetadata32948800 fullførte7,415s vedfrystcc76bb275:100sourceeiere,
+3arkiv/44felt/1500935808B deklarert; ZIPmetadata2487poster/99198103BFINAL.
+0CP/NPZdecode/modell/NN/CUDA/optimizer; policy/handoveruendret. Planpublisert,
+ExactCLIpreflight002PASS/exit0/7signertetelemetriprøver:0NN/modell/CP,
+200Wfysisklimit. Første001nektetførPythonpgaubrukbartelemetri(0samples/stdio0/
+ingenCLAIM); senerefersksignertqueryPASS. FørstefeilårsakUNKNOWN; ingentjeneste-/
+vaktendring. Profil32948800 vedfrystcc76bb275 er nåFAILED_CONSUMED/exit1 etter
+3FW/448issue-rader/1CP/1modell,0autograd/backward/optimizerupdates.
+B256saved/B96anchor/B96saved-gatene passerteførgrad-fasen. SammeB96/
+equalTFFalse endretgradmode ogfeilet235/480activity-/132/480sideceller mot
+uendret1e-6/1e-5: maksdelta9,88245e-5/1,57952e-5. Alle6F32logitmatriser
+erbevartogSHA-rekonstruert; maksUPprobdelta0,000382441pp/0sidefortegnsskift
+pådetteALL96panelet. Dette erforskjelliinstrumentrute, ikkebevistbiasårsak.
+FailureREVIEWd473fb4a verifiserer100sourceeiere,alleeksplisitteouterplaninputs,
+claimpolicy/handoverogbeggebootetterstopp,0nyCP/NPZ/NNdecode. Etterkontroll
+fanténtransitivJSONavhengighet: OANDAresponsec7181d30bleautentisertfysisk
+vedcontextloadmenmangletdirekteinputrolle/ordinæretterhash. Separatnå-observert
+råSHAerliki forventet; ADDENDUM001avgrenseropprinneligproofutenomskriving.
+Framtidigowner binder nåprovider_responseeksplisittognekterfravær;2fokuserte
+filhash-/tamper-/missingrolecasesPASS. Renkommittertmetadataintegrasjon gjenstår.
+Opprinneligcc76profil/code/plan/output/bevisogpre-addendumstatus er separatMac-
+diskverifisert:40filer17899729B,40diagnostics/40stderr/SHA/F_FULLFSYNC/fsync.
+Senereaddendum/futurefixliggerseparat iGit,ikkeblantdisseoriginalsnapshottene. Modell/RNG/bufferproofvedfeil
+bleikkefanget; gradientnumerikk/komponentretning/12-autogradkapasitet erukjent.
+38s/24hardwareprøver: sampletGPU46/46C173,81W3980MiB,CPU37C23,815W;
+minhostledig55,58GB/commitmargin52,74GB. Ingenloggførtressurs-/hostvaktbrudd;
+allocatorpeakikkeoppgittvedfeil. Planenrelanseresaldri; alleporter0false.
+Neste: avgrensinstalledTorch encoder/MHAgradmodusvilkårmotfaktiskdispatch;
+faktiskeinterneoperatørkallbleikkeregistrert. BeggeB96haddebodybatch_evalfalse,
+såingenbegrunnetbody-gate-/toleranse-/ONLINE-endring. IngennyNN/fit/VAL/TEST
+førkonkretminstequalifiednydesign;20stegfortsatt13PASS/3FAIL/4UNKNOWN.
 Source/import/kommando/metadata/rapport/resource/IO/bootporter består førclaim;
 ingenparameter-/optimizeroppdatering, nyepoke/kalibrator/normalisering/VAL/TEST.
 

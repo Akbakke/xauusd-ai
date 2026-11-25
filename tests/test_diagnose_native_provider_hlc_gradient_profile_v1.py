@@ -311,3 +311,27 @@ def test_python_scope_binds_exact_profile_environment_CLI_fresh_root_and_common_
     m.ROOT.mkdir()
     with pytest.raises(ValueError):m.require_scope(sha,environ=env,argv=argv)
     assert seen==[True,True]
+
+
+def test_checked_inputs_authenticates_explicit_provider_response_bytes(monkeypatch,tmp_path):
+    response=tmp_path/'provider-response.json'
+    response.write_bytes(b'{"instrument":"XAU_USD","candles":[]}\n')
+    opaque=tmp_path/'checkpoint-reference-only'
+    opaque.write_bytes(b'')  # No checkpoint payload; only the ZIP metadata reader is replaced.
+    metadata={'synthetic_zip_metadata_only':True};calls=[]
+    def zip_metadata(binding):
+        calls.append(binding)
+        return metadata
+    monkeypatch.setattr(m.readout,'checkpoint_zip_metadata',zip_metadata)
+    plan={'inputs':{'provider_response':m.ref(response),'final_checkpoint':m.ref(opaque)},
+          'input_inventory':{},'checkpoint_zip_metadata':metadata}
+    assert m.checked_inputs(plan)is None and len(calls)==1
+    response.write_bytes(b'{"instrument":"XAU_USD","candles":[],"changed":true}\n')
+    with pytest.raises(ValueError,match='HLC_BATCH_CANONICAL_REFERENCE'):
+        m.checked_inputs(plan)
+    assert len(calls)==1
+
+
+def test_checked_inputs_rejects_missing_explicit_provider_response():
+    with pytest.raises(ValueError,match='EXPLICIT_PROVIDER_RESPONSE'):
+        m.checked_inputs({'inputs':{},'input_inventory':{},'checkpoint_zip_metadata':{}})
