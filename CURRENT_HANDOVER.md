@@ -18,7 +18,17 @@ tester PASS etter6konkrete kompatibilitets-/fixture-/kildescoperettinger;
 2syntetiske suksess-/feilrapportkontroller PASS. Faktisk readout-head har
 null direkte gradient for ukjent side og bevart aktivitetsgradient påalle5TF.
 V3validereNPZ/PTbytesførpublisering med separate minne-/disklesetellere.
-Reell TRAIN-fasit/prior, ny fullINITIAL og kaldreplay er ennåikke kjørt.
+Reell V3fasit/prior er nå kvalifisert:354550×5celler,1772410modne
+aktiviteterkjente, umodnehaler1/3/12/48/276beholdt. M15/H1/H4moden
+ukjentaktivitet65/366/23424→0; kjent side209906→209939,193100→193317,
+187026→202161. M5/D1har eksakt opprinnelig perradfasit. Ukjent aktivside
+beholdes. Én priorfit/0NN/0updates,53,097sCPU/4G. Aksept:
+`ALL_TF_PROVIDER_HLC_TARGET_ACCEPTANCE_20261125_001.json` SHA
+e208435f46d5f80afe1e1d1ee1144dfc93fc56e2ce6d4f8841f4c5fdcfe39eac.
+Ny fullINITIAL og egenC2kaldreplay er ennåikke kjørt. Ekte metadata viste
+32arkivfelter/14dekodedetruthfelter; kunINITIALbudsjettporten rettes før
+CLAIM, ikke datasett/targets. Originalførstetelemetritimeout er bevart;
+fersksignert002PASS med uendredevakter førCPUadmisjon.
 Kildekvittering: `ALL_TF_V3_SOURCE_QUALIFICATION_20261125_001.json` SHA
 f68324929444d07780dbddc66b0c65d19f0e024fce7f7fe0c83d6cfeaa90de51.
 V2-APIer, genuine inputs/normalisering og opprinnelige checkpoints bevares.

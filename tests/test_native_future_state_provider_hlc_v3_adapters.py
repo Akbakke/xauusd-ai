@@ -147,3 +147,24 @@ def test_v3_memory_validation_counters_are_separate_from_physical_readbacks():
     assert set(new)==set(old)|{'in_memory_checkpoint_strict_loads','in_memory_output_archive_strict_loads'}
     assert new['in_memory_checkpoint_strict_loads']==new['new_checkpoint_readbacks']==1
     assert new['in_memory_output_archive_strict_loads']==new['output_archive_readbacks']==initial.BATCHES
+
+
+def test_v3_budget_selects_14_consumed_fields_from_32_field_archive(monkeypatch):
+    spec=target();fields=training.provider_hlc_truth_fields(spec);rows=initial.ROWS
+    headers={key:{'dtype':'<i8'if key in ('issue_ns','target_start_ns','validity_ns')else'|b1',
+                  'shape':[rows]if key=='issue_ns'else[rows,5],'sha256':'a'*64}for key in fields}
+    extras={'synthetic_raw_fact_%02d'%j:{'dtype':'<f8','shape':[rows,5,4],'sha256':'b'*64}for j in range(18)}
+    headers.update(extras);base_headers={k:v for k,v in headers.items()if k not in ('provider_hlc_observed','state_hlc_observed')}
+    seen=[]
+    def metadata_only(binding):
+        assert binding==hlc.ALL_TF_SOURCE_BINDINGS['base_dataset'];seen.append(binding)
+        return {'array_headers':base_headers}
+    monkeypatch.setattr(initial,'read',metadata_only)
+    monkeypatch.setattr(initial.np,'load',lambda *args,**kw:pytest.fail('budget must not decode arrays'))
+    data={'array_headers':headers};budget=initial.v3_truth_input_budget(data,spec)
+    assert budget=={'V3_truth_arrays':14,'V3_truth_ndarray_bytes':50700650,'V3_target_archive_fields':32}
+    headers['synthetic_raw_fact_00']['shape']=[rows,50000,4]
+    assert initial.v3_truth_input_budget(data,spec)==budget and len(seen)==2
+    missing=dict(headers);missing.pop('side_known')
+    with pytest.raises(ValueError,match='V3_TRUTH_ARCHIVE_AND_CONSUMED_FIELDS'):
+        initial.v3_truth_input_budget({'array_headers':missing},spec)
