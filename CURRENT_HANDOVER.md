@@ -137,10 +137,54 @@ bleikkefanget; gradientnumerikk/komponentretning/12-autogradkapasitet erukjent.
 38s/24hardwareprøver: sampletGPU46/46C173,81W3980MiB,CPU37C23,815W;
 minhostledig55,58GB/commitmargin52,74GB. Ingenloggførtressurs-/hostvaktbrudd;
 allocatorpeakikkeoppgittvedfeil. Planenrelanseresaldri; alleporter0false.
-Neste: avgrensinstalledTorch encoder/MHAgradmodusvilkårmotfaktiskdispatch;
-faktiskeinterneoperatørkallbleikkeregistrert. BeggeB96haddebodybatch_evalfalse,
-såingenbegrunnetbody-gate-/toleranse-/ONLINE-endring. IngennyNN/fit/VAL/TEST
-førkonkretminstequalifiednydesign;20stegfortsatt13PASS/3FAIL/4UNKNOWN.
+SourceELIGIBILITYddb07d85: Torchencoder/MHAinferencefastpathstengesvedgrad
+ogtrainabletensors; faktiskdispatchbleikkeregistrert. BeggeB96haddeegen
+bodybatch_evalfalse, såingenbegrunnetbody-/toleranse-/ONLINE-endring.
+Neste konkrete spørsmål besvaresmedlagretfaktiskhel-TRAINFINAL: formalbias-
+koordinatgradient over3694originalB96/B22/all5activity-nevnere samt faktisk
+CPU W/b/m/v og z-b-residual. Designdefinerer2NPZ/6felt18082050B+1weights-only
+CPUFINAL99198103B,0modell/NN/optimizer/autograd/update/fit. ExactpreflightPASS
+med0payload/CP og3syntetiskenevner/ukjent/permutasjonskontroller,100sourceeiere.
+Gaten erCOMPLETE_CONSUMED/exit0/5,201s.2NPZ/6felt18082050B+1CPUCP,
+0modell/NN/optimizer/autograd/update/fit;100source-/input/control/WSL/RNGbookends
+ogalle10CPproofsPASS. FormalG>0påalle5TF: recorded-evalrisken erikkestasjonær
+iadditivside-logitkoordinat. Dettebeviserikkehistorisktreningsfeil/konvergens.
+Explicitb-nærprior ogpositiv z-b-residualpåsammekjentsidestøtte; resetkunbtil
+priorreferansekanformeltendreD1meanqmedmaks0,0537ppmot9,7911ppoverskudd.
+Terminellebiasmomenterharblandedefortegn, ikkefellesårsaksbevis.
+Neste énsource-onlybatchmedlemskapskandidat sorteresinnenhverB96forpacketporten;
+originalB22beholdes. Frossenside-interceptvarians/nullstøtteogNYED_b/meanrisk må
+målesførnoeNNforslag; ingenrowmix-fit erinnrømmet. Kandidat579b6b04 er nå
+forseglet førDENNElabel/prognoseevalueringen: originalseedPCG64,354528rader
+permutertogsortertinnen3693B96, originalB22sist; allesourceposisjonerén gang.
+Generator0CP/NPZ/NN/mål/prognosepayloadogglobalNumPyRNG uendret. Nyvariaudit
+leser2NPZ/7felt+énsealedNPYorder=8arrayer35100450B,0CP/NN/fit. Exactpreflight
+PASS/0payload/3syntetiskekontroller; førsteprivatCLIargumentfeilbleavvistfør
+payload/CLAIM ogrettetutenkilde-/toleranseendring. AuditCOMPLETE/exit0/3,684s,
+alle source/input/control/order/WSL/RNGbookendsPASS;0CP/NN/optimizer/update.
+Alle354550rader/klasser/maskemasser/globalresidualog875D1målbeholdt. Frossen
+scalarinterceptvarians redusertM5/M15/H1/H4/D1:4,09/64,64/90,91/97,36/98,86%.
+Tomsidebatcher0/0/14/379/927→0/0/0/1/1; de sisteH4/D1nulleneeroriginalB22.
+D1distinktemål/fullB96:0–2(mean0,907)→47–82(mean62,315), ingen nyeuavhengige
+utfallskapt. NyeD_b endrerogsåmeanG/konstantref; maksrefendring0,01016pp.
+Detteermåltbatchmekanismevedfrossetpunkt, ikkelærtscore/historiskbiasårsaksandel.
+AlleCPUporter erCOMPLETE_CONSUMED0false. NEXT_TECHNICAL_SCOPE001klargjørkun
+énlåstbatchmedlemskapskandidat: eksisterendepacketkreversorterttake, dagens
+blockorderguardtillaterikkeoppsplittedebatcher. Source/gather/INITIAL/optimizer/
+RNG/resume/IO/runtime/preflightmåbeståførnoennyNN-/fitadmisjon.
+D0/side-null/targetklynger ogNYEnevnere/meanrisk visesutenreseleksjon.
+ z-bFinalerresidualfraavrundetsavedF32,ikkebitlikW·H; bPrior erpriorreferanse,
+ikkepåståttmåltinitialbiasutenegenINITIAL003-binding.
+Dette er ikkefaktisknativeautogradellerhistoriskAdamW-/representasjonsårsak.
+Ingen nyNN/fit/VAL/TEST;20stegfortsatt13PASS/3FAIL/4UNKNOWN.
+NyeoriginalerersikretseparatMac-disk:34RAWfiler31593073B, alle34artefakter/
+34diagnostics/34stderr/manifestuavhengigSHA/F_FULLFSYNC/fsync-verifisert.
+FROZEN_BATCH_MECHANISM_BACKUP001 binderbeggeCPUaudits/kandidat/helper/logger/
+statussnapshot. Alle17CPparbeholdertidligereverifisertbackup;0vekterkopiertnå.
+EtterfølgendeACK-onlystatusendringerføresiGit.
+Sisteuavhengigstatusreviewfantgamleaktive terminal/runtime/research/activity-
+aliaser; STATUS_RECONCILIATION001/002 binderfør/ettermotekteblockorderRESULT/
+TERMINAL. Beggelatest_native-pekerneerbevart; nyCPUdiagnoseerstatterikketrening.
 Source/import/kommando/metadata/rapport/resource/IO/bootporter består førclaim;
 ingenparameter-/optimizeroppdatering, nyepoke/kalibrator/normalisering/VAL/TEST.
 
