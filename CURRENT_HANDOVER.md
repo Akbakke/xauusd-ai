@@ -6,13 +6,15 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
 terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
 <!-- BEGIN GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
-## Pågående mål: kildebevis gjenstår; CURRENT-inputs beholdes
+## Blokkering: historisk kalender og makroproveniens mangler
 
 Bruker25.11 ba om mål og rettelse før videre læring. Root eier policy/launch.
-Målet er fortsatt åpent; teknisk V3-delfase er ikke hele målet.
+Målet er ikke oppfylt; teknisk V3-delfase er ikke hele målet.
 NEXT_RUN_POLICY.prelearning_validity_remediation_20261125_001 er arbeidsstatus.
 Vitenskapelig kvalifikasjon står fortsatt13PASS/3FAIL/4UNKNOWN. Ingen tung jobb
 kjører; alle nye engangsplaner er konsumert/lukket. Seks globalflagg er false.
+
+26.11: bevisgrensene er korrigert: Apr1 faktisk input22:05Z og deklarert tilgjengelighet04:00Z er separate krav. Foreldet prosa om ukjente Apr1/May18-inputklokker er rettet. Tre nye eksakte Treasury XML-CDX-søk returnerte HTTP200/tomt innen tidsvinduet; to nye prefix-søk ble UNKNOWN(timeout/503), ikke tomme. Totalt5metadataGET/9B,0originalbodyGET/NN; begge engangsplaner er lukket. Metadata beviser ikke Apr1-verdiens publisering. Samme historiske kalender-/61feltproveniensblokkering er kontrollert gjennom minst tre påfølgende målturner; målet er blokkert av eksterne beviskrav, ikke fullført. Neste reelle fremdrift krever nytt originalarkiv/leverandørbevis. Privat bevis/audit: PRELEARNING_APR1_FINAL_METADATA_ACCEPTANCE_20261126_001.json og PRELEARNING_EXTERNAL_BLOCKED_AUDIT_20261126_001.json under kvalifikasjonsroten.
 
 V3-reviewblokkeringen er rettet og kvalifisert med18 fokuserte tester og lagrede
 INITIAL-output på354550 TRAIN-posisjoner. Row/equal-target/year/kalibrerings- og
@@ -56,7 +58,7 @@ fravær, full61felters første-vintage/revisjon/publiseringskronologi, ubetinget
 representativitet, målt V3-læring og senere generalisering. Ingen ny hovedfit,
 TEST/M1/GC-tilpasning, live/paper, spending eller promotion. Ingen automatisk
 repetisjon av lukkede kildesøk. Ukjente kildefakta skal ikke erstattes med antagelser.
-Sluttkontroll: JSON-/aktive hashbindinger,8 private AST-syntakser, stale-worktree-stier, handover --check og git diff --check PASS; uendret kvalifikasjon13/3/4. Separat Mac-sluttbackup: PRELEARNING_CONTINUATION_FINAL_20261125_001,1153filer/868001935B; arkiv/readback/alle medlems-hasher/F_FULLFSYNC PASS. Eksakte kvitteringer er bundet i policy.
+Siste sluttkontroll26.11: aktive hashbindinger,4 nye private AST-syntakser,20 parsercaser, stale-stier/prosa, handover --check og git diff --check PASS. Ingen gjentatt numerisk suite; kvalifikasjon13/3/4 og24 lukkede prelearning-stadier. Separat Mac-backup PRELEARNING_EXTERNAL_FINAL_20261126_001:44filer/16955889B; readback/medlemshasher/F_FULLFSYNC PASS. Eksakte audit-/backupkvitteringer er bundet i policy.
 <!-- END GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
 
 <!-- BEGIN GX1 ALL TF V3 TARGET GOAL 20261125 -->

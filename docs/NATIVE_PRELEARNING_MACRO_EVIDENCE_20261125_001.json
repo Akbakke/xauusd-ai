@@ -1,4 +1,8 @@
 {
+  "Apr1_final_XML_and_prefix_metadata": {
+    "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_APR1_FINAL_METADATA_ACCEPTANCE_20261126_001.json",
+    "sha256": "1a13af942a8adc10ab6f7a9b49c2b2a30898c6021b2b1de0ba559c8a874d8974"
+  },
   "Apr1_original_difference_and_cached_trace": {
     "accepted_ledger": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_MACRO_SOURCE_KEYS_20261123_001/SOURCE_KEYS.json",
@@ -10,7 +14,7 @@
     "actual_first_historical_eligible_input_utc": "2022-04-03T22:05:00+00:00",
     "actual_first_model_consuming_row_measured": true,
     "actual_input_consumer_acceptance": {
-      "May18_actual_first_use_measured": false,
+      "May18_actual_first_use_measured_by_this_Apr1_witness": false,
       "NN_forwards": 0,
       "acceptance": {
         "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_APR1_CONSUMER_CLOCK_ACCEPTANCE_20261125_001.json",
@@ -24,6 +28,10 @@
       },
       "clock_rule_changes": 0,
       "core_input_bytes": 18865311,
+      "current_May18_measurement": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_MAY18_CONSUMER_CLOCK_ACCEPTANCE_20261125_001.json",
+        "sha256": "730cd97d4bda3d4dead39d0ea327939c5af6f48240d8e47ae3dc0f4e053a8b9c"
+      },
       "declared_availability_bound_utc": "2022-04-03T04:00:00+00:00",
       "field_positions": {
         "breakeven10y_change21D": {
@@ -246,7 +254,7 @@
       "status": "DIFFERENT_CURRENT_VALUE_REQUIRES_REVIEW",
       "upper_exclusive_utc": "2022-04-03T04:00:00Z"
     },
-    "timing_limits": "Treasury2.38 wascaptured2022-04-01T20:10:36Z, beforedeclared2022-04-03T04:00Z; current2.39 couldhavebeenpublishedlaterbeforethatbound. CapturedALFREDfirstfinite2.38DATE2022-04-05 then2.39DATE2022-04-06 giveareferenceversionbracket, not exactTreasuryrevision/publicationtime. Actualfirstmodelconsumption remainsunknown.",
+    "timing_limits": "Original Treasury capture and ALFRED vintage dates do not establish the exact Treasury revision time. Actual first eligible frozen TRAIN input is measured2022-04-03T22:05Z. Publication of current2.39 before that use remains UNKNOWN; publication by the earlier declared2022-04-03T04:00Z bound is a separate stronger claim and also unproved.",
     "trace": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_APR1_CACHED_TRACE_20261125_001/TRACE.json",
       "sha256": "0047b65af9223610ec3b7e67d400fbc63f3abd414b7f2000738f0ead84465b6a"
@@ -565,7 +573,7 @@
     "all_bookends_PASS": true,
     "full_intraday_or_first_ever_coverage_proved": false,
     "full_macro09_or61_fields_qualified": false,
-    "independent_resolution_scope": "OriginalTreasury archivedMay18nominal10y2.89 matchescurrent2.89 at authenticatedcapture2022-05-20T03:23:53Z,2167seconds beforedeclaredstrictafter04:00UTCbound. Thisonepoint supports publicavailability beforethedeclared earliestbound; actualfirstmodelconsumingrow and reasonALFREDreported2.88 remainunmeasured. No activevalue/clockchange follows.",
+    "independent_resolution_scope": "The authenticated May18 original-source point matches the active value and was captured2022-05-20T03:23:53Z:2167seconds before the declared04:00Z bound and2467seconds before measured first eligible input04:05Z. Actual input use is measured; first-ever publication and the cause of the ALFRED/source difference remain unknown. No active value or clock change follows.",
     "original_ALFRED_comparison_status_preserved": "DIFFERENT_DATE_LEVEL_REFERENCE",
     "original_payload_ref": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ARCHIVE_POINT_20261125_001/ARCHIVED_RESPONSE.bin",
@@ -635,7 +643,7 @@
         "treasury_historical_clock",
         "treasury_current_clock"
       ],
-      "unknown": "Fullhistoricalrelease/vintagecoverage, actualfirstmodelconsumption andcausesofreference/sourceversiondifferences remainunknown.93selectedoriginalnominalmatches andaseparateMay18point arebeforedeclaredbounds; Apr1current2.39beforeApr3bound isunproved. No globalclock/intradayqualification follows."
+      "unknown": "Full historical release/vintage coverage and causes of reference/source-version differences remain unknown. Apr1 and May18 actual eligible input clocks are measured. May18 has a single source-known-before-use witness; Apr1 current-value publication before actual2022-04-03T22:05Z remains unproved, separately from the stronger declared04:00Z bound. No global clock or intraday qualification follows."
     },
     "vix_gld": {
       "actual_rule": "Same D+2midnightAmerica/New_York rule as Treasury; no same-day daytime assumption.",
@@ -846,7 +854,8 @@
     "Thisupdate startsnoHTTP/job andchangesno code,policy,activeinput,mask,normalizer,prior,baseline ormodel; rootownspolicy/handover/launch.",
     "Apr1key participatesinall5nominal10yfields onbothsignal/context surfaces. Capturedreference2.38Apr5→2.39Apr6 doesnotprovewhenTreasury2.39becamepublicrelativeApr3bound oractualfirstmodeluse. No activeinputpatch orclockpromotion.",
     "The93strongoriginalmatches belongto the856missing-reference subset; May18originalpoint isseparate. Do notcombineweakdatelevelreferencecountswithstrongpointproofsascomplete09/61/intradaycoverage. All6globalflags remainfalse; no mainfitstarted.",
-    "Apr1actualinput-clockunknownisnowresolvedonlyforits5fields:624context/719seq96perlevel;875context/1065seq96perchange21D,0same-rowcancellation. May18firstactualuseisnowmeasuredandqualifiedbysinglepointarchive; all61globalpublication/vintagecoverage remainsunproved."
+    "Apr1actualinput-clockunknownisnowresolvedonlyforits5fields:624context/719seq96perlevel;875context/1065seq96perchange21D,0same-rowcancellation. May18firstactualuseisnowmeasuredandqualifiedbysinglepointarchive; all61globalpublication/vintagecoverage remainsunproved.",
+    "FiveadditionalboundedCDXmetadataattemptsclosed:3exactXMLcompleteempty/2prefixUNKNOWN(timeout/503),0originalbodyGET. NeitherApr1publicationbeforeactual22:05norglobalarchiveabsenceisproved."
   ],
   "configured_key_presence_checks": {
     "Mac_environment": {
@@ -1678,7 +1687,7 @@
     "status": "ORIGINAL75_CANDIDATE_SCOPE_CLOSED_93MATCH_1DIFF_54ROWABSENT_4NETWORK_UNKNOWN",
     "unqualified_after_followup_failure_cells": 4
   },
-  "observed_utc": "2026-11-25T22:46:50.078390+00:00",
+  "observed_utc": "2026-11-25T23:17:00.261978+00:00",
   "operating_gates_at_final_metadata_update": {
     "NEXT_RUN_POLICY_is_only_work_status": true,
     "full_step09_qualified": false,
@@ -2037,7 +2046,7 @@
     "policy_is_only_run_authority": true,
     "repository": "/home/andre2/src/GX1_CURRENT",
     "sole_owned_path": "docs/NATIVE_PRELEARNING_MACRO_EVIDENCE_20261125_001.json",
-    "source_commit_at_document_update": "8c33df291b9cd9403ef8c3f0ba32e75a9518101a",
+    "source_commit_at_document_update": "d86f1c6c137633d8465ce1f420865decb308c5fc",
     "source_commit_at_initial_review": "3f522a825d8661787eceead4c4043359677eb1ed",
     "subsequent_completed_payload_evidence_reused_by_JSON_reference": true,
     "training_authorized": false,
@@ -2114,5 +2123,5 @@
       "sha256": "146d58e5242501827d671341cf5b99ec97b747c56d5e8e1e013b42f3ca03b7e2"
     }
   },
-  "status": "APR1_INPUT_CLOCK_AND_SINGLE_MAY18_SOURCE_KNOWN_BY_USE_QUALIFIED_ALL61_PUBLICATION_VINTAGE_UNKNOWN"
+  "status": "MEASURED_ACTUAL_INPUT_CLOCKS_PARTIAL_SOURCE_WITNESSES_ALL61_PUBLICATION_AND_CALENDAR_UNKNOWN"
 }
