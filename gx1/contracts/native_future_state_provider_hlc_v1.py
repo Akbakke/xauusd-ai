@@ -73,6 +73,7 @@ def require_provider_hlc_state_contract(value):
 
 
 def require_future_state_observation_contract(value):
+    if type(value)is dict and value.get('schema_version')==ALL_TF_SCHEMA:return require_all_tf_provider_hlc_state_contract(value)
     if type(value)is dict and value.get('schema_version')==SCHEMA:return require_provider_hlc_state_contract(value)
     return require_fully_future_state_contract(value)
 
@@ -168,3 +169,157 @@ def apply_provider_hlc_observation(parent,*,issue_ns,fold_upper_ns,certificate=N
     up_material=np.where(scale[:,d]>0,close-low>=scale[:,d],close-low>0);down_material=np.where(scale[:,d]>0,high-close>=scale[:,d],high-close>0)
     known[:,d]=active[:,d]|flat;side[:,d]=observed[:,d]&active[:,d]&(up_material^down_material);up[:,d]=side[:,d]&up_material
     output.update(activity_known=known,side_known=side,side_up=up,future_state_contract=provider_hlc_state_contract());return output
+
+
+# Explicit successor: existing V2 identities and projection above remain intact.
+ALL_TF_SCHEMA='gx1_native_m5_fully_future_state_dataset_v3_all_tf_provider_hlc'
+ALL_TF_CERTIFICATE_SCHEMA='gx1_native_all_TF_provider_hlc_certificate_v1'
+ALL_TF_SOURCE_BINDINGS={
+    **{k:dict(SOURCE_BINDINGS[k]) for k in ('base_dataset','base_targets','native_manifest')},
+    'provider_manifest':{'path':EROOT+'ALL_TF_BAR_COMPARE_MANIFEST_20261125_002.json','sha256':'c90f2cb0cc48935b47600e3b2a818d9db8aefc26bbd568f47e7eb00a87fd9adb'},
+    'restoration_result':{'path':'/home/andre2/GX1_RUNS/RESTORED_NATIVE_BAR_OBSERVATIONS_20261125_001/RESULT.json','sha256':'f66327bb2a26aec5e35fc0343be416392e7bf52244c0e4dd298adc1aebac5e21'},
+    'm5_raw_integrity_acceptance':{'path':EROOT+'FULL_SOURCE_INTEGRITY_ACCEPTANCE001.json','sha256':'a2688d08e18e8f2fba9b047ff4c4ebb30000efc0c865df4e5e217392472a54ce'},
+}
+ALL_TF_TRAIN_LOWER_NS=int(np.datetime64('2021-01-01','ns').astype(np.int64))
+ALL_TF_EVIDENCE_KEYS=('provider_manifest','restoration_result','m5_raw_integrity_acceptance')
+
+
+def all_tf_provider_hlc_state_contract():
+    value={k:v for k,v in provider_hlc_state_contract().items() if k not in ('contract_sha256','provider_hlc_design')}
+    value.update(schema_version=ALL_TF_SCHEMA,
+        qualification='all_five_TF_observed_HLC_only_new_generation_and_fresh_initial_required',
+        provider_hlc_certificate_schema=ALL_TF_CERTIFICATE_SCHEMA,
+        provider_hlc_source_binding_sha256=_json_sha(ALL_TF_SOURCE_BINDINGS),
+        provider_hlc_reference=ALL_TF_SOURCE_BINDINGS['restoration_result'].copy(),
+        provider_hlc_scope='original_whole_TRAIN_M15_H1_H4_D1_exact_parent_HLC_M5_native_complete_only',
+        M5_observation_basis='unchanged_native_mature_state_window_complete_and_reused_raw_proof_no_fresh_provider_flag',
+        provider_hlc_limits='no_input_restoration_calendar_tradeability_firstvintage_firsthitorder_or_learning_claim')
+    return {**value,'contract_sha256':_json_sha(value)}
+
+
+def require_all_tf_provider_hlc_state_contract(value):
+    expected=all_tf_provider_hlc_state_contract();_need(type(value)is dict and value==expected,'ALL_TF_CONTRACT');return expected
+
+
+def require_all_tf_provider_hlc_certificate_ref(value):
+    spec=all_tf_provider_hlc_state_contract();keys={'path','sha256','target_contract_sha256','source_binding_sha256'}
+    _need(type(value)is dict and set(value)==keys,'ALL_TF_CERTIFICATE_REF_KEYS');path=value['path']
+    _need(type(path)is str and PurePosixPath(path).is_absolute() and str(PurePosixPath(path))==path and '..'not in PurePosixPath(path).parts and PurePosixPath(path).suffix=='.json','ALL_TF_CERTIFICATE_REF_PATH')
+    _need(all(type(value[k])is str and re.fullmatch('[0-9a-f]{64}',value[k]) for k in keys-{'path'}) and value['target_contract_sha256']==spec['contract_sha256'] and value['source_binding_sha256']==spec['provider_hlc_source_binding_sha256'],'ALL_TF_CERTIFICATE_REF_BINDING')
+    return dict(value)
+
+
+def _all_tf_time_ns(value):
+    _need(type(value)is str and re.fullmatch(r'\d{4}-\d\d-\d\dT\d\d:\d\d:00(?:\.0{1,9})?(?:Z|\+00:00)',value),'ALL_TF_UTC_MINUTE')
+    text=value[:-1] if value.endswith('Z') else value[:-6]
+    try:return int(np.datetime64(text,'ns').astype(np.int64))
+    except (ValueError,OverflowError)as error:raise ValueError('NATIVE_PROVIDER_HLC_ALL_TF_TIME')from error
+
+
+def _all_tf_provider_arrays(evidence_bytes,raw_responses):
+    _need(type(evidence_bytes)is dict and set(evidence_bytes)==set(ALL_TF_EVIDENCE_KEYS),'ALL_TF_EVIDENCE_KEYS')
+    evidence={}
+    for key in ALL_TF_EVIDENCE_KEYS:
+        raw=evidence_bytes[key]
+        _need(type(raw)is bytes and hashlib.sha256(raw).hexdigest()==ALL_TF_SOURCE_BINDINGS[key]['sha256'],'ALL_TF_EVIDENCE_SHA:'+key)
+        try:evidence[key]=json.loads(raw)
+        except (ValueError,UnicodeError)as error:raise ValueError('NATIVE_PROVIDER_HLC_ALL_TF_EVIDENCE_JSON')from error
+    manifest=evidence['provider_manifest'];result=evidence['restoration_result'];proof=evidence['m5_raw_integrity_acceptance']
+    _need(manifest['schema_version']=='gx1_all_tf_bar_compare_v1' and manifest['m5_raw_integrity_acceptance']==ALL_TF_SOURCE_BINDINGS['m5_raw_integrity_acceptance'] and manifest['seal_ns']==int(np.datetime64('2026-07-01','ns').astype(np.int64)),'ALL_TF_REFERENCE_MANIFEST')
+    _need(result['status']=='COMPLETE_RESTORED_PROVIDER_OBSERVATION_PARITY' and result['all_higher_TF_13_fields_exact']is True and result['current_native_inputs_changed']is False and result['targets_prior_baseline_changed']is False and result['TEST_used']is False,'ALL_TF_RESTORATION_PROOF')
+    _need(proof['status']=='PASS_RAW_MBA_CANONICAL_REPRODUCTION_WITH_DECLARED_FILTER' and proof['measured']['active_input_rows_strictly_before_availability_cutoff']>0,'ALL_TF_M5_REUSED_PROOF')
+    responses=manifest['provider_responses'];_need(type(responses)is dict and set(responses)==set(TIMEFRAMES) and responses['M5']==[],'ALL_TF_RESPONSE_SURFACE')
+    bindings={}
+    for tf in TIMEFRAMES[1:]:
+        for entry in responses[tf]:
+            binding=entry['response'];_need(type(binding)is dict and set(binding)=={'path','sha256'} and binding['path']not in bindings,'ALL_TF_RESPONSE_REF')
+            path=binding['path'];_need(type(path)is str and PurePosixPath(path).is_absolute() and str(PurePosixPath(path))==path and '..'not in PurePosixPath(path).parts,'ALL_TF_RESPONSE_PATH');bindings[path]=binding['sha256']
+    _need(type(raw_responses)is dict and set(raw_responses)==set(bindings),'ALL_TF_RAW_RESPONSE_INVENTORY')
+    for path,sha in bindings.items():
+        raw=raw_responses[path];_need(type(raw)is bytes and hashlib.sha256(raw).hexdigest()==sha,'ALL_TF_RAW_RESPONSE_SHA:'+path)
+    spec=all_tf_provider_hlc_state_contract();arrays={}
+    for tf in TIMEFRAMES[1:]:
+        duration=spec['tf_duration_ns'][tf];origin=spec['tf_origin_ns'][tf];previous_end=None;previous_start=None;starts=[];hlc=[];observed=0
+        _need(type(responses[tf])is list and len(responses[tf])>0,'ALL_TF_RESPONSE_LIST:'+tf)
+        for entry in responses[tf]:
+            request=entry['request'];lower=_all_tf_time_ns(request['from']);upper=_all_tf_time_ns(request['to'])
+            _need(lower<upper<=manifest['seal_ns'] and (previous_end is None or lower==previous_end) and request['price']=='MBA' and request['granularity']==('D' if tf=='D1' else tf) and request['dailyAlignment']==22 and request['alignmentTimezone']=='UTC' and request['smooth']is False and request['includeFirst']is True,'ALL_TF_REQUEST:'+tf);previous_end=upper
+            try:response=json.loads(raw_responses[entry['response']['path']])
+            except (ValueError,UnicodeError)as error:raise ValueError('NATIVE_PROVIDER_HLC_ALL_TF_RESPONSE_JSON')from error
+            _need(type(response)is dict and response.get('instrument')=='XAU_USD' and response.get('granularity')==request['granularity'] and type(response.get('candles'))is list,'ALL_TF_PROVIDER_IDENTITY:'+tf)
+            for candle in response['candles']:
+                _need(type(candle)is dict and candle.get('complete')is True,'ALL_TF_PROVIDER_COMPLETE:'+tf);start=_all_tf_time_ns(candle['time']);end=start+duration
+                _need(lower<=start<upper and end<manifest['seal_ns'] and (previous_start is None or start>previous_start) and (start-origin)%duration==0,'ALL_TF_PROVIDER_CLOCK:'+tf);previous_start=start;observed+=1
+                if start<ALL_TF_TRAIN_LOWER_NS or end>=TRAIN_UPPER_NS:continue
+                _need(type(candle.get('volume'))is int and candle['volume']>=0,'ALL_TF_PROVIDER_VOLUME')
+                for component in ('mid','bid','ask'):
+                    prices=candle.get(component);_need(type(prices)is dict and set(prices)=={'o','h','l','c'} and all(type(prices[k])is str for k in prices),'ALL_TF_PROVIDER_MBA')
+                    try:price=np.asarray([float(prices[k])for k in ('o','h','l','c')],dtype=np.float64)
+                    except (ValueError,TypeError,OverflowError)as error:raise ValueError('NATIVE_PROVIDER_HLC_ALL_TF_PRICE')from error
+                    _need(np.isfinite(price).all() and np.all(price>0) and price[2]<=min(price[0],price[3])<=max(price[0],price[3])<=price[1],'ALL_TF_PROVIDER_FINITE_OHLC')
+                    if component=='mid':hlc.append(price[[1,2,3]])
+                starts.append(start)
+        after=result['timeframes'][tf]['after']
+        _need(after['all_13_fields_exact']is True and after['missing_native']==after['extra_native']==after['mismatching_cells']==0 and observed==after['provider_bars'],'ALL_TF_ACCEPTED_PARITY_POPULATION:'+tf)
+        axis=np.asarray(starts,dtype=np.int64);values=np.asarray(hlc,dtype=np.float64)
+        _need(len(axis)>0 and values.shape==(len(axis),3) and np.all(np.diff(axis)>0),'ALL_TF_TRAIN_AXIS:'+tf)
+        arrays[tf]={'target_start_ns':axis,'validity_ns':axis+duration,'hlc':values}
+    return arrays
+
+
+def _build_all_tf_provider_hlc_certificate(evidence_bytes,raw_responses,certificate_path):
+    arrays=_all_tf_provider_arrays(evidence_bytes,raw_responses);spec=all_tf_provider_hlc_state_contract()
+    headers={'M5':{'basis':'unchanged_native_state_window_complete','reused_proof':ALL_TF_SOURCE_BINDINGS['m5_raw_integrity_acceptance'].copy()}}
+    headers.update({tf:{key:_header(value)for key,value in data.items()} for tf,data in arrays.items()})
+    metadata={'schema_version':ALL_TF_CERTIFICATE_SCHEMA,'basis':'ALL_TF_OBSERVED_HLC_M5_NATIVE_HIGHER_PROVIDER','source_bindings':json.loads(json.dumps(ALL_TF_SOURCE_BINDINGS)),
+        'target_contract_sha256':spec['contract_sha256'],'base_state_contract_sha256':fully_future_state_contract()['contract_sha256'],
+        'scope':'original_whole_TRAIN_all_five_TF_observations_only','timeframes':list(TIMEFRAMES),'issue_ns_sha256':TRAIN_ISSUE_SHA256,'fold_upper_ns':TRAIN_UPPER_NS,
+        'array_headers_by_tf':headers,'M5_fresh_provider_flag':False,'no_calendar_tradeability_firstvintage_or_publication_time_claim':True}
+    ref={'path':certificate_path,'sha256':hashlib.sha256(certificate_metadata_bytes(metadata)).hexdigest(),'target_contract_sha256':spec['contract_sha256'],'source_binding_sha256':spec['provider_hlc_source_binding_sha256']}
+    require_all_tf_provider_hlc_certificate_ref(ref)
+    return {'metadata':metadata,'evidence_bytes':evidence_bytes,'raw_responses':raw_responses,'ref':ref},arrays
+
+
+def make_all_tf_provider_hlc_certificate(evidence_bytes,raw_responses,*,certificate_path):
+    return _build_all_tf_provider_hlc_certificate(evidence_bytes,raw_responses,certificate_path)[0]
+
+
+def authenticate_all_tf_provider_hlc_certificate_ref(ref,*,metadata_bytes,evidence_bytes,raw_responses):
+    ref=require_all_tf_provider_hlc_certificate_ref(ref);expected,_=_build_all_tf_provider_hlc_certificate(evidence_bytes,raw_responses,ref['path'])
+    _need(type(metadata_bytes)is bytes and metadata_bytes==certificate_metadata_bytes(expected['metadata']) and ref==expected['ref'],'ALL_TF_CERTIFICATE_AUTHENTICATION');return expected
+
+
+def apply_all_tf_provider_hlc_observation(parent,*,issue_ns,fold_upper_ns,certificate):
+    _need(type(parent)is dict,'ALL_TF_PARENT');require_fully_future_state_contract(parent['future_state_contract'])
+    _need(type(certificate)is dict and set(certificate)=={'metadata','evidence_bytes','raw_responses','ref'},'ALL_TF_CERTIFICATE_BUNDLE')
+    ref=require_all_tf_provider_hlc_certificate_ref(certificate['ref']);expected,arrays=_build_all_tf_provider_hlc_certificate(certificate['evidence_bytes'],certificate['raw_responses'],ref['path'])
+    _need(certificate['metadata']==expected['metadata'] and ref==expected['ref'],'ALL_TF_CERTIFICATE_CONTENT')
+    _need(type(fold_upper_ns)is int and fold_upper_ns==TRAIN_UPPER_NS and type(issue_ns)is np.ndarray and issue_ns.dtype==np.int64 and issue_ns.ndim==1 and len(issue_ns)>0 and np.all(np.diff(issue_ns)>0) and np.all(issue_ns<fold_upper_ns) and _array_sha(issue_ns)==TRAIN_ISSUE_SHA256,'ALL_TF_TRAIN_CLOCK')
+    _need(np.array_equal(parent.get('issue_ns'),issue_ns),'ALL_TF_PARENT_ISSUES');shape=(len(issue_ns),len(TIMEFRAMES))
+    for key in ('target_present','mature','state_window_complete','nominal_complete','partial_range_active','activity','activity_known','side_known','side_up'):
+        _need(type(parent.get(key))is np.ndarray and parent[key].dtype==np.bool_ and parent[key].shape==shape,'ALL_TF_PARENT_BOOL:'+key)
+    for key in ('target_start_ns','validity_ns','atr_asof_available_ns'):
+        _need(type(parent.get(key))is np.ndarray and parent[key].dtype==np.int64 and parent[key].shape==shape,'ALL_TF_PARENT_TIME:'+key)
+    for key in ('target_range','atr14_asof','state_activity_scale'):
+        _need(type(parent.get(key))is np.ndarray and parent[key].dtype==np.float64 and parent[key].shape==shape,'ALL_TF_PARENT_VALUE:'+key)
+    _need(type(parent.get('target_ohlc'))is np.ndarray and parent['target_ohlc'].dtype==np.float64 and parent['target_ohlc'].shape==shape+(4,),'ALL_TF_PARENT_OHLC')
+    present=parent['target_present'];mature=parent['mature'];whole=parent['state_window_complete'];starts=parent['target_start_ns'];ends=parent['validity_ns'];prices=parent['target_ohlc'];spec=all_tf_provider_hlc_state_contract()
+    _need(np.array_equal(mature,present&(ends<fold_upper_ns)) and not np.any(whole&~mature) and np.array_equal(whole[:,0],mature[:,0]),'ALL_TF_MATURE_M5_NATIVE_COMPLETE')
+    provider=np.zeros(shape,dtype=np.bool_)
+    for j,tf in enumerate(TIMEFRAMES):
+        ready=mature[:,j];s=starts[ready,j];e=ends[ready,j];duration=spec['tf_duration_ns'][tf];origin=spec['tf_origin_ns'][tf]
+        _need(ready.any() and np.all(s>=issue_ns[ready]) and np.all((s-origin)%duration==0) and np.all(e-s==duration) and np.all(e<fold_upper_ns),'ALL_TF_FUTURE_PHASE_END:'+tf)
+        target=prices[ready,j];_need(np.isfinite(target).all() and np.all(target>0) and np.all(target[:,2]<=np.minimum(target[:,0],target[:,3])) and np.all(np.maximum(target[:,0],target[:,3])<=target[:,1]) and np.array_equal(parent['target_range'][ready,j],target[:,1]-target[:,2]),'ALL_TF_PARENT_FINITE_RANGE:'+tf)
+        if j==0:continue
+        source=arrays[tf];at=np.searchsorted(source['target_start_ns'],s)
+        _need(np.all(at<len(source['target_start_ns'])) and np.array_equal(source['target_start_ns'][at],s) and np.array_equal(source['validity_ns'][at],e),'ALL_TF_PROVIDER_MAPPING:'+tf)
+        _need(np.array_equal(target[:,[1,2,3]],source['hlc'][at]),'ALL_TF_POINTWISE_PARENT_HLC:'+tf);provider[ready,j]=True
+    atr=parent['atr14_asof'];valid=np.isfinite(atr)&(atr>=0);scale=np.where(valid,0.5*atr,np.nan);issue_grid=np.broadcast_to(issue_ns[:,None],shape)
+    _need(np.array_equal(scale,parent['state_activity_scale'],equal_nan=True) and np.all(parent['atr_asof_available_ns'][valid]>0) and np.all(parent['atr_asof_available_ns'][valid]<=issue_grid[valid]),'ALL_TF_CAUSAL_ATR_SCALE')
+    ranges=parent['target_range'];active=mature&np.isfinite(scale)&(ranges>0)&(ranges>=scale)
+    _need(np.array_equal(active,parent['activity']) and np.array_equal(parent['partial_range_active'],active&~whole),'ALL_TF_UNCHANGED_ACTIVITY_CLOCK')
+    observed=whole|provider;flat=observed&((ranges==0)|(np.isfinite(scale)&(ranges<scale)))
+    close=prices[:,:,3];low=prices[:,:,2];high=prices[:,:,1];up_material=np.where(scale>0,close-low>=scale,close-low>0);down_material=np.where(scale>0,high-close>=scale,high-close>0)
+    known=active|flat;side=observed&active&(up_material^down_material);up=side&up_material
+    _need(not np.any(parent['activity_known']&~known) and not np.any(parent['side_known']&~side) and np.array_equal(parent['side_up'][parent['side_known']],up[parent['side_known']]),'ALL_TF_PRESERVE_OLD_KNOWN_FACTS')
+    return {**parent,'provider_hlc_observed':provider,'state_hlc_observed':observed,'activity_known':known,'side_known':side,'side_up':up,'target_observation_certificate_ref':ref,'future_state_contract':spec}

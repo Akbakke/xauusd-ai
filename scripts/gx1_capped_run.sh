@@ -1352,6 +1352,119 @@ configure_native_provider_hlc_learning_resume() {
 }
 # END GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 MATCHERS
 
+# BEGIN GX1 ALL TF V3 ROUTES 20261125 001 MATCHERS
+matches_bound_native_all_tf_provider_hlc_v3_initial_segment() {
+  if [[ $# -eq 6 ]]; then
+    [[ "$6" == --preflight ]] || return 1
+    set -- "${@:1:5}"
+  fi
+  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$NATIVE_PROVIDER_HLC_INITIAL_MODULE" \
+    && "$4" == --all-tf-v3-score-segment-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1
+  local base_root=/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001
+  local plan_dir="$base_root/PLANS"
+  local expected_plan="$plan_dir/$5.json"
+  [[ -d "$base_root" && ! -L "$base_root" && "$(readlink -f "$base_root")" == "$base_root" \
+    && -d "$plan_dir" && ! -L "$plan_dir" && "$(readlink -f "$plan_dir")" == "$plan_dir" \
+    && -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]
+}
+
+configure_native_all_tf_provider_hlc_v3_initial_segment() {
+  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \
+    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \
+    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {
+    echo "FATAL: provider HLC INITIAL requires exact canonical trainer containment" >&2
+    exit 75
+  }
+  matches_bound_native_all_tf_provider_hlc_v3_initial_segment "$@" || {
+    echo "FATAL: provider HLC INITIAL CLI/plan is not exactly bound" >&2
+    exit 75
+  }
+  local initial_output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001/SEGMENT_$5"
+  [[ ! -e "$initial_output" && ! -L "$initial_output" \
+    && -d "${initial_output%/*}" && ! -L "${initial_output%/*}" \
+    && "$(readlink -f "${initial_output%/*}")" == "${initial_output%/*}" ]] || {
+    echo "FATAL: provider HLC INITIAL output is not fresh canonical scope" >&2
+    exit 75
+  }
+  NATIVE_PROVIDER_HLC_ALL_TF_INITIAL=true
+  NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256="$5"
+  TRAINER_DEVICE=cuda
+  TRAINER_EXECUTION_MODE=canonical
+  TRAINER_OUT_BUNDLE_DIR="$initial_output"
+  TRAINER_MAX_WALL_SECONDS=3600
+  TRAINER_MODEL_MAX_WALL_SECONDS=3570
+  TRAINER_GPU_INDEX=0
+  TRAINER_GPU_MAX_POWER_LIMIT_W=250
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_MEMORY_TEMP_C=80
+  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+  TRAINER_CPU_MAX_TEMP_C=80
+  TRAINER_CPU_MAX_PACKAGE_POWER_W=125
+  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592
+  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592
+}
+
+matches_bound_native_all_tf_provider_hlc_v3_replay() {
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_COLD_REPLAY_20261125_001.json"
+  if [[ $# -eq 8 ]]; then
+    [[ "$8" == --preflight ]] || return 1
+    set -- "${@:1:7}"
+  fi
+  [[ $# -eq 7 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$NATIVE_PROVIDER_HLC_REPLAY_MODULE" \
+    && "$4" == --all-tf-v3-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ \
+    && "$6" == --lane && ( "$7" == warm || "$7" == cold ) ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]
+}
+
+configure_native_all_tf_provider_hlc_v3_replay() {
+  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \
+    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \
+    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {
+    echo "FATAL: provider HLC replay requires exact canonical trainer containment" >&2
+    exit 75
+  }
+  matches_bound_native_all_tf_provider_hlc_v3_replay "$@" || {
+    echo "FATAL: provider HLC replay CLI/plan is not exactly bound" >&2
+    exit 75
+  }
+  local replay_output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_COLD_REPLAY_20261125_001_$7"
+  [[ ! -e "$replay_output" && ! -L "$replay_output" \
+    && -d "${replay_output%/*}" && ! -L "${replay_output%/*}" \
+    && "$(readlink -f "${replay_output%/*}")" == "${replay_output%/*}" ]] || {
+    echo "FATAL: provider HLC replay output is not fresh canonical scope" >&2
+    exit 75
+  }
+  NATIVE_PROVIDER_HLC_ALL_TF_REPLAY=true
+  NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256="$5"
+  NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE="$7"
+  TRAINER_DEVICE=cuda
+  TRAINER_EXECUTION_MODE=canonical
+  TRAINER_OUT_BUNDLE_DIR="$replay_output"
+  TRAINER_MAX_WALL_SECONDS=1800
+  TRAINER_MODEL_MAX_WALL_SECONDS=1770
+  TRAINER_GPU_INDEX=0
+  TRAINER_GPU_MAX_POWER_LIMIT_W=250
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_MEMORY_TEMP_C=80
+  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+  TRAINER_CPU_MAX_TEMP_C=80
+  TRAINER_CPU_MAX_PACKAGE_POWER_W=125
+  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592
+  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592
+}
+# END GX1 ALL TF V3 ROUTES 20261125 001 MATCHERS
 # BEGIN GX1 PROVIDER HLC ALL TF ROUTES 20261124 001 MATCHERS
 matches_bound_native_provider_hlc_all_tf_initial() {
   local expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ALL_TF_WHOLE_TRAIN_INITIAL_20261124_002.json"
@@ -1541,6 +1654,10 @@ matches_bound_native_provider_hlc_all_tf_learning() {
       expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001.json" ;;
     gx1.audit.native_provider_hlc_block_order_v1:--block-order-resume-plan-sha256)
       expected_plan="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001/RECOVERY_PLANS/$5.json" ;;
+    gx1.audit.native_provider_hlc_row_membership_fit_v1:--row-membership-plan-sha256)
+      expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_ONE_EPOCH_20261125_001.json" ;;
+    gx1.audit.native_provider_hlc_row_membership_fit_v1:--row-membership-resume-plan-sha256)
+      expected_plan="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_ONE_EPOCH_20261125_001/RECOVERY_PLANS/$5.json" ;;
     *) return 1 ;;
   esac
   [[ -f "$expected_plan" && ! -L "$expected_plan" \
@@ -1562,7 +1679,10 @@ configure_native_provider_hlc_all_tf_learning() {
   if [[ "$3" == gx1.audit.native_provider_hlc_block_order_v1 ]]; then
     learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001"
   fi
-  if [[ "$4" == --all-tf-learning-resume-plan-sha256 || "$4" == --block-order-resume-plan-sha256 ]]; then
+  if [[ "$3" == gx1.audit.native_provider_hlc_row_membership_fit_v1 ]]; then
+    learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_ONE_EPOCH_20261125_001"
+  fi
+  if [[ "$4" == --all-tf-learning-resume-plan-sha256 || "$4" == --block-order-resume-plan-sha256 || "$4" == --row-membership-resume-plan-sha256 ]]; then
     learning_output="$learning_output/RECOVERY_$5"
     learning_mode=resume
   fi
@@ -1988,7 +2108,7 @@ validate_target_command() {
   local all_tf_learning_arg all_tf_learning_reference=false
   for all_tf_learning_arg in "$@"; do
     case "$all_tf_learning_arg" in
-      --all-tf-learning-plan-sha256|--all-tf-learning-plan-sha256=*|--all-tf-learning-resume-plan-sha256|--all-tf-learning-resume-plan-sha256=*|--block-order-plan-sha256|--block-order-plan-sha256=*|--block-order-resume-plan-sha256|--block-order-resume-plan-sha256=*|gx1.audit.native_provider_hlc_block_order_v1|*/gx1/audit/native_provider_hlc_block_order_v1.py|gx1/audit/native_provider_hlc_block_order_v1.py)
+      --all-tf-learning-plan-sha256|--all-tf-learning-plan-sha256=*|--all-tf-learning-resume-plan-sha256|--all-tf-learning-resume-plan-sha256=*|--block-order-plan-sha256|--block-order-plan-sha256=*|--block-order-resume-plan-sha256|--block-order-resume-plan-sha256=*|gx1.audit.native_provider_hlc_block_order_v1|*/gx1/audit/native_provider_hlc_block_order_v1.py|gx1/audit/native_provider_hlc_block_order_v1.py|--row-membership-plan-sha256|--row-membership-plan-sha256=*|--row-membership-resume-plan-sha256|--row-membership-resume-plan-sha256=*|gx1.audit.native_provider_hlc_row_membership_fit_v1|*/gx1/audit/native_provider_hlc_row_membership_fit_v1.py|gx1/audit/native_provider_hlc_row_membership_fit_v1.py)
         all_tf_learning_reference=true ;;
     esac
   done
@@ -2003,6 +2123,16 @@ validate_target_command() {
     return
   fi
 # END GX1 ALL TF INITIAL SEGMENT ROUTE 20261124 003 DISPATCH
+# BEGIN GX1 ALL TF V3 ROUTES 20261125 001 DISPATCH
+  if [[ "${4:-}" == --all-tf-v3-score-segment-plan-sha256 ]]; then
+    [[ "${3:-}" == "$NATIVE_PROVIDER_HLC_INITIAL_MODULE" ]] || { echo "FATAL: V3 INITIAL requires exact module" >&2; exit 75; }
+    configure_native_all_tf_provider_hlc_v3_initial_segment "$@"; return
+  fi
+  if [[ "${4:-}" == --all-tf-v3-plan-sha256 ]]; then
+    [[ "${3:-}" == "$NATIVE_PROVIDER_HLC_REPLAY_MODULE" ]] || { echo "FATAL: V3 replay requires exact module" >&2; exit 75; }
+    configure_native_all_tf_provider_hlc_v3_replay "$@"; return
+  fi
+# END GX1 ALL TF V3 ROUTES 20261125 001 DISPATCH
 # BEGIN GX1 PROVIDER HLC ALL TF ROUTES 20261124 001 DISPATCH
   if [[ "${4:-}" == --all-tf-plan-sha256 ]]; then
     case "${3:-}" in

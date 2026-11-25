@@ -12,7 +12,7 @@ from gx1.audit import native_future_state_training_v1 as training
 from gx1.audit.build_native_m5_ta_feature_cache_v1 import load_snapshot
 from gx1.contracts import market_state_ta_integrated_model_v1 as model_owner
 from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
-from gx1.contracts.native_future_state_provider_hlc_v1 import require_provider_hlc_state_contract
+from gx1.contracts import native_future_state_provider_hlc_v1 as hlc
 
 core = training.core
 read = training.read
@@ -28,10 +28,17 @@ def need(ok, reason):
         raise ValueError('NATIVE_PROVIDER_HLC_BASELINE_' + reason)
 
 
+def require_provider_hlc_scoring_contract(value):
+    """Only authenticated provider generations V2/V3 enter this scoring adapter."""
+    if training._provider_hlc_all_tf_v3(value):
+        return hlc.require_all_tf_provider_hlc_state_contract(value)
+    return hlc.require_provider_hlc_state_contract(value)
+
+
 def load_context(meta):
     """Load the unchanged physical inputs and one authenticated whole V2 truth."""
     need(type(meta) is dict, 'METADATA')
-    target = require_provider_hlc_state_contract(meta['target_contract'])
+    target = require_provider_hlc_scoring_contract(meta['target_contract'])
     provider = load_snapshot(meta['source_snapshot'])
     normalization = read(meta['normalization'])
     prior = objective.require_native_future_state_train_prior(read(meta['prior']),
@@ -97,7 +104,7 @@ def score_initial(model, context, *, batch_rows=256, device='cuda', progress_cal
                 (requested.index is None or p.device.index == requested.index) for p in parameters),
         'MODEL_DEVICE')
     need(all(p.grad is None for p in parameters), 'PREEXISTING_GRADIENTS')
-    target = require_provider_hlc_state_contract(context['target_contract'])
+    target = require_provider_hlc_scoring_contract(context['target_contract'])
     prior = objective.require_native_future_state_train_prior(context['prior'], target_contract=target)
     truth = context['truth']
     issues = truth['issue_ns']
@@ -211,7 +218,7 @@ def score_final(model, context, *, batch_rows=256, device='cuda', progress_callb
                 (requested.index is None or p.device.index == requested.index) for p in parameters),
         'FINAL_MODEL_DEVICE')
     need(all(p.grad is None for p in parameters), 'FINAL_PREEXISTING_GRADIENTS')
-    target = require_provider_hlc_state_contract(context['target_contract'])
+    target = require_provider_hlc_scoring_contract(context['target_contract'])
     prior = objective.require_native_future_state_train_prior(context['prior'], target_contract=target)
     truth = context['truth']; issues = truth['issue_ns']; source_rows = context['source_rows']
     need(isinstance(issues, np.ndarray) and issues.dtype == np.int64 and issues.shape == (ROWS,)
@@ -319,7 +326,7 @@ def score_initial_segmented(model, context, *, batch_rows=256, device='cuda',
                 (requested.index is None or p.device.index == requested.index) for p in parameters),
         'MODEL_DEVICE')
     need(all(p.grad is None for p in parameters), 'PREEXISTING_GRADIENTS')
-    target = require_provider_hlc_state_contract(context['target_contract'])
+    target = require_provider_hlc_scoring_contract(context['target_contract'])
     prior = objective.require_native_future_state_train_prior(context['prior'], target_contract=target)
     truth = context['truth']
     issues = truth['issue_ns']

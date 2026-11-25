@@ -277,7 +277,28 @@ def test_segmented_initial_addition_preserves_every_old_adapter_byte():
     original = subprocess.check_output(['git', 'show',
         '9d7b39da9214f74dcf6a7b8bf1a0fd3a719da29f:'+path], cwd=owner.core.REPO)
     current = (pathlib.Path(owner.core.REPO)/path).read_bytes()
-    assert current.startswith(original)
+    import ast
+    text = current.decode(); tree = ast.parse(text)
+    helper = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+                  and n.name == 'require_provider_hlc_scoring_contract')
+    expected = ast.parse('''def require_provider_hlc_scoring_contract(value):
+    """Only authenticated provider generations V2/V3 enter this scoring adapter."""
+    if training._provider_hlc_all_tf_v3(value):
+        return hlc.require_all_tf_provider_hlc_state_contract(value)
+    return hlc.require_provider_hlc_state_contract(value)
+''').body[0]
+    assert ast.dump(helper) == ast.dump(expected)
+    addition = '\n' + ast.get_source_segment(text, helper) + '\n\n'
+    assert text.count(addition) == 1
+    normalized = text.replace(addition, '', 1)
+    assert normalized.count('require_provider_hlc_scoring_contract(') == 4
+    normalized = normalized.replace('require_provider_hlc_scoring_contract(',
+                                    'require_provider_hlc_state_contract(')
+    current_import = 'from gx1.contracts import native_future_state_provider_hlc_v1 as hlc'
+    assert normalized.count(current_import) == 1
+    normalized = normalized.replace(current_import,
+        'from gx1.contracts.native_future_state_provider_hlc_v1 import require_provider_hlc_state_contract')
+    assert normalized.encode().startswith(original)
     assert current.count(b'def score_initial_segmented(') == 1
 
 

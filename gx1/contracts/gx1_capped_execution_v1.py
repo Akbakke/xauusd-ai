@@ -1872,69 +1872,7 @@ def require_native_provider_hlc_all_tf_replay_execution(*, plan_sha256: str, lan
     if type(lane) is not str or lane not in ("warm", "cold"):
         raise RuntimeError("[GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE_INVALID]")
     _native_provider_hlc_all_tf_bound_plan(plan_sha256=plan_sha256, lane=lane)
-    expected = {
-        "GX1_CAPPED_MEMORY_BYTES": "21474836480",
-        "GX1_CAPPED_SWAP_BYTES": "536870912",
-        "GX1_CAPPED_TASKS_MAX": "128",
-        "OMP_NUM_THREADS": "8",
-        "MKL_NUM_THREADS": "8",
-        "OPENBLAS_NUM_THREADS": "8",
-        "NUMEXPR_NUM_THREADS": "8",
-        "VECLIB_MAXIMUM_THREADS": "8",
-        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY": "true",
-        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256": plan_sha256,
-        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE": lane,
-        "GX1_NATIVE_PROVIDER_HLC_INITIAL": "false",
-        "GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256": "",
-        "GX1_NATIVE_PROVIDER_HLC_REPLAY": "false",
-        "GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256": "",
-        "GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE": "",
-        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL": "false",
-        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256": "",
-        "GX1_NATIVE_PROVIDER_HLC_LEARNING": "false",
-        "GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256": "",
-        "GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME": "false",
-        "GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE": "false",
-        "GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE": "false",
-        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX": "false",
-        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN": "false",
-        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT": "false",
-        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_TRAINING": "false",
-        "GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_TRAINING_LANE": "",
-        "GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION": "false",
-        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS": "false",
-        "GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_CUDA_LANE": "",
-        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE": "",
-        "GX1_TRAINER_MAX_WALL_SECONDS": "1800",
-        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": "1770",
-        "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": "false",
-        "GX1_TRAINER_GPU_INDEX": "0",
-        "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": "250",
-        "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": "250",
-        "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "75",
-        "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "80",
-        "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": "12288",
-        "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
-        "GX1_TRAINER_CPU_MAX_TEMP_C": "80",
-        "GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W": "125",
-        "GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES": "8589934592",
-        "GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES": "8589934592",
-        "GX1_POWER_BENCHMARK_SCOPE_JSON": "",
-        "GX1_POWER_BENCHMARK_SCOPE_SHA256": "",
-    }
-    for name, value in expected.items():
-        if os.environ.get(name) != value:
-            raise RuntimeError(f"[GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_ENV_INVALID] field={name}")
-    proof = require_guarded_cuda_trainer_execution()
+    proof = _require_provider_hlc_all_tf_replay_environment(plan_sha256, lane)
     basename = "NATIVE_PROVIDER_HLC_ALL_TF_COLD_REPLAY_20261124_001"
     plan_path = Path(__file__).resolve().parents[2] / "configs/research" / (basename + ".json")
     output_root = Path("/home/andre2/GX1_RUNS") / (basename + "_" + lane)
@@ -2069,69 +2007,7 @@ def require_native_provider_hlc_all_tf_initial_segment_execution(*, plan_sha256:
     if type(plan_sha256) is not str or re.fullmatch(r"[0-9a-f]{64}", plan_sha256) is None:
         raise RuntimeError("[GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256_INVALID]")
     bound = _native_provider_hlc_all_tf_initial_segment_bound_plan(plan_sha256=plan_sha256)
-    expected = {
-        "GX1_CAPPED_MEMORY_BYTES": "21474836480",
-        "GX1_CAPPED_SWAP_BYTES": "536870912",
-        "GX1_CAPPED_TASKS_MAX": "128",
-        "OMP_NUM_THREADS": "8",
-        "MKL_NUM_THREADS": "8",
-        "OPENBLAS_NUM_THREADS": "8",
-        "NUMEXPR_NUM_THREADS": "8",
-        "VECLIB_MAXIMUM_THREADS": "8",
-        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL": "true",
-        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256": plan_sha256,
-        "GX1_NATIVE_PROVIDER_HLC_INITIAL": "false",
-        "GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256": "",
-        "GX1_NATIVE_PROVIDER_HLC_REPLAY": "false",
-        "GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256": "",
-        "GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE": "",
-        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY": "false",
-        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256": "",
-        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE": "",
-        "GX1_NATIVE_PROVIDER_HLC_LEARNING": "false",
-        "GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256": "",
-        "GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME": "false",
-        "GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE": "false",
-        "GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE": "false",
-        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX": "false",
-        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN": "false",
-        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT": "false",
-        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_TRAINING": "false",
-        "GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_TRAINING_LANE": "",
-        "GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION": "false",
-        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS": "false",
-        "GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_CUDA_LANE": "",
-        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256": "",
-        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE": "",
-        "GX1_TRAINER_MAX_WALL_SECONDS": "3600",
-        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": "3570",
-        "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": "false",
-        "GX1_TRAINER_GPU_INDEX": "0",
-        "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": "250",
-        "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": "250",
-        "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "75",
-        "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "80",
-        "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": "12288",
-        "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
-        "GX1_TRAINER_CPU_MAX_TEMP_C": "80",
-        "GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W": "125",
-        "GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES": "8589934592",
-        "GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES": "8589934592",
-        "GX1_POWER_BENCHMARK_SCOPE_JSON": "",
-        "GX1_POWER_BENCHMARK_SCOPE_SHA256": "",
-    }
-    for name, value in expected.items():
-        if os.environ.get(name) != value:
-            raise RuntimeError(f"[GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_ENV_INVALID] field={name}")
-    proof = require_guarded_cuda_trainer_execution()
+    proof = _require_provider_hlc_all_tf_initial_environment(plan_sha256)
     plan_path = Path(bound["plan"]["path"])
     output_root = Path(bound["output_root"])
     return {**proof, "class": "trainer", "execution_mode": "canonical", "kind": "provider_hlc_all_tf_initial_segment",
@@ -2271,8 +2147,8 @@ def native_provider_hlc_all_tf_initial_segment_source_bridge(previous_guard_owne
 # BEGIN GX1 ALL TF LEARNING GUARD ROUTE 20261124 001
 _NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_GUARD_SHELL_ADDITIONS = (
     ('# BEGIN GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 STATE\n', 'before', '# BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 STATE\nNATIVE_PROVIDER_HLC_ALL_TF_LEARNING=false\nNATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256=\nNATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE=\n# END GX1 ALL TF LEARNING ROUTE 20261124 001 STATE\n'),
-    ('validate_target_command() {\n', 'before', '# BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 MATCHERS\nmatches_bound_native_provider_hlc_all_tf_learning() {\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1\n  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  local expected_plan\n  case "$3:$4" in\n    "$NATIVE_PROVIDER_HLC_LEARNING_MODULE:--all-tf-learning-plan-sha256")\n      expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002.json" ;;\n    "$NATIVE_PROVIDER_HLC_LEARNING_MODULE:--all-tf-learning-resume-plan-sha256")\n      expected_plan="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002/RECOVERY_PLANS/$5.json" ;;\n    gx1.audit.native_provider_hlc_block_order_v1:--block-order-plan-sha256)\n      expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001.json" ;;\n    gx1.audit.native_provider_hlc_block_order_v1:--block-order-resume-plan-sha256)\n      expected_plan="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001/RECOVERY_PLANS/$5.json" ;;\n    *) return 1 ;;\n  esac\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1\n  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\n\nconfigure_native_provider_hlc_all_tf_learning() {\n  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \\\n    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo "FATAL: ALL-TF learning requires exact canonical trainer containment" >&2; exit 75\n  }\n  matches_bound_native_provider_hlc_all_tf_learning "$@" || {\n    echo "FATAL: ALL-TF learning requires its exact canonical command/plan" >&2; exit 75\n  }\n  local learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002"\n  local learning_mode=main learning_env_name\n  if [[ "$3" == gx1.audit.native_provider_hlc_block_order_v1 ]]; then\n    learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001"\n  fi\n  if [[ "$4" == --all-tf-learning-resume-plan-sha256 || "$4" == --block-order-resume-plan-sha256 ]]; then\n    learning_output="$learning_output/RECOVERY_$5"\n    learning_mode=resume\n  fi\n  [[ ! -e "$learning_output" && ! -L "$learning_output" \\\n    && -d "${learning_output%/*}" && ! -L "${learning_output%/*}" \\\n    && "$(readlink -f "${learning_output%/*}")" == "${learning_output%/*}" ]] || {\n    echo "FATAL: ALL-TF learning requires a fresh output in its canonical parent" >&2; exit 75\n  }\n  for learning_env_name in ${!GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING@}; do\n    case "$learning_env_name" in\n      GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING|GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256|GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE) ;;\n      *) echo "FATAL: unknown ALL-TF learning environment field" >&2; exit 75 ;;\n    esac\n  done\n  [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL:-false}" == false \\\n    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_INITIAL:-false}" == false \\\n    && "${GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_REPLAY:-false}" == false \\\n    && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY:-false}" == false \\\n    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING:-false}" == false \\\n    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME:-false}" == false \\\n    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_TRAINING_LANE:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_CUDA_LANE:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE:-}" == "" ]] || {\n    echo "FATAL: ALL-TF learning forbids mixed legacy modes/plans/lanes" >&2; exit 75\n  }\n  if [[ -n "${GX1_CAPPED_CLASS:-}${GX1_CAPPED_MEMORY_BYTES:-}${GX1_CAPPED_SWAP_BYTES:-}${GX1_CAPPED_TASKS_MAX:-}" ]]; then\n    [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-}" == true \\\n      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" == "$5" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE:-}" == "$learning_mode" ]] || {\n      echo "FATAL: ALL-TF learning mode/plan differs from protected parent" >&2; exit 75\n    }\n  else\n    [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-false}" == false \\\n      && -z "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" \\\n      && -z "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE:-}" ]] || {\n      echo "FATAL: unprotected ALL-TF learning environment pollution" >&2; exit 75\n    }\n  fi\n  NATIVE_PROVIDER_HLC_ALL_TF_LEARNING=true\n  NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256="$5"\n  NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE="$learning_mode"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$learning_output"\n  TRAINER_MAX_WALL_SECONDS=12000\n  TRAINER_MODEL_MAX_WALL_SECONDS=11970\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 ALL TF LEARNING ROUTE 20261124 001 MATCHERS\n\n'),
-    ('validate_target_command() {\n', 'after', '# BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 DISPATCH\n  local all_tf_learning_arg all_tf_learning_reference=false\n  for all_tf_learning_arg in "$@"; do\n    case "$all_tf_learning_arg" in\n      --all-tf-learning-plan-sha256|--all-tf-learning-plan-sha256=*|--all-tf-learning-resume-plan-sha256|--all-tf-learning-resume-plan-sha256=*|--block-order-plan-sha256|--block-order-plan-sha256=*|--block-order-resume-plan-sha256|--block-order-resume-plan-sha256=*|gx1.audit.native_provider_hlc_block_order_v1|*/gx1/audit/native_provider_hlc_block_order_v1.py|gx1/audit/native_provider_hlc_block_order_v1.py)\n        all_tf_learning_reference=true ;;\n    esac\n  done\n  if [[ "$all_tf_learning_reference" == true ]]; then\n    configure_native_provider_hlc_all_tf_learning "$@"\n    return\n  fi\n# END GX1 ALL TF LEARNING ROUTE 20261124 001 DISPATCH\n'),
+    ('validate_target_command() {\n', 'before', '# BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 MATCHERS\nmatches_bound_native_provider_hlc_all_tf_learning() {\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1\n  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  local expected_plan\n  case "$3:$4" in\n    "$NATIVE_PROVIDER_HLC_LEARNING_MODULE:--all-tf-learning-plan-sha256")\n      expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002.json" ;;\n    "$NATIVE_PROVIDER_HLC_LEARNING_MODULE:--all-tf-learning-resume-plan-sha256")\n      expected_plan="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002/RECOVERY_PLANS/$5.json" ;;\n    gx1.audit.native_provider_hlc_block_order_v1:--block-order-plan-sha256)\n      expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001.json" ;;\n    gx1.audit.native_provider_hlc_block_order_v1:--block-order-resume-plan-sha256)\n      expected_plan="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001/RECOVERY_PLANS/$5.json" ;;\n    gx1.audit.native_provider_hlc_row_membership_fit_v1:--row-membership-plan-sha256)\n      expected_plan="$REPO_ROOT/configs/research/NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_ONE_EPOCH_20261125_001.json" ;;\n    gx1.audit.native_provider_hlc_row_membership_fit_v1:--row-membership-resume-plan-sha256)\n      expected_plan="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_ONE_EPOCH_20261125_001/RECOVERY_PLANS/$5.json" ;;\n    *) return 1 ;;\n  esac\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1\n  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\n\nconfigure_native_provider_hlc_all_tf_learning() {\n  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \\\n    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo "FATAL: ALL-TF learning requires exact canonical trainer containment" >&2; exit 75\n  }\n  matches_bound_native_provider_hlc_all_tf_learning "$@" || {\n    echo "FATAL: ALL-TF learning requires its exact canonical command/plan" >&2; exit 75\n  }\n  local learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002"\n  local learning_mode=main learning_env_name\n  if [[ "$3" == gx1.audit.native_provider_hlc_block_order_v1 ]]; then\n    learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001"\n  fi\n  if [[ "$3" == gx1.audit.native_provider_hlc_row_membership_fit_v1 ]]; then\n    learning_output="/home/andre2/GX1_RUNS/NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_ONE_EPOCH_20261125_001"\n  fi\n  if [[ "$4" == --all-tf-learning-resume-plan-sha256 || "$4" == --block-order-resume-plan-sha256 || "$4" == --row-membership-resume-plan-sha256 ]]; then\n    learning_output="$learning_output/RECOVERY_$5"\n    learning_mode=resume\n  fi\n  [[ ! -e "$learning_output" && ! -L "$learning_output" \\\n    && -d "${learning_output%/*}" && ! -L "${learning_output%/*}" \\\n    && "$(readlink -f "${learning_output%/*}")" == "${learning_output%/*}" ]] || {\n    echo "FATAL: ALL-TF learning requires a fresh output in its canonical parent" >&2; exit 75\n  }\n  for learning_env_name in ${!GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING@}; do\n    case "$learning_env_name" in\n      GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING|GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256|GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE) ;;\n      *) echo "FATAL: unknown ALL-TF learning environment field" >&2; exit 75 ;;\n    esac\n  done\n  [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL:-false}" == false \\\n    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_INITIAL:-false}" == false \\\n    && "${GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_REPLAY:-false}" == false \\\n    && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY:-false}" == false \\\n    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING:-false}" == false \\\n    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME:-false}" == false \\\n    && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_TRAINING_LANE:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-false}" == false \\\n    && "${GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_CUDA_LANE:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256:-}" == "" \\\n    && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE:-}" == "" ]] || {\n    echo "FATAL: ALL-TF learning forbids mixed legacy modes/plans/lanes" >&2; exit 75\n  }\n  if [[ -n "${GX1_CAPPED_CLASS:-}${GX1_CAPPED_MEMORY_BYTES:-}${GX1_CAPPED_SWAP_BYTES:-}${GX1_CAPPED_TASKS_MAX:-}" ]]; then\n    [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-}" == true \\\n      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" == "$5" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE:-}" == "$learning_mode" ]] || {\n      echo "FATAL: ALL-TF learning mode/plan differs from protected parent" >&2; exit 75\n    }\n  else\n    [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-false}" == false \\\n      && -z "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" \\\n      && -z "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE:-}" ]] || {\n      echo "FATAL: unprotected ALL-TF learning environment pollution" >&2; exit 75\n    }\n  fi\n  NATIVE_PROVIDER_HLC_ALL_TF_LEARNING=true\n  NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256="$5"\n  NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE="$learning_mode"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$learning_output"\n  TRAINER_MAX_WALL_SECONDS=12000\n  TRAINER_MODEL_MAX_WALL_SECONDS=11970\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 ALL TF LEARNING ROUTE 20261124 001 MATCHERS\n\n'),
+    ('validate_target_command() {\n', 'after', '# BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 DISPATCH\n  local all_tf_learning_arg all_tf_learning_reference=false\n  for all_tf_learning_arg in "$@"; do\n    case "$all_tf_learning_arg" in\n      --all-tf-learning-plan-sha256|--all-tf-learning-plan-sha256=*|--all-tf-learning-resume-plan-sha256|--all-tf-learning-resume-plan-sha256=*|--block-order-plan-sha256|--block-order-plan-sha256=*|--block-order-resume-plan-sha256|--block-order-resume-plan-sha256=*|gx1.audit.native_provider_hlc_block_order_v1|*/gx1/audit/native_provider_hlc_block_order_v1.py|gx1/audit/native_provider_hlc_block_order_v1.py|--row-membership-plan-sha256|--row-membership-plan-sha256=*|--row-membership-resume-plan-sha256|--row-membership-resume-plan-sha256=*|gx1.audit.native_provider_hlc_row_membership_fit_v1|*/gx1/audit/native_provider_hlc_row_membership_fit_v1.py|gx1/audit/native_provider_hlc_row_membership_fit_v1.py)\n        all_tf_learning_reference=true ;;\n    esac\n  done\n  if [[ "$all_tf_learning_reference" == true ]]; then\n    configure_native_provider_hlc_all_tf_learning "$@"\n    return\n  fi\n# END GX1 ALL TF LEARNING ROUTE 20261124 001 DISPATCH\n'),
     ('# BEGIN GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 NESTED\n', 'before', '# BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 NESTED\n  [[ "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-false}" == "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256" \\\n    && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE:-}" == "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE" ]] || {\n    echo "FATAL: nested ALL-TF learning mode/plan differs from protected parent" >&2; exit 75\n  }\n  if [[ "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING" == true ]]; then\n    [[ "${GX1_CAPPED_MEMORY_BYTES:-}" == "21474836480" \\\n      && "${GX1_CAPPED_SWAP_BYTES:-}" == "536870912" \\\n      && "${GX1_CAPPED_TASKS_MAX:-}" == "128" \\\n      && "${OMP_NUM_THREADS:-}" == "8" \\\n      && "${MKL_NUM_THREADS:-}" == "8" \\\n      && "${OPENBLAS_NUM_THREADS:-}" == "8" \\\n      && "${NUMEXPR_NUM_THREADS:-}" == "8" \\\n      && "${VECLIB_MAXIMUM_THREADS:-}" == "8" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL:-}" == "false" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_INITIAL:-}" == "false" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_REPLAY:-}" == "false" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE:-}" == "" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY:-}" == "false" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE:-}" == "" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING:-}" == "false" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME:-}" == "false" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE:-}" == "false" \\\n      && "${GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE:-}" == "false" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX:-}" == "false" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN:-}" == "false" \\\n      && "${GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT:-}" == "false" \\\n      && "${GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_FUTURE_STATE_TRAINING:-}" == "false" \\\n      && "${GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_FUTURE_STATE_TRAINING_LANE:-}" == "" \\\n      && "${GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION:-}" == "false" \\\n      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS:-}" == "false" \\\n      && "${GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_FUTURE_STATE_CUDA_LANE:-}" == "" \\\n      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE:-}" == "" \\\n      && "${GX1_TRAINER_MAX_WALL_SECONDS:-}" == "12000" \\\n      && "${GX1_TRAINER_MODEL_MAX_WALL_SECONDS:-}" == "11970" \\\n      && "${GX1_TRAINER_ATTENDED_STAGE_REQUIRED:-}" == "false" \\\n      && "${GX1_TRAINER_GPU_INDEX:-}" == "0" \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_LIMIT_W:-}" == "250" \\\n      && "${GX1_TRAINER_GPU_MAX_POWER_DRAW_W:-}" == "250" \\\n      && "${GX1_TRAINER_GPU_MAX_CORE_TEMP_C:-}" == "75" \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C:-}" == "80" \\\n      && "${GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB:-}" == "12288" \\\n      && "${GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS:-}" == "1" \\\n      && "${GX1_TRAINER_CPU_MAX_TEMP_C:-}" == "80" \\\n      && "${GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W:-}" == "125" \\\n      && "${GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES:-}" == "8589934592" \\\n      && "${GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES:-}" == "8589934592" \\\n      && "${GX1_POWER_BENCHMARK_SCOPE_JSON:-}" == "" \\\n      && "${GX1_POWER_BENCHMARK_SCOPE_SHA256:-}" == "" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING:-}" == "true" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256:-}" == "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256" \\\n      && "${GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE:-}" == "$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE" \\\n      && "${GX1_CAPPED_CLASS:-}" == "trainer" \\\n      && "${GX1_CUDA_PRODUCER_GUARD:-}" == "false" \\\n      && "${GX1_TRAINER_DEVICE:-}" == "cuda" \\\n      && "${GX1_TRAINER_EXECUTION_MODE:-}" == "canonical" \\\n      && "${BLIS_NUM_THREADS:-}" == "8" \\\n      && "${ARROW_NUM_THREADS:-}" == "1" \\\n      && "${POLARS_MAX_THREADS:-}" == "1" ]] || {\n      echo "FATAL: nested ALL-TF learning resources or mixed modes differ from protected parent" >&2; exit 75\n    }\n  fi\n# END GX1 ALL TF LEARNING ROUTE 20261124 001 NESTED\n'),
     ('  --setenv=GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME="$NATIVE_PROVIDER_HLC_LEARNING_RESUME" \\\n', 'before', '  --setenv=GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING="$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING" \\\n  --setenv=GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256="$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_PLAN_SHA256" \\\n  --setenv=GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE="$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_MODE" \\\n'),
 )
@@ -2291,10 +2167,14 @@ def _native_provider_hlc_all_tf_learning_bound_plan(*, plan_sha256, mode):
     repo = Path(__file__).resolve().parents[2]
     require(str(repo) == "/home/andre2/src/GX1_CURRENT" and Path.cwd().resolve(strict=True) == repo,
             "CWD_INVALID")
+    row_flag = "--row-membership-plan-sha256" if mode == "main" else "--row-membership-resume-plan-sha256"
+    row_membership = sys.orig_argv[1:4] == ["-m", "gx1.audit.native_provider_hlc_row_membership_fit_v1", row_flag]
     block_flag = "--block-order-plan-sha256" if mode == "main" else "--block-order-resume-plan-sha256"
     block_order = sys.orig_argv[1:4] == ["-m", "gx1.audit.native_provider_hlc_block_order_v1", block_flag]
     basename = ("NATIVE_PROVIDER_HLC_ALL_TF_BLOCK_ORDER_20261124_001" if block_order
                 else "NATIVE_PROVIDER_HLC_ALL_TF_ONE_EPOCH_20261124_002")
+    if row_membership:
+        basename = "NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_ONE_EPOCH_20261125_001"
     base = Path("/home/andre2/GX1_RUNS") / basename
     plan_path = (repo / "configs/research" / (basename + ".json") if mode == "main"
                  else base / "RECOVERY_PLANS" / (plan_sha256 + ".json"))
@@ -2303,6 +2183,8 @@ def _native_provider_hlc_all_tf_learning_bound_plan(*, plan_sha256, mode):
     module = "gx1.audit.native_provider_hlc_learning_v1"
     if block_order:
         module, flag = "gx1.audit.native_provider_hlc_block_order_v1", block_flag
+    if row_membership:
+        module, flag = "gx1.audit.native_provider_hlc_row_membership_fit_v1", row_flag
     command = [str(repo / ".venv/bin/python"), "-m", module, flag, plan_sha256]
     require(sys.orig_argv in (command, command + ["--preflight"]) and sys.executable == command[0],
             "CLI_INVALID")
@@ -2323,6 +2205,9 @@ def _native_provider_hlc_all_tf_learning_bound_plan(*, plan_sha256, mode):
     if block_order:
         schemas = (("gx1_native_provider_hlc_block_order_one_epoch_plan_v1",) if mode == "main" else
                    ("gx1_native_provider_hlc_block_order_remaining_epoch_plan_v1",))
+    if row_membership:
+        schemas = (("gx1_native_provider_hlc_row_membership_one_epoch_plan_v1",) if mode == "main" else
+                   ("gx1_native_provider_hlc_row_membership_remaining_epoch_plan_v1",))
     stage = basename.lower() + ("_recovery" if mode == "resume" else "")
     require(type(plan) is dict and plan.get("schema_version") in schemas and plan.get("stage") == stage,
             "PLAN_IDENTITY")
@@ -2477,6 +2362,336 @@ def native_provider_hlc_all_tf_learning_source_bridge(previous_guard_owners, *,
     return {"producer_commit": producer_commit, "checked_guard_owners": 2,
             "old_guard_routes_preserved": True, "owners": report}
 # END GX1 ALL TF LEARNING GUARD ROUTE 20261124 001
+
+# BEGIN GX1 ROW MEMBERSHIP FIT GUARD BRIDGE 20261125 001
+_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_FIT_GUARD_ANCHOR = "8fd74a76cc45ac7306da4b905c82e9cd9b12976d"
+
+
+def native_provider_hlc_row_membership_fit_guard_source_bridge(*, producer_commit="8fd74a76cc45ac7306da4b905c82e9cd9b12976d"):
+    """Normalize only this exact third namespace to the measured closed parent."""
+    import ast
+    import hashlib
+    import subprocess
+    def require(ok, reason):
+        if not ok:
+            raise RuntimeError("[GX1_ROW_MEMBERSHIP_FIT_GUARD_BRIDGE_" + reason + "]")
+    require(producer_commit == _NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_FIT_GUARD_ANCHOR,
+            "EXACT_PRODUCER")
+    repo = Path(__file__).resolve().parents[2]
+    python_name, shell_name = "gx1/contracts/gx1_capped_execution_v1.py", "scripts/gx1_capped_run.sh"
+    before_python = subprocess.check_output(["git", "show", producer_commit + ":" + python_name], cwd=repo).decode()
+    before_shell = subprocess.check_output(["git", "show", producer_commit + ":" + shell_name], cwd=repo).decode()
+    current_python = (repo / python_name).read_text(); current_shell = (repo / shell_name).read_text()
+    def named(text, name, assignment=False):
+        nodes = [n for n in ast.parse(text).body if
+                 (assignment and isinstance(n, ast.Assign) and len(n.targets) == 1
+                  and isinstance(n.targets[0], ast.Name) and n.targets[0].id == name)
+                 or (not assignment and isinstance(n, ast.FunctionDef) and n.name == name)]
+        require(len(nodes) == 1, "EXACT_SOURCE_SYMBOL:" + name)
+        return ast.get_source_segment(text, nodes[0]), nodes[0]
+    begin = "# BEGIN GX1 ROW MEMBERSHIP FIT GUARD BRIDGE 20261125 001\n"
+    end = "# END GX1 ROW MEMBERSHIP FIT GUARD BRIDGE 20261125 001\n\n"
+    require(current_python.count(begin) == current_python.count(end) == 1, "ONE_BRIDGE_BLOCK")
+    first, tail = current_python.split(begin); body, last = tail.split(end)
+    nodes = ast.parse(body).body
+    require(len(nodes) == 2 and isinstance(nodes[0], ast.Assign) and len(nodes[0].targets) == 1
+            and isinstance(nodes[0].targets[0], ast.Name)
+            and nodes[0].targets[0].id == "_NATIVE_PROVIDER_HLC_ROW_MEMBERSHIP_FIT_GUARD_ANCHOR"
+            and ast.literal_eval(nodes[0].value) == producer_commit
+            and isinstance(nodes[1], ast.FunctionDef)
+            and nodes[1].name == "native_provider_hlc_row_membership_fit_guard_source_bridge", "EXACT_BRIDGE_SYMBOLS")
+    normalized_python = first + last
+    constant = "_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_GUARD_SHELL_ADDITIONS"
+    for name, assignment in (("_native_provider_hlc_all_tf_learning_bound_plan", False), (constant, True)):
+        old, _ = named(before_python, name, assignment); now, _ = named(normalized_python, name, assignment)
+        require(normalized_python.count(now) == 1, "EXACT_RESTORE_SYMBOL")
+        normalized_python = normalized_python.replace(now, old, 1)
+    require(normalized_python == before_python, "ALL_OTHER_PYTHON_BYTES")
+    _, old_node = named(before_python, constant, True)
+    old_parts = ast.literal_eval(old_node.value); new_parts = _NATIVE_PROVIDER_HLC_ALL_TF_LEARNING_GUARD_SHELL_ADDITIONS
+    require(len(old_parts) == len(new_parts) == 5 and all(old_parts[i] == new_parts[i] for i in (0, 3, 4)),
+            "EXACT_REUSED_STATE_NESTED_EXPORTS")
+    normalized_shell = current_shell
+    for index in (1, 2):
+        old_anchor, old_position, old_fragment = old_parts[index]
+        anchor, position, fragment = new_parts[index]
+        require((anchor, position) == (old_anchor, old_position)
+                and normalized_shell.count(fragment) == 1, "EXACT_SHELL_FRAGMENT")
+        normalized_shell = normalized_shell.replace(fragment, old_fragment, 1)
+    require(normalized_shell == before_shell, "ALL_OTHER_SHELL_BYTES")
+    owners = {}
+    for name, before, current, normalized in (
+            (python_name, before_python, current_python, normalized_python),
+            (shell_name, before_shell, current_shell, normalized_shell)):
+        owners[name] = {"original_sha256": hashlib.sha256(before.encode()).hexdigest(),
+                        "current_sha256": hashlib.sha256(current.encode()).hexdigest(),
+                        "normalized_sha256": hashlib.sha256(normalized.encode()).hexdigest()}
+    return {"producer_commit": producer_commit, "checked_guard_owners": 2,
+            "old_guard_routes_preserved": True, "old_numeric_resource_environment_function_unchanged": True,
+            "owners": owners}
+# END GX1 ROW MEMBERSHIP FIT GUARD BRIDGE 20261125 001
+
+# BEGIN GX1 ALL TF V3 GUARDS 20261125 001
+_ALL_TF_V3_GUARD_SHELL_ADDITIONS = (('# BEGIN GX1 PROVIDER HLC ALL TF ROUTES 20261124 001 MATCHERS\n', 'before', '# BEGIN GX1 ALL TF V3 ROUTES 20261125 001 MATCHERS\nmatches_bound_native_all_tf_provider_hlc_v3_initial_segment() {\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1\n  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == "$NATIVE_PROVIDER_HLC_INITIAL_MODULE" \\\n    && "$4" == --all-tf-v3-score-segment-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  local base_root=/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001\n  local plan_dir="$base_root/PLANS"\n  local expected_plan="$plan_dir/$5.json"\n  [[ -d "$base_root" && ! -L "$base_root" && "$(readlink -f "$base_root")" == "$base_root" \\\n    && -d "$plan_dir" && ! -L "$plan_dir" && "$(readlink -f "$plan_dir")" == "$plan_dir" \\\n    && -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1\n  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\n\nconfigure_native_all_tf_provider_hlc_v3_initial_segment() {\n  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \\\n    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo "FATAL: provider HLC INITIAL requires exact canonical trainer containment" >&2\n    exit 75\n  }\n  matches_bound_native_all_tf_provider_hlc_v3_initial_segment "$@" || {\n    echo "FATAL: provider HLC INITIAL CLI/plan is not exactly bound" >&2\n    exit 75\n  }\n  local initial_output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001/SEGMENT_$5"\n  [[ ! -e "$initial_output" && ! -L "$initial_output" \\\n    && -d "${initial_output%/*}" && ! -L "${initial_output%/*}" \\\n    && "$(readlink -f "${initial_output%/*}")" == "${initial_output%/*}" ]] || {\n    echo "FATAL: provider HLC INITIAL output is not fresh canonical scope" >&2\n    exit 75\n  }\n  NATIVE_PROVIDER_HLC_ALL_TF_INITIAL=true\n  NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$initial_output"\n  TRAINER_MAX_WALL_SECONDS=3600\n  TRAINER_MODEL_MAX_WALL_SECONDS=3570\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n\nmatches_bound_native_all_tf_provider_hlc_v3_replay() {\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_COLD_REPLAY_20261125_001.json"\n  if [[ $# -eq 8 ]]; then\n    [[ "$8" == --preflight ]] || return 1\n    set -- "${@:1:7}"\n  fi\n  [[ $# -eq 7 && "$(pwd -P)" == "$REPO_ROOT" ]] || return 1\n  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == "$NATIVE_PROVIDER_HLC_REPLAY_MODULE" \\\n    && "$4" == --all-tf-v3-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ \\\n    && "$6" == --lane && ( "$7" == warm || "$7" == cold ) ]] || return 1\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1\n  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\n\nconfigure_native_all_tf_provider_hlc_v3_replay() {\n  [[ "$JOB_CLASS" == trainer && "$ATTENDED_SMOKE" == false \\\n    && "$CUDA_PRODUCER_GUARD" == false && "$MEM" == 20G && "$SWAP" == 512M \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo "FATAL: provider HLC replay requires exact canonical trainer containment" >&2\n    exit 75\n  }\n  matches_bound_native_all_tf_provider_hlc_v3_replay "$@" || {\n    echo "FATAL: provider HLC replay CLI/plan is not exactly bound" >&2\n    exit 75\n  }\n  local replay_output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_COLD_REPLAY_20261125_001_$7"\n  [[ ! -e "$replay_output" && ! -L "$replay_output" \\\n    && -d "${replay_output%/*}" && ! -L "${replay_output%/*}" \\\n    && "$(readlink -f "${replay_output%/*}")" == "${replay_output%/*}" ]] || {\n    echo "FATAL: provider HLC replay output is not fresh canonical scope" >&2\n    exit 75\n  }\n  NATIVE_PROVIDER_HLC_ALL_TF_REPLAY=true\n  NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256="$5"\n  NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE="$7"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$replay_output"\n  TRAINER_MAX_WALL_SECONDS=1800\n  TRAINER_MODEL_MAX_WALL_SECONDS=1770\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 ALL TF V3 ROUTES 20261125 001 MATCHERS\n'), ('# BEGIN GX1 PROVIDER HLC ALL TF ROUTES 20261124 001 DISPATCH\n', 'before', '# BEGIN GX1 ALL TF V3 ROUTES 20261125 001 DISPATCH\n  if [[ "${4:-}" == --all-tf-v3-score-segment-plan-sha256 ]]; then\n    [[ "${3:-}" == "$NATIVE_PROVIDER_HLC_INITIAL_MODULE" ]] || { echo "FATAL: V3 INITIAL requires exact module" >&2; exit 75; }\n    configure_native_all_tf_provider_hlc_v3_initial_segment "$@"; return\n  fi\n  if [[ "${4:-}" == --all-tf-v3-plan-sha256 ]]; then\n    [[ "${3:-}" == "$NATIVE_PROVIDER_HLC_REPLAY_MODULE" ]] || { echo "FATAL: V3 replay requires exact module" >&2; exit 75; }\n    configure_native_all_tf_provider_hlc_v3_replay "$@"; return\n  fi\n# END GX1 ALL TF V3 ROUTES 20261125 001 DISPATCH\n'))
+
+def _require_provider_hlc_all_tf_initial_environment(plan_sha256):
+    expected = {
+        "GX1_CAPPED_MEMORY_BYTES": "21474836480",
+        "GX1_CAPPED_SWAP_BYTES": "536870912",
+        "GX1_CAPPED_TASKS_MAX": "128",
+        "OMP_NUM_THREADS": "8",
+        "MKL_NUM_THREADS": "8",
+        "OPENBLAS_NUM_THREADS": "8",
+        "NUMEXPR_NUM_THREADS": "8",
+        "VECLIB_MAXIMUM_THREADS": "8",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL": "true",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256": plan_sha256,
+        "GX1_NATIVE_PROVIDER_HLC_INITIAL": "false",
+        "GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_REPLAY": "false",
+        "GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE": "",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY": "false",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE": "",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING": "false",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME": "false",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE": "false",
+        "GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT": "false",
+        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING": "false",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING_LANE": "",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION": "false",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS": "false",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_LANE": "",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE": "",
+        "GX1_TRAINER_MAX_WALL_SECONDS": "3600",
+        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": "3570",
+        "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": "false",
+        "GX1_TRAINER_GPU_INDEX": "0",
+        "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": "250",
+        "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": "250",
+        "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "75",
+        "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "80",
+        "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": "12288",
+        "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
+        "GX1_TRAINER_CPU_MAX_TEMP_C": "80",
+        "GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W": "125",
+        "GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES": "8589934592",
+        "GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES": "8589934592",
+        "GX1_POWER_BENCHMARK_SCOPE_JSON": "",
+        "GX1_POWER_BENCHMARK_SCOPE_SHA256": "",
+    }
+    for name, value in expected.items():
+        if os.environ.get(name) != value:
+            raise RuntimeError(f"[GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_ENV_INVALID] field={name}")
+    proof = require_guarded_cuda_trainer_execution()
+    return proof
+
+
+def _require_provider_hlc_all_tf_replay_environment(plan_sha256, lane):
+    expected = {
+        "GX1_CAPPED_MEMORY_BYTES": "21474836480",
+        "GX1_CAPPED_SWAP_BYTES": "536870912",
+        "GX1_CAPPED_TASKS_MAX": "128",
+        "OMP_NUM_THREADS": "8",
+        "MKL_NUM_THREADS": "8",
+        "OPENBLAS_NUM_THREADS": "8",
+        "NUMEXPR_NUM_THREADS": "8",
+        "VECLIB_MAXIMUM_THREADS": "8",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY": "true",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256": plan_sha256,
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE": lane,
+        "GX1_NATIVE_PROVIDER_HLC_INITIAL": "false",
+        "GX1_NATIVE_PROVIDER_HLC_INITIAL_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_REPLAY": "false",
+        "GX1_NATIVE_PROVIDER_HLC_REPLAY_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_REPLAY_LANE": "",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL": "false",
+        "GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING": "false",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING_PLAN_SHA256": "",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME": "false",
+        "GX1_NATIVE_PROVIDER_HLC_LEARNING_RESUME_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE": "false",
+        "GX1_NATIVE_FUTURE_STATE_FULL_TRAIN_CAPTURE_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_CONTINUE_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_SUFFIX_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN": "false",
+        "GX1_NATIVE_FUTURE_STATE_BIAS_FROZEN_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT": "false",
+        "GX1_NATIVE_FUTURE_STATE_THROUGHPUT_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING": "false",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_TRAINING_LANE": "",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_QUALIFICATION": "false",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS": "false",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_CUDA_LANE": "",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_PLAN_SHA256": "",
+        "GX1_NATIVE_FUTURE_STATE_CPU_MECHANICS_LANE": "",
+        "GX1_TRAINER_MAX_WALL_SECONDS": "1800",
+        "GX1_TRAINER_MODEL_MAX_WALL_SECONDS": "1770",
+        "GX1_TRAINER_ATTENDED_STAGE_REQUIRED": "false",
+        "GX1_TRAINER_GPU_INDEX": "0",
+        "GX1_TRAINER_GPU_MAX_POWER_LIMIT_W": "250",
+        "GX1_TRAINER_GPU_MAX_POWER_DRAW_W": "250",
+        "GX1_TRAINER_GPU_MAX_CORE_TEMP_C": "75",
+        "GX1_TRAINER_GPU_MAX_MEMORY_TEMP_C": "80",
+        "GX1_TRAINER_GPU_MAX_MEMORY_USED_MIB": "12288",
+        "GX1_TRAINER_GPU_MONITOR_INTERVAL_SECONDS": "1",
+        "GX1_TRAINER_CPU_MAX_TEMP_C": "80",
+        "GX1_TRAINER_CPU_MAX_PACKAGE_POWER_W": "125",
+        "GX1_TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES": "8589934592",
+        "GX1_TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES": "8589934592",
+        "GX1_POWER_BENCHMARK_SCOPE_JSON": "",
+        "GX1_POWER_BENCHMARK_SCOPE_SHA256": "",
+    }
+    for name, value in expected.items():
+        if os.environ.get(name) != value:
+            raise RuntimeError(f"[GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_ENV_INVALID] field={name}")
+    proof = require_guarded_cuda_trainer_execution()
+    return proof
+
+
+def require_native_all_tf_provider_hlc_v3_initial_segment_execution(*, plan_sha256: str) -> dict[str, Any]:
+    """Read-only full TRAIN containment; no optimizer or training authority."""
+    if type(plan_sha256) is not str or re.fullmatch(r"[0-9a-f]{64}", plan_sha256) is None:
+        raise RuntimeError("[GX1_NATIVE_PROVIDER_HLC_ALL_TF_INITIAL_PLAN_SHA256_INVALID]")
+    bound = _native_all_tf_provider_hlc_v3_bound_plan(plan_sha256=plan_sha256)
+    proof = _require_provider_hlc_all_tf_initial_environment(plan_sha256)
+    plan_path = Path(bound["plan"]["path"])
+    output_root = Path(bound["output_root"])
+    return {**proof, "class": "trainer", "execution_mode": "canonical", "kind": "provider_hlc_all_tf_v3_initial_segment",
+            "training_authority_granted": False, "optimizer_authority_granted": False, "read_only": True,
+            "base_plan": bound["base_plan"], "plan": {"path": str(plan_path), "sha256": plan_sha256},
+            "plan_path": str(plan_path), "output_root": str(output_root),
+            "outer_seconds": 3600, "internal_seconds": 3570, "kill_after_seconds": 10,
+            "cpu_affinity": list(range(19)), "numerical_threads": 8}
+
+def require_native_all_tf_provider_hlc_v3_replay_execution(*, plan_sha256: str, lane: str) -> dict[str, Any]:
+    """Contain only the exact technical replay; its leaf owns optimizer admission."""
+    if type(plan_sha256) is not str or re.fullmatch(r"[0-9a-f]{64}", plan_sha256) is None:
+        raise RuntimeError("[GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_PLAN_SHA256_INVALID]")
+    if type(lane) is not str or lane not in ("warm", "cold"):
+        raise RuntimeError("[GX1_NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE_INVALID]")
+    _native_all_tf_provider_hlc_v3_bound_plan(plan_sha256=plan_sha256, lane=lane)
+    proof = _require_provider_hlc_all_tf_replay_environment(plan_sha256, lane)
+    basename = "NATIVE_ALL_TF_PROVIDER_HLC_V3_COLD_REPLAY_20261125_001"
+    plan_path = Path(__file__).resolve().parents[2] / "configs/research" / (basename + ".json")
+    output_root = Path("/home/andre2/GX1_RUNS") / (basename + "_" + lane)
+    return {**proof, "class": "trainer", "execution_mode": "canonical", "kind": "provider_hlc_all_tf_v3_replay", "lane": lane,
+            "training_authority_granted": False, "optimizer_authority_granted": False, "read_only": False, "resource_proof_only": True,
+            "plan": {"path": str(plan_path), "sha256": plan_sha256},
+            "plan_path": str(plan_path), "output_root": str(output_root),
+            "outer_seconds": 1800, "internal_seconds": 1770, "kill_after_seconds": 10,
+            "cpu_affinity": list(range(19)), "numerical_threads": 8}
+
+_ALL_TF_V3_GUARD_PARENT = {"path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_V3_GUARD_PREDECESSOR_20261125_001.json", "sha256": "b13c73b5e2f467f4a219ae8c1137394c9c69959ce4c1c0122b5cd0fbe18dfa21"}
+
+def _native_all_tf_provider_hlc_v3_bound_plan(*, plan_sha256, lane=None):
+    import hashlib,json
+    from gx1.contracts.native_future_state_provider_hlc_v1 import all_tf_provider_hlc_state_contract
+    def require(ok,why):
+        if not ok:raise RuntimeError("[GX1_ALL_TF_V3_BINDING_"+why+"]")
+    require(type(plan_sha256)is str and re.fullmatch('[0-9a-f]{64}',plan_sha256)is not None,'SHA')
+    require(lane is None or type(lane)is str and lane in('warm','cold'),'LANE')
+    repo=Path(__file__).resolve().parents[2];initial=lane is None
+    flag='--all-tf-v3-score-segment-plan-sha256'if initial else'--all-tf-v3-plan-sha256'
+    args=[flag,plan_sha256]+([]if initial else['--lane',lane])
+    if sys.argv[-1:]==['--preflight']:args+=['--preflight']
+    module='native_future_state_provider_hlc_initial_v1.py'if initial else'native_provider_hlc_replay_v1.py'
+    require(Path.cwd().resolve()==repo and Path(sys.argv[0]).resolve()==repo/'gx1/audit'/module and Path(sys.executable).absolute()==repo/'.venv/bin/python'and sys.argv[1:]==args,'EXACT_ARGV')
+    def read(path,digest):
+        require(path.is_file()and not path.is_symlink()and path.resolve()==path,'CANONICAL_PLAN')
+        raw=path.read_bytes();require(hashlib.sha256(raw).hexdigest()==digest,'PLAN_SHA');value=json.loads(raw);require(type(value)is dict,'PLAN_OBJECT');return value
+    name='NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001'if initial else'NATIVE_ALL_TF_PROVIDER_HLC_V3_COLD_REPLAY_20261125_001'
+    root=Path('/home/andre2/GX1_RUNS')/name
+    if initial:
+        require(root.is_dir()and not root.is_symlink()and root.resolve()==root and(root/'PLANS').is_dir()and not(root/'PLANS').is_symlink(),'CANONICAL_BASE_ROOT')
+        path=root/'PLANS'/(plan_sha256+'.json');plan=read(path,plan_sha256)
+        require(plan.get('schema_version')=='gx1_native_all_tf_provider_hlc_v3_initial_segment_plan_v1'and plan.get('stage')==name.lower()and plan.get('base_root')==str(root)and'plan_path'not in plan and'output_root'not in plan,'SEGMENT_SCHEMA')
+        base_ref=plan.get('base_plan');base_path=repo/'configs/research'/(name+'.json')
+        require(type(base_ref)is dict and set(base_ref)=={'path','sha256'}and base_ref['path']==str(base_path),'BASE_REF')
+        base=read(base_path,base_ref['sha256']);require(base.get('schema_version')=='gx1_native_all_tf_provider_hlc_v3_resumable_initial_base_plan_v1'and base.get('stage')==name.lower()and base.get('output_root')==str(root),'BASE_SCHEMA')
+        recipe={'backbone_gradient_policy':None,'batch_rows':256,'batches':1385,'drop_last':False,'last_rows':246,'no_optimization':True,'rows':354550,'seed':20260911,'shuffle':False}
+        require(plan.get('recipe')==base.get('recipe')==recipe and plan.get('execution')==base.get('execution')and plan.get('model_contract')==base.get('model_contract'),'SAME_BASE_RECIPE_EXECUTION_MODEL')
+        output=root/('SEGMENT_'+plan_sha256)
+    else:
+        path=repo/'configs/research'/(name+'.json');plan=read(path,plan_sha256)
+        require(plan.get('schema_version')=='gx1_native_all_tf_provider_hlc_v3_cold_replay_plan_v1'and plan.get('stage')==name.lower(),'REPLAY_SCHEMA')
+        output=Path('/home/andre2/GX1_RUNS')/(name+'_'+lane);require(plan.get('output_roots',{}).get(lane)==str(output),'REPLAY_OUTPUT')
+        base_ref=None
+    contract=plan.get('model_contract');target=all_tf_provider_hlc_state_contract()
+    require(type(contract)is dict and'backbone_gradient_policy'not in contract and contract.get('target_contract_sha256')==target['contract_sha256']and contract.get('target_metadata_as_model_input')is False,'EXACT_V3_MODEL_TARGET')
+    require(not output.exists()and not output.is_symlink(),'FRESH_OUTPUT')
+    return {'plan':{'path':str(path),'sha256':plan_sha256},'output_root':str(output),'base_plan':base_ref}
+
+def _native_all_tf_provider_hlc_v3_source_bridge(previous_guard_owners,*,producer_commit):
+    import ast,hashlib,json,subprocess
+    def require(ok,why):
+        if not ok:raise RuntimeError('[GX1_ALL_TF_V3_SOURCE_BRIDGE_'+why+']')
+    require(producer_commit=='8fd74a76cc45ac7306da4b905c82e9cd9b12976d','PRODUCER')
+    repo=Path(__file__).resolve().parents[2]
+    def read(ref):
+        path=Path(ref['path']);require(path.is_file()and not path.is_symlink()and path.resolve()==path,'CANONICAL_EVIDENCE');raw=path.read_bytes();require(hashlib.sha256(raw).hexdigest()==ref['sha256'],'EVIDENCE_SHA');return raw
+    parent=json.loads(read(_ALL_TF_V3_GUARD_PARENT));proof=parent['existing_qualified_bridge'];names=('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')
+    original={n:hashlib.sha256(subprocess.check_output(['git','show',producer_commit+':'+n],cwd=repo)).hexdigest()for n in names}
+    require(previous_guard_owners==original and parent['status']=='PASS_AUTHENTICATED_8FD_ROWMEMBERSHIP_GUARD_PARENT'and proof['producer_commit']==producer_commit and proof['old_guard_routes_preserved']is True,'PARENT_BRIDGE')
+    before={n:read(parent['parent_guard_snapshots'][n]).decode()for n in names};current={n:(repo/n).read_text()for n in names}
+    for n in names:require(proof['owners'][n]['original_sha256']==original[n]and proof['owners'][n]['current_sha256']==hashlib.sha256(before[n].encode()).hexdigest(),'PARENT_OWNER_SHA')
+    begin='# BEGIN GX1 ALL TF V3 GUARDS 20261125 001\n';end='# END GX1 ALL TF V3 GUARDS 20261125 001\n\n'
+    text=current[names[0]];require(text.count(begin)==text.count(end)==1,'ONE_EXTENSION_BLOCK');first,tail=text.split(begin);body,last=tail.split(end);normalized=first+last
+    try:nodes=ast.parse(body).body
+    except SyntaxError as error:raise RuntimeError('[GX1_ALL_TF_V3_SOURCE_BRIDGE_EXTENSION_AST_INVALID]')from error
+    functions=[n for n in nodes if isinstance(n,ast.FunctionDef)];assignments=[n for n in nodes if isinstance(n,ast.Assign)]
+    require(len(nodes)==10 and len(functions)==8 and len(assignments)==2 and len({n.name for n in functions})==8 and all(len(n.targets)==1 and isinstance(n.targets[0],ast.Name)for n in assignments)and {n.targets[0].id for n in assignments}=={'_ALL_TF_V3_GUARD_PARENT','_ALL_TF_V3_GUARD_SHELL_ADDITIONS'},'EXACT_EXTENSION_AST')
+    try:literals={n.targets[0].id:ast.literal_eval(n.value)for n in assignments}
+    except (ValueError,TypeError,SyntaxError)as error:raise RuntimeError('[GX1_ALL_TF_V3_SOURCE_BRIDGE_EXTENSION_LITERALS_INVALID]')from error
+    require(literals=={'_ALL_TF_V3_GUARD_PARENT':_ALL_TF_V3_GUARD_PARENT,'_ALL_TF_V3_GUARD_SHELL_ADDITIONS':_ALL_TF_V3_GUARD_SHELL_ADDITIONS},'EXACT_EXTENSION_LITERALS')
+    symbols=[n.name for n in functions]
+    require(set(symbols)=={'_require_provider_hlc_all_tf_initial_environment','_require_provider_hlc_all_tf_replay_environment','require_native_all_tf_provider_hlc_v3_initial_segment_execution','require_native_all_tf_provider_hlc_v3_replay_execution','_native_all_tf_provider_hlc_v3_bound_plan','_native_all_tf_provider_hlc_v3_source_bridge','native_all_tf_provider_hlc_v3_initial_source_bridge','native_all_tf_provider_hlc_v3_replay_source_bridge'},'EXACT_EXTENSION_SYMBOLS')
+    def source(text,name):
+        nodes=[n for n in ast.parse(text).body if isinstance(n,ast.FunctionDef)and n.name==name];require(len(nodes)==1,'ONE_FUNCTION');return ast.get_source_segment(text,nodes[0])
+    for name,helper,args,newname in(
+        ('require_native_provider_hlc_all_tf_initial_segment_execution','_require_provider_hlc_all_tf_initial_environment','plan_sha256','require_native_all_tf_provider_hlc_v3_initial_segment_execution'),
+        ('require_native_provider_hlc_all_tf_replay_execution','_require_provider_hlc_all_tf_replay_environment','plan_sha256, lane','require_native_all_tf_provider_hlc_v3_replay_execution')):
+        now=source(normalized,name);old=source(before[names[0]],name);start=old.index('    expected = {');stop=old.index('    proof = require_guarded_cuda_trainer_execution()\n',start)+len('    proof = require_guarded_cuda_trainer_execution()\n')
+        expected_helper='def '+helper+'('+args+'):\n'+old[start:stop]+'    return proof'
+        require(source(body,helper)==expected_helper,'EXACT_SHARED_ENV_HELPER')
+        expected_old=old[:start]+'    proof = '+helper+'('+args+')\n'+old[stop:]
+        require(now==expected_old and normalized.count(now)==1,'EXACT_OLD_REQUIRE_EXTRACTION')
+        expected_new=expected_old.replace('def '+name+'(','def '+newname+'(',1).replace('_native_provider_hlc_all_tf_initial_segment_bound_plan(', '_native_all_tf_provider_hlc_v3_bound_plan(').replace('_native_provider_hlc_all_tf_bound_plan(', '_native_all_tf_provider_hlc_v3_bound_plan(')
+        expected_new=expected_new.replace('"NATIVE_PROVIDER_HLC_ALL_TF_COLD_REPLAY_20261124_001"','"NATIVE_ALL_TF_PROVIDER_HLC_V3_COLD_REPLAY_20261125_001"').replace('"kind": "provider_hlc_all_tf_initial_segment"','"kind": "provider_hlc_all_tf_v3_initial_segment"').replace('"kind": "provider_hlc_all_tf_replay"','"kind": "provider_hlc_all_tf_v3_replay"')
+        require(source(body,newname)==expected_new,'EXACT_NEW_REQUIRE_RESOURCE_REUSE');normalized=normalized.replace(now,old,1)
+    require(normalized==before[names[0]],'ALL_OTHER_PYTHON_BYTES')
+    shell=current[names[1]]
+    for anchor,position,fragment in _ALL_TF_V3_GUARD_SHELL_ADDITIONS:
+        require(position=='before'and shell.count(anchor)==1 and shell.count(fragment)==1 and shell.count(fragment+anchor)==1,'ONE_SHELL_FRAGMENT');shell=shell.replace(fragment+anchor,anchor,1)
+    require(shell==before[names[1]],'ALL_OTHER_SHELL_BYTES')
+    return {'producer_commit':producer_commit,'predecessor':dict(_ALL_TF_V3_GUARD_PARENT),'checked_guard_owners':2,'old_guard_routes_preserved':True,'old_numeric_resource_environment_function_unchanged':True,'owners':{n:{'original_sha256':original[n],'pre_V3_sha256':hashlib.sha256(before[n].encode()).hexdigest(),'current_sha256':hashlib.sha256(current[n].encode()).hexdigest()}for n in names}}
+
+def native_all_tf_provider_hlc_v3_initial_source_bridge(previous_guard_owners,*,producer_commit='8fd74a76cc45ac7306da4b905c82e9cd9b12976d'):
+    return _native_all_tf_provider_hlc_v3_source_bridge(previous_guard_owners,producer_commit=producer_commit)
+
+def native_all_tf_provider_hlc_v3_replay_source_bridge(previous_guard_owners,*,producer_commit='8fd74a76cc45ac7306da4b905c82e9cd9b12976d'):
+    return _native_all_tf_provider_hlc_v3_source_bridge(previous_guard_owners,producer_commit=producer_commit)
+
+# END GX1 ALL TF V3 GUARDS 20261125 001
 
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")

@@ -107,9 +107,11 @@ def test_all_tf_replay_preserves_legacy_source_defaults_and_narrow_main_dispatch
   if name!='main':assert ast.get_source_segment(before,node)==ast.get_source_segment(after,new[name])
  assignments=lambda value:[ast.dump(n,include_attributes=False)for n in value.body if isinstance(n,(ast.Assign,ast.AnnAssign))]
  assert all(value in assignments(tree)for value in assignments(old_tree))
- dispatch=new['main'].body[0];assert isinstance(dispatch,ast.If)
+ v3_dispatch=new['main'].body[0];dispatch=new['main'].body[1];assert isinstance(v3_dispatch,ast.If)and isinstance(dispatch,ast.If)
+ expected_v3=ast.parse("if sys.argv[1:2] == ['--all-tf-v3-plan-sha256']:return main_v3()").body[0]
+ assert ast.dump(v3_dispatch,include_attributes=False)==ast.dump(expected_v3,include_attributes=False)
  assert ast.dump(dispatch.test,include_attributes=False)==ast.dump(ast.parse("sys.argv[1:2] == ['--all-tf-plan-sha256']",mode='eval').body,include_attributes=False)
- assert ast.dump(ast.Module(body=new['main'].body[1:],type_ignores=[]),include_attributes=False)==ast.dump(ast.Module(body=old['main'].body,type_ignores=[]),include_attributes=False)
+ assert ast.dump(ast.Module(body=new['main'].body[2:],type_ignores=[]),include_attributes=False)==ast.dump(ast.Module(body=old['main'].body,type_ignores=[]),include_attributes=False)
  old_tests=subprocess.check_output(['git','show',anchor+':'+m.TEST],cwd=m.REPO);assert Path(__file__).read_bytes().startswith(old_tests)
 
 

@@ -5,6 +5,122 @@ GX1_RULES.md er lest helt og uendret: SHA2c7f0fc9...683a58.
 NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
 terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
+<!-- BEGIN GX1 ALL TF V3 TARGET GOAL 20261125 -->
+## Aktivt mål: native fasit og kvalifisering på alle fem TF
+
+Brukeren ba «Lag deg mål og gjør dette» etter neste-steg-beskrivelsen.
+Nytt aktivt chatmål01a2114e-fe3f-7850-bfcd-b0cfe215aca7: eksplisitt V3-
+HLC-sertifikat/fasit/masker/loader/loss, hele354550TRAIN-dekning og matchet
+prior, egen fersk fullklokkeINITIAL og egen-C2 kald replay før admisjon.
+Kildeimplementasjonen er kvalifisert i eksisterende eiere med avgrenset
+fileierskap; root eier policy, cap/launch og samlet kontroll.176unike fokuserte
+tester PASS etter6konkrete kompatibilitets-/fixture-/kildescoperettinger;
+2syntetiske suksess-/feilrapportkontroller PASS. Faktisk readout-head har
+null direkte gradient for ukjent side og bevart aktivitetsgradient påalle5TF.
+V3validereNPZ/PTbytesførpublisering med separate minne-/disklesetellere.
+Reell TRAIN-fasit/prior, ny fullINITIAL og kaldreplay er ennåikke kjørt.
+Kildekvittering: `ALL_TF_V3_SOURCE_QUALIFICATION_20261125_001.json` SHA
+f68324929444d07780dbddc66b0c65d19f0e024fce7f7fe0c83d6cfeaa90de51.
+V2-APIer, genuine inputs/normalisering og opprinnelige checkpoints bevares.
+M5 bruker eksisterende verifiserte native vindu; M15/H1/H4/D1 får eksplisitt
+providerbevis for nøyaktig moden målbar. Ny historisk observasjonsreferanse
+innføres ikke stille som featurehistorikk. Ingen ny HTTP/barrescan.
+Alle seks globale treningsflagg er false. Teknisk replay kvalifiseres senere
+med egen eksakt engangsplan; ingen læringsfit, TEST, M1/GC, handel eller spending.
+Kildeimplementasjon, faktisk datakvalifisering, full baseline og kald replay
+rapporteres separat. Teknisk PASS eller en ny målmaske er ikke bevist edge.
+<!-- END GX1 ALL TF V3 TARGET GOAL 20261125 -->
+
+<!-- BEGIN GX1 CROSS TF COVERAGE HANDOVER 20261125 -->
+## Overtakelse: alle observerte barer er skannet og referansen rettet
+
+Siste bestilling: «Les current handover i wsl, og fortsett arbeidet med å
+scanne og rette alle barene på alle timeframes for full dekning».
+Arbeidet gjelder alle18kildeår fra2009-06-01 til strengt før2026-07-01.
+Dette avsnittet avløser forrige tverrgående dekningsstatus. Hovedmålet er
+fortsatt aktivt/uoppnådd: **13PASS/3FAIL/4UNKNOWN**, alle6globale treningsflagg
+false. Ingen aktiv tung jobb; nye engangsplaner er konsumert/stengt.
+
+### Målt full barskanning og bevist årsak
+
+M5s tidligere full-source-integritet (416råsvar/18parts/13felt+tid) ble
+hashverifisert og gjenbrukt; ingen ny full M5-nedlasting/dekoding.
+160navngitte practice-candle-GET hentet M15/H1/H4/D1 for hele historikken,
+UTC22-fase, usmoothet MBA. Første svar er gjenbrukt etter en konkret Python3.10
+nanosekundparserfeil; bare de159resterende intervallene ble hentet.
+Ingen retry av det allerede mottatte intervallet. Originalfeil/kvitteringer
+bevares. Preflight-kontroller fant/rettet også returgrid, credentialproveniens,
+HTTP-telling, sammenhengende intervaller og metadata-/publiseringsgrenser.
+Ingen trenings-/modellkode ble endret av dette.
+
+Fullskanning001/002 målte de følgende avvikene i den gamle filtrerte
+referansen. ALLE avvik var2009–2019; ingen2020–juni2026/2021–25TRAIN.
+
+| TF | Gamle manglende barer | Gamle ulike felt | Rettede kvalifiserte barer | Mangler/ekstra/ulike felt etterpå |
+|---|---:|---:|---:|---:|
+| M15 | 1353 | 0 | 407462 | 0/0/0 |
+| H1 | 1250 | 0 | 103604 | 0/0/0 |
+| H4 | 616 | 391 | 27042 | 0/0/0 |
+| D1 | 229 | 362 | 4645 | 0/0/0 |
+
+Årsaken er nå målt, ikke antatt:105av416råchunks,13079668komprimerte bytes,
+312084råcandler. Alle beholdte råfelt+tid ble eksakt avstemt mot original
+canonical; kun1410observerte M5-candler som gammel ukefilter-v2 fjernet,
+med1855ticks, ble gjenopprettet. Alle fire opprinnelige før-ledgere ble
+bit-/verdiekvivalent gjenskapt. Bare disse1410tilleggene fjernet SAMTLIGE
+manglende/ekstra/pris-/volumavvik mot de ferske providerbarene.
+
+Ny **separat provider-observasjonsreferanse**: virtuelle1216923aktive M5-rader
+(original18parts+1410delta), samt fire korrigerte Parquet-tabeller.
+542753høyereTF-barer ×13felt = **7055789eksakte numeriske sammenligninger**.
+Parquet ble strict-load-kontrollert før atomisk publisering og lest tilbake.
+CPU-restaurering30,731s/4G/512M/éntråd; alle source/input/policy/boot-bookends PASS.
+Ingen NN/fit/optimizer/TEST eller syntetiske prisfyllinger.
+
+Første/siste delvise TF-bøtter er bevart som eksplisitte randbarer med flagg
+og ledger, ikke telt som fulle sertifiserte providerbarer. Den ene M5-baren
+med availability eksakt ved TEST-sealet er fortsatt utelatt fra aktivt domene.
+Åpning/slutt-fakta og forgjenger videreføres sammenhengende over årsskifter;
+ukjent første forgjenger og tvetydig side blir aldri tvunget til FLAT.
+
+### Aktiv grense og neste nødvendige arbeid
+
+Det gamle ukefilteret var et uttrykkelig kildevalg mot historiske/stale
+helgequotes, ikke en påvist feil i resample-aritmetikken. Gjenfunne provider-
+observasjoner beviser ikke handel, historisk markedsåpning eller alle quotes.
+**Eksisterende modellfeatures, native kilde, v2targets, prior, baseline og
+checkpoints er uendret.** Rettet observasjonsreferanse er ikke innrømmet som
+nye modellinputs. Historiske endringer kan påvirke senere rekurrente features.
+
+For native all-TF-HLC-dekning: bygg en eksplisitt etterfølger i eksisterende
+provider-HLC-/objective-/loader-eiere, autentiser hver TF-respons og moden
+målbares faktiske HLC, behold nominal/window-complete/sourcegap/ATR-maskene,
+og kvalifiser ny målidentitet, matchet prior, fersk initialbaseline og kald
+replay før admisjon. Gamle D1-v2-ruter/gater svekkes ikke. Dette er neste
+konkrete mål-/datakvalifisering, ingen ny fit her. Den kildekvalifiserte
+membership-fullfitplanen er fortsatt upublisert/stengt; tekniske CP er aldri
+initializer. Gjenbruk ferdig barparitet; ingen ny160requests/fullscan uten
+konkret ny kilde-/domeneendring.
+
+Åpne grenser:03historisk kalender/quote-tilgjengelighet,07source-known/asof,
+09makro first-vintage/publisering,11/12markedskompletthet/representativitet,
+15UP-skjevhet/proper-score og19senere generalisering. Den gamle17870gap-
+oppgaven er ikke automatisk løst av provider-HLC. De354550×5v2målcellene og
+875kjente D1-sidemål er fortsatt uendrede målregnskap, ikke råbarantall.
+Åtte genuine familier, alle5TF/makro og M1/GC/TEST-grensene består.
+
+Bindende ny aksept:
+`/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_OBSERVED_BAR_REPAIR_ACCEPTANCE_20261125_001.json`
+SHAc0a8f96567b808bd07548e84429abc78d4e6b2af38d477ab81ca892d51c84a61.
+Resultatrot: `/home/andre2/GX1_RUNS/RESTORED_NATIVE_BAR_OBSERVATIONS_20261125_001`.
+Tidligere overtakelsesbevis er bevart, ikke omskrevet til nytt PASS.
+Alle889nyeoriginal-/resultat-/kode-/plan-/loggfiler339733541B er sikret på
+separat Mac-disk. Arkiv75631575B og samtlige medlemmer er uavhengig SHA-/
+F_FULLFSYNC-/faktisk-diskleseverifisert. BACKUP_RECEIPT: lokalt
+`/Users/andrekildalbakke/GX1_BACKUP/ALL_TF_BAR_REPAIR_20261125_001/BACKUP_RECEIPT.json`,
+serverkvittering `OBSERVED_BAR_REPAIR_SEPARATE_DISK_BACKUP_20261125_001.json`.
+<!-- END GX1 CROSS TF COVERAGE HANDOVER 20261125 -->
+
 ## Aktivt mål og grenser
 
 Brukeren23.11 bestilte20kvalifikasjonssteg og rettelser. Chatmålet

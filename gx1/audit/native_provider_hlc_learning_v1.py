@@ -830,13 +830,21 @@ def physical_all_tf(plan,binding,pref,live,*,order_scope=None):
  order_root=ALL_TF_ROOT;canonical_schedule=plan['schedule']
  if order_scope is not None:
   from gx1.audit import native_provider_hlc_block_order_v1 as order
+# BEGIN GX1 ROW MEMBERSHIP ENGINE 20261125 001 MAIN_MODULE
+  if type(order_scope)is dict and order_scope.get('module')=='gx1.audit.native_provider_hlc_row_membership_fit_v1':
+   from gx1.audit import native_provider_hlc_row_membership_fit_v1 as order
+# END GX1 ROW MEMBERSHIP ENGINE 20261125 001 MAIN_MODULE
   order_root=order.require_engine_scope(order_scope,plan,binding,'main');canonical_schedule=plan['schedule']['canonical_schedule']
 # END GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_SCOPE
  began=time.monotonic();counts=dict.fromkeys(plan['limits'],0);context=adapter.load_context(plan['metadata']);counts['feature_cache_payload_loads']=counts['target_archive_loads']=1
  batches=core.all_score_batches(np.arange(len(context['source_rows']),dtype=np.int64),plan['recipe']['train_batch_rows']);need(len(batches)==plan['schedule']['logical_batches'],'FULL_CLOCK_BATCHES')
  for j,take in enumerate(batches):need(core.digest(context['source_rows'][take])==canonical_schedule['batch_source_rows_sha256'][j]and core.digest(context['truth']['issue_ns'][take])==canonical_schedule['batch_issue_ns_sha256'][j],'WHOLE_CLOCK_BINDING')
 # BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_BATCHES
- if order_scope is not None:batches=order.resolve_batches(context,plan['schedule'])
+# BEGIN GX1 ROW MEMBERSHIP ENGINE 20261125 001 MAIN_BATCHES
+ if order_scope is not None:
+  if order_scope.get('module')=='gx1.audit.native_provider_hlc_row_membership_fit_v1':batches=order.resolve_batches(context,plan['schedule'],counts)
+  else:batches=order.resolve_batches(context,plan['schedule'])
+# END GX1 ROW MEMBERSHIP ENGINE 20261125 001 MAIN_BATCHES
 # END GX1 BLOCK ORDER ENGINE 20261124 001 MAIN_BATCHES
  core.future_cuda_seed_and_runtime({'recipe':plan['recipe'],'metadata':{'runtime':live}})
  model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=context['input_binding'],architecture=plan['metadata']['architecture'],device=torch.device('cuda'),train_prior=context['prior'],target_contract=context['target_contract'],backbone_gradient_policy=None);counts['model_constructions']=1
@@ -901,13 +909,21 @@ def physical_all_tf_resume(plan,binding,pref,live,*,order_scope=None):
  canonical_schedule=original['schedule']
  if order_scope is not None:
   from gx1.audit import native_provider_hlc_block_order_v1 as order
+# BEGIN GX1 ROW MEMBERSHIP ENGINE 20261125 001 RESUME_MODULE
+  if type(order_scope)is dict and order_scope.get('module')=='gx1.audit.native_provider_hlc_row_membership_fit_v1':
+   from gx1.audit import native_provider_hlc_row_membership_fit_v1 as order
+# END GX1 ROW MEMBERSHIP ENGINE 20261125 001 RESUME_MODULE
   output=order.require_engine_scope(order_scope,plan,binding,'resume');phase_recovery=True;canonical_schedule=original['schedule']['canonical_schedule']
 # END GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_SCOPE
  context=adapter.load_context(original['metadata']);counts['feature_cache_payload_loads']=counts['target_archive_loads']=1
  batches=core.all_score_batches(np.arange(len(context['source_rows']),dtype=np.int64),original['recipe']['train_batch_rows']);need(len(batches)==original['schedule']['logical_batches'],'RESUME_FULL_CLOCK_BATCHES')
  for j,take in enumerate(batches):need(core.digest(context['source_rows'][take])==canonical_schedule['batch_source_rows_sha256'][j]and core.digest(context['truth']['issue_ns'][take])==canonical_schedule['batch_issue_ns_sha256'][j],'RESUME_WHOLE_CLOCK_BINDING')
 # BEGIN GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_BATCHES
- if order_scope is not None:batches=order.resolve_batches(context,original['schedule'])
+# BEGIN GX1 ROW MEMBERSHIP ENGINE 20261125 001 RESUME_BATCHES
+ if order_scope is not None:
+  if order_scope.get('module')=='gx1.audit.native_provider_hlc_row_membership_fit_v1':batches=order.resolve_batches(context,original['schedule'],counts)
+  else:batches=order.resolve_batches(context,original['schedule'])
+# END GX1 ROW MEMBERSHIP ENGINE 20261125 001 RESUME_BATCHES
 # END GX1 BLOCK ORDER ENGINE 20261124 001 RESUME_BATCHES
  core.future_cuda_seed_and_runtime({'recipe':original['recipe'],'metadata':{'runtime':live}})
  model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=context['input_binding'],architecture=original['metadata']['architecture'],device=torch.device('cuda'),train_prior=context['prior'],target_contract=context['target_contract'],backbone_gradient_policy=None);counts['model_constructions']=1

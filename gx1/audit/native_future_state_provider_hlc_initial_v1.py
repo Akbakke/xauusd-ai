@@ -233,14 +233,18 @@ SEG_COUNT_KEYS=tuple(ALL_LIMITS)+('output_archive_write_calls','output_archive_r
 
 def segment_guard_anchor():
  return {n:hashlib.sha256(subprocess.check_output(['git','show',SEG_PARENT+':'+n],cwd=REPO)).hexdigest()for n in ('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')}
-def segment_paths(sha):
- need(type(sha)is str and len(sha)==64 and all(c in '0123456789abcdef'for c in sha),'SEGMENT_SHA');return SEG_ROOT/'PLANS'/(sha+'.json'),SEG_ROOT/('SEGMENT_'+sha)
+def segment_paths(sha,*,base_root=None):
+ base_root=SEG_ROOT if base_root is None else base_root;need(base_root in (SEG_ROOT,V3_ROOT),'SEGMENT_BASE_ROOT')
+ need(type(sha)is str and len(sha)==64 and all(c in '0123456789abcdef'for c in sha),'SEGMENT_SHA');return base_root/'PLANS'/(sha+'.json'),base_root/('SEGMENT_'+sha)
 def segment_publish(root,name,obj):
  raw=obj if isinstance(obj,bytes)else(json.dumps(obj,sort_keys=True,indent=2,allow_nan=False)+'\n').encode();path=root/name;_publish_bytes(path,raw);return ref(path)
 def segment_gate(binding,admitted):
  return {'status':'ADMITTED_EXACT_INITIAL_SCORE_SEGMENT'if admitted else'PREPARED_NOT_ADMITTED','plan':binding,'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':False,'optimizer_authorized':False,'test_authorized':False}
-def segment_limits(cursor,first):
- need(type(cursor)is int and 0<=cursor<=BATCHES,'SEGMENT_CURSOR');n=BATCHES-cursor;result=dict.fromkeys(SEG_COUNT_KEYS,0);result.update(model_constructions=1,feature_cache_payload_loads=1,v2_truth_archive_loads=1,truth_fields_decoded=14,model_forwards=n,backbone_forwards=n,readout_forwards=n,new_checkpoint_writes=int(first),new_checkpoint_readbacks=int(first),output_archive_write_calls=n,output_archive_readbacks=n,completed_batch_receipt_write_calls=n,committed_batches=n,prefix_output_archive_loads=cursor);return result
+def segment_limits(cursor,first,*,v3=False):
+ count_keys=V3_COUNT_KEYS if v3 else SEG_COUNT_KEYS
+ need(type(cursor)is int and 0<=cursor<=BATCHES,'SEGMENT_CURSOR');n=BATCHES-cursor;result=dict.fromkeys(count_keys,0);result.update(model_constructions=1,feature_cache_payload_loads=1,v2_truth_archive_loads=1,truth_fields_decoded=14,model_forwards=n,backbone_forwards=n,readout_forwards=n,new_checkpoint_writes=int(first),new_checkpoint_readbacks=int(first),output_archive_write_calls=n,output_archive_readbacks=n,completed_batch_receipt_write_calls=n,committed_batches=n,prefix_output_archive_loads=cursor)
+ if v3:result.update(in_memory_checkpoint_strict_loads=int(first),in_memory_output_archive_strict_loads=n)
+ return result
 
 def build_base_plan(runtime,source_commit=None):
  from gx1.contracts.gx1_capped_execution_v1 import native_provider_hlc_all_tf_initial_segment_source_bridge
@@ -265,25 +269,28 @@ def build_base_plan(runtime,source_commit=None):
  return {'schema_version':'gx1_native_provider_hlc_all_tf_resumable_initial_base_plan_v1','stage':SEG_STAGE,'source_commit':source_commit or runtime['source_commit'],'source_owners':{n:ref(REPO/n)['sha256']for n in sorted(names)},'source_bridge':native_provider_hlc_all_tf_initial_segment_source_bridge(segment_guard_anchor(),producer_commit=SEG_PARENT),'inputs':inputs,'metadata':meta,'model_contract':model_contract,'execution':SEG_EXECUTION,'uninterrupted_reference_limits':ALL_LIMITS,'logical_coverage':{'rows':ROWS,'batches':BATCHES,'batch_rows':BATCH,'last_rows':LAST},'recipe':{'seed':SEED,'batch_rows':BATCH,'batches':BATCHES,'last_rows':LAST,'rows':ROWS,'shuffle':False,'drop_last':False,'backbone_gradient_policy':None,'no_optimization':True},'output_root':str(SEG_ROOT),'input_budget':{'feature_arrays':27,'feature_ndarray_bytes':feature_bytes,'v2_truth_arrays':14,'v2_truth_ndarray_bytes':50700650,'full_original_30array_target_loads':0},'reference_initial':reference_receipt,'reference_model_contract':reference_plan['model_contract'],'backbone_gradient_policy':None,'scope_ref':SEG_DESIGN,'scope':'Actual fresh explicitNone v2 NN INITIAL across all354550TRAIN issues and all5TF/allgenuineinputs; notfit,optimizerreplay,learning,generalization,calendar/vintage or edge. Analyticprior or a smallprobe cannotreplace actual fullforward coverage.'}
 
 def segment_validate_header(plan,base,binding):
+ _scope=initial_version_scope(base);SEG_BASE_PLAN,SEG_ROOT,SEG_STAGE,SEG_BASE_SCHEMA,SEG_SCHEMA,ALL_CONTRACT_SHA,DATASET,PRIOR,SEG_COUNT_KEYS=(_scope[k]for k in ('base_plan','root','stage','base_schema','schema','model_sha','dataset','prior','count_keys'))
  expected_inputs={**base['inputs'],'base_plan':binding}
  if plan['parent_terminal']is not None:expected_inputs.update(parent_terminal=plan['parent_terminal'],initial_receipt=plan['initial_receipt'])
  need(plan['inputs']==expected_inputs and {k:v for k,v in plan['metadata'].items()if k!='runtime'}=={k:v for k,v in base['metadata'].items()if k!='runtime'}and plan['source_bridge']==base['source_bridge'],'SEGMENT_SAME_INPUT_VALUE_FUNCTION')
  need(plan['schema_version']==SEG_SCHEMA and plan['stage']==SEG_STAGE and plan['base_plan']==binding and plan['base_root']==str(SEG_ROOT)and plan['recipe']==base['recipe']==SEG_RECIPE and plan['model_contract']==base['model_contract']and plan['execution']==base['execution']==SEG_EXECUTION and plan['source_owners']==base['source_owners']and 'output_root'not in plan and 'plan_path'not in plan,'SEGMENT_HEADER')
- need(plan['initial_mode']==('first_fresh'if plan['parent_terminal']is None else'fresh_compare')and (plan['parent_terminal']is not None or plan['prefix']=={'cursor':0,'rows_done':0,'head':None}and plan['initial_receipt']is None)and plan['limits']==segment_limits(plan['prefix']['cursor'],plan['initial_mode']=='first_fresh'),'SEGMENT_LIMITS')
+ need(plan['initial_mode']==('first_fresh'if plan['parent_terminal']is None else'fresh_compare')and (plan['parent_terminal']is not None or plan['prefix']=={'cursor':0,'rows_done':0,'head':None}and plan['initial_receipt']is None)and plan['limits']==segment_limits(plan['prefix']['cursor'],plan['initial_mode']=='first_fresh',v3=_scope['v3']),'SEGMENT_LIMITS')
 
 def segment_closed_parent(base_ref,parent_terminal_ref):
+ base=read(base_ref)
+ _scope=initial_version_scope(base);SEG_BASE_PLAN,SEG_ROOT,SEG_STAGE,SEG_BASE_SCHEMA,SEG_SCHEMA,ALL_CONTRACT_SHA,DATASET,PRIOR,SEG_COUNT_KEYS=(_scope[k]for k in ('base_plan','root','stage','base_schema','schema','model_sha','dataset','prior','count_keys'))
  need(base_ref['path']==str(SEG_BASE_PLAN),'FIXED_BASE_PLAN');base=read(base_ref);need(base['schema_version']==SEG_BASE_SCHEMA and base['stage']==SEG_STAGE and base['output_root']==str(SEG_ROOT)and base['model_contract']['contract_sha256']==ALL_CONTRACT_SHA and 'backbone_gradient_policy'not in base['model_contract'],'FIXED_BASE_IDENTITY');empty={'cursor':0,'rows_done':0,'head':None}
  if parent_terminal_ref is None:return {'prefix':empty,'initial_receipt':None,'initial':None,'segments':[],'receipts':[]}
  nodes=[];seen=set();current=parent_terminal_ref
  while current is not None:
-  root=Path(current['path']).parent;sha=root.name.removeprefix('SEGMENT_');pp,expected=segment_paths(sha);need(root==expected and Path(current['path'])==root/'TERMINAL.json'and sha not in seen,'PARENT_FIXED_ROOT');seen.add(sha)
+  root=Path(current['path']).parent;sha=root.name.removeprefix('SEGMENT_');pp,expected=segment_paths(sha,base_root=SEG_ROOT);need(root==expected and Path(current['path'])==root/'TERMINAL.json'and sha not in seen,'PARENT_FIXED_ROOT');seen.add(sha)
   terminal=read(current);binding={'path':str(pp),'sha256':sha};plan=read(binding);segment_validate_header(plan,base,base_ref);claim=read(terminal['claim']);closure=read(terminal['closure_proof'])
   need(terminal['status']in ('COMPLETE','FAILED_CONSUMED')and terminal['exit_code']==(0 if terminal['status']=='COMPLETE'else 1)and terminal['plan']==binding and terminal['base_plan']==base_ref and terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False and terminal['claim']['path']==str(root/'CLAIM.json')and terminal['closure_proof']['path']==str(root/'CLOSURE_PROOF.json'),'CLOSED_PARENT_TERMINAL')
   need(claim['plan']==binding and claim['base_plan']==base_ref and closure['plan']==binding and closure['base_plan']==base_ref and closure['claim']==terminal['claim']and closure['policy']==claim['policy']and closure['status']=='CLOSED_SEGMENT_REUSE_PROOF_PASS'and all(closure[k]is True for k in ('source_inputs_unchanged','policy_unchanged','physical_boot_unchanged','wsl_boot_unchanged','model_RNG_grad_unchanged','M1_firewall_clear')),'CLOSED_PARENT_PROOFS')
   need(closure['prefix_before']==plan['prefix']and closure['prefix_after']==terminal['prefix']and closure['initial_receipt']==terminal['initial_receipt']and set(closure['counts'])==set(SEG_COUNT_KEYS)and all(type(n)is int and 0<=n<=plan['limits'][k]for k,n in closure['counts'].items()),'CLOSED_PARENT_COUNTS')
   need(closure['prefix_after']['cursor']>=plan['prefix']['cursor']and closure['counts']['committed_batches']==closure['prefix_after']['cursor']-plan['prefix']['cursor'],'CLOSED_PARENT_PROGRESS')
   if terminal['status']=='COMPLETE':
-   completed=read(terminal['result']);need(terminal['result']['path']==str(root/'RESULT.json')and completed['status']=='COMPLETE_NATIVE_PROVIDER_HLC_ALL_TF_SEGMENTED_WHOLE_TRAIN_INITIAL'and completed['plan']==base_ref and completed['execution_plan']==binding and completed['claim']==terminal['claim']and completed['report']['whole_TRAIN_initialbaseline_qualified']is True and completed['report']['counts']==closure['counts']and terminal['prefix']['cursor']==BATCHES,'COMPLETE_SEGMENT_RESULT')
+   completed=read(terminal['result']);need(terminal['result']['path']==str(root/'RESULT.json')and completed['status']==_scope['result_status']and completed['plan']==base_ref and completed['execution_plan']==binding and completed['claim']==terminal['claim']and completed['report']['whole_TRAIN_initialbaseline_qualified']is True and completed['report']['counts']==closure['counts']and terminal['prefix']['cursor']==BATCHES,'COMPLETE_SEGMENT_RESULT')
   declared_initial=read(closure['initial_receipt']);need(closure['model_RNG_proof']['model_state_sha256']==declared_initial['model_state_sha256']and closure['model_RNG_proof']['rng_sha256']==declared_initial['rng_sha256']and closure['model_RNG_proof']['gradients_none']is True and closure['model_RNG_proof']['fresh_constructor_no_weight_load']is True,'CLOSED_PARENT_MODEL_RNG_PROOF')
   core.future_cpu_parent_stopped(claim['process_identity']);core.future_cuda_runtime_matches(plan['metadata']['runtime'],claim['runtime'])
   nodes.append({'plan':binding,'claim':terminal['claim'],'terminal':current,'closure_proof':terminal['closure_proof'],'counts':closure['counts'],'elapsed_seconds':terminal['elapsed_seconds'],'prefix_before':plan['prefix'],'prefix_after':terminal['prefix'],'initial_receipt':terminal['initial_receipt'],'runtime':claim['runtime']});current=plan['parent_terminal']
@@ -296,7 +303,7 @@ def segment_closed_parent(base_ref,parent_terminal_ref):
  records=[];head=previous['head'];cursor=previous['cursor'];owners={n['plan']['sha256']:n for n in nodes}
  need(type(cursor)is int and 0<=cursor<=BATCHES and previous['rows_done']==min(cursor*BATCH,ROWS)and(head is None)==(cursor==0),'PREFIX_CURSOR')
  while head is not None:
-  receipt=read(head);event=receipt['event'];execution=receipt['execution_plan'];pp,root=segment_paths(execution['sha256']);node=owners.get(execution['sha256']);left=(cursor-1)*BATCH;right=min(cursor*BATCH,ROWS)
+  receipt=read(head);event=receipt['event'];execution=receipt['execution_plan'];pp,root=segment_paths(execution['sha256'],base_root=SEG_ROOT);node=owners.get(execution['sha256']);left=(cursor-1)*BATCH;right=min(cursor*BATCH,ROWS)
   need(node is not None and execution==node['plan']and head['path']==str(root/('BATCH_%04d.json'%cursor))and receipt['schema_version']=='gx1_native_provider_hlc_initial_score_batch_receipt_v1'and receipt['base_plan']==base_ref and receipt['claim']==node['claim']and node['prefix_before']['cursor']<cursor<=node['prefix_after']['cursor'],'PREFIX_RECEIPT_AUTHORITY')
   need(event['batch_cursor']==event['batch']['cursor']==cursor and event['left']==left and event['right']==event['rows_done']==event['batch']['rows_done']==right and event['batch']['rows']==right-left and event['rows_total']==ROWS and event['batch_count']==BATCHES and event['model_state_sha256']==initial['model_state_sha256']and event['rng_sha256']==initial['rng_sha256']and event['gradients_none']is True,'PREFIX_BATCH_PROOF')
   need(cursor!=node['prefix_after']['cursor']or head==node['prefix_after']['head'],'PREFIX_CLOSED_HEAD')
@@ -306,27 +313,37 @@ def segment_closed_parent(base_ref,parent_terminal_ref):
  need(cursor==0,'PREFIX_NO_HOLES');records.reverse();return {'prefix':previous,'initial_receipt':initial_ref,'initial':initial,'segments':nodes,'receipts':records}
 
 def build_segment_plan(runtime,base_plan_ref,parent_terminal_ref=None,source_commit=None):
- need(base_plan_ref['path']==str(SEG_BASE_PLAN),'FIXED_BASE_PLAN');base=read(base_plan_ref);need(base==build_base_plan(base['metadata']['runtime'],base['source_commit']),'EXACT_BASE_PLAN');core.future_cuda_require_runtime(runtime)
+ base=read(base_plan_ref)
+ _scope=initial_version_scope(base);SEG_BASE_PLAN,SEG_ROOT,SEG_STAGE,SEG_BASE_SCHEMA,SEG_SCHEMA,ALL_CONTRACT_SHA,DATASET,PRIOR,SEG_COUNT_KEYS=(_scope[k]for k in ('base_plan','root','stage','base_schema','schema','model_sha','dataset','prior','count_keys'))
+ need(base_plan_ref['path']==str(SEG_BASE_PLAN),'FIXED_BASE_PLAN');base=read(base_plan_ref);need(base==rebuild_initial_base(base),'EXACT_BASE_PLAN');core.future_cuda_require_runtime(runtime)
  need(all(runtime[k]==base['metadata']['runtime'][k]for k in ('gpu','library_versions')),'SAME_CUDA_VALUE_FUNCTION');parent=segment_closed_parent(base_plan_ref,parent_terminal_ref);prefix=parent['prefix'];first=parent_terminal_ref is None
  inputs={**base['inputs'],'base_plan':base_plan_ref}
  if not first:inputs.update(parent_terminal=parent_terminal_ref,initial_receipt=parent['initial_receipt'])
  meta=dict(base['metadata']);meta['runtime']=runtime
- return {'schema_version':SEG_SCHEMA,'stage':SEG_STAGE,'source_commit':source_commit or runtime['source_commit'],'source_owners':base['source_owners'],'source_bridge':base['source_bridge'],'base_plan':base_plan_ref,'base_root':str(SEG_ROOT),'parent_terminal':parent_terminal_ref,'prefix':prefix,'initial_mode':'first_fresh'if first else'fresh_compare','initial_receipt':parent['initial_receipt'],'metadata':meta,'model_contract':base['model_contract'],'recipe':SEG_RECIPE,'execution':SEG_EXECUTION,'limits':segment_limits(prefix['cursor'],first),'inputs':inputs,'authority':'ZERO_UPDATE_ACTUAL_INITIAL_SCORE_ONLY_NO_FIT_OR_RELAUNCH'}
+ return {'schema_version':SEG_SCHEMA,'stage':SEG_STAGE,'source_commit':source_commit or runtime['source_commit'],'source_owners':base['source_owners'],'source_bridge':base['source_bridge'],'base_plan':base_plan_ref,'base_root':str(SEG_ROOT),'parent_terminal':parent_terminal_ref,'prefix':prefix,'initial_mode':'first_fresh'if first else'fresh_compare','initial_receipt':parent['initial_receipt'],'metadata':meta,'model_contract':base['model_contract'],'recipe':SEG_RECIPE,'execution':SEG_EXECUTION,'limits':segment_limits(prefix['cursor'],first,v3=_scope['v3']),'inputs':inputs,'authority':'ZERO_UPDATE_ACTUAL_INITIAL_SCORE_ONLY_NO_FIT_OR_RELAUNCH'}
 
 def segment_check_sources_inputs(plan):
  check_sources_inputs(plan);base=read(plan['base_plan']);need(all(ref(REPO/n)['sha256']==d for n,d in base['source_owners'].items()),'BASE_SOURCES_FROZEN');segment_closed_parent(plan['base_plan'],plan['parent_terminal'])
 
-def inspect_segment(sha,admitted):
- pp,root=segment_paths(sha);binding={'path':str(pp),'sha256':sha};plan=read(binding);need(plan==build_segment_plan(plan['metadata']['runtime'],plan['base_plan'],plan['parent_terminal'],plan['source_commit']),'EXACT_SEGMENT_PLAN');segment_check_sources_inputs(plan);pref=ref(POLICY);policy=read(pref);validate_flags(policy);need(policy[SEG_STAGE]==segment_gate(binding,admitted),'ONE_USE_SEGMENT_GATE');need(not root.exists()and not root.is_symlink()and not(SEG_ROOT/'RESULT.json').exists(),'FRESH_SEGMENT_ROOT')
- first=plan['initial_mode']=='first_fresh';need(first==(not(SEG_ROOT/'INITIAL.json').exists())and(first or plan['initial_receipt']is not None),'EXPLICIT_FIRST_OR_RESUME');need(not first or not(SEG_ROOT/'INITIAL.pt').exists(),'FRESH_INITIAL_PATH');live=core.collect_future_cuda_runtime_metadata();core.future_cuda_runtime_matches(plan['metadata']['runtime'],live);return plan,binding,pref,live
+def inspect_segment(sha,admitted,*,v3=False):
+ pp,root=segment_paths(sha,base_root=V3_ROOT if v3 else SEG_ROOT);binding={'path':str(pp),'sha256':sha};plan=read(binding);scope=initial_version_scope(plan);need(scope['v3']is v3,'EXACT_SEGMENT_CLI_GENERATION');need(plan==build_segment_plan(plan['metadata']['runtime'],plan['base_plan'],plan['parent_terminal'],plan['source_commit']),'EXACT_SEGMENT_PLAN');segment_check_sources_inputs(plan);pref=ref(POLICY);policy=read(pref);validate_flags(policy)
+ if v3:need(policy.get('exit_training_and_evaluation_this_wave')is False,'V3_EXIT_GATE_CLOSED')
+ need(policy[scope['stage']]==segment_gate(binding,admitted),'ONE_USE_SEGMENT_GATE');need(not root.exists()and not root.is_symlink()and not(scope['root']/'RESULT.json').exists(),'FRESH_SEGMENT_ROOT');first=plan['initial_mode']=='first_fresh';need(first==(not(scope['root']/'INITIAL.json').exists())and(first or plan['initial_receipt']is not None),'EXPLICIT_FIRST_OR_RESUME');need(not first or not(scope['root']/'INITIAL.pt').exists(),'FRESH_INITIAL_PATH');live=core.collect_future_cuda_runtime_metadata();core.future_cuda_runtime_matches(plan['metadata']['runtime'],live);return plan,binding,pref,live
 
 def segment_publish_batch(plan,binding,claim,event,outputs,previous_receipt,*,counts=None):
- root=segment_paths(binding['sha256'])[1];cursor=event['batch_cursor'];need(plan['prefix']['cursor']<cursor<=BATCHES and set(outputs)=={'activity_logits','side_logits'}and event['gradients_none']is True,'COMMIT_DOMAIN');headers={}
+ _scope=initial_version_scope(plan);SEG_BASE_PLAN,SEG_ROOT,SEG_STAGE,SEG_BASE_SCHEMA,SEG_SCHEMA,ALL_CONTRACT_SHA,DATASET,PRIOR,SEG_COUNT_KEYS=(_scope[k]for k in ('base_plan','root','stage','base_schema','schema','model_sha','dataset','prior','count_keys'))
+ root=segment_paths(binding['sha256'],base_root=SEG_ROOT)[1];cursor=event['batch_cursor'];need(plan['prefix']['cursor']<cursor<=BATCHES and set(outputs)=={'activity_logits','side_logits'}and event['gradients_none']is True,'COMMIT_DOMAIN');headers={}
  for key,value in outputs.items():
   need(isinstance(value,np.ndarray)and value.dtype==np.float32 and value.shape==(event['right']-event['left'],5)and np.isfinite(value).all()and core.digest(value)==event['batch']['output_sha256'][key],'COMMIT_OUTPUT');headers[key]={'dtype':value.dtype.str,'shape':list(value.shape),'sha256':core.digest(value)}
- stream=io.BytesIO();np.savez(stream,**outputs)
+ stream=io.BytesIO();np.savez(stream,**outputs);serialized=stream.getvalue()
+ if _scope['v3']:
+  if counts is not None:counts['in_memory_output_archive_strict_loads']+=1
+  with np.load(io.BytesIO(serialized),allow_pickle=False)as checked:
+   need(set(checked.files)==set(headers),'PREPUBLICATION_OUTPUT_INVENTORY')
+   for key,header in headers.items():
+    value=checked[key];need(value.dtype.str==header['dtype']and list(value.shape)==header['shape']and core.digest(value)==header['sha256'],'PREPUBLICATION_OUTPUT_BYTES')
  if counts is not None:counts['output_archive_write_calls']+=1
- archive=segment_publish(root,'BATCH_%04d.npz'%cursor,stream.getvalue());stream.close()
+ archive=segment_publish(root,'BATCH_%04d.npz'%cursor,serialized);stream.close()
  if counts is not None:counts['output_archive_readbacks']+=1
  with np.load(archive['path'],allow_pickle=False)as saved:
   need(set(saved.files)==set(outputs),'OUTPUT_READBACK_KEYS')
@@ -350,24 +367,30 @@ def load_segment_prefix(plan,context,*,counts=None):
   batches.append(event['batch'])
  return {'rows_done':rows,'batches':batches,'outputs':outputs}
 
-def segment_compare_fresh(model,initial_receipt):
- need(model.research_objective['contract_sha256']==ALL_CONTRACT_SHA and 'backbone_gradient_policy'not in model.research_objective and core.state_sha(model.state_dict())==initial_receipt['model_state_sha256']and core.state_sha(core.training_rng())==initial_receipt['rng_sha256']and all(p.grad is None for p in model.parameters())and model.training is True,'SEGMENT_FRESH_SAME_STATE_RNG');return {'model_state_sha256':initial_receipt['model_state_sha256'],'rng_sha256':initial_receipt['rng_sha256'],'gradients_none':True,'fresh_constructor_no_weight_load':True,'constructor_training_mode_restored':True}
+def segment_compare_fresh(model,initial_receipt,*,model_contract_sha256=None):
+ contract_sha=ALL_CONTRACT_SHA if model_contract_sha256 is None else model_contract_sha256
+ need(model.research_objective['contract_sha256']==contract_sha and 'backbone_gradient_policy'not in model.research_objective and core.state_sha(model.state_dict())==initial_receipt['model_state_sha256']and core.state_sha(core.training_rng())==initial_receipt['rng_sha256']and all(p.grad is None for p in model.parameters())and model.training is True,'SEGMENT_FRESH_SAME_STATE_RNG');return {'model_state_sha256':initial_receipt['model_state_sha256'],'rng_sha256':initial_receipt['rng_sha256'],'gradients_none':True,'fresh_constructor_no_weight_load':True,'constructor_training_mode_restored':True}
 
 def segment_write_initial_checkpoint(model,base,binding,live,counts):
+ _scope=initial_version_scope(base);SEG_BASE_PLAN,SEG_ROOT,SEG_STAGE,SEG_BASE_SCHEMA,SEG_SCHEMA,ALL_CONTRACT_SHA,DATASET,PRIOR,SEG_COUNT_KEYS=(_scope[k]for k in ('base_plan','root','stage','base_schema','schema','model_sha','dataset','prior','count_keys'))
  import torch
  state={k:x.detach().cpu().clone()for k,x in model.state_dict().items()};rng=core.training_rng();cp={'schema_version':'gx1_native_provider_hlc_fresh_initial_checkpoint_v1','plan':binding,'model_contract':base['model_contract'],'input_binding':base['metadata']['input_binding'],'normalization':base['metadata']['normalization'],'prior':PRIOR,'dataset':DATASET,'target_contract':base['metadata']['target_contract'],'truth_sha256':base['metadata']['truth_sha256'],'seed':SEED,'runtime':live,'model_state':state,'model_state_sha256':core.state_sha(state),'rng_state':rng,'training':model.training,'optimizer':None,'optimizer_updates':0,'authority':'INITIAL_ONLY_NO_FIT_OR_RESUME_AUTHORITY'}
- stream=io.BytesIO();torch.save(cp,stream);checkpoint=segment_publish(SEG_ROOT,'INITIAL.pt',stream.getvalue());stream.close();counts['new_checkpoint_writes']+=1;checked=torch.load(checkpoint['path'],map_location='cpu',weights_only=True);counts['new_checkpoint_readbacks']+=1;need(core.state_sha(checked)==core.state_sha(cp)and core.state_sha(model.state_dict())==cp['model_state_sha256']and core.state_sha(core.training_rng())==core.state_sha(rng),'SEGMENT_INITIAL_FULL_TREE_READBACK')
+ stream=io.BytesIO();torch.save(cp,stream);serialized=stream.getvalue()
+ if _scope['v3']:
+  counts['in_memory_checkpoint_strict_loads']+=1;memory=torch.load(io.BytesIO(serialized),map_location='cpu',weights_only=True);need(set(memory)==set(cp)and core.state_sha(memory)==core.state_sha(cp),'PREPUBLICATION_INITIAL_FULL_INVENTORY_STATE_RNG')
+ checkpoint=segment_publish(SEG_ROOT,'INITIAL.pt',serialized);stream.close();counts['new_checkpoint_writes']+=1;checked=torch.load(checkpoint['path'],map_location='cpu',weights_only=True);counts['new_checkpoint_readbacks']+=1;need(core.state_sha(checked)==core.state_sha(cp)and core.state_sha(model.state_dict())==cp['model_state_sha256']and core.state_sha(core.training_rng())==core.state_sha(rng),'SEGMENT_INITIAL_FULL_TREE_READBACK')
  return segment_publish(SEG_ROOT,'INITIAL.json',{'schema_version':cp['schema_version'],'plan':binding,'checkpoint':checkpoint,'checkpoint_tree_sha256':core.state_sha(cp),'model_state_sha256':cp['model_state_sha256'],'rng_sha256':core.state_sha(rng),'model_contract_sha256':base['model_contract']['contract_sha256'],'target_contract_sha256':base['metadata']['target_contract']['contract_sha256'],'optimizer_updates':0,'initial_only':True})
 
 def segment_physical(plan,binding,claim,live,progress):
+ _scope=initial_version_scope(plan);SEG_BASE_PLAN,SEG_ROOT,SEG_STAGE,SEG_BASE_SCHEMA,SEG_SCHEMA,ALL_CONTRACT_SHA,DATASET,PRIOR,SEG_COUNT_KEYS=(_scope[k]for k in ('base_plan','root','stage','base_schema','schema','model_sha','dataset','prior','count_keys'))
  import torch
  from gx1.audit import native_future_state_provider_hlc_baseline_v1 as adapter
  from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_future_state_model
  base=read(plan['base_plan']);counts=dict.fromkeys(SEG_COUNT_KEYS,0);progress.update(phase='LOAD_UNCHANGED_INPUTS',counts=counts,prefix=dict(plan['prefix']),initial_receipt=plan['initial_receipt']);context=adapter.load_context(plan['metadata']);counts.update(feature_cache_payload_loads=1,v2_truth_archive_loads=1,truth_fields_decoded=14);prefix=load_segment_prefix(plan,context,counts=counts);core.future_cuda_seed_and_runtime({'recipe':SEG_RECIPE,'metadata':{'runtime':live}})
  model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=plan['metadata']['input_binding'],architecture=plan['metadata']['architecture'],device=torch.device('cuda'),train_prior=context['prior'],target_contract=plan['metadata']['target_contract'],backbone_gradient_policy=None);counts['model_constructions']=1;need(model.research_objective==base['model_contract'],'SEGMENT_MODEL_IDENTITY')
  if plan['initial_mode']=='first_fresh':
-  all_tf_compare_fresh_reference(model,base);progress['initial_receipt']=segment_write_initial_checkpoint(model,base,plan['base_plan'],live,counts)
- initial=read(progress['initial_receipt']);fresh=segment_compare_fresh(model,initial);hooks=[]
+  (None if _scope['v3']else all_tf_compare_fresh_reference(model,base));progress['initial_receipt']=segment_write_initial_checkpoint(model,base,plan['base_plan'],live,counts)
+ initial=read(progress['initial_receipt']);fresh=segment_compare_fresh(model,initial,model_contract_sha256=ALL_CONTRACT_SHA);hooks=[]
  def counter(key):
   def tick(*args):counts[key]+=1;need(counts[key]<=plan['limits'][key],'SEGMENT_FORWARD_CAP')
   return tick
@@ -379,10 +402,11 @@ def segment_physical(plan,binding,claim,live,progress):
   need(counts==plan['limits']and progress['prefix']['cursor']==BATCHES and score['actual_NN_forward_rows']==ROWS and score['initial_prior_exact']is True,'SEGMENT_COMPLETE_COUNTS_COVERAGE');need(torch.cuda.max_memory_reserved()<=SEG_EXECUTION['cuda_peak_reserved_bytes_max'],'SEGMENT_VRAM_CAP');progress['score']=score;return {'initial':score,'fresh_constructor':fresh,'cuda_peak_reserved_bytes':int(torch.cuda.max_memory_reserved()),'process_peak_RSS_KiB':int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)}
  finally:
   for hook in hooks:hook.remove()
-  progress['model_RNG_proof']={**segment_compare_fresh(model,initial),'model_RNG_grad_unchanged':True}
+  progress['model_RNG_proof']={**segment_compare_fresh(model,initial,model_contract_sha256=ALL_CONTRACT_SHA),'model_RNG_grad_unchanged':True}
 
 def segment_durable_prefix(plan,binding,claim,initial_ref):
- prefix=dict(plan['prefix']);root=segment_paths(binding['sha256'])[1];initial=read(initial_ref)
+ _scope=initial_version_scope(plan);SEG_BASE_PLAN,SEG_ROOT,SEG_STAGE,SEG_BASE_SCHEMA,SEG_SCHEMA,ALL_CONTRACT_SHA,DATASET,PRIOR,SEG_COUNT_KEYS=(_scope[k]for k in ('base_plan','root','stage','base_schema','schema','model_sha','dataset','prior','count_keys'))
+ prefix=dict(plan['prefix']);root=segment_paths(binding['sha256'],base_root=SEG_ROOT)[1];initial=read(initial_ref)
  for cursor in range(prefix['cursor']+1,BATCHES+1):
   path=root/('BATCH_%04d.json'%cursor)
   if not path.exists():break
@@ -394,22 +418,26 @@ def segment_durable_prefix(plan,binding,claim,initial_ref):
  return prefix
 
 def segment_bookends(plan,binding,pref,live,progress,claim):
+ _scope=initial_version_scope(plan);SEG_BASE_PLAN,SEG_ROOT,SEG_STAGE,SEG_BASE_SCHEMA,SEG_SCHEMA,ALL_CONTRACT_SHA,DATASET,PRIOR,SEG_COUNT_KEYS=(_scope[k]for k in ('base_plan','root','stage','base_schema','schema','model_sha','dataset','prior','count_keys'))
  errors=[];flags={}
  if progress.get('initial_receipt')is not None and 'counts'in progress:
   try:progress['prefix']=segment_durable_prefix(plan,binding,claim,progress['initial_receipt']);progress['counts']['committed_batches']=progress['prefix']['cursor']-plan['prefix']['cursor']
   except BaseException as error:errors.append('durable_prefix:'+type(error).__name__+':'+str(error)[:500])
- for key,check in (('source_inputs_unchanged',lambda:(need(ref(segment_paths(binding['sha256'])[0])==binding,'SEGMENT_PLAN_BOOKEND'),segment_check_sources_inputs(plan))),('policy_unchanged',lambda:need(ref(POLICY)==pref,'SEGMENT_POLICY_BOOKEND')),('physical_boot_unchanged',lambda:need(core.physical_windows_boot_id()==live['physical_windows_boot_id'],'SEGMENT_PHYSICAL_BOOT')),('wsl_boot_unchanged',lambda:need(Path('/proc/sys/kernel/random/boot_id').read_text().strip()==live['wsl_boot_id'],'SEGMENT_WSL_BOOT')),('M1_firewall_clear',lambda:need(core.common.firewall_state()['denied_attempts']==0,'SEGMENT_M1_FIREWALL'))):
+ for key,check in (('source_inputs_unchanged',lambda:(need(ref(segment_paths(binding['sha256'],base_root=SEG_ROOT)[0])==binding,'SEGMENT_PLAN_BOOKEND'),segment_check_sources_inputs(plan))),('policy_unchanged',lambda:need(ref(POLICY)==pref,'SEGMENT_POLICY_BOOKEND')),('physical_boot_unchanged',lambda:need(core.physical_windows_boot_id()==live['physical_windows_boot_id'],'SEGMENT_PHYSICAL_BOOT')),('wsl_boot_unchanged',lambda:need(Path('/proc/sys/kernel/random/boot_id').read_text().strip()==live['wsl_boot_id'],'SEGMENT_WSL_BOOT')),('M1_firewall_clear',lambda:need(core.common.firewall_state()['denied_attempts']==0,'SEGMENT_M1_FIREWALL'))):
   try:check();flags[key]=True
   except BaseException as error:flags[key]=False;errors.append(key+':'+type(error).__name__+':'+str(error)[:500])
  flags['model_RNG_grad_unchanged']=progress.get('model_RNG_proof',{}).get('model_RNG_grad_unchanged')is True
  return {'schema_version':'gx1_native_provider_hlc_initial_segment_closure_v1','status':'CLOSED_SEGMENT_REUSE_PROOF_PASS'if all(flags.values())and not errors and progress.get('initial_receipt')else'CLOSED_SEGMENT_REUSE_PROOF_FAILED','plan':binding,'base_plan':plan['base_plan'],'claim':claim,'policy':pref,'prefix_before':plan['prefix'],'prefix_after':progress.get('prefix',plan['prefix']),'initial_receipt':progress.get('initial_receipt'),'counts':progress.get('counts',dict.fromkeys(SEG_COUNT_KEYS,0)),'model_RNG_proof':progress.get('model_RNG_proof'),'elapsed_before_bookends_seconds':progress.get('elapsed_seconds'),'errors':errors,**flags}
 
-def run_segment(sha):
- from gx1.contracts.gx1_capped_execution_v1 import require_native_provider_hlc_all_tf_initial_segment_execution
+def run_segment(sha,*,v3=False):
+ if v3:
+  from gx1.contracts.gx1_capped_execution_v1 import require_native_all_tf_provider_hlc_v3_initial_segment_execution as require_execution
+ else:
+  from gx1.contracts.gx1_capped_execution_v1 import require_native_provider_hlc_all_tf_initial_segment_execution as require_execution
  began=time.monotonic()
  def stopped(*_):raise TimeoutError('INITIAL_SEGMENT_WALL_OR_SIGNAL')
  for sig in (signal.SIGALRM,signal.SIGTERM,signal.SIGINT):signal.signal(sig,stopped)
- signal.setitimer(signal.ITIMER_REAL,SEG_EXECUTION['internal_seconds']);guard=require_native_provider_hlc_all_tf_initial_segment_execution(plan_sha256=sha);plan,binding,pref,live=inspect_segment(sha,True);root=segment_paths(sha)[1];need(guard['plan']==binding and guard['output_root']==str(root),'SEGMENT_EXACT_GUARD');root.mkdir(exist_ok=False);claim=segment_publish(root,'CLAIM.json',{'plan':binding,'base_plan':plan['base_plan'],'policy':pref,'runtime':live,'process_identity':core.future_cpu_process_identity(),'remaining_invocations':0,'relaunch_allowed':False,'training_authorized':False});progress={'phase':'CLAIMED','prefix':plan['prefix'],'initial_receipt':plan['initial_receipt']};closure_ref=None;execution_result_ref=None;terminal_ref=None
+ signal.setitimer(signal.ITIMER_REAL,SEG_EXECUTION['internal_seconds']);guard=require_execution(plan_sha256=sha);plan,binding,pref,live=inspect_segment(sha,True,v3=v3);_scope=initial_version_scope(plan);SEG_ROOT=_scope['root'];SEG_COUNT_KEYS=_scope['count_keys'];root=segment_paths(sha,base_root=SEG_ROOT)[1];need(guard['plan']==binding and guard['output_root']==str(root),'SEGMENT_EXACT_GUARD');root.mkdir(exist_ok=False);claim=segment_publish(root,'CLAIM.json',{'plan':binding,'base_plan':plan['base_plan'],'policy':pref,'runtime':live,'process_identity':core.future_cpu_process_identity(),'remaining_invocations':0,'relaunch_allowed':False,'training_authorized':False});progress={'phase':'CLAIMED','prefix':plan['prefix'],'initial_receipt':plan['initial_receipt']};closure_ref=None;execution_result_ref=None;terminal_ref=None
  try:
   import torch
   parent=segment_closed_parent(plan['base_plan'],plan['parent_terminal']);allowed={plan['inputs'][k]['path']for k in ('feature_archive','target_arrays')}|{r['archive']['path']for _,r in parent['receipts']}|{str(root/('BATCH_%04d.npz'%j))for j in range(plan['prefix']['cursor']+1,BATCHES+1)}|{str(SEG_ROOT/'INITIAL.pt')}
@@ -424,7 +452,7 @@ def run_segment(sha):
   measurement=segment_physical(plan,binding,claim,live,progress);progress['elapsed_seconds']=time.monotonic()-began;closure=segment_bookends(plan,binding,pref,live,progress,claim);closure_ref=segment_publish(root,'CLOSURE_PROOF.json',closure);need(closure['status']=='CLOSED_SEGMENT_REUSE_PROOF_PASS','SEGMENT_COMPLETION_BOOKENDS')
   parent=segment_closed_parent(plan['base_plan'],plan['parent_terminal']);history=parent['segments'];total={k:sum(node['counts'][k]for node in history)+progress['counts'][k]for k in SEG_COUNT_KEYS};initial=read(progress['initial_receipt']);segments=[{k:node[k]for k in ('plan','claim','terminal','closure_proof','counts')}for node in history]+[{'plan':binding,'claim':claim,'closure_proof':closure_ref,'counts':progress['counts']}]
   report={**measurement,'whole_TRAIN_initialbaseline_qualified':True,'initial_checkpoint':progress['initial_receipt'],'initial_state_sha256':initial['model_state_sha256'],'initial_rng_sha256':initial['rng_sha256'],'backbone_gradient_policy':None,'unique_complete_batches':BATCHES,'actual_NN_forward_rows':ROWS,'counts':progress['counts'],'physical_execution_counts':total,'segments':segments,'physical_elapsed_seconds_across_segments':sum(node['elapsed_seconds']for node in history)+time.monotonic()-began,'source_inputs_unchanged_across_segments':True,'each_segment_policy_boot_unchanged':True,'optimizer_replay_qualified':False,'learning_qualified':False,'later_generalization':'UNKNOWN','economic_edge':'UNKNOWN'}
-  result_obj={'status':'COMPLETE_NATIVE_PROVIDER_HLC_ALL_TF_SEGMENTED_WHOLE_TRAIN_INITIAL','plan':plan['base_plan'],'execution_plan':binding,'claim':claim,'report':report,'elapsed_seconds':time.monotonic()-began,'source_inputs_unchanged_across_segments':True,'each_segment_policy_boot_unchanged':True,'test_data_used':False}
+  result_obj={'status':_scope['result_status'],'plan':plan['base_plan'],'execution_plan':binding,'claim':claim,'report':report,'elapsed_seconds':time.monotonic()-began,'source_inputs_unchanged_across_segments':True,'each_segment_policy_boot_unchanged':True,'test_data_used':False}
   execution_result_ref=segment_publish(root,'RESULT.json',result_obj)
   terminal_ref=segment_publish(root,'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'plan':binding,'base_plan':plan['base_plan'],'claim':claim,'result':execution_result_ref,'closure_proof':closure_ref,'elapsed_seconds':time.monotonic()-began,'prefix':progress['prefix'],'initial_receipt':progress['initial_receipt'],'remaining_invocations':0,'relaunch_allowed':False})
   report={**report,'segments':segments[:-1]+[{**segments[-1],'terminal':terminal_ref,'result':execution_result_ref}]}
@@ -449,7 +477,53 @@ def main_segment():
 
 # End durable all-TF INITIAL segments.
 
+# Exact V3 scope; the consumed V2 durable worker keeps its original defaults.
+V3_COUNT_KEYS=SEG_COUNT_KEYS+('in_memory_checkpoint_strict_loads','in_memory_output_archive_strict_loads')
+V3_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001';V3_STAGE=V3_NAME.lower();V3_BASE_PLAN=REPO/'configs/research'/(V3_NAME+'.json');V3_ROOT=Path('/home/andre2/GX1_RUNS')/V3_NAME
+V3_PARENT='8fd74a76cc45ac7306da4b905c82e9cd9b12976d';V3_BASE_SCHEMA='gx1_native_all_tf_provider_hlc_v3_resumable_initial_base_plan_v1';V3_SEG_SCHEMA='gx1_native_all_tf_provider_hlc_v3_initial_segment_plan_v1';V3_RESULT_STATUS='COMPLETE_NATIVE_ALL_TF_PROVIDER_HLC_V3_SEGMENTED_WHOLE_TRAIN_INITIAL'
+def initial_version_scope(value=None):
+ from types import MappingProxyType
+ schema=None if value is None else value.get('schema_version');v3=schema in (V3_BASE_SCHEMA,V3_SEG_SCHEMA)
+ need(value is None or v3 or schema in (SEG_BASE_SCHEMA,SEG_SCHEMA),'INITIAL_EXACT_GENERATION')
+ if v3:
+  hlc.require_all_tf_provider_hlc_state_contract(value['metadata']['target_contract']);need(value['stage']==V3_STAGE and value.get('output_root',value.get('base_root'))==str(V3_ROOT),'V3_FIXED_SCOPE')
+ return MappingProxyType({'v3':v3,'base_plan':V3_BASE_PLAN if v3 else SEG_BASE_PLAN,'root':V3_ROOT if v3 else SEG_ROOT,'stage':V3_STAGE if v3 else SEG_STAGE,'base_schema':V3_BASE_SCHEMA if v3 else SEG_BASE_SCHEMA,'schema':V3_SEG_SCHEMA if v3 else SEG_SCHEMA,'model_sha':value['model_contract']['contract_sha256']if v3 else ALL_CONTRACT_SHA,'count_keys':V3_COUNT_KEYS if v3 else SEG_COUNT_KEYS,'dataset':value['metadata']['dataset']if v3 else DATASET,'prior':value['metadata']['prior']if v3 else PRIOR,'result_status':V3_RESULT_STATUS if v3 else'COMPLETE_NATIVE_PROVIDER_HLC_ALL_TF_SEGMENTED_WHOLE_TRAIN_INITIAL'})
+
+def v3_guard_anchor():
+ return {n:hashlib.sha256(subprocess.check_output(['git','show',V3_PARENT+':'+n],cwd=REPO)).hexdigest()for n in ('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')}
+
+def build_v3_base_plan(runtime,*,dataset_ref,prior_ref,target_acceptance_ref,source_commit=None):
+ from gx1.contracts.gx1_capped_execution_v1 import native_all_tf_provider_hlc_v3_initial_source_bridge
+ from gx1.contracts.market_state_ta_integrated_model_v1 import native_future_state_model_contract
+ from gx1.contracts.market_state_ta_integrated_objective_v1 import require_native_future_state_train_prior
+ core.future_cuda_require_runtime(runtime);main=read(MAIN);old=main['metadata'];data=read(dataset_ref);target=hlc.require_all_tf_provider_hlc_state_contract(data['contract']);prior=require_native_future_state_train_prior(read(prior_ref),target_contract=target);acceptance=read(target_acceptance_ref)
+ need(acceptance['status']=='PASS_ALL_TF_PROVIDER_HLC_TARGET_AND_PRIOR_QUALIFICATION'and acceptance['dataset']==dataset_ref and acceptance['prior']==prior_ref,'V3_TARGET_PRIOR_ACCEPTANCE')
+ need(data['schema_version']==hlc.ALL_TF_SCHEMA and data['base_dataset']==hlc.ALL_TF_SOURCE_BINDINGS['base_dataset']and data['base_targets']==hlc.ALL_TF_SOURCE_BINDINGS['base_targets']and data['native_manifest']==hlc.ALL_TF_SOURCE_BINDINGS['native_manifest']and data['cutoff_ns']==hlc.TRAIN_UPPER_NS and data['model_input']is False,'V3_TARGET_DATASET')
+ cert=hlc.require_all_tf_provider_hlc_certificate_ref(data['target_observation_certificate_ref']);pop=prior['fit_population'];need(pop['issue_rows']==ROWS and pop['issue_ns_sha256']==hlc.TRAIN_ISSUE_SHA256 and pop['cutoff_ns']==hlc.TRAIN_UPPER_NS,'V3_NEW_PRIOR_POPULATION')
+ snapshot=read(old['source_snapshot']);norm=read(old['normalization']);meta={k:old[k]for k in ('source_snapshot','normalization','input_binding_ref','input_binding','architecture','native_manifest')};meta.update(dataset=dataset_ref,prior=prior_ref,target_contract=target,truth_sha256=pop['truth_sha256'],TRAIN_rows=ROWS,TRAIN_issue_ns_sha256=hlc.TRAIN_ISSUE_SHA256,runtime=runtime)
+ need(read(meta['input_binding_ref'])==meta['input_binding']and meta['input_binding']['input_normalization_sha256']==norm['contract_sha256'],'V3_UNCHANGED_INPUT_NORMALIZATION_BINDING')
+ inputs={'original_MAIN_plan':MAIN,'source_snapshot':meta['source_snapshot'],'normalization':meta['normalization'],'input_binding_ref':meta['input_binding_ref'],'feature_archive':snapshot['archive'],'dataset':dataset_ref,'target_arrays':data['arrays'],'new_prior':prior_ref,'certificate':{k:cert[k]for k in ('path','sha256')},'target_acceptance':target_acceptance_ref,**{k:hlc.ALL_TF_SOURCE_BINDINGS[k]for k in ('provider_manifest','restoration_result','m5_raw_integrity_acceptance')}}
+ provider_manifest=read(hlc.ALL_TF_SOURCE_BINDINGS['provider_manifest']);provider_raw=[item['response']for entries in provider_manifest['provider_responses'].values()for item in entries];need(len(provider_raw)==len({x['path']for x in provider_raw})==160,'V3_CERTIFICATE_RESPONSE_INVENTORY');inputs.update({'provider_raw_response_%03d'%j:value for j,value in enumerate(provider_raw)})
+ names=set(main['source_owners'])|{SELF,HELPER,HELPER_TEST,GUARD_TEST,ALL_TEST,'tests/test_native_future_state_provider_hlc_v3_adapters.py','tests/test_native_all_tf_provider_hlc_v3_guard_v1.py','gx1/audit/native_provider_hlc_replay_v1.py','tests/test_native_provider_hlc_replay_v1.py','tests/test_native_provider_hlc_replay_guard_v1.py','gx1/contracts/native_future_state_provider_hlc_v1.py','tests/test_native_future_state_provider_hlc_all_tf_v3.py'}
+ headers=snapshot['arrays'];feature_bytes=sum(int(np.prod(x['shape']))*np.dtype(x['dtype']).itemsize for x in headers.values());need(len(headers)==27 and feature_bytes==1433216758,'V3_UNCHANGED_FEATURE_ARRAY_BUDGET');truth_bytes=sum(int(np.prod(x['shape']))*np.dtype(x['dtype']).itemsize for x in data['array_headers'].values());need(len(data['array_headers'])==14,'V3_TRUTH_INVENTORY')
+ model_contract=native_future_state_model_contract(meta['input_binding'],architecture=meta['architecture'],train_prior=prior,target_contract=target,backbone_gradient_policy=None)
+ return {'schema_version':V3_BASE_SCHEMA,'stage':V3_STAGE,'source_commit':source_commit or runtime['source_commit'],'source_owners':{n:ref(REPO/n)['sha256']for n in sorted(names)},'source_bridge':native_all_tf_provider_hlc_v3_initial_source_bridge(v3_guard_anchor(),producer_commit=V3_PARENT),'inputs':inputs,'metadata':meta,'model_contract':model_contract,'execution':SEG_EXECUTION,'uninterrupted_reference_limits':ALL_LIMITS,'logical_coverage':{'rows':ROWS,'batches':BATCHES,'batch_rows':BATCH,'last_rows':LAST},'recipe':dict(SEG_RECIPE),'output_root':str(V3_ROOT),'input_budget':{'feature_arrays':27,'feature_ndarray_bytes':feature_bytes,'V3_truth_arrays':14,'V3_truth_ndarray_bytes':truth_bytes,'certificate_response_files':len(provider_raw),'certificate_response_bytes':sum(Path(x['path']).stat().st_size for x in provider_raw)},'backbone_gradient_policy':None,'scope':'OwnfreshnewpriorV3INITIAL;unchangednativefeatures/norm;all354550TRAINactualNNforwards/zerooptimization;noV2tensorreferenceoroldCPinitializer.'}
+
+def rebuild_initial_base(base):
+ if base.get('schema_version')==V3_BASE_SCHEMA:
+  return build_v3_base_plan(base['metadata']['runtime'],dataset_ref=base['metadata']['dataset'],prior_ref=base['metadata']['prior'],target_acceptance_ref=base['inputs']['target_acceptance'],source_commit=base['source_commit'])
+ return build_base_plan(base['metadata']['runtime'],base['source_commit'])
+
+def main_v3_segment():
+ p=argparse.ArgumentParser();p.add_argument('--all-tf-v3-score-segment-plan-sha256',required=True);p.add_argument('--preflight',action='store_true');a=p.parse_args();sha=a.all_tf_v3_score_segment_plan_sha256;need(sys.argv[1:]==['--all-tf-v3-score-segment-plan-sha256',sha]+(['--preflight']if a.preflight else[]),'EXACT_V3_SEGMENT_CLI')
+ if a.preflight:
+  plan,binding,pref,live=inspect_segment(sha,False,v3=True);print(json.dumps({'status':'PREFLIGHT_ALL_TF_PROVIDER_HLC_V3_INITIAL_METADATA_ONLY','plan':binding,'policy':pref,'models':0,'payloads_decoded':0,'checkpoint_loads':0,'CUDA_initialized':False,'CLAIM_created':False}))
+ else:print(json.dumps(run_segment(sha,v3=True),sort_keys=True))
+# End exact V3 scope.
+
+
 def main():
+ if sys.argv[1:2]==['--all-tf-v3-score-segment-plan-sha256']:return main_v3_segment()
  if sys.argv[1:2]==['--all-tf-score-segment-plan-sha256']:return main_segment()
  if sys.argv[1:2]==['--all-tf-plan-sha256']:return main_all_tf()
  parser=argparse.ArgumentParser();parser.add_argument('--plan-sha256',required=True);parser.add_argument('--preflight',action='store_true');a=parser.parse_args();need(sys.argv[1:]==['--plan-sha256',a.plan_sha256]+(['--preflight']if a.preflight else[]),'EXACT_CLI')

@@ -448,10 +448,12 @@ def _native_future_state_need(ok, reason):
 
 
 _PROVIDER_HLC_SCHEMA = 'gx1_native_m5_fully_future_state_dataset_v2_provider_hlc'
+from gx1.contracts.native_future_state_provider_hlc_v1 import ALL_TF_SCHEMA as _ALL_TF_PROVIDER_HLC_SCHEMA
+_PROVIDER_HLC_SCHEMAS = (_PROVIDER_HLC_SCHEMA, _ALL_TF_PROVIDER_HLC_SCHEMA)
 
 
 def _native_future_state_spec(target_contract):
-    if type(target_contract) is dict and target_contract.get('schema_version') == _PROVIDER_HLC_SCHEMA:
+    if type(target_contract) is dict and target_contract.get('schema_version') in _PROVIDER_HLC_SCHEMAS:
         from gx1.contracts.native_future_state_provider_hlc_v1 import require_future_state_observation_contract
         return require_future_state_observation_contract(target_contract)
     from gx1.contracts.market_state_native_m5_targets_v1 import require_fully_future_state_contract
@@ -545,6 +547,8 @@ def _native_future_state_truth(truth, *, rows, fold_upper_ns, target_contract):
     known, active = truth['activity_known'], truth['activity']
     side_known, side_up = truth['side_known'], truth['side_up']
     complete, partial = truth['state_window_complete'], truth['partial_range_active']
+    if spec['schema_version'] == _ALL_TF_PROVIDER_HLC_SCHEMA:
+        return _all_tf_provider_hlc_state_masks(truth, shape=shape)
     if spec['schema_version'] == _PROVIDER_HLC_SCHEMA:
         return _provider_hlc_state_masks(truth, shape=shape)
     need(not np.any(complete & ~mature)
@@ -586,10 +590,14 @@ def native_future_state_truth_sha256(truth, *, target_contract):
     keys = ('issue_ns', 'target_start_ns', 'validity_ns', 'target_present', 'mature',
             'nominal_complete', 'state_window_complete', 'partial_range_active',
             'activity_known', 'activity', 'side_known', 'side_up')
-    if spec['schema_version'] != _PROVIDER_HLC_SCHEMA:
+    if spec['schema_version'] not in _PROVIDER_HLC_SCHEMAS:
         return _native_prior_array_sha({key: truth[key] for key in keys})
     from gx1.contracts.native_future_state_provider_hlc_v1 import require_provider_hlc_certificate_ref
-    certificate = require_provider_hlc_certificate_ref(truth.get('target_observation_certificate_ref'))
+    if spec['schema_version'] == _ALL_TF_PROVIDER_HLC_SCHEMA:
+        from gx1.contracts.native_future_state_provider_hlc_v1 import require_all_tf_provider_hlc_certificate_ref
+        certificate = require_all_tf_provider_hlc_certificate_ref(truth.get('target_observation_certificate_ref'))
+    else:
+        certificate = require_provider_hlc_certificate_ref(truth.get('target_observation_certificate_ref'))
     keys += ('provider_hlc_observed', 'state_hlc_observed')
     return _native_prior_seal({'schema_version': 'gx1_native_future_state_provider_hlc_truth_identity_v1',
         'target_contract_sha256': spec['contract_sha256'],
@@ -616,7 +624,7 @@ def native_future_state_loss(*, model_output, truth, fold_upper_ns, target_contr
         'count': int(count), 'skip_update': not bool(count),
         'contract_sha256': native_future_state_objective_contract(
             target_contract=target_contract)['contract_sha256']}
-    if target_contract['schema_version'] == _PROVIDER_HLC_SCHEMA:
+    if target_contract['schema_version'] in _PROVIDER_HLC_SCHEMAS:
         result.update(truth_sha256=native_future_state_truth_sha256(truth, target_contract=target_contract),
                       target_observation_certificate_ref=dict(truth['target_observation_certificate_ref']))
     return result
@@ -662,7 +670,7 @@ def native_future_state_score_sums(*, model_output, truth, fold_upper_ns, target
         'contract_sha256': native_future_state_objective_contract(
             target_contract=target_contract)['contract_sha256'],
         'class_order': ['DOWN', 'FLAT', 'UP'], 'per_tf': report}
-    if target_contract['schema_version'] == _PROVIDER_HLC_SCHEMA:
+    if target_contract['schema_version'] in _PROVIDER_HLC_SCHEMAS:
         result.update(truth_sha256=native_future_state_truth_sha256(truth, target_contract=target_contract),
                       target_observation_certificate_ref=dict(truth['target_observation_certificate_ref']))
     return result
@@ -791,3 +799,26 @@ def native_future_state_train_prior_logits(prior, *, rows, target_contract):
         result[key] = torch.from_numpy(np.broadcast_to(logits.astype(np.float32),
             (rows, len(TIMEFRAMES))).copy())
     return result
+
+
+def _all_tf_provider_hlc_state_masks(truth, *, shape):
+    from gx1.contracts.native_future_state_provider_hlc_v1 import require_all_tf_provider_hlc_certificate_ref
+    need = _native_future_state_need
+    require_all_tf_provider_hlc_certificate_ref(truth.get('target_observation_certificate_ref'))
+    for name in ('provider_hlc_observed', 'state_hlc_observed'):
+        value = truth.get(name)
+        need(isinstance(value, np.ndarray) and value.dtype == np.bool_ and value.shape == shape, 'MASK_' + name)
+    provider, observed = truth['provider_hlc_observed'], truth['state_hlc_observed']
+    mature, complete, partial = truth['mature'], truth['state_window_complete'], truth['partial_range_active']
+    known, active, side, up = truth['activity_known'], truth['activity'], truth['side_known'], truth['side_up']
+    need(not np.any(provider[:, 0]) and np.array_equal(provider[:, 1:], mature[:, 1:])
+         and np.array_equal(complete[:, 0], mature[:, 0])
+         and np.array_equal(observed, complete | provider), 'ALL_TF_PROVIDER_HLC_OBSERVABILITY')
+    need(not np.any(complete & ~mature)
+         and not np.any((truth['nominal_complete'] & mature) & ~complete)
+         and not np.any(known & ~(mature & (observed | partial)))
+         and not np.any(partial & ~(mature & known & active & ~complete))
+         and not np.any(active & ~known)
+         and not np.any(side & ~(known & active & observed))
+         and not np.any(up & ~side), 'STATE_MASKS')
+    return {'activity': known, 'side': side, 'singleton': (known & ~active) | side}

@@ -1173,12 +1173,14 @@ def main():
 
 # Explicit V2 target-only APIs; sealed V1 worker/trajectory functions stay intact.
 def provider_hlc_truth_fields(target_contract):
+    if _provider_hlc_all_tf_v3(target_contract): return all_tf_provider_hlc_truth_fields(target_contract)
     from gx1.contracts.native_future_state_provider_hlc_v1 import require_provider_hlc_state_contract
     require_provider_hlc_state_contract(target_contract)
     return TRUTH + ('provider_hlc_observed', 'state_hlc_observed')
 
 
 def slice_provider_hlc_truth(truth, take, *, target_contract, fold_upper_ns=UPPER):
+    if _provider_hlc_all_tf_v3(target_contract): return slice_all_tf_provider_hlc_truth(truth, take, target_contract=target_contract, fold_upper_ns=fold_upper_ns)
     from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
     from gx1.contracts.native_future_state_provider_hlc_v1 import require_provider_hlc_certificate_ref
     fields = provider_hlc_truth_fields(target_contract)
@@ -1193,6 +1195,7 @@ def slice_provider_hlc_truth(truth, take, *, target_contract, fold_upper_ns=UPPE
 
 def load_provider_hlc_target_truth(dataset_ref, *, expected_issue_ns, target_contract, fold_upper_ns=UPPER):
     """Explicit target-only V2 load; it never gathers features or restores state."""
+    if _provider_hlc_all_tf_v3(target_contract): return load_all_tf_provider_hlc_target_truth(dataset_ref, expected_issue_ns=expected_issue_ns, target_contract=target_contract, fold_upper_ns=fold_upper_ns)
     from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
     from gx1.contracts.native_future_state_provider_hlc_v1 import (
         SOURCE_BINDINGS, authenticate_provider_hlc_certificate_ref, require_provider_hlc_certificate_ref,
@@ -1225,6 +1228,60 @@ def load_provider_hlc_target_truth(dataset_ref, *, expected_issue_ns, target_con
     for key in fields: truth[key].flags.writeable = False
     return truth
 
+
+# Explicit V3 target-only dispatch; V2 certificate behavior remains strict.
+def _provider_hlc_all_tf_v3(target_contract):
+    from gx1.contracts.native_future_state_provider_hlc_v1 import ALL_TF_SCHEMA
+    return type(target_contract) is dict and target_contract.get('schema_version') == ALL_TF_SCHEMA
+
+def all_tf_provider_hlc_truth_fields(target_contract):
+    from gx1.contracts.native_future_state_provider_hlc_v1 import require_all_tf_provider_hlc_state_contract
+    require_all_tf_provider_hlc_state_contract(target_contract)
+    return TRUTH + ('provider_hlc_observed', 'state_hlc_observed')
+
+def slice_all_tf_provider_hlc_truth(truth, take, *, target_contract, fold_upper_ns=UPPER):
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    from gx1.contracts.native_future_state_provider_hlc_v1 import require_all_tf_provider_hlc_certificate_ref
+    fields = all_tf_provider_hlc_truth_fields(target_contract)
+    need(isinstance(take, np.ndarray) and take.dtype == np.int64 and take.ndim == 1 and len(take) > 0
+         and np.all(take >= 0) and np.all(take < len(truth['issue_ns'])), 'ALL_TF_PROVIDER_HLC_SLICE')
+    out = {key: np.ascontiguousarray(truth[key][take]).copy() for key in fields}
+    out['target_observation_certificate_ref'] = require_all_tf_provider_hlc_certificate_ref(truth.get('target_observation_certificate_ref'))
+    objective._native_future_state_truth(out, rows=len(take), fold_upper_ns=fold_upper_ns, target_contract=target_contract)
+    for key in fields: out[key].flags.writeable = False
+    return out
+
+def load_all_tf_provider_hlc_target_truth(dataset_ref, *, expected_issue_ns, target_contract, fold_upper_ns=UPPER):
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    from gx1.contracts import native_future_state_provider_hlc_v1 as hlc
+    fields = all_tf_provider_hlc_truth_fields(target_contract); data = read(dataset_ref)
+    need(data.get('schema_version') == hlc.ALL_TF_SCHEMA and data['contract'] == target_contract and data['model_input'] is False and data['cutoff_ns'] == fold_upper_ns
+         and all(data[k] == hlc.ALL_TF_SOURCE_BINDINGS[k] for k in ('base_dataset', 'base_targets', 'native_manifest')), 'ALL_TF_PROVIDER_DATASET_BINDING')
+    need(isinstance(expected_issue_ns, np.ndarray) and expected_issue_ns.dtype == np.int64
+         and expected_issue_ns.ndim == 1 and len(expected_issue_ns) == TRAIN_ROWS and fold_upper_ns == UPPER
+         and data['TRAIN_issue_ns_sha256'] == array_sha(expected_issue_ns) == TRAIN_SHA, 'ALL_TF_PROVIDER_EXPECTED_CLOCK')
+    certificate = hlc.require_all_tf_provider_hlc_certificate_ref(data['target_observation_certificate_ref'])
+    def bytes_for(binding):
+        raw = Path(binding['path']).read_bytes(); need(hashlib.sha256(raw).hexdigest() == binding['sha256'], 'ALL_TF_PROVIDER_SOURCE_BYTES'); return raw
+    metadata_bytes = bytes_for(certificate)
+    evidence = {k: bytes_for(hlc.ALL_TF_SOURCE_BINDINGS[k]) for k in ('provider_manifest', 'restoration_result', 'm5_raw_integrity_acceptance')}
+    provider_manifest = json.loads(evidence['provider_manifest'])
+    responses = {item['response']['path']: bytes_for(item['response']) for entries in provider_manifest['provider_responses'].values() for item in entries}
+    hlc.authenticate_all_tf_provider_hlc_certificate_ref(certificate, metadata_bytes=metadata_bytes, evidence_bytes=evidence, raw_responses=responses)
+    binding = data['arrays']; need(ref(binding['path']) == binding, 'ALL_TF_PROVIDER_TARGET_ARCHIVE')
+    truth = {}
+    with np.load(binding['path'], allow_pickle=False) as archive:
+        need(set(archive.files) == set(data['array_headers']), 'ALL_TF_PROVIDER_ARRAY_INVENTORY')
+        for key in fields:
+            value = archive[key]; header = data['array_headers'][key]
+            need(value.dtype.str == header['dtype'] and list(value.shape) == header['shape']
+                 and array_sha(value) == header['sha256'], 'ALL_TF_PROVIDER_TRUTH_BYTES:' + key); truth[key] = value
+    truth['target_observation_certificate_ref'] = certificate
+    need(np.array_equal(truth['issue_ns'], expected_issue_ns), 'ALL_TF_PROVIDER_TARGET_CLOCK')
+    objective._native_future_state_truth(truth, rows=len(expected_issue_ns), fold_upper_ns=fold_upper_ns, target_contract=target_contract)
+    for key in fields: truth[key].flags.writeable = False
+    return truth
+# End explicit V3 target-only dispatch.
 
 if __name__=='__main__':
     from gx1.contracts.native_m5_direction_io_firewall_v1 import install_native_m5_direction_io_firewall
