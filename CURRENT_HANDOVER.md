@@ -68,8 +68,33 @@ M5/M15PASSmotalle3refs,H1/H4/D1FAILmotINITIAL/prior. Alle5bedrekronologiskNone.
 er64,283% mot54,492%fasit, nedfra71,997% kronologisk. H4/D1girfortsattbareUP
 vedconditionalargmax. Dette målerordresensitivitet, ikkeunikbiasårsak/valgtfix,
 bidireksjonalgeneralisering elleredge. IngenTF/familie/makro er fjernet.
-Neste: målrestkalibrering moteksisterendekvalifisertebatch-risk/objectivbevis,
-utenågjentauendredeaudit. Ingennyfit/epoke/normalisering/VAL/TEST erinnrømmet.
+RiskREUSE001 SHA42022641 bekrefter samme v2target/prior/loss/B96-komposisjon.
+Konstantreferansens denominatorforskyvning er maks0,0191835pp; gamleM5-primary
+FINALq/derivater og kronologiske nullstøttespenn overføresikke tilnyorder.
+
+JSONdiagnostikk17409ea4 etter design0026838 er COMPLETE,3JSON/4sanity/10analytiske
+TRAINmeanoffsets/168celler/84paredeidentiteter;0NN/CP/NPZ/nett/optimizer.
+Alleprobabilitetsdomener ergyldige utenklipp. Samme pooledROWoffset gjelderalle
+år/D1grupper/beggevektinger. H1/H4/D1s positiveBrier-overtap ligger algebraisk
+i middelavviksleddet; variansleddet erbedreennfrossenprior. Dette erikkefunnet
+unikoptimizer-/representasjonsårsak, perradrescore, NLL, OOF eller valgtfix.
+D1:observertBrier0,256107865, hypotetiskTRAINforskjøvet0,246521325 motprior
+0,247982006. Alle5pooledrow hypotetiskunderprior, men5/74gruppevektceller blir
+verre og13/74 fortsatt bakprior. Forverringene erD1/2025 inklv1_known samtH4/2025.
+RESIDUAL_CALIBRATION_ACCEPTANCE001 binder faktiskCPU/éntråd/4G/180s bevis.
+Faktiske modeller/skårer/20stegsgater eruforandret;15 erFAIL,13PASS/3FAIL/4UNKNOWN.
+Residualdiagnostikkens10artefakter/5871209B inklhjelper/logger/statussnapshot er
+separatMac-disk SHA/F_FULLFSYNC/fsync-verifisert med10diagnostics/10stderr ogmanifest.
+BACKUP001 binder originalsnapshot; etterfølgendeACK/metodegrense/status liggeriGit.
+GammelallTF-CPUmetode erbarelokaldiagnose: M5-primaryFINAL overførttilNone,
+96B1-gradienter summertiF64, bareettD1mål. Saved-CUDA-gaten FAILED:125activity-/
+289sideceller av480; maksdelta1,3923645e-4/3,5881996e-5; full96qualificationfalse.
+Ingenmean-q-/faktiskAdamW-retning målt. Dette kanikke kallesnativenyFINAL/B96-
+kvalifikasjon; toleranserendresikke oggamlegradientverdier overføresikke.
+Neste: kvalifiser minstemulig oppdateringsfri komponentprobe påfaktisknyFINAL;
+blindklokkepanel ogmean-q-spørsmål bindesførfasit. Nydevice-/numerisk-/støtte-/
+kilde-/ressurs-/IOkvalifikasjon krevesførNN/CPlesing. Ingenprobe erinnrømmet;
+ingenparameter-/optimizeroppdatering, fit/epoke/kalibrator/normalisering/VAL/TEST.
 
 Korrigert endpointprobe002 fullførte48,889s ved fryst18c934aa6:12nativeFW,
 2CP/1NN/2strictinstalls/0updates på1526ALLrader i6blinde originalbatcher.
