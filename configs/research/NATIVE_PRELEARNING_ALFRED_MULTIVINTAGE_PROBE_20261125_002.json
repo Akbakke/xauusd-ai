@@ -1,0 +1,62 @@
+{
+  "array_decodes": 0,
+  "automatic_retries": 0,
+  "execution": {
+    "class": "audit",
+    "internal_wall_seconds": 45,
+    "memory": "4G",
+    "outer_wall_seconds": 65,
+    "swap": "512M",
+    "threads": 1
+  },
+  "inputs": {
+    "macro_design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_PRELEARNING_MACRO_EVIDENCE_20261125_001.json",
+      "sha256": "b96e7c132a83bed5b6926bd80bc7a93759e56381f75a3e72c8933d76d2659904"
+    },
+    "predecessor_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_ALFRED_MULTIVINTAGE_PROBE_20261125_001/RESULT.json",
+      "sha256": "485d3cf03457afdd2df39617ce65c0f982956c70c9a160a6847e4f1bbc2b976e"
+    },
+    "single_sample_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_07.json",
+      "sha256": "c247d369bcce4b0104342df55e1d73eb2ba515c2093aea970e0fb6a47f4f2903"
+    },
+    "single_sample_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESULT.json",
+      "sha256": "945d3c011c538b6e94c9223d55cea9070a6db16f4c67bb8de9d9fab3676948d9"
+    }
+  },
+  "max_HTTP_requests": 1,
+  "max_response_body_bytes": 65536,
+  "model_forwards": 0,
+  "redirects": false,
+  "requests": [
+    {
+      "columns": [
+        "DGS2_20201130",
+        "DGS10_20201130",
+        "DFII10_20201130",
+        "DGS2_20201207",
+        "DGS10_20201207",
+        "DFII10_20201207"
+      ],
+      "id": "ALFRED_MULTI_REPEATED_RANGE",
+      "kind": "macro_multi_CSV_candidate",
+      "max_response_bytes": 65536,
+      "timeout_seconds": 20,
+      "url": "https://alfred.stlouisfed.org/graph/alfredgraph.csv?id=DGS2,DGS10,DFII10,DGS2,DGS10,DFII10&vintage_date=2020-11-30,2020-11-30,2020-11-30,2020-12-07,2020-12-07,2020-12-07&cosd=2020-11-30,2020-11-30,2020-11-30,2020-11-30,2020-11-30,2020-11-30&coed=2020-12-04,2020-12-04,2020-12-04,2020-12-04,2020-12-04,2020-12-04"
+    }
+  ],
+  "schema_version": "gx1_alfred_small_multivintage_probe_plan_v1",
+  "scope": "One new different-URL per-line date-vector probe for measured scalar-range failure; no retry of priorURLs/no expansion/no firstvintage or maskpromotion.",
+  "single_sample_raw": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_07.bin",
+    "sha256": "da50b6e17879ce77d1502122dd76ec728b67a9b75dce7df7e1a2c9e8eb77ac9d"
+  },
+  "source_commit": "8c33df291b9cd9403ef8c3f0ba32e75a9518101a",
+  "source_owners": {
+    "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_ALFRED_MULTIVINTAGE_COLLECTOR_20261125_002.py": "1cee57d97690a0109cb3c136e0af927da4e977d4ddcd5070a074700722158f71"
+  },
+  "spending": false
+}

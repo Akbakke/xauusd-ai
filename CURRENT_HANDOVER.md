@@ -6,25 +6,49 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
 terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
 <!-- BEGIN GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
-## Aktivt mål: avklar og rett forutsetningene før neste læringstest
+## Pågående mål: interne rettelser kvalifisert; historiske kildebevis åpne
 
-Brukeren25.11 ba «Ja lag deg et mål og rett opp i alt dette» etter gjennomgang
-av historisk source-known/asof/makro, gjentatte målbarer, låst læringsreview og
-mulig påvirkning fra eldre observasjonshistorikk. Root integrerer policy,
-kode og launch; egne agenter gransker kalender, makro og V3-populasjon/review.
-Bestått V3-fasit/prior/INITIAL/replay gjenbrukes. Ingen hovedfit, TEST, M1/GC,
-spending eller ny featurehistorikk er innrømmet. Alle seks globale flagg er
-false. Eksakt arbeidsstatus: prelearning_validity_remediation_20261125_001.
-Historiske13PASS/3FAIL/4UNKNOWN endres bare med relevante nye bevis.
-Målt blokkering: gammel quality_panels er korrekt D1-v2-avgrenset. Ny tynn
-V3-review gjenbruker binærmatematikken og binder faktisk V3-fasit/prior/INITIAL;
-18 fokuserte syntetiske tester PASS. Faste pooled/rad/målbar/25-årspaneler,
-rangering og deskriptiv kalibrering er låst før eventuell ny læring.
-Neste: bounded CPU-kvalifikasjon med lagrede ekte INITIAL-outputs, samt
-seks små kalenderkilder og én avgrenset nøkkelfri ALFRED-kandidatprobe.
-Ingen ny modell, checkpointdekoding, fit eller endret tapsvekt. En gratis
-FRED/ALFRED-nøkkel eller annen historisk autoritet er etterspurt som tekstlig
-lokasjon; fravær i sjekkede miljøvariabler/.env er ikke globalt fraværsbevis.
+Bruker25.11 ba om mål og rettelse før neste læring. Root eier policy/launch.
+Arbeidsstatus: prelearning_validity_remediation_20261125_001. Alle offentlige
+innhentingsplaner er konsumert/lukket; ingen arbeidere kjører. Ingen hovedfit,
+TEST/M1/GC, live/paper, spending eller input-/maskebitendring. Seks globalflagg
+false. Vitenskapelig status beholdes13PASS/3FAIL/4UNKNOWN; målet er ikke ferdig.
+
+Rettet konkret D1-v2-reviewblokkering med tynn V3-adapter på fem TF.
+18fokuserte tester og faktisk354550rader/1385lagredeINITIAL-batcher PASS:
+kanonisk score er nøyaktig original,0NN/PT/fit. EgenV3-prior, rad-/målbarvekting,
+25fasteTF-årspaneler, rangering og deskriptiv kalibrering er låst. INITIAL er
+priorlik og skal ikke bestå krav om strikt forbedring. Ingen V3-læring bevist.
+
+316 nøkkelfrie ALFRED-GET er ferdige:3755Treasury-primitiver gir2898samsvar,
+856manglerD+1referanse,ettavvik. OriginalTreasury18.05.2022 viser2.89 før
+modellens erklærte bruksgrense; dette enkeltpunktet trenger ingen verdiretting.
+75originale arkivkandidater er forsøkt nøyaktigén gang:73autentiserte sider;
+152celler=93samsvar/ettavvik/54manglenderader/4nettverksukjente. Gzip/CDX-
+representasjonsfeil ble målt og minimalt rettet; råhash kontrolleres før dekoding.
+12parserkontroller er gjenbrukt, nyeksaktscope/uavhengigreview PASS. Ingenretry.
+Siste to20/13-partier fullførte; gamle feilede planer beholdes og relanseres aldri.
+
+Avvik01.04.2022: originalTreasury10Y2.38 var publikt16:10NY, aktivhistorikk2.39;
+ALFRED2.38 vedApr5→2.39 vedApr6. Original2.39 førApr3kl04:00UTC er ukjent.
+Allefem nominal10Y-felt brukerkey påbeggeoverflater; ingeninputpatchpåantakelse.
+93originale samsvar kvalifiserer bare sine punkter. Full61-felts source-known/
+first-vintage/release og eksakt XAU_USD/practice-kalender mangler fortsatt.
+17870klokkeabsenser er uklassifiserte;0fiktivebarer ellerkalenderomklassifiseringer.
+Eldre1410reparerte referansebarer er ikke nye genuineinputs. Nåværende cache/
+normalisering er uendret; eventuell senere funksjonsendring krever nykjede/
+normalisering/ferskINITIAL/replay. change21D følger21rader i mergeddriveraksen.
+
+Samletkvittering: E/PRELEARNING_VALIDITY_REMEDIATION_REVIEW_20261125_001.json.
+E=/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001.
+Råverdiholdige arkivplaner/originaler er private;001s eksakte flytting er bundet
+av PRELEARNING_ARCHIVE_PLAN_PRIVATE_RELOCATION_20261125_001.json. Aldri rådataGit.
+Sluttbackup Mac PRELEARNING_VALIDITY_FINAL_20261125_001 er PASS:1402filer/
+405146553B,allemedlemmerSHA-kontrollert og F_FULLFSYNC. Kvittering E/
+PRELEARNING_FINAL_SEPARATE_DISK_BACKUP_20261125_001.json.18kildetester og
+12collector-kontroller gjenbrukt;11syntaks/15JSON/stale-path0/diff--check PASS.
+Neste: autoritativ historisk markedskalender og kilde-/revisjonsbevis, særlig
+Apr1grensen. Ikke start ny lærings-/innhentingsplan fra gammel engangstillatelse.
 <!-- END GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
 
 <!-- BEGIN GX1 ALL TF V3 TARGET GOAL 20261125 -->

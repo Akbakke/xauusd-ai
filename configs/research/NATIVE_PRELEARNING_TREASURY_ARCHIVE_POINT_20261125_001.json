@@ -1,0 +1,54 @@
+{
+  "active_source_changes_authorized": false,
+  "assets_or_scripts_fetched": 0,
+  "declared_availability_bound": "2022-05-20T04:00:00Z",
+  "earliest_possible_native_issue": "2022-05-20T04:05:00Z",
+  "execution": {
+    "class": "audit",
+    "internal_seconds": 70,
+    "memory": "4G",
+    "outer_seconds": 90,
+    "swap": "512M",
+    "threads": 1
+  },
+  "expected_CDX_digest": "YL32S4KCBR5Q332XKGNRCO6BZIABV3KX",
+  "inputs": {
+    "archive_discovery": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_ARCHIVE_DISCOVERY_20261125_001/RECEIPT.json",
+      "sha256": "77ae6c0938fcfd081c1a76e3f399339100319823efd82443b2bab77bdc668d1f"
+    },
+    "archive_metadata_0": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_ARCHIVE_DISCOVERY_20261125_001/01_MONTHLY_HTML_CDX.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "archive_metadata_1": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_ARCHIVE_DISCOVERY_20261125_001/02_ANNUAL_HTML_CDX.json",
+      "sha256": "53eb0cb78f804d7200642e5c8a2833adfbf3c93b42811bce9d40ce21bad0421b"
+    },
+    "archive_metadata_2": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_ARCHIVE_DISCOVERY_20261125_001/03_ANNUAL_HTML_AVAILABILITY.json",
+      "sha256": "3c5f07fb0b1ae9f187295b7b4d0c051160154c94e11a4e3d9bbf899894d29d8d"
+    },
+    "archive_metadata_3": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/TREASURY_ARCHIVE_DISCOVERY_20261125_001/04_ANNUAL_CSV_CDX.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    "consumed_comparison": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ASOF_REFERENCE_20261125_001/CONSUMED_KEY_COMPARISON.json",
+      "sha256": "25d9590b253a9a0e36ba13f376e737e57612cf8d2cf2e8a0847baa8099e00660"
+    }
+  },
+  "max_HTTP_requests": 1,
+  "max_response_bytes": 2097152,
+  "max_standard_HTTP_decoded_document_bytes": 4194304,
+  "proxies": false,
+  "purpose": "Authenticate one dated original Treasury page before declared model availability, verify CDX raw payload digest and exact May18 10Yr cell. No scope/firstever/general-macro promotion.",
+  "redirects": false,
+  "retries": 0,
+  "schema_version": "gx1_bounded_original_Treasury_archive_point_plan_v1",
+  "source_commit": "8c33df291b9cd9403ef8c3f0ba32e75a9518101a",
+  "source_owners": {
+    "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_ARCHIVE_POINT_COLLECTOR_20261125_001.py": "069a447e0c1a5a29e83b668e7d269cac7a0378b0faa012daed0186238ba30156"
+  },
+  "url": "https://web.archive.org/web/20220520032353id_/https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value=2022"
+}

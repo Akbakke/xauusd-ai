@@ -1,0 +1,84 @@
+{
+  "automatic_retry": false,
+  "execution": {
+    "class": "audit",
+    "internal_seconds": 140,
+    "memory": "4G",
+    "outer_seconds": 170,
+    "swap": "512M",
+    "threads": 1
+  },
+  "financial_payload_body_requests": 0,
+  "inputs": {
+    "nominal_missing_key_manifest": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_NOMINAL_ARCHIVE_METADATA_MANIFEST_20261125_001.json",
+      "sha256": "984dfdb3fdfc9fa5b8dc9f29cbbcca51f96747645ee3503ac199c9d2bb4a5d78"
+    }
+  },
+  "max_HTTP_requests": 6,
+  "max_body_bytes": 3145728,
+  "pagination": false,
+  "redirects": false,
+  "requests": [
+    {
+      "id": "TREASURY_NOMINAL_CDX_2020",
+      "kind": "CDX_metadata",
+      "max_response_bytes": 524288,
+      "original_uri": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value=2020",
+      "timeout_seconds": 20,
+      "url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fhome.treasury.gov%2Fresource-center%2Fdata-chart-center%2Finterest-rates%2FTextView%3Ftype%3Ddaily_treasury_yield_curve%26field_tdr_date_value%3D2020&matchType=exact&from=20200101&to=20210103&output=json&fl=timestamp%2Coriginal%2Cdigest%2Cstatuscode%2Cmimetype&filter=statuscode%3A200&filter=mimetype%3Atext%2Fhtml&limit=2000",
+      "year": 2020
+    },
+    {
+      "id": "TREASURY_NOMINAL_CDX_2021",
+      "kind": "CDX_metadata",
+      "max_response_bytes": 524288,
+      "original_uri": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value=2021",
+      "timeout_seconds": 20,
+      "url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fhome.treasury.gov%2Fresource-center%2Fdata-chart-center%2Finterest-rates%2FTextView%3Ftype%3Ddaily_treasury_yield_curve%26field_tdr_date_value%3D2021&matchType=exact&from=20210101&to=20220103&output=json&fl=timestamp%2Coriginal%2Cdigest%2Cstatuscode%2Cmimetype&filter=statuscode%3A200&filter=mimetype%3Atext%2Fhtml&limit=2000",
+      "year": 2021
+    },
+    {
+      "id": "TREASURY_NOMINAL_CDX_2022",
+      "kind": "CDX_metadata",
+      "max_response_bytes": 524288,
+      "original_uri": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value=2022",
+      "timeout_seconds": 20,
+      "url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fhome.treasury.gov%2Fresource-center%2Fdata-chart-center%2Finterest-rates%2FTextView%3Ftype%3Ddaily_treasury_yield_curve%26field_tdr_date_value%3D2022&matchType=exact&from=20220101&to=20230103&output=json&fl=timestamp%2Coriginal%2Cdigest%2Cstatuscode%2Cmimetype&filter=statuscode%3A200&filter=mimetype%3Atext%2Fhtml&limit=2000",
+      "year": 2022
+    },
+    {
+      "id": "TREASURY_NOMINAL_CDX_2023",
+      "kind": "CDX_metadata",
+      "max_response_bytes": 524288,
+      "original_uri": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value=2023",
+      "timeout_seconds": 20,
+      "url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fhome.treasury.gov%2Fresource-center%2Fdata-chart-center%2Finterest-rates%2FTextView%3Ftype%3Ddaily_treasury_yield_curve%26field_tdr_date_value%3D2023&matchType=exact&from=20230101&to=20240103&output=json&fl=timestamp%2Coriginal%2Cdigest%2Cstatuscode%2Cmimetype&filter=statuscode%3A200&filter=mimetype%3Atext%2Fhtml&limit=2000",
+      "year": 2023
+    },
+    {
+      "id": "TREASURY_NOMINAL_CDX_2024",
+      "kind": "CDX_metadata",
+      "max_response_bytes": 524288,
+      "original_uri": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value=2024",
+      "timeout_seconds": 20,
+      "url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fhome.treasury.gov%2Fresource-center%2Fdata-chart-center%2Finterest-rates%2FTextView%3Ftype%3Ddaily_treasury_yield_curve%26field_tdr_date_value%3D2024&matchType=exact&from=20240101&to=20250103&output=json&fl=timestamp%2Coriginal%2Cdigest%2Cstatuscode%2Cmimetype&filter=statuscode%3A200&filter=mimetype%3Atext%2Fhtml&limit=2000",
+      "year": 2024
+    },
+    {
+      "id": "TREASURY_NOMINAL_CDX_2025",
+      "kind": "CDX_metadata",
+      "max_response_bytes": 524288,
+      "original_uri": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value=2025",
+      "timeout_seconds": 20,
+      "url": "https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fhome.treasury.gov%2Fresource-center%2Fdata-chart-center%2Finterest-rates%2FTextView%3Ftype%3Ddaily_treasury_yield_curve%26field_tdr_date_value%3D2025&matchType=exact&from=20250101&to=20260103&output=json&fl=timestamp%2Coriginal%2Cdigest%2Cstatuscode%2Cmimetype&filter=statuscode%3A200&filter=mimetype%3Atext%2Fhtml&limit=2000",
+      "year": 2025
+    }
+  ],
+  "schema_version": "gx1_bounded_six_annual_Treasury_archive_metadata_plan_v1",
+  "scope": "Candidatearchivecoverageonly570nominalcells/285dates;286realcells excluded. No bodyvalues, sourceinputchanges, scientificpromotion or automaticfinancialbodyfetch.",
+  "source_commit": "8c33df291b9cd9403ef8c3f0ba32e75a9518101a",
+  "source_owners": {
+    "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_NOMINAL_METADATA_COLLECTOR_20261125_001.py": "4659c531f3100d944c8375dfdf1dbcab76c0ba29fad9b1abf76bcd389fde9333"
+  }
+}

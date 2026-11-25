@@ -123,8 +123,31 @@
   },
   "official_sources": [
     {
-      "archive_status": "ROOT_COLLECTION_PENDING_NO_BYTES_OR_HTTP_HEADERS_BOUND",
-      "byte_archive_captured": false,
+      "archive": {
+        "HTTP_Date_as_received": "Wed, 25 Nov 2026 16:29:28 GMT",
+        "HTTP_Date_utc": "2026-11-25T16:29:28+00:00",
+        "HTTP_status": 200,
+        "collection_result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESULT.json",
+          "sha256": "945d3c011c538b6e94c9223d55cea9070a6db16f4c67bb8de9d9fab3676948d9"
+        },
+        "complete_body": true,
+        "content_type": "text/html; charset=utf-8",
+        "observed_utc": "2026-11-25T16:29:27.815070+00:00",
+        "redirect_followed": false,
+        "response_body": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_01.bin",
+          "sha256": "0a5fc79081227e9cef5b1ac9d3d8dd7bb5dcd330a2007e893519c5fa6b85de2e"
+        },
+        "response_bytes": 34938,
+        "response_metadata": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_01.json",
+          "sha256": "2195d17db8ff344caee76404dddb3644458ff29d8ebc882b5355ccf8b9a17140"
+        },
+        "retry_count": 0
+      },
+      "archive_status": "ARCHIVED_PRIMARY_HTML_SEMANTICS_CONFIRMED_PROJECT_FEED_MAPPING_UNPROVEN",
+      "byte_archive_captured": true,
       "id": "OANDA_JP_NY_OUTAGE_START_20211122",
       "limits": [
         "No explicit api-fxpractice.oanda.com mapping.",
@@ -133,6 +156,15 @@
       ],
       "primary_source": true,
       "publication_date": "2021-11-22",
+      "semantic_review": {
+        "XAU_USD_practice_calendar_authority_qualified": false,
+        "checks_passed": 7,
+        "historical_first_vintage_proven": false,
+        "method": "Python standard-library HTMLParser; omit script/style contents, decode UTF-8, collapse whitespace; inspect dated notice/API scope text.",
+        "normalized_visible_text_sha256": "94aee6dd3f2338e0d231ecc0befc1d338c9685d53c7b193a3b3738cad00c526d",
+        "slot_reclassifications": 0,
+        "status": "SUPPORTED_CLAIMS_CONFIRMED_FROM_STORED_HTML_DOMAIN_LIMITS_RETAINED"
+      },
       "supported_facts": "The dated notice reports stopped rate updates on the NY services from trading start; Tokyo server was reported operating normally.",
       "supported_scope": {
         "environment": "live versus practice not specified",
@@ -145,8 +177,31 @@
       "url": "https://www.oanda.jp/info/819"
     },
     {
-      "archive_status": "ROOT_COLLECTION_PENDING_NO_BYTES_OR_HTTP_HEADERS_BOUND",
-      "byte_archive_captured": false,
+      "archive": {
+        "HTTP_Date_as_received": "Wed, 25 Nov 2026 16:29:29 GMT",
+        "HTTP_Date_utc": "2026-11-25T16:29:29+00:00",
+        "HTTP_status": 200,
+        "collection_result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESULT.json",
+          "sha256": "945d3c011c538b6e94c9223d55cea9070a6db16f4c67bb8de9d9fab3676948d9"
+        },
+        "complete_body": true,
+        "content_type": "text/html; charset=utf-8",
+        "observed_utc": "2026-11-25T16:29:28.273586+00:00",
+        "redirect_followed": false,
+        "response_body": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_02.bin",
+          "sha256": "b20b3889feb3340becb382a1bdb4d387025846816d38d3fc3163e758f9dc6a4a"
+        },
+        "response_bytes": 34765,
+        "response_metadata": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_02.json",
+          "sha256": "c6f04cf38b1b9fdb59a1bcea5f4af62a5cc55bf783f39c4e874c04c939676b0a"
+        },
+        "retry_count": 0
+      },
+      "archive_status": "ARCHIVED_PRIMARY_HTML_SEMANTICS_CONFIRMED_PROJECT_FEED_MAPPING_UNPROVEN",
+      "byte_archive_captured": true,
       "id": "OANDA_JP_NY_OUTAGE_RECOVERY_20211122",
       "limits": [
         "09:13 has no explicit timezone on this notice.",
@@ -155,6 +210,15 @@
       ],
       "primary_source": true,
       "publication_date": "2021-11-22",
+      "semantic_review": {
+        "XAU_USD_practice_calendar_authority_qualified": false,
+        "checks_passed": 6,
+        "historical_first_vintage_proven": false,
+        "method": "Python standard-library HTMLParser; omit script/style contents, decode UTF-8, collapse whitespace; inspect dated notice/API scope text.",
+        "normalized_visible_text_sha256": "5c64fb4b213f34159b58adf2e2249b99d8742273da92d52632d3d84e672c5d54",
+        "slot_reclassifications": 0,
+        "status": "SUPPORTED_CLAIMS_CONFIRMED_FROM_STORED_HTML_DOMAIN_LIMITS_RETAINED"
+      },
       "supported_facts": "The recovery notice identifies the same start-of-trading incident and reports recovery at 09:13.",
       "supported_scope": {
         "environment": "live versus practice not specified",
@@ -168,8 +232,31 @@
       "url": "https://www.oanda.jp/info/820"
     },
     {
-      "archive_status": "ROOT_COLLECTION_PENDING_NO_BYTES_OR_HTTP_HEADERS_BOUND",
-      "byte_archive_captured": false,
+      "archive": {
+        "HTTP_Date_as_received": "Wed, 25 Nov 2026 16:29:30 GMT",
+        "HTTP_Date_utc": "2026-11-25T16:29:30+00:00",
+        "HTTP_status": 200,
+        "collection_result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESULT.json",
+          "sha256": "945d3c011c538b6e94c9223d55cea9070a6db16f4c67bb8de9d9fab3676948d9"
+        },
+        "complete_body": true,
+        "content_type": "text/html; charset=utf-8",
+        "observed_utc": "2026-11-25T16:29:29.704306+00:00",
+        "redirect_followed": false,
+        "response_body": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_03.bin",
+          "sha256": "d2ce47bb4f5c2426f36e8e2865042cb1050f0c1e6d782010e1203adb8294fc09"
+        },
+        "response_bytes": 34882,
+        "response_metadata": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_03.json",
+          "sha256": "0be1f0aceac3f6f9114615d11d46d85dccfe7463f746b578cb81941be82caf28"
+        },
+        "retry_count": 0
+      },
+      "archive_status": "ARCHIVED_PRIMARY_HTML_SEMANTICS_CONFIRMED_PROJECT_FEED_MAPPING_UNPROVEN",
+      "byte_archive_captured": true,
       "id": "OANDA_JP_STANDARD_TIME_20211107",
       "limits": [
         "Not a gold daily-session schedule.",
@@ -178,6 +265,15 @@
       ],
       "primary_source": true,
       "publication_date": "2021-11-05",
+      "semantic_review": {
+        "XAU_USD_practice_calendar_authority_qualified": false,
+        "checks_passed": 5,
+        "historical_first_vintage_proven": false,
+        "method": "Python standard-library HTMLParser; omit script/style contents, decode UTF-8, collapse whitespace; inspect dated notice/API scope text.",
+        "normalized_visible_text_sha256": "2e0e9bbd8c1faa2147b5d9a8939e37272a5fb7c75fb156c120795d3765dca828",
+        "slot_reclassifications": 0,
+        "status": "SUPPORTED_CLAIMS_CONFIRMED_FROM_STORED_HTML_DOMAIN_LIMITS_RETAINED"
+      },
       "supported_facts": "The dated notice announces the US standard-time transition on 7 November 2021, moving the published Japanese weekly FX opening and closing clocks from 06:00 to 07:00.",
       "supported_scope": {
         "effective_from": "2021-11-07",
@@ -191,8 +287,31 @@
       "url": "https://www.oanda.jp/info/814"
     },
     {
-      "archive_status": "ROOT_COLLECTION_PENDING_NO_BYTES_OR_HTTP_HEADERS_BOUND",
-      "byte_archive_captured": false,
+      "archive": {
+        "HTTP_Date_as_received": "Wed, 25 Nov 2026 16:29:31 GMT",
+        "HTTP_Date_utc": "2026-11-25T16:29:31+00:00",
+        "HTTP_status": 200,
+        "collection_result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESULT.json",
+          "sha256": "945d3c011c538b6e94c9223d55cea9070a6db16f4c67bb8de9d9fab3676948d9"
+        },
+        "complete_body": true,
+        "content_type": "text/html; charset=utf-8",
+        "observed_utc": "2026-11-25T16:29:30.141127+00:00",
+        "redirect_followed": false,
+        "response_body": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_04.bin",
+          "sha256": "fa238a67e5504cd0f37c757c3be9513c85f5ff743cdb9ee699247b8e2761b060"
+        },
+        "response_bytes": 38392,
+        "response_metadata": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_04.json",
+          "sha256": "3c66fddcae718aad8998b2b11ebcd278083f32b8f120cd0f2bfa7394f63514ae"
+        },
+        "retry_count": 0
+      },
+      "archive_status": "ARCHIVED_PRIMARY_HTML_SEMANTICS_CONFIRMED_PROJECT_FEED_MAPPING_UNPROVEN",
+      "byte_archive_captured": true,
       "id": "OANDA_JP_NY_MAINTENANCE_CORRECTION_20211129",
       "limits": [
         "FX scope; no XAU_USD practice mapping.",
@@ -201,6 +320,15 @@
       ],
       "primary_source": true,
       "publication_date": "2021-11-26",
+      "semantic_review": {
+        "XAU_USD_practice_calendar_authority_qualified": false,
+        "checks_passed": 5,
+        "historical_first_vintage_proven": false,
+        "method": "Python standard-library HTMLParser; omit script/style contents, decode UTF-8, collapse whitespace; inspect dated notice/API scope text.",
+        "normalized_visible_text_sha256": "39b1a37ea1d17e9dd25961d8b809e5c919e979f22ac211a0a2a79d5cd2b03911",
+        "slot_reclassifications": 0,
+        "status": "SUPPORTED_CLAIMS_CONFIRMED_FROM_STORED_HTML_DOMAIN_LIMITS_RETAINED"
+      },
       "supported_facts": "The corrected notice introduces a five-minute NY maintenance interval from 29 November 2021 and explicitly states that rate updates do not occur during that interval.",
       "supported_scope": {
         "effective_from": "2021-11-29",
@@ -217,8 +345,31 @@
       "url": "https://www.oanda.jp/info/821"
     },
     {
-      "archive_status": "ROOT_COLLECTION_PENDING_NO_BYTES_OR_HTTP_HEADERS_BOUND",
-      "byte_archive_captured": false,
+      "archive": {
+        "HTTP_Date_as_received": "Wed, 25 Nov 2026 16:29:31 GMT",
+        "HTTP_Date_utc": "2026-11-25T16:29:31+00:00",
+        "HTTP_status": 200,
+        "collection_result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESULT.json",
+          "sha256": "945d3c011c538b6e94c9223d55cea9070a6db16f4c67bb8de9d9fab3676948d9"
+        },
+        "complete_body": true,
+        "content_type": "text/html; charset=utf-8",
+        "observed_utc": "2026-11-25T16:29:31.547021+00:00",
+        "redirect_followed": false,
+        "response_body": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_05.bin",
+          "sha256": "c54bec1fbdfd2366ef0729e543ba6b2ff1abda556863008ff65a4ee1e6a39c7c"
+        },
+        "response_bytes": 37468,
+        "response_metadata": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_05.json",
+          "sha256": "fe759243d3717ab455e97a4109f19d7162baf93d3f3167be589ba815c7fc7736"
+        },
+        "retry_count": 0
+      },
+      "archive_status": "ARCHIVED_PRIMARY_HTML_SEMANTICS_CONFIRMED_PROJECT_FEED_MAPPING_UNPROVEN",
+      "byte_archive_captured": true,
       "id": "OANDA_JP_FXTRADE_TRADE_QUOTE_DISTINCTION_20211129",
       "limits": [
         "These are separate service domains.",
@@ -227,6 +378,15 @@
       ],
       "primary_source": true,
       "publication_date": "2021-11-29",
+      "semantic_review": {
+        "XAU_USD_practice_calendar_authority_qualified": false,
+        "checks_passed": 5,
+        "historical_first_vintage_proven": false,
+        "method": "Python standard-library HTMLParser; omit script/style contents, decode UTF-8, collapse whitespace; inspect dated notice/API scope text.",
+        "normalized_visible_text_sha256": "2fa6a7c790d06584825d163054acd6bae70f43eb5543da4a8207eb1f4adeb426",
+        "slot_reclassifications": 0,
+        "status": "SUPPORTED_CLAIMS_CONFIRMED_FROM_STORED_HTML_DOMAIN_LIMITS_RETAINED"
+      },
       "supported_facts": "The dated amendment distinguishes fxTrade maintenance with no rate updates from the other FX service where rate updates and chart construction continue despite unavailable executions.",
       "supported_scope": {
         "OANDA_Japan_FX_interval": "US Eastern 16:55-17:10; quotes and charts continue while orders do not execute",
@@ -238,8 +398,31 @@
       "url": "https://www.oanda.jp/info/824"
     },
     {
-      "archive_status": "ROOT_COLLECTION_PENDING_NO_BYTES_OR_HTTP_HEADERS_BOUND",
-      "byte_archive_captured": false,
+      "archive": {
+        "HTTP_Date_as_received": "Wed, 25 Nov 2026 16:29:32 GMT",
+        "HTTP_Date_utc": "2026-11-25T16:29:32+00:00",
+        "HTTP_status": 200,
+        "collection_result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESULT.json",
+          "sha256": "945d3c011c538b6e94c9223d55cea9070a6db16f4c67bb8de9d9fab3676948d9"
+        },
+        "complete_body": true,
+        "content_type": "text/html; charset=utf-8",
+        "observed_utc": "2026-11-25T16:29:31.978206+00:00",
+        "redirect_followed": false,
+        "response_body": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_06.bin",
+          "sha256": "dabfa6cce66fee85fef0ec52fd2b6a8665fbb3abdb76d3150c6e20fb8a26340e"
+        },
+        "response_bytes": 78093,
+        "response_metadata": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_06.json",
+          "sha256": "a5d368e0e344a3786322a21777bfa6929647b8c62270da50eab2f012bd239e36"
+        },
+        "retry_count": 0
+      },
+      "archive_status": "ARCHIVED_PRIMARY_HTML_SEMANTICS_CONFIRMED_PROJECT_FEED_MAPPING_UNPROVEN",
+      "byte_archive_captured": true,
       "id": "OANDA_JP_CURRENT_API_SCOPE",
       "limits": [
         "Current, undated page is not a 2021 instrument-availability statement.",
@@ -248,6 +431,15 @@
       ],
       "primary_source": true,
       "publication_date": null,
+      "semantic_review": {
+        "XAU_USD_practice_calendar_authority_qualified": false,
+        "checks_passed": 5,
+        "historical_first_vintage_proven": false,
+        "method": "Python standard-library HTMLParser; omit script/style contents, decode UTF-8, collapse whitespace; inspect dated notice/API scope text.",
+        "normalized_visible_text_sha256": "db3b2ce776f053c4cc57c2148e5e16f23c8e04355d8478fe1ff7d9badce2f672",
+        "slot_reclassifications": 0,
+        "status": "SUPPORTED_CLAIMS_CONFIRMED_FROM_STORED_HTML_DOMAIN_LIMITS_RETAINED"
+      },
       "supported_facts": "The inspected current comparison limits its REST API instrument scope to FX and describes gold through the MT5/Tokyo route.",
       "supported_scope": {
         "REST_v20": "FX, NY server",
@@ -260,6 +452,7 @@
   ],
   "outage_candidate": {
     "affected_project_slots_candidate": 12,
+    "archive_semantics_confirmed": true,
     "calendar_closed": null,
     "caused_project_XAU_gap": null,
     "conditional_conversion_only": {
@@ -278,10 +471,60 @@
       "Recovery timezone and exact start need explicit authority.",
       "Temporal overlap does not prove identical rate/candle availability; the 13-minute endpoint difference remains unexplained."
     ],
+    "scope_status": "CANDIDATE_ONLY_NOT_LINKED_TO_PROJECT_PRACTICE_XAU_RATE_SOURCE",
     "source_ids": [
       "OANDA_JP_NY_OUTAGE_START_20211122",
       "OANDA_JP_NY_OUTAGE_RECOVERY_20211122"
     ]
+  },
+  "public_source_archive_review": {
+    "all_calendar_HTTP_statuses": 200,
+    "all_calendar_bodies_complete": true,
+    "all_calendar_response_body_and_metadata_SHA_verified": true,
+    "calendar_source_ids": [
+      "OANDA_JP_NY_OUTAGE_START_20211122",
+      "OANDA_JP_NY_OUTAGE_RECOVERY_20211122",
+      "OANDA_JP_STANDARD_TIME_20211107",
+      "OANDA_JP_NY_MAINTENANCE_CORRECTION_20211129",
+      "OANDA_JP_FXTRADE_TRADE_QUOTE_DISTINCTION_20211129",
+      "OANDA_JP_CURRENT_API_SCOPE"
+    ],
+    "calendar_subset_HTTP_requests": 6,
+    "calendar_subset_response_bytes": 258538,
+    "collection_bookends": {
+      "both_boots_unchanged": true,
+      "inputs_unchanged": true,
+      "plan_unchanged": true,
+      "policy_unchanged": true,
+      "source_owners_unchanged": true
+    },
+    "collection_claim": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/CLAIM.json",
+      "sha256": "d748eaf5538ddbbcb9a9dd2047ecd450a4319c68fedac33e0b3d7cba9bc5b563"
+    },
+    "collection_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001.json",
+      "sha256": "9cf1841055eb0927123e61ef7bb9b1c77b81c7f9f4550c974bee4e76adf65834"
+    },
+    "collection_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESULT.json",
+      "sha256": "945d3c011c538b6e94c9223d55cea9070a6db16f4c67bb8de9d9fab3676948d9"
+    },
+    "collection_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/TERMINAL.json",
+      "sha256": "5f8949bd328a9deb59a0b70acf77468b2b9140b67ae931bb515bc263117ccaa8"
+    },
+    "criterion_03": "UNKNOWN",
+    "gap_ledger_unchanged": true,
+    "historical_publication_limits": "Collection HTTP timestamps prove retrieval in 2026; dates printed inside current HTML do not establish that these exact bytes were published or remained unchanged in 2021.",
+    "historical_same_feed_mapping_proven": false,
+    "new_HTTP_requests_by_this_review": 0,
+    "other_collection_response": "The seventh response is outside this calendar review; no claim about its scientific qualification.",
+    "outage_causation_for_project_XAU_gap_proven": false,
+    "slots_reclassified": 0,
+    "status": "SIX_STORED_HTML_SEMANTICS_CONFIRMED_NO_PROJECT_CALENDAR_AUTHORITY",
+    "whole_collection_HTTP_requests": 7,
+    "whole_collection_response_body_bytes": 258649
   },
   "recorded_host_utc": "2026-11-25T16:18:51.817854+00:00",
   "references": {
@@ -311,9 +554,13 @@
     }
   },
   "schema_version": "gx1_native_prelearning_calendar_evidence_scope_v1",
-  "scope": "Phase-2 documentation of primary-source calendar/quote candidates only. No new model, fit, price/target/mask change, broker request, raw-data decode, source archive fetch or policy edit.",
+  "scope": "Completed documentation and domain review of six archived primary HTML sources only. No new model, fit, price/target/mask change, broker request, market-data decode, HTTP request or policy edit in this review.",
   "small_collection_limits_proposed_not_admitted": {
     "HTTPS_GET_requests_max": 6,
+    "actual_collection_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESULT.json",
+      "sha256": "945d3c011c538b6e94c9223d55cea9070a6db16f4c67bb8de9d9fab3676948d9"
+    },
     "allowed_content": "The six public HTML documents and HTTP receipts only; no images/scripts/linked assets/third-party tracking requests.",
     "automatic_redirect_following": false,
     "automatic_retries": 0,
@@ -330,11 +577,18 @@
     "execution_route": "Root must bind exact one-use collection and resource/timeout settings through existing capped audit owner before fetching; this document is not admission.",
     "failure_rule": "Retain the original error/status and leave that source unqualified; no retry or substituted URL.",
     "new_market_data_files": 0,
+    "proposal_status": "HISTORICAL_PROPOSAL_ONLY_COLLECTION_COMPLETED_UNDER_SEPARATE_CONSUMED_SEVEN_REQUEST_PLAN_NO_RELAUNCH",
     "requests_per_URL_max": 1,
     "response_body_bytes_per_URL_cap": 2097152,
     "total_response_body_bytes_cap": 12582912
   },
-  "status": "PRIMARY_SOURCE_CANDIDATES_NO_SLOT_RECLASSIFICATION",
+  "source_basis": {
+    "git_commit": "8c33df291b9cd9403ef8c3f0ba32e75a9518101a",
+    "path": "docs/NATIVE_PRELEARNING_CALENDAR_EVIDENCE_20261125_001.json",
+    "role": "Original six-source proposal retained in Git; consumed public collection is not relaunch authority.",
+    "sha256": "15c4844baf83b008cf31b4a3104cc78ced5e75e31300462a27bc9e97361e491b"
+  },
+  "status": "ARCHIVED_PRIMARY_SOURCES_DOMAIN_MISMATCH_REMAINS",
   "timestamp_role": "Documentation recording only; not source publication-time or historical quote-availability evidence.",
   "unresolved_groups": [
     {

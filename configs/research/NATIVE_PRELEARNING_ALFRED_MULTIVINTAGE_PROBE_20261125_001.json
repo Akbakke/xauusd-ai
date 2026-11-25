@@ -1,0 +1,70 @@
+{
+  "array_decodes": 0,
+  "automatic_retries": 0,
+  "execution": {
+    "class": "audit",
+    "internal_wall_seconds": 60,
+    "memory": "4G",
+    "outer_wall_seconds": 80,
+    "swap": "512M",
+    "threads": 1
+  },
+  "inputs": {
+    "macro_design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_PRELEARNING_MACRO_EVIDENCE_20261125_001.json",
+      "sha256": "b96e7c132a83bed5b6926bd80bc7a93759e56381f75a3e72c8933d76d2659904"
+    },
+    "single_sample_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_07.json",
+      "sha256": "c247d369bcce4b0104342df55e1d73eb2ba515c2093aea970e0fb6a47f4f2903"
+    },
+    "single_sample_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESULT.json",
+      "sha256": "945d3c011c538b6e94c9223d55cea9070a6db16f4c67bb8de9d9fab3676948d9"
+    }
+  },
+  "max_HTTP_requests": 2,
+  "max_response_body_bytes": 131072,
+  "model_forwards": 0,
+  "redirects": false,
+  "requests": [
+    {
+      "columns": [
+        "DGS2_20201207",
+        "DGS10_20201207",
+        "DFII10_20201207"
+      ],
+      "id": "ALFRED_MULTI_1",
+      "kind": "macro_multi_CSV_candidate",
+      "max_response_bytes": 65536,
+      "timeout_seconds": 20,
+      "url": "https://alfred.stlouisfed.org/graph/alfredgraph.csv?id=DGS2,DGS10,DFII10&vintage_date=2020-12-07,2020-12-07,2020-12-07&cosd=2020-11-30&coed=2020-12-04"
+    },
+    {
+      "columns": [
+        "DGS2_20201130",
+        "DGS10_20201130",
+        "DFII10_20201130",
+        "DGS2_20201207",
+        "DGS10_20201207",
+        "DFII10_20201207"
+      ],
+      "id": "ALFRED_MULTI_2",
+      "kind": "macro_multi_CSV_candidate",
+      "max_response_bytes": 65536,
+      "timeout_seconds": 20,
+      "url": "https://alfred.stlouisfed.org/graph/alfredgraph.csv?id=DGS2,DGS10,DFII10,DGS2,DGS10,DFII10&vintage_date=2020-11-30,2020-11-30,2020-11-30,2020-12-07,2020-12-07,2020-12-07&cosd=2020-11-30&coed=2020-12-04"
+    }
+  ],
+  "schema_version": "gx1_alfred_small_multivintage_probe_plan_v1",
+  "scope": "New explicit usergoal, evidence-supported bounded serialization probes only; no bulk collection/sourcechange/calendar or firstvintage promotion.",
+  "single_sample_raw": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_07.bin",
+    "sha256": "da50b6e17879ce77d1502122dd76ec728b67a9b75dce7df7e1a2c9e8eb77ac9d"
+  },
+  "source_commit": "8c33df291b9cd9403ef8c3f0ba32e75a9518101a",
+  "source_owners": {
+    "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_ALFRED_MULTIVINTAGE_COLLECTOR_20261125_001.py": "3d9097d7cb68b3c7ab60b621bfad4467f73518ae17b334ac5a5849fb320d84b0"
+  },
+  "spending": false
+}

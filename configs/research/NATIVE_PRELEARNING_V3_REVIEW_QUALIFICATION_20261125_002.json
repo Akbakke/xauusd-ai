@@ -1,0 +1,173 @@
+{
+  "budgets": {
+    "PT_payload_decodes": 0,
+    "authenticated_certificate_raw_response_files": 160,
+    "certificate_raw_response_bytes": 257469573,
+    "extra_issue_axis_decode_bytes": 2836400,
+    "feature_payload_decodes": 0,
+    "fits": 0,
+    "new_NN_forwards": 0,
+    "output_decoded_bytes": 14182000,
+    "saved_output_archives": 1385,
+    "saved_output_array_decodes": 2770,
+    "target_archive_opens": 2,
+    "truth_array_decodes": 15,
+    "truth_total_decoded_bytes": 53537050,
+    "truth_unique_arrays": 14
+  },
+  "execution": {
+    "class": "audit",
+    "internal_seconds": 180,
+    "memory": "4G",
+    "outer_seconds": 210,
+    "swap": "512M",
+    "threads": 1
+  },
+  "expected_learning_verdict": "INITIAL equals ownprior, so strict-improvement and combined candidate verdict FAIL; qualification itself must PASS exactoutput/score/sourceidentity. No new candidate FINAL or fit.",
+  "inputs": {
+    "comparison_spec": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_COMPARISON_SPEC_20261125_001.json",
+      "sha256": "f22ae6a88ca348df26ec0bea19d1f9d36708b786ecb7190c8680dddbe9111df0"
+    },
+    "current_feature_archive_hash_only": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_CORRECTION_20261121_001/FEATURE_INPUTS.npz",
+      "sha256": "b096bc2899a1cb8d831c1f120821a10dcfdccda25f8c9e1f81fbc8d00d414d36"
+    },
+    "dataset": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_TARGET_QUALIFICATION_20261125_001/FUTURE_STATE_HLC_DATASET001.json",
+      "sha256": "a2090061047f9befcca7befcf645aa9084e51cd2922b66836db2014efcba089d"
+    },
+    "initial_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_V3_INITIAL_ACCEPTANCE_20261125_001.json",
+      "sha256": "d937fc7686835dcadc04b2ac817627ff406706e9fb4b35c6daac72a0d6dddb25"
+    },
+    "initial_base_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001.json",
+      "sha256": "6c72d84fe946c2a38a2a1dca3e68bd4c3758fef51525e0086d4d49336e71eadc"
+    },
+    "initial_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001/INITIAL.json",
+      "sha256": "d051bedf553fc5f5a17993410bce718504302a3f12f3bde38120f0931fb00622"
+    },
+    "initial_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_WHOLE_TRAIN_INITIAL_20261125_001/RESULT.json",
+      "sha256": "479026f5ac21801be1d5602b1aa5ddabfac26c8aff457a45701d32ad28e5f4c1"
+    },
+    "input_binding": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_NORMALIZATION_20261121_001/INPUT_BINDING.json",
+      "sha256": "14c4f1cea7ee8e551692ec12ef01c827ba6ecaee81523e76580d89f8b9b0970e"
+    },
+    "input_history_boundary": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_PRELEARNING_INPUT_HISTORY_BOUNDARY_20261125_001.json",
+      "sha256": "3ac870d14ed03aed58802162c2abe6580905c3ddb39a2997747c4f66b03b95ee"
+    },
+    "membership_manifest": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V2_NONE_BLOCK_ORDER_SOURCE_ROW_MEMBERSHIP_MANIFEST001.json",
+      "sha256": "579b6b04c0a8bdff96bbdbe1670c8fb1835aea41daf883074ad3fc3b1a7f368a"
+    },
+    "normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_COT_CLOCK_NORMALIZATION_20261121_001/NORMALIZATION.json",
+      "sha256": "46f1cb1c190af002c4dc7caa75f85fc6c72bbaddb3a76183b843fc2c798dc3dc"
+    },
+    "prior": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_TARGET_QUALIFICATION_20261125_001/MATCHED_TRAIN_PRIOR001.json",
+      "sha256": "d8119d79c58d9fc02ddc2b9365f5e4836558e09371f7fcad3037658a2b5ad050"
+    },
+    "support": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_TARGET_QUALIFICATION_20261125_001/SUPPORT001.json",
+      "sha256": "00da8a928bc0cc5a74dad361858ac6a73ed15f7bda3bbd05a44943a4ccd1c095"
+    },
+    "target_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_PROVIDER_HLC_TARGET_ACCEPTANCE_20261125_001.json",
+      "sha256": "e208435f46d5f80afe1e1d1ee1144dfc93fc56e2ce6d4f8841f4c5fdcfe39eac"
+    }
+  },
+  "preclaim_path_fix": {
+    "prepared_predecessor": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PRELEARNING_V3_REVIEW_QUALIFICATION_20261125_001.json",
+      "sha256": "111abed7ab32f77cfe1dd9c6dd26fb8041a156eadf929a1e08c091de5e34e426"
+    },
+    "reason": "Canonical train.ref requires absolute Path; controller refused before policy admission/producer invocation/CLAIM. Runner002 resolves paths before existing owner ref. No payload/model job occurred."
+  },
+  "schema_version": "gx1_saved_INITIAL_v3_review_qualification_plan_v1",
+  "source_commit": "8c33df291b9cd9403ef8c3f0ba32e75a9518101a",
+  "source_owners": {
+    "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_V3_REVIEW_PRODUCER_20261125_002.py": "65717492521eff6995a295f9993e5dfd92ef6b6ddf18da14e042fb29a1c09ad9",
+    "gx1/audit/assemble_native_m5_gc_inputs_v1.py": "1ec8a0f2de2db90552e56c7eca055c3d2c8f3f06ca05e067b78b50c61e7ca9e1",
+    "gx1/audit/build_native_m5_direction_targets_v1.py": "161f9751f8648d01ff620a71c071f1ac3062a4ee99d2420b65d0c933c7306f42",
+    "gx1/audit/build_native_m5_gc_raw_components_v1.py": "db2c57e60ed9acbc2b7f00f32c00586e8f0984f9480b6c9d355b7a703c1f5931",
+    "gx1/audit/build_native_m5_ta_feature_cache_v1.py": "2ef80e0580040f5adda2f3afbb07f752a28293a47d883ac86504c7f219323bab",
+    "gx1/audit/measure_native_future_state_throughput_v1.py": "e1e2989a4bd3dc03452251eadfc5b0771aaf6cc4057dbac7ff689748a2dfc6a3",
+    "gx1/audit/native_all_tf_provider_hlc_review_v3.py": "414678e8a47eee80eee358695159b2f02bdeee39e363bf1da6c96a8d139e2095",
+    "gx1/audit/native_future_state_provider_hlc_baseline_v1.py": "e1dca6cb4a7ad9a0e6e5c06bf7fe95f52ce26c5ac40ceb031b145342ef8466b0",
+    "gx1/audit/native_future_state_provider_hlc_initial_v1.py": "5955a16f7a5369a7810129c011f2bffccec4dcf2e3862024474280276f1d774b",
+    "gx1/audit/native_future_state_training_v1.py": "542282bdfafe777a74d6df7af4c1f85650f9812a3e2c7fbc4fff385d262f6e65",
+    "gx1/audit/native_provider_hlc_replay_v1.py": "95cc78902b0085709c9503b522c24e7bf98c06ef4c7dd2f428a43a453a16fc2e",
+    "gx1/audit/qualify_market_state_native_m5_pipeline_v1.py": "65f520c8cc9c6e3cb57dc2e6db030fc8b4dc6568b0a94a8616f60b01fcb104bd",
+    "gx1/audit/qualify_native_m5_full_gc_direction_v1.py": "c80fe2bec2febfa8e990adfc5f7f57213a42b1f58fb3a6de4c7fda5a7ada713d",
+    "gx1/contracts/entry_exit_production_architecture_v1.py": "cdb2d2e08e52de0597cb011bd6350b78f905e0a0a2514db75fc43f81fb9086b2",
+    "gx1/contracts/entry_gc_mtf_history_v1.py": "7e44f6d16c065366a26867e5fb67aff9bbfc47fea4d975db4f4706611244f29b",
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": "1d830c7cb767db699879c6c315f5696854dc1f3bf9fa2021a4020bb76c7c0fa4",
+    "gx1/contracts/entry_model_native_signal_v1.py": "69a819484762dad28194942fd98319be060297dd262c30711e2795515d2f4598",
+    "gx1/contracts/gc_continuous_source_v1.py": "f80ac338e1467788792ee729ff54b309646940fb8eebc7243126eb5ac75cfcb9",
+    "gx1/contracts/gc_native_m5_source_inputs_v1.py": "bc3c53380bc6d7b5b4af1eecae7fe72ac71591a798da808ae59e765849e0e040",
+    "gx1/contracts/gc_order_flow_source_v1.py": "162adee10585e498e8a5f1745a1f753e8a3f6d9d46dec8bf28c61c69ce7baa1f",
+    "gx1/contracts/gc_source_disposition_v1.py": "b2ebde8204e842062a23f9484c2ccdfbd384779c7d7d1389dfaa67b9beb95aae",
+    "gx1/contracts/gx1_capped_execution_v1.py": "152fe5cdd7631a7f7844de8f71f0bd4fcf4cccb785f4c7af330abfc07527e68b",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_native_m5_feature_inputs_v1.py": "6e062cb5c11ded0dab50f082e7d40e37d505593cdae53874b2398607086930dc",
+    "gx1/contracts/market_state_native_m5_gc_feature_inputs_v1.py": "c6f4fdacea58b9abbf2b9e18526127b94a0ae08f252cdd4a29c77aaacd878e66",
+    "gx1/contracts/market_state_native_m5_targets_v1.py": "1d83e4c04a1e14f067b72a6c4ac2a81af245c77dcb82c3e6320fcbee113c9d4e",
+    "gx1/contracts/market_state_ta_integrated_model_v1.py": "b3849e19c186e0f390d2a4a18d2da7a72e93dbdc80be048fbbda07c5eafe22c9",
+    "gx1/contracts/market_state_ta_integrated_objective_v1.py": "7ee163a4a2f510ec030916d9f5b77e2dea1a70ae51786fcea0bd7111a279a15e",
+    "gx1/contracts/model_state_digest_v1.py": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4",
+    "gx1/contracts/native_future_state_provider_hlc_v1.py": "955732b2cf881d19c75e314a2fdbecd79131465d58c28bfc3ec476b3c2264b0d",
+    "gx1/contracts/native_m5_direction_io_firewall_v1.py": "4ebe5d7a49a8fd719e82f62a5d04ca45489af1dfdc1022475e6044723c170739",
+    "gx1/contracts/registry_hyperparameter_fit_v1.py": "214fa54194e42fe43c94fa022dc87ec0ea1eb16558b092dda0e0cb37b815b197",
+    "gx1/features/basic_v1.py": "30ef4e4e6dc5a0011b13eeb7e11227dbeaa3a44b78c35405e64f7ca655bad220",
+    "gx1/features/d1_macro_context_v1.py": "1d61f70381a912a275115a35bb97b103919bc23515d79faed7016f0985ae3d56",
+    "gx1/features/entry_candle_primitives_v1.py": "3f5a5e4fa3f12233aa5f9e5cc43d00d5cd5d5069fb7625a6690ce606eec4b0d0",
+    "gx1/features/entry_foundation_structure_v1.py": "c3c91476051b2e6552fc3089ca50980a38a5a20060af74b802435c786325e558",
+    "gx1/features/entry_model_native_feature_layers_v1.py": "db85c4c365cac9bf7d89b5f36cd7ea6112f020b7eb26d2ae4d0462659b3c3a1b",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "cf5a6da5374e25627c42b9ab3dde93770a92efd85411e6b8e8431b577c2a9153",
+    "gx1/features/event_age_v1.py": "7c20d98c26f5c94885d9defdfc070eb19df81d6344f0457acdf903b4f6712ef5",
+    "gx1/features/gc_native_context_v1.py": "072819223bb13d970cc349650f608367858500ea1a8989e2833a0bbb7ed464ff",
+    "gx1/features/gc_native_field_catalog_v1.py": "c24d1ce880d55dbff6fe346eac4a21529d9dd906fa56a6e55c417edde5a80b8a",
+    "gx1/features/gc_native_m5_features_v1.py": "6f453e531d37a5238aae4a8d9bfb97fe07e10628dd60cb699c1f3064cb654dc2",
+    "gx1/features/gc_order_flow_v1.py": "8daec9fecc135e1ed510494c31ca993f1757f53e9a73689d97afeeb6771a2a10",
+    "gx1/features/htf_features.py": "3d13c1705c95ddd0e57d93e5c902ef33ed2e6cd24c59cafb24852023e0d0377b",
+    "gx1/features/level_registry_v1.py": "e7304de96c211678f9c6d4a7513d267b1f974c7718fe3a33b8103c71f3a39e02",
+    "gx1/features/micro_structure_v1.py": "761533b9ae31fd268dbe4c075bb7e73f1436076af8372a8efc08fa2d8c1800dd",
+    "gx1/features/model_native_market_context_v1.py": "69f61a52c79711ea58a4c7b2d0e743c01cff6dd3af1e1f1e5f2b4864a12826c2",
+    "gx1/features/smc_v1.py": "56b9fe479e1cdb7dc524179b65e585d890cdd2fef128d47a6cada00692b94d9a",
+    "gx1/features/swing_structure_v1.py": "c46ab4413e5bd5dd7114625fa3539e21ab39f9100341092b73d17e6efdd101e0",
+    "gx1/features/technical_indicators_v1.py": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad",
+    "gx1/features/trendline_registry_v1.py": "24c12e8d4c6f597a331dacecbdc5e9a9ed8fdf6c0b6798ee7c543884d04aee58",
+    "gx1/features/volatility_squeeze_state_v1.py": "652b999a4b058026568b72018be2cf5cf0820d30b12e4f557830986ddeed05dc",
+    "gx1/features/volume_features.py": "31433e540ada7808142805aca353c36fa8de566c88724e7f046aed8f03aef493",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "236ea6d7d9dad3801c2ee06a2115c878c0d773c0630038ef0815d407d18ff1c4",
+    "gx1/scripts/augment_forward_outcome_v2.py": "347e0d7b6235302c4afd8fabd10f9075e25a142a7b49fd5f18c3ed41f730a2c6",
+    "gx1/scripts/fit_volatility_squeeze_artifacts_v1.py": "3b67e8454ef39542dd8a2775e6b7677b1f727335d5474587c08a8f0753831e08",
+    "gx1/scripts/materialize_build_canonical_features_v1.py": "b84ce141598294d2449f9f40b49b7ef8c2563ff8ad832e80664a2f1eb15a1a75",
+    "gx1/scripts/materialize_canonical_v3_augment.py": "f09ec727cac68e8a1a033362fe87276a254b249275fed993ba092afa9be53bae",
+    "gx1/scripts/research_ta_campaign_v1.py": "146d58e5242501827d671341cf5b99ec97b747c56d5e8e1e013b42f3ca03b7e2",
+    "gx1/time/session_detector.py": "ed0189b74ec72a80c9667c470e59c37719e59e549d683cc4b50759855c8e03d8",
+    "scripts/gx1_capped_run.sh": "b180c015530363cee9b10d568c63b53703569e1cba096e1fb0d5678f17d1e83e",
+    "tests/test_build_native_m5_ta_feature_cache_v1.py": "82d218ea64fe1bb8bdc28131213e8140633e11b8c6bf1db7fd3b24adabc56bd0",
+    "tests/test_native_all_tf_provider_hlc_review_v3.py": "3f09ce81cb77389800491d2a5df29babf5399650e29e69523e7ed4528766be67",
+    "tests/test_native_all_tf_provider_hlc_v3_guard_v1.py": "c7a00670a2dafc91525e4e84b19362a9fd81e8cc7db6055973bd8713a7de4ae2",
+    "tests/test_native_future_state_cpu_mechanics_v1.py": "a3d8208ceb4f34ce50f5693a34bb7bbd48016dce075baa1ec9c82d4ab514af0f",
+    "tests/test_native_future_state_cuda_qualification_v1.py": "9f75e04f642dbe8bf607c0963e34955ef00967435737f13af33868f7fdc23b68",
+    "tests/test_native_future_state_provider_hlc_all_tf_v3.py": "215979bcb2639462e37f05119e9c1cb0e1665766b2bd6f5a4ee85e14fc1f6aee",
+    "tests/test_native_future_state_provider_hlc_baseline_guard_v1.py": "1ca0b21b9ca97c9ef277b149068fe10cf092e4406fd6c5ed883fff212e214ee8",
+    "tests/test_native_future_state_provider_hlc_baseline_v1.py": "d9a25018d290de1af57c0b336378517a4487f35b39d83e3ffdad2bd953d6ad51",
+    "tests/test_native_future_state_provider_hlc_initial_v1.py": "0ad691653f40bca9d0db149d7f037f77a77ac33d64109cbdb7c6ec6fd4eba7e3",
+    "tests/test_native_future_state_provider_hlc_v3_adapters.py": "6e6eca1e2685feb9f9d9851439282524e86f34cee04fc01ecc0d176778073e45",
+    "tests/test_native_future_state_throughput_v1.py": "445757b11f5224dda4618d32d1187eb1ca31cf83e017c39ea068be3a4ef077ca",
+    "tests/test_native_future_state_training_v1.py": "7c8565c3f489a5099c0a55d14e38479f2efb40199c9f4fb3f6a4b003ea649201",
+    "tests/test_native_provider_hlc_replay_guard_v1.py": "c8959f6557f160c8899c262c0962dd7a7bf72e34ccc3e1826197277bdfd8c3e3",
+    "tests/test_native_provider_hlc_replay_v1.py": "da5f343310e5c7c462f6dbc9c2cfecc3a25993ca4c84bdf6dfb4708402be12e5",
+    "tests/test_qualify_market_state_native_m5_pipeline_v1.py": "95f24b5fbb09531dc19c36a42a533a43d6651b838f7f23ac7a46c410835966e8",
+    "tests/test_qualify_native_m5_full_gc_direction_v1.py": "0862380ef22fc878dfd61f0d0e1e85079025062a40c582f293d16296946b3bcb"
+  }
+}

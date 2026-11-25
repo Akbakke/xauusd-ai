@@ -1,4 +1,113 @@
 {
+  "Apr1_original_difference_and_cached_trace": {
+    "accepted_ledger": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_MACRO_SOURCE_KEYS_20261123_001/SOURCE_KEYS.json",
+      "sha256": "008376579f4dfe843743f4631615275f386e52508fdbf45722b8ffdd9fa5200f"
+    },
+    "accepted_raw_key": "treasury|TREASURY_NOMINAL_2022|nominal10y|2022-04-01",
+    "active_input_fault_proved": false,
+    "active_inputs_patched": false,
+    "actual_first_model_consuming_row_measured": false,
+    "archive002_cell_evidence": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/CELL_EVIDENCE.json",
+      "sha256": "3dd05414d2eb3b8446d40435ff44f3f96f23d5f073752b5b506757c931151b01"
+    },
+    "archive002_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/RESULT.json",
+      "sha256": "2d0facb4af0eff7c1e772a489c75d9c14d2ca822ab687b2af07ce123bf4cca61"
+    },
+    "cached_trace_HTTP_requests": 0,
+    "cached_trace_bookends_PASS": true,
+    "cached_trace_models_arrays_or_activechanges": 0,
+    "cached_trace_new_plan_files": 0,
+    "captured_vintages": 1264,
+    "first_captured_current_2_39": {
+      "asof_vintage_date": "2022-04-06",
+      "request_id": "TREASURY_ASOF_084",
+      "value": "2.39"
+    },
+    "first_captured_finite": {
+      "asof_vintage_date": "2022-04-05",
+      "request_id": "TREASURY_ASOF_083",
+      "value": "2.38"
+    },
+    "five_fields_context_and_signal_participation": {
+      "breakeven10y_change21D": {
+        "context": true,
+        "signal": true
+      },
+      "breakeven10y_level": {
+        "context": true,
+        "signal": true
+      },
+      "nominal10y_level": {
+        "context": true,
+        "signal": true
+      },
+      "slope10y2y_change21D": {
+        "context": true,
+        "signal": true
+      },
+      "slope10y2y_level": {
+        "context": true,
+        "signal": true
+      }
+    },
+    "last_captured_before_first_2_39": {
+      "asof_vintage_date": "2022-04-05",
+      "request_id": "TREASURY_ASOF_083",
+      "value": "2.38"
+    },
+    "latest_nonmissing": {
+      "asof_vintage_date": "2025-12-30",
+      "request_id": "TREASURY_ASOF_316",
+      "value": "2.39"
+    },
+    "original_ALFRED_comparison_key": {
+      "asof_vintage_date": "2022-04-02",
+      "current_source_value": "2.39",
+      "intraday_availability_proved": false,
+      "observation_date": "2022-04-01",
+      "primitive": "nominal10y",
+      "reference_value": null,
+      "series_id": "DGS10",
+      "source_clock_bug_proved": false,
+      "status": "MISSING_D_PLUS_1_REFERENCE",
+      "units": "percent"
+    },
+    "original_archived_point": {
+      "archived_cell_text": "2.38",
+      "archived_value_percent": "2.38",
+      "body_id": "NOMINAL_ARCHIVE_BODY_006",
+      "capture_utc": "2022-04-01T20:10:36Z",
+      "current_source_value_percent": "2.39",
+      "first_ever_publication_proved": false,
+      "observation_date": "2022-04-01",
+      "primitive": "nominal10y",
+      "seconds_before_bound": 114564,
+      "series_id": "DGS10",
+      "status": "DIFFERENT_CURRENT_VALUE_REQUIRES_REVIEW",
+      "upper_exclusive_utc": "2022-04-03T04:00:00Z"
+    },
+    "timing_limits": "Treasury2.38 wascaptured2022-04-01T20:10:36Z, beforedeclared2022-04-03T04:00Z; current2.39 couldhavebeenpublishedlaterbeforethatbound. CapturedALFREDfirstfinite2.38DATE2022-04-05 then2.39DATE2022-04-06 giveareferenceversionbracket, not exactTreasuryrevision/publicationtime. Actualfirstmodelconsumption remainsunknown.",
+    "trace": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_APR1_CACHED_TRACE_20261125_001/TRACE.json",
+      "sha256": "0047b65af9223610ec3b7e67d400fbc63f3abd414b7f2000738f0ead84465b6a"
+    },
+    "trace_result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_APR1_CACHED_TRACE_20261125_001/RESULT.json",
+      "sha256": "044ba1cff2655663a8ca2c9e63563ff8ff501009c22b6c08642a9ee81b3eddcc"
+    },
+    "trace_terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_APR1_CACHED_TRACE_20261125_001/TERMINAL.json",
+      "sha256": "96327ac4d78073262db2255bba900bbc9704edf424b3634328cd565b62a4b9dc"
+    },
+    "value_counts": {
+      "2.38": 1,
+      "2.39": 932,
+      "<MISSING>": 331
+    }
+  },
   "actual_consumed_fields": {
     "DXY_absence_basis": "All61 actual field names and11panel instruments from bound pipeline review; no DXY source is consumed.",
     "DXY_present": false,
@@ -109,6 +218,64 @@
     "macro_contract_sha256": "f8b69d225325ae66f9a489ac4cb1154bad7da1e2bad05ce88cd21e8844be1a52",
     "source_family_count": 5
   },
+  "archive001_plan_private_lineage": {
+    "current_private_exact_reference": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001.json",
+      "sha256": "7ab56173469a9ff4f42455c617b0d3770df1de8555d2a9379c1aba7c60c080f2"
+    },
+    "exact_bytes_preserved": true,
+    "historical_original_reference": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001.json",
+      "sha256": "7ab56173469a9ff4f42455c617b0d3770df1de8555d2a9379c1aba7c60c080f2"
+    },
+    "moved_plan_payload_read_for_this_update": false,
+    "old_claim_result_descriptors_unchanged": true,
+    "original_path_absent_after_relocation": true,
+    "prestart_Mac_backup": "/Users/andrekildalbakke/GX1_BACKUP/PRELEARNING_NOMINAL_ARCHIVE_BODY_PRESTART_20261125_001/MANIFEST.json",
+    "reason": "Rawvalue-bearing001plan ispreservedprivately; currentdocumentlinksprivateexactbytes throughauthenticatedaliasreceipt. Immutablehistoricaldescriptors remainhistorical, not liveexecutionauthority.",
+    "relaunch_allowed": false,
+    "relocation_receipt": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_ARCHIVE_PLAN_PRIVATE_RELOCATION_20261125_001.json",
+      "sha256": "0a69a614aeec151a7524a5f66aaec57f27bc6e258c2d784c6396d71aeec903b5"
+    }
+  },
+  "authenticated_original_Treasury_single_point": {
+    "all_bookends_PASS": true,
+    "full_intraday_or_first_ever_coverage_proved": false,
+    "full_macro09_or61_fields_qualified": false,
+    "independent_resolution_scope": "OriginalTreasury archivedMay18nominal10y2.89 matchescurrent2.89 at authenticatedcapture2022-05-20T03:23:53Z,2167seconds beforedeclaredstrictafter04:00UTCbound. Thisonepoint supports publicavailability beforethedeclared earliestbound; actualfirstmodelconsumingrow and reasonALFREDreported2.88 remainunmeasured. No activevalue/clockchange follows.",
+    "original_ALFRED_comparison_status_preserved": "DIFFERENT_DATE_LEVEL_REFERENCE",
+    "original_payload_ref": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ARCHIVE_POINT_20261125_001/ARCHIVED_RESPONSE.bin",
+      "sha256": "5210a3c4e9a01e332b6742f787bbc92982f94607dbf4da56c1ff495775974eea"
+    },
+    "point_evidence": {
+      "CDX_digest_verified": true,
+      "active_data_changes": 0,
+      "actual_first_model_consuming_row_measured": false,
+      "archive_capture_utc": "2022-05-20T03:23:53+00:00",
+      "archived_value_percent": "2.89",
+      "current_source_value_percent": "2.89",
+      "current_value_matches_archive": true,
+      "declared_availability_bound": "2022-05-20T04:00:00Z",
+      "first_ever_publication_proved": false,
+      "interpretation": "An authenticated original Treasury page before the declared earliest availability can resolve this one reference discrepancy if values match. It does not qualify other source keys or full macro-vintage coverage.",
+      "observation_date": "2022-05-18",
+      "original_source_URI": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value=2022",
+      "payload_sha256": "5210a3c4e9a01e332b6742f787bbc92982f94607dbf4da56c1ff495775974eea",
+      "seconds_before_declared_bound": 2167,
+      "series": "Treasury10yearCMT",
+      "status": "PASS_CURRENT_TREASURY_VALUE_PUBLIC_BEFORE_DECLARED_CONSUMPTION_BOUND"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ARCHIVE_POINT_20261125_001/RESULT.json",
+      "sha256": "2ded57450c2cc9dcfeba9592dacece057dc3165735430d50fdebf8bfdc10d9ab"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ARCHIVE_POINT_20261125_001/TERMINAL.json",
+      "sha256": "3b9ada6ffae834ff2fe70add38222e9ea0d06296d67cfc2ce08f657f8524c015"
+    }
+  },
   "availability_clock_groups": {
     "cot": {
       "actual_rule": "available_at=max(as_of00:00UTC+7calendar_days, midnightAmerica/New_York following any bound exceptional publication_date_ny)",
@@ -136,13 +303,17 @@
       "actual_rule": "Observation dateD normalized inAmerica/New_York plus pd.DateOffset(days=2), then convertedUTC. EndofD+1 is D+2local00:00; calendar-day lag, DST-preserving, no business-day assumption.",
       "field_count": 9,
       "join": "strict issue_time > available_at",
+      "measured_original_one_point_prebound_support": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ARCHIVE_POINT_20261125_001/RESULT.json",
+        "sha256": "2ded57450c2cc9dcfeba9592dacece057dc3165735430d50fdebf8bfdc10d9ab"
+      },
       "normal_clock_contradiction_measured": false,
       "official_normal_clock": "Usually public by18:00Eastern on observationD, possible delays.",
       "primary_source_ids": [
         "treasury_historical_clock",
         "treasury_current_clock"
       ],
-      "unknown": "Dated first value, actual delayed release beyond cutoff and same-definition reference agreement."
+      "unknown": "Fullhistoricalrelease/vintagecoverage, actualfirstmodelconsumption andcausesofreference/sourceversiondifferences remainunknown.93selectedoriginalnominalmatches andaseparateMay18point arebeforedeclaredbounds; Apr1current2.39beforeApr3bound isunproved. No globalclock/intradayqualification follows."
     },
     "vix_gld": {
       "actual_rule": "Same D+2midnightAmerica/New_York rule as Treasury; no same-day daytime assumption.",
@@ -161,11 +332,198 @@
       "unknown": "Historical CSV/XLSX first-publication timestamps, versions and applicable nonrevision policies; ordinary calculation/holdings times alone do not establish this."
     }
   },
+  "cached_single_difference_trace": {
+    "HTTP_requests": 0,
+    "active_numeric_fault_or_clock_bug_proved": false,
+    "bookends_PASS": true,
+    "captured_vintages": 1264,
+    "cause_of_ALFRED_initial_2_88": "UNKNOWN; Fedsourcearrival/method/revision differences remainpossible.",
+    "first_captured_match_current": {
+      "asof_vintage_date": "2022-05-20",
+      "request_id": "TREASURY_ASOF_091",
+      "value": "2.89"
+    },
+    "first_nonmissing": {
+      "asof_vintage_date": "2022-05-19",
+      "request_id": "TREASURY_ASOF_091",
+      "value": "2.88"
+    },
+    "last_captured_vintage": "2025-12-30",
+    "observation": {
+      "asof_vintage_date": "2022-05-19",
+      "current_source_value": "2.89",
+      "intraday_availability_proved": false,
+      "observation_date": "2022-05-18",
+      "primitive": "nominal10y",
+      "reference_value": "2.88",
+      "series_id": "DGS10",
+      "source_clock_bug_proved": false,
+      "status": "DIFFERENT_DATE_LEVEL_REFERENCE",
+      "units": "percent"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_DIFFERENCE_TRACE_20261125_001/RESULT.json",
+      "sha256": "aa080816142b3fbd899fd2ffe9357788363b9f588d681791861fb6c6f0c664c1"
+    },
+    "revision_bracket": {
+      "interpretation": "Discrete captured ALFRED asof bracket only; not exact originalTreasury/Fed publication or revision timestamp.",
+      "lower_exclusive_date": "2022-05-19",
+      "upper_inclusive_date": "2022-05-20"
+    },
+    "subsequent_matching_captured_vintages": 901,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_DIFFERENCE_TRACE_20261125_001/TERMINAL.json",
+      "sha256": "5411f635e23baffc1504163b4ee5ce495cc0db5930645c2c6be5b1841159f719"
+    },
+    "trace": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_DIFFERENCE_TRACE_20261125_001/TRACE.json",
+      "sha256": "11ae636495ff7553def5575ff79267bbfbbcc3ba8ecc8dbeba44f9fd89e174a0"
+    },
+    "value_counts": {
+      "2.88": 1,
+      "2.89": 901,
+      "<MISSING>": 362
+    }
+  },
+  "completed_Treasury_keyless_asof_evidence": {
+    "HTTP_requests": 316,
+    "accepted_context_primitive_keys": 3752,
+    "accepted_signal_primitive_keys": 3755,
+    "active_input_changes": 0,
+    "all_bookends_PASS": true,
+    "availability_scope": "D+1is a civil date-level asof reference, not an authenticatedNYintradaytimestamp or first-ever-publication assertion. MissingFed/ALFREDarrival doesnot byitself proveTreasurylookahead.",
+    "column_capacity_scope": "36column request returnedonly first12columns; original36contractFAIL preserved. Separateobserved12column proof and everybulk exactheadercheck qualifyonlyrequested12columns, not undocumentedhighercapacity.",
+    "comparison": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ASOF_REFERENCE_20261125_001/CONSUMED_KEY_COMPARISON.json",
+      "sha256": "25d9590b253a9a0e36ba13f376e737e57612cf8d2cf2e8a0847baa8099e00660"
+    },
+    "elapsed_seconds": 2799.5073686589894,
+    "fresh_vintage_groups": 1264,
+    "macro09_qualified": false,
+    "missing_Friday_cells": 771,
+    "missing_by_source_weekday": {
+      "nominal10y": {
+        "Friday": 257,
+        "Monday": 4,
+        "Saturday": 0,
+        "Sunday": 0,
+        "Thursday": 7,
+        "Tuesday": 7,
+        "Wednesday": 10
+      },
+      "nominal2y": {
+        "Friday": 257,
+        "Monday": 4,
+        "Saturday": 0,
+        "Sunday": 0,
+        "Thursday": 7,
+        "Tuesday": 7,
+        "Wednesday": 10
+      },
+      "real10y": {
+        "Friday": 257,
+        "Monday": 4,
+        "Saturday": 0,
+        "Sunday": 0,
+        "Thursday": 8,
+        "Tuesday": 7,
+        "Wednesday": 10
+      }
+    },
+    "missing_non_Friday_cells": 85,
+    "missing_non_Friday_dates": 29,
+    "missing_unique_observation_dates": 286,
+    "original_comparison_totals": {
+      "DIFFERENT_DATE_LEVEL_REFERENCE": 1,
+      "MATCH_DATE_LEVEL_REFERENCE": 2898,
+      "MISSING_D_PLUS_1_REFERENCE": 856
+    },
+    "other52_fields_qualified": false,
+    "outside_consumed_pairs_excluded": 40,
+    "primitive_counts": {
+      "nominal10y": {
+        "DIFFERENT_DATE_LEVEL_REFERENCE": 1,
+        "MATCH_DATE_LEVEL_REFERENCE": 959,
+        "MISSING_D_PLUS_1_REFERENCE": 285
+      },
+      "nominal2y": {
+        "DIFFERENT_DATE_LEVEL_REFERENCE": 0,
+        "MATCH_DATE_LEVEL_REFERENCE": 960,
+        "MISSING_D_PLUS_1_REFERENCE": 285
+      },
+      "real10y": {
+        "DIFFERENT_DATE_LEVEL_REFERENCE": 0,
+        "MATCH_DATE_LEVEL_REFERENCE": 979,
+        "MISSING_D_PLUS_1_REFERENCE": 286
+      }
+    },
+    "prior_original_comparison_retained_unchanged": true,
+    "queried_pairs": 3795,
+    "range_contract": "Multi-line cosd/coed scalar and repeatedlists did not boundtheoutput. Completedcollection omitsrangeparams, caps eachfullbody2MiB, validates exact12headers/orderedISOdates/nonmissingtokens<=ownvintage, then selectsacceptedkeys locally. No datefilterfunctionality claimed.",
+    "response_body_bytes": 284034327,
+    "responses_validated": 316,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ASOF_REFERENCE_20261125_001/RESULT.json",
+      "sha256": "8ac12d4453ecb422a81e309ecc2911cd4c62d70b698410f30f2de6a967378430"
+    },
+    "reused_vintage_groups": 1,
+    "sourceCSV_files": 12,
+    "sourceCSV_preflight_and_parse_bytes": 169333,
+    "status": "COMPLETE_CONSUMED_TREASURY_ASOF_REFERENCE_COLLECTION",
+    "surface_counts": {
+      "nominal10y": {
+        "context": {
+          "DIFFERENT_DATE_LEVEL_REFERENCE": 1,
+          "MATCH_DATE_LEVEL_REFERENCE": 958,
+          "MISSING_D_PLUS_1_REFERENCE": 285
+        },
+        "signal": {
+          "DIFFERENT_DATE_LEVEL_REFERENCE": 1,
+          "MATCH_DATE_LEVEL_REFERENCE": 959,
+          "MISSING_D_PLUS_1_REFERENCE": 285
+        }
+      },
+      "nominal2y": {
+        "context": {
+          "DIFFERENT_DATE_LEVEL_REFERENCE": 0,
+          "MATCH_DATE_LEVEL_REFERENCE": 959,
+          "MISSING_D_PLUS_1_REFERENCE": 285
+        },
+        "signal": {
+          "DIFFERENT_DATE_LEVEL_REFERENCE": 0,
+          "MATCH_DATE_LEVEL_REFERENCE": 960,
+          "MISSING_D_PLUS_1_REFERENCE": 285
+        }
+      },
+      "real10y": {
+        "context": {
+          "DIFFERENT_DATE_LEVEL_REFERENCE": 0,
+          "MATCH_DATE_LEVEL_REFERENCE": 978,
+          "MISSING_D_PLUS_1_REFERENCE": 286
+        },
+        "signal": {
+          "DIFFERENT_DATE_LEVEL_REFERENCE": 0,
+          "MATCH_DATE_LEVEL_REFERENCE": 979,
+          "MISSING_D_PLUS_1_REFERENCE": 286
+        }
+      }
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ASOF_REFERENCE_20261125_001/TERMINAL.json",
+      "sha256": "5a1e29ec301522b63e00e7a6cc7e9b8ae96c70734f663b961fcc61a1aaa26dfe"
+    },
+    "units": "percent"
+  },
   "completion_limits": [
-    "This sole JSON is documentary evidence/design, not run authority or a source/model/guard/policy change.",
-    "No raw financial payload, key, model weight or private response is embedded.",
-    "Historical vintage/source-known gaps and all scientific UNKNOWNs stay open until relevant bounded evidence is measured.",
-    "Root owns source freeze, exact new manifests/admission, capped network collection and acceptance. No mainfit, spending or TEST access is admitted."
+    "ThisJSON records completed scoped evidence andremainingunknowns; NEXT_RUN_POLICY remainssole runauthority. No automaticplanrelaunch ornewrequestauthorization.",
+    "Originalcomparison2898match/856missing/1diff, original36columnFAIL andalltruncatedreceipts arepreserved. Oneindependentoriginalpoint supportsactive2.89withoutrewritingtheALFREDcomparison.",
+    "OriginalTreasuryMay18value2.89wasarchived2167secondsbeforedeclaredMay20strictafter04:00UTC; actualfirstmodelconsumingrow andcauseofALFRED2.88 remainunknown.",
+    "All75originalcandidateURLs wereattemptedexactlyonce. Final152cells:93MATCH,1DIFFERENT,54ROWABSENT,4networkUNKNOWN(021/042neverretried);73authenticatedpages/74dates,0neverrequested.001/002/003FAILED_CONSUMED and004/005COMPLETE receipts remainunchanged;001rawrepresentationbug andcachedraw-first recovery aredocumented.",
+    "No promotionofall09,61fields,first-everpublication,globalintradaycoverage,other52fields,learning,generalization ortradingedge.",
+    "No rawfinancialresponsebody,key,weights orfullprivatevalueledger isembedded. Only scopedaggregates,onepointmetadata andinternalhashrefs areincluded.",
+    "Thisupdate startsnoHTTP/job andchangesno code,policy,activeinput,mask,normalizer,prior,baseline ormodel; rootownspolicy/handover/launch.",
+    "Apr1key participatesinall5nominal10yfields onbothsignal/context surfaces. Capturedreference2.38Apr5→2.39Apr6 doesnotprovewhenTreasury2.39becamepublicrelativeApr3bound oractualfirstmodeluse. No activeinputpatch orclockpromotion.",
+    "The93strongoriginalmatches belongto the856missing-reference subset; May18originalpoint isseparate. Do notcombineweakdatelevelreferencecountswithstrongpointproofsascomplete09/61/intradaycoverage. All6globalflags remainfalse; no mainfitstarted."
   ],
   "configured_key_presence_checks": {
     "Mac_environment": {
@@ -222,9 +580,56 @@
         "path": "/home/andre2/.config/gx1/.env"
       }
     ],
+    "current_keyless_route_blocked_by_key_absence": false,
+    "historical_check_scope_date": "2026-11-25T16:22:28.322285+00:00",
+    "rechecked_during_this_update": false,
     "scope_limit": "Only enumerated locations and three names checked. Other user-provided path/env name remains pending; not proof of global absence. No secret values retained in this document."
   },
+  "derived_driver_lag_semantics": {
+    "21D_fields": [
+      "real10y_change21D",
+      "slope10y2y_change21D",
+      "breakeven10y_change21D",
+      "gld_log_change21D"
+    ],
+    "D_suffix_meaning": "1D/5D/21D changenames use pandasdiff(1/5/21) positions onthis mergeddriver-row axis afterffill. They are not guaranteedcalendar-day intervals or counts of21fresh observations oftheindividualseries.",
+    "current_formula_changed": false,
+    "date_axis": "Outermerged Date axis of Treasury nominal/real, VIX andGLD; sorted beforecausalffill of eachprimitive.",
+    "ffill": "Eachprimitive carriedforward only acrossits ownmissing/holidaydates onthemergedaxis; neverbackfilled.",
+    "numerical_defect_measured_by_this_clarification": false,
+    "other_changes": "real10ychange1D/5D and VIXlogchange5D use thesamemerged-row offsets; slopes/breakevens formed afterprimitiveffill then differenced.",
+    "owner": "gx1/scripts/research_ta_campaign_v1.py:3473"
+  },
+  "evidence_levels_kept_separate": {
+    "complete_step09_or61_or_globalintraday_or_firstever_proved": false,
+    "missing_reference_is_not_lookahead_proof": true,
+    "no_weak_and_strong_counts_combined_as_full_source_proof": true,
+    "original_May18_prebound_value_match_separate_from_that_subset": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ARCHIVE_POINT_20261125_001/RESULT.json",
+      "sha256": "2ded57450c2cc9dcfeba9592dacece057dc3165735430d50fdebf8bfdc10d9ab"
+    },
+    "original_all3755_ALFRED_datelevel_classification": {
+      "DIFFERENT_DATE_LEVEL_REFERENCE": 1,
+      "MATCH_DATE_LEVEL_REFERENCE": 2898,
+      "MISSING_D_PLUS_1_REFERENCE": 856
+    },
+    "remaining_original_Apr1_difference_requires_timing_review": true,
+    "row_absence_at_one_capture_is_not_proof_of_unavailability_by_later_bound": true,
+    "strong_original_prebound_matches_in_selected_missing_reference_subset": 93
+  },
   "existing_evidence": {
+    "Apr1_cached_trace": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_APR1_CACHED_TRACE_20261125_001/TRACE.json",
+      "sha256": "0047b65af9223610ec3b7e67d400fbc63f3abd414b7f2000738f0ead84465b6a"
+    },
+    "Apr1_cached_trace_result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_APR1_CACHED_TRACE_20261125_001/RESULT.json",
+      "sha256": "044ba1cff2655663a8ca2c9e63563ff8ff501009c22b6c08642a9ee81b3eddcc"
+    },
+    "Apr1_cached_trace_terminal": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_APR1_CACHED_TRACE_20261125_001/TERMINAL.json",
+      "sha256": "96327ac4d78073262db2255bba900bbc9704edf424b3634328cd565b62a4b9dc"
+    },
     "alfred_download_form_inventory": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_DOWNLOAD_FORM_INVENTORY003.json",
       "sha256": "a58593113ea9603aba1338f135c16a2e112aa84f2c95e6b309e5b928baede993"
@@ -233,6 +638,50 @@
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALFRED_TREASURY_METADATA_ROUTE002.json",
       "sha256": "7deef3bbe57282ecdc5f4cd2fda2259f702aad9f2cfdc7c1e6a3df27e3d1c6a3"
     },
+    "archive001_private_plan_relocation": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_ARCHIVE_PLAN_PRIVATE_RELOCATION_20261125_001.json",
+      "sha256": "0a69a614aeec151a7524a5f66aaec57f27bc6e258c2d784c6396d71aeec903b5"
+    },
+    "authenticated_Treasury_original_point_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ARCHIVE_POINT_20261125_001/RESULT.json",
+      "sha256": "2ded57450c2cc9dcfeba9592dacece057dc3165735430d50fdebf8bfdc10d9ab"
+    },
+    "authenticated_Treasury_original_point_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ARCHIVE_POINT_20261125_001/TERMINAL.json",
+      "sha256": "3b9ada6ffae834ff2fe70add38222e9ea0d06296d67cfc2ce08f657f8524c015"
+    },
+    "cached_temporal_trace": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_DIFFERENCE_TRACE_20261125_001/TRACE.json",
+      "sha256": "11ae636495ff7553def5575ff79267bbfbbcc3ba8ecc8dbeba44f9fd89e174a0"
+    },
+    "cached_temporal_trace_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_DIFFERENCE_TRACE_20261125_001/RESULT.json",
+      "sha256": "aa080816142b3fbd899fd2ffe9357788363b9f588d681791861fb6c6f0c664c1"
+    },
+    "cached_temporal_trace_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_DIFFERENCE_TRACE_20261125_001/TERMINAL.json",
+      "sha256": "5411f635e23baffc1504163b4ee5ce495cc0db5930645c2c6be5b1841159f719"
+    },
+    "completed_initial_public_collection": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESULT.json",
+      "sha256": "945d3c011c538b6e94c9223d55cea9070a6db16f4c67bb8de9d9fab3676948d9"
+    },
+    "completed_keyless_Treasury_bulk_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ASOF_REFERENCE_20261125_001/RESULT.json",
+      "sha256": "8ac12d4453ecb422a81e309ecc2911cd4c62d70b698410f30f2de6a967378430"
+    },
+    "completed_keyless_Treasury_comparison": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ASOF_REFERENCE_20261125_001/CONSUMED_KEY_COMPARISON.json",
+      "sha256": "25d9590b253a9a0e36ba13f376e737e57612cf8d2cf2e8a0847baa8099e00660"
+    },
+    "completed_keyless_Treasury_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_ASOF_REFERENCE_20261125_001/TERMINAL.json",
+      "sha256": "5a1e29ec301522b63e00e7a6cc7e9b8ae96c70734f663b961fcc61a1aaa26dfe"
+    },
+    "consumed_Treasury_key_manifest": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_CONSUMED_KEY_MANIFEST_20261125_001.json",
+      "sha256": "fbd3bef5f0d991f9c86e20fb6b1aa0049dc9a8be712d841946212489d1366411"
+    },
     "macro_origin_vintage_path_review": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/MACRO_ORIGIN_VINTAGE_PATH_REVIEW001.json",
       "sha256": "93c5d902a704d8986a60c8d267b69fb433d5ae1cc644a5743dc17a5fd14ca9f6"
@@ -240,6 +689,102 @@
     "macro_source_key_acceptance": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/MACRO_SOURCE_KEY_ACCEPTANCE001.json",
       "sha256": "3f953eba5ea22200a5523134a99f0a6b5c923f47aa73840fb5b9446a14642a69"
+    },
+    "nominal_archive_body001_cell_evidence": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/CELL_EVIDENCE.json",
+      "sha256": "1a2b6b131b0dfd71141b47f69f8d4924fad52e13a769ae42790632b12cd36332"
+    },
+    "nominal_archive_body001_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/RESULT.json",
+      "sha256": "ae45392256687f069e4ddbbb5bf65caf4d8d4c5a8c9b8b37e27a25ad8cb05e6e"
+    },
+    "nominal_archive_body001_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/TERMINAL.json",
+      "sha256": "23544ab1a0ae745cb867667cfb8be6a518e4160220f82ebcc62bef5c7e16bbd7"
+    },
+    "nominal_archive_body002_cell_evidence": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/CELL_EVIDENCE.json",
+      "sha256": "3dd05414d2eb3b8446d40435ff44f3f96f23d5f073752b5b506757c931151b01"
+    },
+    "nominal_archive_body002_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/RESULT.json",
+      "sha256": "2d0facb4af0eff7c1e772a489c75d9c14d2ca822ab687b2af07ce123bf4cca61"
+    },
+    "nominal_archive_body002_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/TERMINAL.json",
+      "sha256": "a34fcc7c0589f58615be6cf8779ec84f15f506494aaed94431fecd85c3780594"
+    },
+    "nominal_archive_body003_cell_evidence": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_003/CELL_EVIDENCE.json",
+      "sha256": "24c24140d91ae8005ed821e34e2236ade73d92e5c233395a7210b70d22a6b1ef"
+    },
+    "nominal_archive_body003_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_003/RESULT.json",
+      "sha256": "4d3e8f4a12079fe6704e83dcbe1d57cefe3e8f25bc4a5e86b2cffd949f11d981"
+    },
+    "nominal_archive_body003_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_003/TERMINAL.json",
+      "sha256": "1454722ad392ac3194908451233dcb85c4c55cfd232718977d5e39df88de052c"
+    },
+    "nominal_archive_body004_cell_evidence": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_004/CELL_EVIDENCE.json",
+      "sha256": "bb4e3ccb7e55445f9c0434e8c307943c1057e546858840dd0d0b02572eec8697"
+    },
+    "nominal_archive_body004_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_004/RESULT.json",
+      "sha256": "6fafaf48c8c1f9cfbcff2011cc3af1b0d3f93446e1f00ea7e3619619d4cf25a0"
+    },
+    "nominal_archive_body004_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_004/TERMINAL.json",
+      "sha256": "2bf71add48c8a33e24dc863c10872dd96ba0e3ac8c1b1c5c36a79f3f13640acb"
+    },
+    "nominal_archive_body005_cell_evidence": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_005/CELL_EVIDENCE.json",
+      "sha256": "b98a0c41e04e69c1efa670245b99358c9dfc4962dde6822387ccd93adb1661f0"
+    },
+    "nominal_archive_body005_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_005/RESULT.json",
+      "sha256": "2fb903cabad5b93a7fa5ec0c592bf099b64c4fcb540ea99458a72e9345135c49"
+    },
+    "nominal_archive_body005_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_005/TERMINAL.json",
+      "sha256": "304a0cbb054e56c92a33b4f4bbe85af5e9e30db01c9d7a3f824a050a2d9e1659"
+    },
+    "nominal_archive_body_cell_evidence": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/CELL_EVIDENCE.json",
+      "sha256": "1a2b6b131b0dfd71141b47f69f8d4924fad52e13a769ae42790632b12cd36332"
+    },
+    "nominal_archive_body_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/RESULT.json",
+      "sha256": "ae45392256687f069e4ddbbb5bf65caf4d8d4c5a8c9b8b37e27a25ad8cb05e6e"
+    },
+    "nominal_archive_body_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/TERMINAL.json",
+      "sha256": "23544ab1a0ae745cb867667cfb8be6a518e4160220f82ebcc62bef5c7e16bbd7"
+    },
+    "nominal_archive_cached003_raw_representation_proof": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/CACHED_EVIDENCE.json",
+      "sha256": "441aa30e0fdce4cddc83f2a2affa5dc7b264a2e0f95c78f832f83b6c4a8be4bd"
+    },
+    "nominal_archive_candidate_inventory": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_NOMINAL_ARCHIVE_CANDIDATE_INVENTORY_20261125_001.json",
+      "sha256": "215fa525b53ce29c27f5bc6b39da06d29fa51576a16e7b134a10ac4da4f3b7b6"
+    },
+    "nominal_archive_final_aggregate": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_NOMINAL_ARCHIVE_FINAL_AGGREGATE_20261125_001.json",
+      "sha256": "27112c6429e3e30f08ae556bda7cdd136462cbea20e93a0a93de9a43d4163014"
+    },
+    "nominal_archive_final_cell_ledger": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_NOMINAL_ARCHIVE_FINAL_CELL_LEDGER_20261125_001.json",
+      "sha256": "9060f67f7108f61e25065db3271d31e20d65e60b3807a4535da714014aaea449"
+    },
+    "nominal_archive_metadata_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_NOMINAL_ARCHIVE_METADATA_20261125_001/RESULT.json",
+      "sha256": "360bbfe15e840fd40eae05043d88d5fcb3db0d931033892bdf7a088dff609523"
+    },
+    "observed_12column_capacity_proof": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_ALFRED_OBSERVED_12_COLUMN_CAPACITY_PROOF_20261125_001.json",
+      "sha256": "dc8fb2e9bd24ebbdbe22620f67e0b3b4f8ef3343981faedee96f520fb9df0bc5"
     },
     "required_external_evidence_blocked_audit": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/REQUIRED_EXTERNAL_EVIDENCE_BLOCKED_AUDIT001.json",
@@ -265,14 +810,566 @@
   "interpretation": {
     "current_source_match": "All61 current-source matches establish current dependency support, not historical first availability.",
     "first_vintage_PASS": false,
-    "first_vintage_absence": "No new first-vintage payload was obtained. Historical OANDA44/Treasury9/VIX2/GLD2 remain UNKNOWN; COT4 retains partial official nonrevision-policy support and incomplete historical release coverage.",
+    "first_vintage_absence": "Completedkeylessdatelevelreferences andselectedoriginalsourceproofs nowinclude93matchingnominalcandidatecells plusaseparateMay18preboundpoint. Fullfirst-ever/intraday/sourcecoverage isunproved:Apr1difference unresolved,54capturerowabsences and4networkunknowns remain, alongwith418nominalcellswithoutmetadata candidate,286excludedrealcells andotherfamilylimits.",
+    "keyless_route_current_state": "WORKING_AND_COMPLETED_316_VALIDATED_GETS",
     "new_causal_clock_bug_measured": false,
     "normal_schedule_consistency_is_historical_proof": false,
-    "reference_identity": "FRED/H15 candidate identity, date, units, tenor, rounding and calendar must match active Treasury primitives before a value comparison is relevant. No reference values automatically replace active input bytes.",
-    "release_DATE": "A public initial-release date can bound end-of-day availability conservatively but does not identify exact intraday publication. Observation date, source release date, FRED arrival/vintage date and retrieval timestamp must remain separate.",
+    "observed_original_value_difference": "Apr1originalTreasury2.38 differsfromcurrent2.39; no activecausalityfault isyetproved becauseanupdated2.39 beforedeclaredApr3bound remainspossible. Keepinputs unchanged pendingexactevidence.",
+    "reference_identity": "The316GETcomparison provides exactdatelevel numericagreements/missing/difference classification for3755acceptedkeys. GeneralTreasury/H15 firstrelease/sourceclockequivalence isnot inferred; theone originalTreasurypoint separatelyconfirmsactive2.89beforedeclaredbound.",
+    "release_DATE": "Observationdate, referencevintagedate, originalpublicarchivecaptureUTC, retrievalUTC andactualfirstmodelconsumption areseparate. D+1referencedatealone suppliesno exactintradayclock; theone authenticatedarchivecapture suppliesaspecificUTCupperbound, notfirst-everpublication.",
     "revision_flags": "Manifest revised_after_publication flags copied by fetch_bounded_files are declarations, not empirical revision tests. A policy allowing restatements does not prove a consumed observation changed."
   },
-  "observed_utc": "2026-11-25T16:22:28.322285+00:00",
+  "nominal_archive_body_followup": {
+    "HTTP_requests": 3,
+    "active_input_or_mask_changes": 0,
+    "actual_first_model_consuming_row_measured": false,
+    "all_bookends_PASS": true,
+    "authenticated_page_evidence_refs": [
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/EVIDENCE_001.json",
+        "sha256": "e88e8b1a721a084fcfe9bada3675d839608fd93e36c6e5cf984967f9f5578b86"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/EVIDENCE_002.json",
+        "sha256": "4835043ba5705f580f0b7c3e2adfc30f76ed8f14d7fedf5ce9ae440d89bd23b9"
+      }
+    ],
+    "authenticated_pages": 2,
+    "bodies_never_requested": 72,
+    "cached_raw_representation_proof": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/CACHED_EVIDENCE.json",
+      "sha256": "441aa30e0fdce4cddc83f2a2affa5dc7b264a2e0f95c78f832f83b6c4a8be4bd"
+    },
+    "candidate_nominal_cells": 152,
+    "cell_evidence": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/CELL_EVIDENCE.json",
+      "sha256": "1a2b6b131b0dfd71141b47f69f8d4924fad52e13a769ae42790632b12cd36332"
+    },
+    "counts": {
+      "MATCH_CURRENT_VALUE_BEFORE_BOUND": 4,
+      "UNKNOWN_NOT_QUALIFIED_AFTER_FAILURE": 148
+    },
+    "elapsed_seconds": 9.506052982003894,
+    "excluded_real10y_cells": 286,
+    "failed_response_number": 3,
+    "failure": "ValueError:EXACT_CDX_PAYLOAD_DIGEST",
+    "final_scope_aggregate": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_NOMINAL_ARCHIVE_FINAL_AGGREGATE_20261125_001.json",
+      "sha256": "27112c6429e3e30f08ae556bda7cdd136462cbea20e93a0a93de9a43d4163014"
+    },
+    "first_ever_publication_proved": false,
+    "full_step09_qualified": false,
+    "historical_attempt001_only": true,
+    "historical_attempt_scope_only": true,
+    "historical_original_plan_reference": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001.json",
+      "sha256": "7ab56173469a9ff4f42455c617b0d3770df1de8555d2a9379c1aba7c60c080f2"
+    },
+    "new_NN_forwards": 0,
+    "optimizer_updates": 0,
+    "original_comparison_modified": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001.json",
+      "sha256": "7ab56173469a9ff4f42455c617b0d3770df1de8555d2a9379c1aba7c60c080f2"
+    },
+    "plan_relocation_receipt": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_ARCHIVE_PLAN_PRIVATE_RELOCATION_20261125_001.json",
+      "sha256": "0a69a614aeec151a7524a5f66aaec57f27bc6e258c2d784c6396d71aeec903b5"
+    },
+    "planned_bodies": 75,
+    "qualified_key_scope": [
+      {
+        "body_id": "NOMINAL_ARCHIVE_BODY_001",
+        "capture_utc": "2022-02-05T04:48:58Z",
+        "observation_date": "2022-02-04",
+        "primitive": "nominal10y",
+        "seconds_before_bound": 87062,
+        "series_id": "DGS10",
+        "status": "MATCH_CURRENT_VALUE_BEFORE_BOUND",
+        "upper_exclusive_utc": "2022-02-06T05:00:00Z"
+      },
+      {
+        "body_id": "NOMINAL_ARCHIVE_BODY_001",
+        "capture_utc": "2022-02-05T04:48:58Z",
+        "observation_date": "2022-02-04",
+        "primitive": "nominal2y",
+        "seconds_before_bound": 87062,
+        "series_id": "DGS2",
+        "status": "MATCH_CURRENT_VALUE_BEFORE_BOUND",
+        "upper_exclusive_utc": "2022-02-06T05:00:00Z"
+      },
+      {
+        "body_id": "NOMINAL_ARCHIVE_BODY_002",
+        "capture_utc": "2022-02-19T04:06:45Z",
+        "observation_date": "2022-02-18",
+        "primitive": "nominal10y",
+        "seconds_before_bound": 89595,
+        "series_id": "DGS10",
+        "status": "MATCH_CURRENT_VALUE_BEFORE_BOUND",
+        "upper_exclusive_utc": "2022-02-20T05:00:00Z"
+      },
+      {
+        "body_id": "NOMINAL_ARCHIVE_BODY_002",
+        "capture_utc": "2022-02-19T04:06:45Z",
+        "observation_date": "2022-02-18",
+        "primitive": "nominal2y",
+        "seconds_before_bound": 89595,
+        "series_id": "DGS2",
+        "status": "MATCH_CURRENT_VALUE_BEFORE_BOUND",
+        "upper_exclusive_utc": "2022-02-20T05:00:00Z"
+      }
+    ],
+    "qualified_original_nominal_cells": 4,
+    "relaunch_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/RESULT.json",
+      "sha256": "ae45392256687f069e4ddbbb5bf65caf4d8d4c5a8c9b8b37e27a25ad8cb05e6e"
+    },
+    "status": "FAILED_CONSUMED",
+    "subsequent_attempt002_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/RESULT.json",
+      "sha256": "2d0facb4af0eff7c1e772a489c75d9c14d2ca822ab687b2af07ce123bf4cca61"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/TERMINAL.json",
+      "sha256": "23544ab1a0ae745cb867667cfb8be6a518e4160220f82ebcc62bef5c7e16bbd7"
+    },
+    "third_response_diagnostic_scope": "Cached-only proofestablishedacollectorrepresentationbug: request003rawgzip SHA1 exactlymatchesCDXdigestMDYZBB4RPVT7BSBFIPXVBKWTNO7J6KGQ, decodedHTMLhashdiffers. Oldproducerhashedwrongrepresentation. No externalarchiveidentityfault proved; old001FAILED_CONSUMEDreceipts remainunchanged.",
+    "uncollected_nominal_cells_without_candidate": 418,
+    "unknown_not_qualified_after_failure": 148
+  },
+  "nominal_archive_body_followup002": {
+    "active_data_or_mask_changes": 0,
+    "all_bookends_PASS": true,
+    "cached_authenticated_page_reused_without_HTTP": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/CACHED_EVIDENCE.json",
+      "sha256": "441aa30e0fdce4cddc83f2a2affa5dc7b264a2e0f95c78f832f83b6c4a8be4bd"
+    },
+    "cell_evidence": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/CELL_EVIDENCE.json",
+      "sha256": "3dd05414d2eb3b8446d40435ff44f3f96f23d5f073752b5b506757c931151b01"
+    },
+    "combined152_counts_including_old4": {
+      "DIFFERENT_CURRENT_VALUE_REQUIRES_REVIEW": 1,
+      "MATCH_CURRENT_VALUE_BEFORE_BOUND": 23,
+      "UNKNOWN_NOT_QUALIFIED_AFTER_FAILURE": 112,
+      "UNKNOWN_ROW_ABSENT": 16
+    },
+    "combined_authenticated_distinct_pages": 20,
+    "earlier_qualified_cells_reused": 4,
+    "elapsed_seconds": 53.629012690042146,
+    "excluded_real10y_cells": 286,
+    "failed_body_id": "NOMINAL_ARCHIVE_BODY_021",
+    "failure": "URLError:<urlopen error [Errno 104] Connection reset by peer>",
+    "final_scope_aggregate": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_NOMINAL_ARCHIVE_FINAL_AGGREGATE_20261125_001.json",
+      "sha256": "27112c6429e3e30f08ae556bda7cdd136462cbea20e93a0a93de9a43d4163014"
+    },
+    "first_ever_publication_proved": false,
+    "full_step09_qualified": false,
+    "historical_attempt_scope_only": true,
+    "interpretation": "Raw-firstdigestfix andcached003reuse preservedold001failedreceipt. New002stoppedconsumed onconnectionreset at18newGETs/body021; no retry orautomaticcontinuation.23originalcandidatecells matchcurrentbeforebound;1differentoriginalvalue and16absentrows requiretimingreview;112cells remainunqualifiedafterfailure.",
+    "new148_counts": {
+      "DIFFERENT_CURRENT_VALUE_REQUIRES_REVIEW": 1,
+      "MATCH_CURRENT_VALUE_BEFORE_BOUND": 19,
+      "UNKNOWN_NOT_QUALIFIED_AFTER_FAILURE": 112,
+      "UNKNOWN_ROW_ABSENT": 16
+    },
+    "new_HTTP_requests": 18,
+    "new_NN_forwards": 0,
+    "new_authenticated_pages": 17,
+    "newly_classified_cells": 148,
+    "optimizer_updates": 0,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002.json",
+      "sha256": "1ab257ead9321025dbff1ad0e960c4f580b37202ec82ceecb8cd2a2830121c71"
+    },
+    "relaunch_allowed": false,
+    "remaining_bodies_never_requested": 54,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/RESULT.json",
+      "sha256": "2d0facb4af0eff7c1e772a489c75d9c14d2ca822ab687b2af07ce123bf4cca61"
+    },
+    "status": "FAILED_CONSUMED",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/TERMINAL.json",
+      "sha256": "a34fcc7c0589f58615be6cf8779ec84f15f506494aaed94431fecd85c3780594"
+    },
+    "uncollected_nominal_cells_without_candidate": 418
+  },
+  "nominal_archive_body_followup003": {
+    "HTTP_requests": 21,
+    "all_bookends_PASS": true,
+    "cell_evidence": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_003/CELL_EVIDENCE.json",
+      "sha256": "24c24140d91ae8005ed821e34e2236ade73d92e5c233395a7210b70d22a6b1ef"
+    },
+    "counts": {
+      "MATCH_CURRENT_VALUE_BEFORE_BOUND": 22,
+      "UNKNOWN_NOT_QUALIFIED_AFTER_FAILURE": 68,
+      "UNKNOWN_ROW_ABSENT": 20
+    },
+    "error": "URLError:<urlopen error [Errno 111] Connection refused>",
+    "final_scope_aggregate": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_NOMINAL_ARCHIVE_FINAL_AGGREGATE_20261125_001.json",
+      "sha256": "27112c6429e3e30f08ae556bda7cdd136462cbea20e93a0a93de9a43d4163014"
+    },
+    "historical_attempt_scope_only": true,
+    "relaunch_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_003/RESULT.json",
+      "sha256": "4d3e8f4a12079fe6704e83dcbe1d57cefe3e8f25bc4a5e86b2cffd949f11d981"
+    },
+    "status": "FAILED_CONSUMED",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_003/TERMINAL.json",
+      "sha256": "1454722ad392ac3194908451233dcb85c4c55cfd232718977d5e39df88de052c"
+    }
+  },
+  "nominal_archive_body_followup004": {
+    "HTTP_requests": 20,
+    "all_bookends_PASS": true,
+    "cell_evidence": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_004/CELL_EVIDENCE.json",
+      "sha256": "bb4e3ccb7e55445f9c0434e8c307943c1057e546858840dd0d0b02572eec8697"
+    },
+    "counts": {
+      "MATCH_CURRENT_VALUE_BEFORE_BOUND": 32,
+      "UNKNOWN_ROW_ABSENT": 8
+    },
+    "error": null,
+    "final_scope_aggregate": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_NOMINAL_ARCHIVE_FINAL_AGGREGATE_20261125_001.json",
+      "sha256": "27112c6429e3e30f08ae556bda7cdd136462cbea20e93a0a93de9a43d4163014"
+    },
+    "historical_attempt_scope_only": true,
+    "relaunch_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_004/RESULT.json",
+      "sha256": "6fafaf48c8c1f9cfbcff2011cc3af1b0d3f93446e1f00ea7e3619619d4cf25a0"
+    },
+    "status": "COMPLETE_BOUNDED_NOMINAL_ARCHIVE_POINTS",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_004/TERMINAL.json",
+      "sha256": "2bf71add48c8a33e24dc863c10872dd96ba0e3ac8c1b1c5c36a79f3f13640acb"
+    }
+  },
+  "nominal_archive_body_followup005": {
+    "HTTP_requests": 13,
+    "all_bookends_PASS": true,
+    "cell_evidence": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_005/CELL_EVIDENCE.json",
+      "sha256": "b98a0c41e04e69c1efa670245b99358c9dfc4962dde6822387ccd93adb1661f0"
+    },
+    "counts": {
+      "MATCH_CURRENT_VALUE_BEFORE_BOUND": 16,
+      "UNKNOWN_ROW_ABSENT": 10
+    },
+    "error": null,
+    "final_scope_aggregate": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_NOMINAL_ARCHIVE_FINAL_AGGREGATE_20261125_001.json",
+      "sha256": "27112c6429e3e30f08ae556bda7cdd136462cbea20e93a0a93de9a43d4163014"
+    },
+    "historical_attempt_scope_only": true,
+    "relaunch_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_005/RESULT.json",
+      "sha256": "2fb903cabad5b93a7fa5ec0c592bf099b64c4fcb540ea99458a72e9345135c49"
+    },
+    "status": "COMPLETE_BOUNDED_NOMINAL_ARCHIVE_POINTS",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_005/TERMINAL.json",
+      "sha256": "304a0cbb054e56c92a33b4f4bbe85af5e9e30db01c9d7a3f824a050a2d9e1659"
+    }
+  },
+  "nominal_archive_final_aggregate": {
+    "April1_current_2_39_before_declared_bound_proved": false,
+    "HTTP_attempts": 75,
+    "active_data_or_mask_changes": 0,
+    "actual_first_model_consuming_row_measured": false,
+    "aggregate": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_NOMINAL_ARCHIVE_FINAL_AGGREGATE_20261125_001.json",
+      "sha256": "27112c6429e3e30f08ae556bda7cdd136462cbea20e93a0a93de9a43d4163014"
+    },
+    "all_plans_consumed_closed_no_relaunch": true,
+    "all_source_result_bookends_PASS": true,
+    "authenticated_pages": 73,
+    "counts": {
+      "DIFFERENT_CURRENT_VALUE_REQUIRES_REVIEW": 1,
+      "MATCH_CURRENT_VALUE_BEFORE_BOUND": 93,
+      "UNKNOWN_NOT_QUALIFIED_AFTER_FAILURE": 4,
+      "UNKNOWN_ROW_ABSENT": 54
+    },
+    "dates_in_candidate_scope": 76,
+    "excluded_missing_real10y_cells": 286,
+    "failed_unretried_body_ids": [
+      "NOMINAL_ARCHIVE_BODY_021",
+      "NOMINAL_ARCHIVE_BODY_042"
+    ],
+    "final_cell_ledger": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_NOMINAL_ARCHIVE_FINAL_CELL_LEDGER_20261125_001.json",
+      "sha256": "9060f67f7108f61e25065db3271d31e20d65e60b3807a4535da714014aaea449"
+    },
+    "first_ever_publication_proved": false,
+    "full_step09_qualified": false,
+    "inspected_dates": 74,
+    "network_unknown_cells": 4,
+    "never_requested_original_candidates": 0,
+    "new_NN_forwards": 0,
+    "optimizer_updates": 0,
+    "original_comparison_modified": false,
+    "scope": "Selected75originalnominalcandidateURLs/76dates/152cells fromthe856missingD+1referencecells; not allTreasuryhistory orotherfamilies.",
+    "source_results": {
+      "001": {
+        "HTTP_requests": 3,
+        "bookends": {
+          "both_boots": true,
+          "inputs": true,
+          "plan": true,
+          "policy": true,
+          "sources": true
+        },
+        "counts": {
+          "MATCH_CURRENT_VALUE_BEFORE_BOUND": 4,
+          "UNKNOWN_NOT_QUALIFIED_AFTER_FAILURE": 148
+        },
+        "error": "ValueError:EXACT_CDX_PAYLOAD_DIGEST",
+        "ledger": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/CELL_EVIDENCE.json",
+          "sha256": "1a2b6b131b0dfd71141b47f69f8d4924fad52e13a769ae42790632b12cd36332"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/RESULT.json",
+          "sha256": "ae45392256687f069e4ddbbb5bf65caf4d8d4c5a8c9b8b37e27a25ad8cb05e6e"
+        },
+        "status": "FAILED_CONSUMED",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_001/TERMINAL.json",
+          "sha256": "23544ab1a0ae745cb867667cfb8be6a518e4160220f82ebcc62bef5c7e16bbd7"
+        }
+      },
+      "002": {
+        "HTTP_requests": 18,
+        "bookends": {
+          "both_boots": true,
+          "cached_raw": true,
+          "inputs": true,
+          "plan": true,
+          "policy": true,
+          "sources": true
+        },
+        "counts": {
+          "DIFFERENT_CURRENT_VALUE_REQUIRES_REVIEW": 1,
+          "MATCH_CURRENT_VALUE_BEFORE_BOUND": 19,
+          "UNKNOWN_NOT_QUALIFIED_AFTER_FAILURE": 112,
+          "UNKNOWN_ROW_ABSENT": 16
+        },
+        "error": "URLError:<urlopen error [Errno 104] Connection reset by peer>",
+        "ledger": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/CELL_EVIDENCE.json",
+          "sha256": "3dd05414d2eb3b8446d40435ff44f3f96f23d5f073752b5b506757c931151b01"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/RESULT.json",
+          "sha256": "2d0facb4af0eff7c1e772a489c75d9c14d2ca822ab687b2af07ce123bf4cca61"
+        },
+        "status": "FAILED_CONSUMED",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_002/TERMINAL.json",
+          "sha256": "a34fcc7c0589f58615be6cf8779ec84f15f506494aaed94431fecd85c3780594"
+        }
+      },
+      "003": {
+        "HTTP_requests": 21,
+        "bookends": {
+          "both_boots": true,
+          "inputs": true,
+          "plan": true,
+          "policy": true,
+          "sources": true
+        },
+        "counts": {
+          "MATCH_CURRENT_VALUE_BEFORE_BOUND": 22,
+          "UNKNOWN_NOT_QUALIFIED_AFTER_FAILURE": 68,
+          "UNKNOWN_ROW_ABSENT": 20
+        },
+        "error": "URLError:<urlopen error [Errno 111] Connection refused>",
+        "ledger": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_003/CELL_EVIDENCE.json",
+          "sha256": "24c24140d91ae8005ed821e34e2236ade73d92e5c233395a7210b70d22a6b1ef"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_003/RESULT.json",
+          "sha256": "4d3e8f4a12079fe6704e83dcbe1d57cefe3e8f25bc4a5e86b2cffd949f11d981"
+        },
+        "status": "FAILED_CONSUMED",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_003/TERMINAL.json",
+          "sha256": "1454722ad392ac3194908451233dcb85c4c55cfd232718977d5e39df88de052c"
+        }
+      },
+      "004": {
+        "HTTP_requests": 20,
+        "bookends": {
+          "both_boots": true,
+          "inputs": true,
+          "plan": true,
+          "policy": true,
+          "sources": true
+        },
+        "counts": {
+          "MATCH_CURRENT_VALUE_BEFORE_BOUND": 32,
+          "UNKNOWN_ROW_ABSENT": 8
+        },
+        "error": null,
+        "ledger": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_004/CELL_EVIDENCE.json",
+          "sha256": "bb4e3ccb7e55445f9c0434e8c307943c1057e546858840dd0d0b02572eec8697"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_004/RESULT.json",
+          "sha256": "6fafaf48c8c1f9cfbcff2011cc3af1b0d3f93446e1f00ea7e3619619d4cf25a0"
+        },
+        "status": "COMPLETE_BOUNDED_NOMINAL_ARCHIVE_POINTS",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_004/TERMINAL.json",
+          "sha256": "2bf71add48c8a33e24dc863c10872dd96ba0e3ac8c1b1c5c36a79f3f13640acb"
+        }
+      },
+      "005": {
+        "HTTP_requests": 13,
+        "bookends": {
+          "both_boots": true,
+          "inputs": true,
+          "plan": true,
+          "policy": true,
+          "sources": true
+        },
+        "counts": {
+          "MATCH_CURRENT_VALUE_BEFORE_BOUND": 16,
+          "UNKNOWN_ROW_ABSENT": 10
+        },
+        "error": null,
+        "ledger": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_005/CELL_EVIDENCE.json",
+          "sha256": "b98a0c41e04e69c1efa670245b99358c9dfc4962dde6822387ccd93adb1661f0"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_005/RESULT.json",
+          "sha256": "2fb903cabad5b93a7fa5ec0c592bf099b64c4fcb540ea99458a72e9345135c49"
+        },
+        "status": "COMPLETE_BOUNDED_NOMINAL_ARCHIVE_POINTS",
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_NOMINAL_ARCHIVE_BODY_20261125_005/TERMINAL.json",
+          "sha256": "304a0cbb054e56c92a33b4f4bbe85af5e9e30db01c9d7a3f824a050a2d9e1659"
+        }
+      }
+    },
+    "status": "ORIGINAL75_SCOPE_CLOSED_93MATCH_1DIFFERENCE_54ABSENT_4NETWORK_UNKNOWN",
+    "uncollected_nominal_cells_without_metadata_candidate": 418,
+    "unique_URLs_attempted_exactly_once": 75
+  },
+  "nominal_archive_metadata_candidates": {
+    "HTTP_metadata_requests": 6,
+    "all_candidate_row_presence_and_values_still_unknown": false,
+    "all_candidate_row_presence_and_values_unknown_at_inventory_creation": true,
+    "authenticated_candidate_dates": 74,
+    "authenticated_followup_bodies": 73,
+    "authenticated_rows_absent": 54,
+    "authenticated_rows_with_current_difference": 1,
+    "by_year": {
+      "2020": {
+        "catalog_captures": 0,
+        "dates_with_candidate": 0,
+        "index_limit_hit": false,
+        "missing_dates": 5
+      },
+      "2021": {
+        "catalog_captures": 0,
+        "dates_with_candidate": 0,
+        "index_limit_hit": false,
+        "missing_dates": 56
+      },
+      "2022": {
+        "catalog_captures": 171,
+        "dates_with_candidate": 21,
+        "index_limit_hit": false,
+        "missing_dates": 52
+      },
+      "2023": {
+        "catalog_captures": 48,
+        "dates_with_candidate": 14,
+        "index_limit_hit": false,
+        "missing_dates": 57
+      },
+      "2024": {
+        "catalog_captures": 64,
+        "dates_with_candidate": 13,
+        "index_limit_hit": false,
+        "missing_dates": 58
+      },
+      "2025": {
+        "catalog_captures": 189,
+        "dates_with_candidate": 28,
+        "index_limit_hit": false,
+        "missing_dates": 57
+      }
+    },
+    "candidate_152cells_are_verified": false,
+    "candidate_bodies_never_requested": 0,
+    "candidate_original_payload_bodies_verified_in_this_inventory": 0,
+    "distinct_candidate_bodies": 75,
+    "excluded_missing_real10y_cells": 286,
+    "final152_cell_counts": {
+      "DIFFERENT_CURRENT_VALUE_REQUIRES_REVIEW": 1,
+      "MATCH_CURRENT_VALUE_BEFORE_BOUND": 93,
+      "UNKNOWN_NOT_QUALIFIED_AFTER_FAILURE": 4,
+      "UNKNOWN_ROW_ABSENT": 54
+    },
+    "final_scope_aggregate": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_NOMINAL_ARCHIVE_FINAL_AGGREGATE_20261125_001.json",
+      "sha256": "27112c6429e3e30f08ae556bda7cdd136462cbea20e93a0a93de9a43d4163014"
+    },
+    "followup_result": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_NOMINAL_ARCHIVE_FINAL_AGGREGATE_20261125_001.json",
+      "sha256": "27112c6429e3e30f08ae556bda7cdd136462cbea20e93a0a93de9a43d4163014"
+    },
+    "included_missing_nominal_cells": 570,
+    "included_missing_nominal_dates": 285,
+    "inventory": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_TREASURY_NOMINAL_ARCHIVE_CANDIDATE_INVENTORY_20261125_001.json",
+      "sha256": "215fa525b53ce29c27f5bc6b39da06d29fa51576a16e7b134a10ac4da4f3b7b6"
+    },
+    "inventory_status_at_creation": "COMPLETE_METADATA_CANDIDATE_INVENTORY_NO_NUMERICAL_PROMOTION",
+    "metadata_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_TREASURY_NOMINAL_ARCHIVE_METADATA_20261125_001/RESULT.json",
+      "sha256": "360bbfe15e840fd40eae05043d88d5fcb3db0d931033892bdf7a088dff609523"
+    },
+    "no_execution_or_numerical_promotion_from_metadata": true,
+    "nominal_dates_with_candidate": 76,
+    "numerical_promotion_scope": "Final152candidatecells classifyas93currentmatchesbeforedeclaredbounds,1originalvaluedifference,54rowabsentincapture,4networkunknown at021/042. All75URLs attemptedexactlyonce; no candidatesremainneverrequested. No full09/61/intraday/first-everpromotion.",
+    "possible_nominal_cells": 152,
+    "qualified_followup_cells": 93,
+    "selection_basis": "Timestamp-only candidate selection; no row/value selection. ExactURL catalog emptiness for2020/2021 is scopedtoqueriedURLcontract, not proof nohistoricalsource exists.",
+    "status": "ORIGINAL75_CANDIDATE_SCOPE_CLOSED_93MATCH_1DIFF_54ROWABSENT_4NETWORK_UNKNOWN",
+    "unqualified_after_followup_failure_cells": 4
+  },
+  "observed_utc": "2026-11-25T20:13:06.907711+00:00",
+  "operating_gates_at_final_metadata_update": {
+    "NEXT_RUN_POLICY_is_only_work_status": true,
+    "full_step09_qualified": false,
+    "global_flags": {
+      "exit_training_and_evaluation_this_wave": false,
+      "full_epoch_training_allowed": false,
+      "full_val_allowed": false,
+      "native_launch_authorized": false,
+      "native_training_enabled": false,
+      "training_enabled": false
+    },
+    "main_fit_started_in_this_remediation": false,
+    "other52_macrofields_qualified_by_Treasury_evidence": false,
+    "training_admitted_by_this_document": false
+  },
   "primary_sources": {
     "pages": [
       {
@@ -354,17 +1451,19 @@
         "url": "https://fraser.stlouisfed.org/title/h15-selected-interest-rates-86"
       }
     ],
-    "review_kind": "Official metadata reviewed through browser/search; pages not saved or content-hash authenticated in this phase."
+    "review_kind": "Initialofficialmetadata review retained; subsequentcompleted savedJSON/result refs authenticate keylessasof andoneoriginalTreasuryarchivepoint. Thisdocumentupdate performsno web/HTTP/rawpayloadread orjob."
   },
   "prior_attempts": {
     "key_absence_is_absolute_external_blocker": false,
-    "known_outcomes": "Existing directWSL/Mac initial-release POST attempts produced no qualified first-vintage values. Prior handover also records API400 and POST200/identicalHTML; those are not treated as data success or authorization to retry.",
+    "keyless_GET_route_working": true,
+    "known_outcomes": "Earlier directWSL/Mac first-release POST/API attempts did not yield qualified first-release data and remainconsumed. Subsequently the keylessALFREDgraph GET route succeeded: initialsingle sample,6column fullbody, narrowlyobserved12column capacity, then316validated bulkGETs. Old POST/API failures or absentcheckedkey locations are not an absolute source-route blocker.",
     "old_one_shot_plans_relaunch_allowed": false,
     "reused_bound_refs": [
       "treasury_initial_release_reference_manifest",
       "treasury_initial_release_failed_attempt_review",
       "treasury_mac_relay_failure_review"
-    ]
+    ],
+    "superseded_absolute_route_blocker_claim": true
   },
   "proposed_keyed_treasury_collection": {
     "bounds": {
@@ -380,9 +1479,11 @@
       "timeout_seconds_per_request": 20
     },
     "credential_handling": "Resolve explicitly supplied key location privately at runtime; inject only in memory; redact api_key from request metadata, URLs, exceptions and logs. Never place key in command line, source, receipts or this document.",
+    "current_scope": "Documented3GET output_type4 API remains an optional distinct first-release reference route if a privately supplied registeredkey is available. Keylesshistoricalasof collection has alreadycompleted; no APIkey requirement is inferred for that route.",
     "endpoint": "https://api.stlouisfed.org/fred/series/observations",
     "expected_scope": "Three reference-series collections can examine3755 accepted primitive keys supporting9 Treasury fields; this is not a qualification of other52 fields or exact intraday source clocks.",
     "key_in_document": false,
+    "key_location_question_blocks_completed_keyless_route": false,
     "key_location_question_pending": true,
     "method": "GET",
     "registered_free_key_required_for_this_documented_API": true,
@@ -450,7 +1551,7 @@
       "ReleaseDATE later than current cutoff identifies a reference-timing discrepancy requiring source-specific investigation; same date/value alone does not prove exact Treasury intraday first availability.",
       "No inference of first-release proof from today-only values or normal publication schedules; no API continuation/pagination/retry without a new exact plan."
     ],
-    "status": "DESIGN_ONLY_NEW_PLAN_AND_ROOT_ADMISSION_REQUIRED"
+    "status": "OPTIONAL_UNEXECUTED_INITIAL_RELEASE_ONLY_API_DESIGN_NOT_A_BLOCKER_TO_COMPLETED_KEYLESS_ROUTE"
   },
   "proposed_single_keyless_probe": {
     "acceptance_checks": [
@@ -460,12 +1561,12 @@
       "Preserve request metadata/rawbytes/hash/status/retrievaltime; vintage-labelled CSV alone is a scoped historicalasof sample, not verified first-release coverage.",
       "No expansion to more series/dates or replacing current inputs on this probe result alone."
     ],
-    "candidate_behavior_verified": false,
+    "candidate_behavior_verified": true,
     "cookies": false,
     "exact_url": "https://alfred.stlouisfed.org/graph/alfredgraph.csv?id=DGS2&vintage_date=2020-12-07&cosd=2020-11-30&coed=2020-12-04",
-    "financial_payload_request_executed": false,
+    "financial_payload_request_executed": true,
     "key_required_by_candidate": false,
-    "limitation": "The route is a candidate, not an established remedy or an absolute network blocker. A historicalasof sample does not prove earliest-publication value/date, same Treasury source identity, or exact intraday availability.",
+    "limitation": "KeylessGET is now measuredworking, including316completed4vintage/12column fullbody requests. This original single-series sample and later asofmatches do not establish first-ever publication, fullsourceidentity or intradayavailability. No consumedplan is relaunched.",
     "max_requests": 1,
     "max_response_bytes": 65536,
     "method": "GET",
@@ -476,9 +1577,17 @@
     "proxy": false,
     "redirects": false,
     "requested_asof_vintage_date": "2020-12-07",
+    "response": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESPONSE_07.bin",
+      "sha256": "da50b6e17879ce77d1502122dd76ec728b67a9b75dce7df7e1a2c9e8eb77ac9d"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_PRELEARNING_PUBLIC_EVIDENCE_20261125_001/RESULT.json",
+      "sha256": "945d3c011c538b6e94c9223d55cea9070a6db16f4c67bb8de9d9fab3676948d9"
+    },
     "retry": false,
     "series_id": "DGS2",
-    "status": "UNVERIFIED_CANDIDATE_NEW_PLAN_AND_ROOT_ADMISSION_REQUIRED",
+    "status": "COMPLETE_CONSUMED_SCOPED_KEYLESS_HISTORICAL_ASOF_SAMPLE",
     "timeout_seconds": 20
   },
   "reused_census": {
@@ -594,17 +1703,21 @@
   "scope": {
     "TEST_opened": false,
     "branch": "work/gx1-current",
+    "current_document_update_metadata_only": true,
     "execution_authorized_by_document": false,
     "native_input_changes": false,
     "new_array_decodes": 0,
     "new_financial_payload_requests": 0,
+    "new_payload_reads_or_jobs_in_this_document_update": 0,
     "new_source_key_census_runs": 0,
     "policy_is_only_run_authority": true,
     "repository": "/home/andre2/src/GX1_CURRENT",
     "sole_owned_path": "docs/NATIVE_PRELEARNING_MACRO_EVIDENCE_20261125_001.json",
-    "source_commit": "3f522a825d8661787eceead4c4043359677eb1ed",
+    "source_commit_at_document_update": "8c33df291b9cd9403ef8c3f0ba32e75a9518101a",
+    "source_commit_at_initial_review": "3f522a825d8661787eceead4c4043359677eb1ed",
+    "subsequent_completed_payload_evidence_reused_by_JSON_reference": true,
     "training_authorized": false,
-    "web_metadata_only_review": true
+    "web_metadata_only_review": false
   },
   "source_family_evidence": {
     "cot": {
@@ -635,8 +1748,9 @@
       "field_count": 9,
       "first_vintage": "UNKNOWN",
       "measured_finding": "Active34relays point to registered SOURCE001 rawpaths; all36metadata rawSHA/bytecounts match original36DIRECT_HTTPS receipts. Active2direct2026files also match original identities. No independent payload rehash/TLS-session replay here.",
-      "minimum_path": "Reuse original files/receipts as origin witnesses. Qualify same-definition3underlying series via ALFRED/H15 initial-release metadata for actual consumed source dates; separately authorize bounded value/availability comparison. Reuse current values only if matched to values available by declared issue cutoff.",
-      "precondition": "Verify source/tenor/observationdate/rounding/calendar identity and earliest vintages; date provenance may be source/provider/FRED arrival. No blind substitution/rebuild.",
+      "measured_followup": "Original3755keyALFREDcomparison remains2898match/856missing/1different. Selected75originalcandidateURLs nowallattemptedonce:73authenticatedpages/74dates give93currentmatchesbeforedeclaredbounds,1Apr1difference,54rowabsent and4networkunknown cells at021/042. EarlierMay18original2.89point isseparate evidence. Apr1Treasury2.38capture andALFRED2.38Apr5→2.39Apr6 stilldonotprovewhen2.39becamepublicrelativeApr3bound oractualfirstconsumption.",
+      "minimum_path": "Reusefinalaggregate, immutableledgers andcachedtraces. Original75candidateattemptscopeisclosed; failed021/042werenotandmustnotbeautoretried. Remainingsourcevalue/release/actualconsumptiongaps retainUNKNOWN pendingaseparateexplicitrootdecision. No newplan, sourcevalue/clockpatch orfull09claim followsfromthisdocument.",
+      "precondition": "Keep exacttenor/units/date/rounding/sourcecalendar identities andunknownintraday/actualconsumption bounds. OriginalALFREDdiff and failed36columncontract remainunchanged; no blindsubstitution or unnecessaryrecollection.",
       "source_origin": "RECORDED_OFFICIAL_DIRECT_ORIGIN_CHAIN_RECOVERED_36_OF36"
     },
     "vix": {
@@ -676,5 +1790,5 @@
       "sha256": "146d58e5242501827d671341cf5b99ec97b747c56d5e8e1e013b42f3ca03b7e2"
     }
   },
-  "status": "READ_ONLY_EVIDENCE_DESIGN_NO_NEW_COLLECTION_OR_VINTAGE_PASS"
+  "status": "ORIGINAL75_NOMINAL_CANDIDATE_ATTEMPT_SCOPE_CLOSED_93_MATCH_1_DIFFERENT_54_ABSENT_4_NETWORK_UNKNOWN_FULL09_UNKNOWN"
 }

@@ -1,0 +1,84 @@
+{
+  "array_decodes": 0,
+  "automatic_retries": 0,
+  "execution": {
+    "class": "audit",
+    "internal_wall_seconds": 140,
+    "memory": "4G",
+    "outer_wall_seconds": 170,
+    "swap": "512M",
+    "threads": 1
+  },
+  "inputs": {
+    "calendar_design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_PRELEARNING_CALENDAR_EVIDENCE_20261125_001.json",
+      "sha256": "15c4844baf83b008cf31b4a3104cc78ced5e75e31300462a27bc9e97361e491b"
+    },
+    "macro_design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/NATIVE_PRELEARNING_MACRO_EVIDENCE_20261125_001.json",
+      "sha256": "b96e7c132a83bed5b6926bd80bc7a93759e56381f75a3e72c8933d76d2659904"
+    }
+  },
+  "max_HTTP_requests": 7,
+  "max_response_body_bytes": 12648448,
+  "model_forwards": 0,
+  "permission": "Exact current user prelearning remediation; public source references only, no calendar reclassification/input change/first-vintage overclaim.",
+  "redirects": false,
+  "requests": [
+    {
+      "id": "OANDA_JP_NY_OUTAGE_START_20211122",
+      "kind": "calendar_HTML",
+      "max_response_bytes": 2097152,
+      "timeout_seconds": 12,
+      "url": "https://www.oanda.jp/info/819"
+    },
+    {
+      "id": "OANDA_JP_NY_OUTAGE_RECOVERY_20211122",
+      "kind": "calendar_HTML",
+      "max_response_bytes": 2097152,
+      "timeout_seconds": 12,
+      "url": "https://www.oanda.jp/info/820"
+    },
+    {
+      "id": "OANDA_JP_STANDARD_TIME_20211107",
+      "kind": "calendar_HTML",
+      "max_response_bytes": 2097152,
+      "timeout_seconds": 12,
+      "url": "https://www.oanda.jp/info/814"
+    },
+    {
+      "id": "OANDA_JP_NY_MAINTENANCE_CORRECTION_20211129",
+      "kind": "calendar_HTML",
+      "max_response_bytes": 2097152,
+      "timeout_seconds": 12,
+      "url": "https://www.oanda.jp/info/821"
+    },
+    {
+      "id": "OANDA_JP_FXTRADE_TRADE_QUOTE_DISTINCTION_20211129",
+      "kind": "calendar_HTML",
+      "max_response_bytes": 2097152,
+      "timeout_seconds": 12,
+      "url": "https://www.oanda.jp/info/824"
+    },
+    {
+      "id": "OANDA_JP_CURRENT_API_SCOPE",
+      "kind": "calendar_HTML",
+      "max_response_bytes": 2097152,
+      "timeout_seconds": 12,
+      "url": "https://www.oanda.jp/platform/api"
+    },
+    {
+      "id": "ALFRED_KEYLESS_DGS2_ASOF_SAMPLE",
+      "kind": "macro_CSV_candidate",
+      "max_response_bytes": 65536,
+      "timeout_seconds": 20,
+      "url": "https://alfred.stlouisfed.org/graph/alfredgraph.csv?id=DGS2&vintage_date=2020-12-07&cosd=2020-11-30&coed=2020-12-04"
+    }
+  ],
+  "schema_version": "gx1_bounded_public_prelearning_evidence_plan_v1",
+  "source_commit": "8c33df291b9cd9403ef8c3f0ba32e75a9518101a",
+  "source_owners": {
+    "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/PRELEARNING_PUBLIC_COLLECTOR_20261125_001.py": "eeff48312c20495b2a44eea3772d067b3d2d0a3807e97dba86194347d76bfb56"
+  },
+  "spending": false
+}
