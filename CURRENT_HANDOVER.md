@@ -6,39 +6,56 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
 terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
 <!-- BEGIN GX1 ALL TF V3 TARGET GOAL 20261125 -->
-## Aktivt mål: native fasit og kvalifisering på alle fem TF
+## Kvalifisert: native fasit, full INITIAL og egen-C2 replay på fem TF
 
-Brukeren ba «Lag deg mål og gjør dette» etter neste-steg-beskrivelsen.
-Nytt aktivt chatmål01a2114e-fe3f-7850-bfcd-b0cfe215aca7: eksplisitt V3-
-HLC-sertifikat/fasit/masker/loader/loss, hele354550TRAIN-dekning og matchet
-prior, egen fersk fullklokkeINITIAL og egen-C2 kald replay før admisjon.
-Kildeimplementasjonen er kvalifisert i eksisterende eiere med avgrenset
-fileierskap; root eier policy, cap/launch og samlet kontroll.176unike fokuserte
-tester PASS etter6konkrete kompatibilitets-/fixture-/kildescoperettinger;
-2syntetiske suksess-/feilrapportkontroller PASS. Faktisk readout-head har
-null direkte gradient for ukjent side og bevart aktivitetsgradient påalle5TF.
-V3validereNPZ/PTbytesførpublisering med separate minne-/disklesetellere.
-Reell V3fasit/prior er nå kvalifisert:354550×5celler,1772410modne
-aktiviteterkjente, umodnehaler1/3/12/48/276beholdt. M15/H1/H4moden
-ukjentaktivitet65/366/23424→0; kjent side209906→209939,193100→193317,
-187026→202161. M5/D1har eksakt opprinnelig perradfasit. Ukjent aktivside
-beholdes. Én priorfit/0NN/0updates,53,097sCPU/4G. Aksept:
-`ALL_TF_PROVIDER_HLC_TARGET_ACCEPTANCE_20261125_001.json` SHA
-e208435f46d5f80afe1e1d1ee1144dfc93fc56e2ce6d4f8841f4c5fdcfe39eac.
-Ny fullINITIAL og egenC2kaldreplay er ennåikke kjørt. Ekte metadata viste
-32arkivfelter/14dekodedetruthfelter; kunINITIALbudsjettporten rettes før
-CLAIM, ikke datasett/targets. Originalførstetelemetritimeout er bevart;
-fersksignert002PASS med uendredevakter førCPUadmisjon.
-Kildekvittering: `ALL_TF_V3_SOURCE_QUALIFICATION_20261125_001.json` SHA
-f68324929444d07780dbddc66b0c65d19f0e024fce7f7fe0c83d6cfeaa90de51.
-V2-APIer, genuine inputs/normalisering og opprinnelige checkpoints bevares.
-M5 bruker eksisterende verifiserte native vindu; M15/H1/H4/D1 får eksplisitt
-providerbevis for nøyaktig moden målbar. Ny historisk observasjonsreferanse
-innføres ikke stille som featurehistorikk. Ingen ny HTTP/barrescan.
-Alle seks globale treningsflagg er false. Teknisk replay kvalifiseres senere
-med egen eksakt engangsplan; ingen læringsfit, TEST, M1/GC, handel eller spending.
-Kildeimplementasjon, faktisk datakvalifisering, full baseline og kald replay
-rapporteres separat. Teknisk PASS eller en ny målmaske er ikke bevist edge.
+Brukerens mål01a2114e-fe3f-7850-bfcd-b0cfe215aca7 er teknisk oppfylt:
+V3 HLC/fasit/masker/loader/loss, full TRAIN-prior og fersk INITIAL, deretter
+teknisk egen-C2 kald replay. Root eier policy, launch og samlet kontroll.
+177 unike fokuserte kildetester PASS, inkludert faktisk readout-gradient ved
+ukjent side og eksplisitt14-felts truthbudsjett for32-felts V3-arkiv.
+Kildekvitteringer: ALL_TF_V3_SOURCE_QUALIFICATION_20261125_001.json og
+ALL_TF_V3_INPUT_BUDGET_SOURCE_FIX_20261125_001.json under kvalifikasjonsroten.
+
+Faktisk V3-fasit/prior er kvalifisert for354550 TRAIN-rader ×5TF:
+1772410 modne aktivitetsceller kjente;340 umodne bevares ukjente.
+M15/H1/H4 ukjent moden aktivitet65/366/23424→0; kjente sider
+209906→209939,193100→193317,187026→202161. M5/D1 er perradidentiske.
+Aktivitet med ukjent side beholdes og blir ikke FLAT. Én priorfit/0NN/0updates.
+Aksept ALL_TF_PROVIDER_HLC_TARGET_ACCEPTANCE_20261125_001.json SHA
+ e208435f46d5f80afe1e1d1ee1144dfc93fc56e2ce6d4f8841f4c5fdcfe39eac.
+
+Full fersk V3 INITIAL er faktisk ferdig:354550 NN-rader,1385 unike varige
+batcher (siste246), nøyaktig matchet prior; partial NLL0.7828920197354702,
+loss/score-avvik1.14e-8. Null optimizer/backward/autograd/vektrestores.
+323+663+399 batcher ble bevart gjennom to vaktsstopp (telemetri utilgjengelig,
+senere host_maintenance_active). De to avbrutte forwards teller ikke dekning.
+Alle tre kilde/input/policy/boot/modell/RNG/M1-avslutninger PASS; originalene
+og egen INITIAL er bevart og sikkerhetskopiert med full Mac-disklesekontroll.
+Aksept ALL_TF_V3_INITIAL_ACCEPTANCE_20261125_001.json SHA
+ d937fc7686835dcadc04b2ac817627ff406706e9fb4b35c6daac72a0d6dddb25.
+
+Teknisk V3-replay er faktisk bestått og engangsplan95657ffe er konsumert/lukket:
+3 warm B96-oppdateringer på første288 TRAIN-posisjoner (59.739s), deretter
+ny prosess fra egen C2 og ett fysisk steg3 (48.329s). Alle10 bevisfelt er
+bitlike, inkludert modell/optimizer/RNG/scheduler/posisjon/scores/trajectory.
+C2 har426 backbone- og20 readout-momenttensorer med ikke-null verdi;
+referanse-C3 har560/20. Samme fryste policy og begge boots er bevart.
+Numerisk finite-check-gradientparitet og equal-TF evalparitet PASS.
+Aksept ALL_TF_V3_REPLAY_ACCEPTANCE_20261125_001.json under kvalifikasjonsroten.
+Alle seks globale tillatelser er false; ingen hovedfit er startet eller admittert.
+Neste arbeid er en separat spesifisert TRAIN-læringssammenligning mot den nye
+V3-prioren med fersk INITIAL; ingen fullført/avbrutt plan skal relanseres.
+Kalender/source-asof/makro-vintage og tidligere uavklarte20-stegsgrenser
+bevares; dagens tekniske mål beviser ikke læring, generalisering eller edge.
+Samlet aksept: ALL_TF_V3_GOAL_QUALIFICATION_20261125_001.json. Nye warm/cold-
+checkpoints og kvitteringer er sikkerhetskopiert på Mac,82 filer/319864445B;
+alle medlems-SHAer og fysisk disklesing verifisert. Manifest SHA
+110161c8320f44524efd1ebf6fe22b0f0739b87192961f8fa38d8b49d4cd54b4.
+V2, genuine features/normalisering og originale checkpoints er uendret.
+M5 bruker sitt native vindu; høyere TF får sertifisert moden målbar som fasit.
+Den historiske observasjonsreferansen er ikke innført som featurehistorikk.
+Ingen ny HTTP, TEST, M1/GC, handel eller spending. Læring, senere
+generalisering og økonomisk edge er fortsatt ubevist.
 <!-- END GX1 ALL TF V3 TARGET GOAL 20261125 -->
 
 <!-- BEGIN GX1 CROSS TF COVERAGE HANDOVER 20261125 -->
