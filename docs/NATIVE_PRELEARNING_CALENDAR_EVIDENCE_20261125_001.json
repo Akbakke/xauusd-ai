@@ -1,4 +1,8 @@
 {
+  "OANDA_existing_data_and_V3_scope_review": {
+    "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OANDA_PROVIDER_DATA_AND_TEST_SCOPE_REVIEW_20261126_001.json",
+    "sha256": "dc5d85d6ca961cde20705cbdd4186144803c71d77b1d27e16347a0379a671a5e"
+  },
   "authority": {
     "execution_authorized": false,
     "external_message_sent": false,
@@ -6,6 +10,15 @@
     "slot_reclassification_authorized": false,
     "spending_authorized": false,
     "training_authorized": false
+  },
+  "blocker_scope_clarification": {
+    "all_existing_unknown_slot_labels_preserved": true,
+    "calendar_alone_blocks_all_local_source_target_INITIAL_replay_checks": false,
+    "historical_calendar_and_unconditional_market_coverage_qualified": false,
+    "new_fit_authorized": false,
+    "raw_to_canonical_TRAIN_exact": true,
+    "saved_OANDA_TRAIN_data_missing_from_our_pipeline": false,
+    "unexplained_weekly_grid_slots_are_not_automatically_pipeline_losses": 17870
   },
   "canonical_branch": "work/gx1-current",
   "canonical_repository": "/home/andre2/src/GX1_CURRENT",
@@ -18,19 +31,19 @@
     },
     "requirements": [
       {
-        "acceptance": "Forventet \u00e5pen/stengt/ukjent tid har kvalifisert historisk autoritet for samme feed og gyldighetsdomene; daglige/helligdagsgap gis ikke stengtstatus ved gjetning fra frav\u00e6r.",
+        "acceptance": "Forventet åpen/stengt/ukjent tid har kvalifisert historisk autoritet for samme feed og gyldighetsdomene; daglige/helligdagsgap gis ikke stengtstatus ved gjetning fra fravær.",
         "id": "03",
         "title": "Historisk kalender og kildeobservasjon"
       },
       {
-        "acceptance": "Neste helt framtidige TF-bar, targetstart/end/maturity/cutoff, kausal ATR og kilde-/kalendermasker er riktig bundet; framtidige m\u00e5l/masker mates ikke til modellen.",
+        "acceptance": "Neste helt framtidige TF-bar, targetstart/end/maturity/cutoff, kausal ATR og kilde-/kalendermasker er riktig bundet; framtidige mål/masker mates ikke til modellen.",
         "id": "11",
-        "title": "Framtidsm\u00e5l og tidskausalitet"
+        "title": "Framtidsmål og tidskausalitet"
       },
       {
-        "acceptance": "Aktivitet, sertifisert side, FLAT, tvetydighet og manglende observasjon regnes sant; gjentatte M5-labels og unike TF-m\u00e5l skilles; l\u00e6ringsgrunnlagets tids-/klasse-/ukedagsrepresentativitet er kvalifisert for den p\u00e5st\u00e5tte funksjonen.",
+        "acceptance": "Aktivitet, sertifisert side, FLAT, tvetydighet og manglende observasjon regnes sant; gjentatte M5-labels og unike TF-mål skilles; læringsgrunnlagets tids-/klasse-/ukedagsrepresentativitet er kvalifisert for den påståtte funksjonen.",
         "id": "12",
-        "title": "OPP/NED/FLAT og l\u00e6rerens dekning"
+        "title": "OPP/NED/FLAT og lærerens dekning"
       }
     ],
     "source": {

@@ -6,59 +6,67 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
 terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
 <!-- BEGIN GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
-## Blokkering: historisk kalender og makroproveniens mangler
+## OANDA-data bekreftet; teknisk kvalifikasjon og historisk kausalitet skilles
 
-Bruker25.11 ba om mål og rettelse før videre læring. Root eier policy/launch.
-Målet er ikke oppfylt; teknisk V3-delfase er ikke hele målet.
-NEXT_RUN_POLICY.prelearning_validity_remediation_20261125_001 er arbeidsstatus.
-Vitenskapelig kvalifikasjon står fortsatt13PASS/3FAIL/4UNKNOWN. Ingen tung jobb
-kjører; alle nye engangsplaner er konsumert/lukket. Seks globalflagg er false.
+Bruker26.11: «Ja, undersøk dette». Undersøkelsen er ferdig. NEXT_RUN_POLICY
+prelearning_validity_remediation_20261125_001 eier status; root eier admission.
+Ingen modelljobb er startet. Alle6 trenings-/launchflagg er false og24 tidligere
+prelearning-engangsplaner er lukket. Målet er ikke fullført; status13PASS/3FAIL/
+4UNKNOWN beholdes uten oppgradering av03/09/11/12 eller læring/generalisering.
 
-26.11: bevisgrensene er korrigert: Apr1 faktisk input22:05Z og deklarert tilgjengelighet04:00Z er separate krav. Foreldet prosa om ukjente Apr1/May18-inputklokker er rettet. Tre nye eksakte Treasury XML-CDX-søk returnerte HTTP200/tomt innen tidsvinduet; to nye prefix-søk ble UNKNOWN(timeout/503), ikke tomme. Totalt5metadataGET/9B,0originalbodyGET/NN; begge engangsplaner er lukket. Metadata beviser ikke Apr1-verdiens publisering. Samme historiske kalender-/61feltproveniensblokkering er kontrollert gjennom minst tre påfølgende målturner; målet er blokkert av eksterne beviskrav, ikke fullført. Neste reelle fremdrift krever nytt originalarkiv/leverandørbevis. Privat bevis/audit: PRELEARNING_APR1_FINAL_METADATA_ACCEPTANCE_20261126_001.json og PRELEARNING_EXTERNAL_BLOCKED_AUDIT_20261126_001.json under kvalifikasjonsroten.
+OANDA-grunnlaget finnes: practice/XAU_USD nativeM5 MBA, lagrede råsvar og
+354550 TRAIN-rader. Eksisterende ekte råkildekontroll beviser0 tapte/ekstra
+TRAIN-rader til canonical/CAPTURE. Alle17870 ukentlig-grid-fravær finnes
+allerede i råsvarene;0 ble fjernet av ukefilteret.11928 av dem følger994
+Mon–Thu17–18NY-gap; mønsteret er ikke historisk quote-kalenderautoritet.
+Det er ikke målt et nedlastings-/ingesttap som skal «fylles» med priser.
 
-V3-reviewblokkeringen er rettet og kvalifisert med18 fokuserte tester og lagrede
-INITIAL-output på354550 TRAIN-posisjoner. Row/equal-target/year/kalibrerings- og
-UP/DOWN-paneler er låst. INITIAL lik egen prior kvalifiserer ikke læring/edge.
-Tidligere177 kvalifiserte tester og full INITIAL/egen-C2-replay gjenbrukes.
+V3 er kvalifisert for observerte provider-HLC-mål på alle5TF:354550issues,
+1772410 modne issue×TF-aktivitetsmål,0 modne med ukjent aktivitet,340umodne
+haler (M5/M15/H1/H4/D1=1/3/12/48/276). Tvetydig side forblir ukjent.
+M5 beholder original kompletthetsmaske; høyere TF har autentisert HLC.
+Ingen kalender-, pris-, maske-, input- eller normaliseringsfakta omskrives.
+INITIAL/egen kald replay og låst rad-/målbar-/tidsblokk-/prior-/scorekontroll
+beholdes. Dette er ikke ubetinget markedsdekning eller bevist edge/læring.
 
-Makro:316 lukkede keyless GET ga3755 nøkler:2898match/856missing/1diff.
-75 originale Treasury-arkivkandidater er forsøkt én gang hver; slutt152celler:
-93MATCH/1DIFF/54ROW_ABSENT/4NETWORK_UNKNOWN. Originalkvitteringer bevares.
-Apr1 faktisk første kvalifiserte input er2022-04-03T22:05Z; 2.39-publisering før
-bruk er fortsatt UNKNOWN. May18 første input er2022-05-20T04:05Z; autentisert
-2.89-capture03:23:53Z var2467s før bruk. Kun dette punktet er kjent-før-bruk-
-kvalifisert; det beviser ikke første publisering eller alle61 felters asof.
+Tidligere generell stoppformulering var for bred: full kalender er ikke
+et universelt krav for alle lokale kilde-/target-/INITIAL-/replaykontroller.
+20-punktsdokumentet er ikke en launchordre; læring og senere generalisering
+er utfall som må måles, ikke allerede-PASS før første avgrensede fit.
+En eventuell utviklingsfit må få egen eksakt protokoll og admission først.
+Denne undersøkelsen åpner ingen fit eller relansering av konsumerte planer.
 
-Avklart viktig inputgrense: alle1410 gjenfunne observasjoner ble allerede
-bevist valgt av scheduled_weekly_closure_mask og DELTA_OLD_CLOSURE_ONLY.
-De er utenfor vedtatt PAIR_WEEKCLOSED-kontrakt, ikke en bevist mangel blant
-kvalifiserte CURRENT-inputbarer. Behold separat referanse, CURRENT og vakter.
-Dette er kontraktsmedlemskap, ikke uavhengig historisk kalenderbevis.
+44 av61 kontekstfelt er prisavledet fra11 OANDA-instrumenter. Koden bruker
+lukkede D1-barer og bare tidligere/ved-grensen-rader. Ingen aktuell OANDA44-
+tidslekkasje er målt; historisk korreksjons-/finalitetspolicy er ikke bevist.
+De øvrige17 er COT4/Treasury9/VIX2/GLD2 med egne publiserings-/revisjonskrav.
+Kravet er kjent-før-faktisk-bruk og relevant revisjonsvintage, ikke nødvendigvis
+et førstegangssnapshot for hver OANDA-candle. Samlet09 forblir UNKNOWN.
 
-Privat prefix001 stoppet før bygg på arvet akseforsegling; minste metadata-
-rettelse i002 passerte dette. Prefix002 stoppet ved HTF-vakt. Egen presis
-HTF-diagnose634.41s/all6bokenderPASS fant M5:382NaN-rader/772celler i firefelt,
-alle i2011 før TRAIN. ØvrigeTF er NOT_EXECUTED. Full kontrafaktisk påvirkning
-på TRAIN er ikke målt; ingen bitidentiskhets- eller all5TF-påstand. Ingen
-featureformler/finite-/kausalitets-/readinessvakter endres for å ta inn det
-utelukkede settet. Ingen relaunch av001/002/diagnose og ingen CURRENT-admission.
+May18 Treasury er autentisert2467s før målt første input2022-05-20T04:05Z.
+Apr1 publisering før faktisk input2022-04-03T22:05Z er fortsatt UNKNOWN;
+deklarert04:00Z er et separat sterkere krav.316 tidligere keyless GET og75
+arkivkandidater bevares; nye3 eksakte XML-metadataoppslag var tomme i sitt
+vindu,2 prefix-oppslag UNKNOWN(timeout/503). Ingen automatisk gjentakelse.
+Alle1410 gjenfunne observasjoner er utenfor vedtatt PAIR_WEEKCLOSED-input-
+domene og beholdes separat; ingen featurevakt endres for å ta dem inn.
 
-Autoritative nådokumenter:
-docs/NATIVE_PRELEARNING_SOURCE_CLOCK_BOUNDARY_20261125_001.json,
-docs/NATIVE_PRELEARNING_INPUT_HISTORY_BOUNDARY_20261125_001.json og
-docs/NATIVE_PRELEARNING_MACRO_EVIDENCE_20261125_001.json.
-Private kvitteringer er under GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001
-og de eksakte resultatstiene bundet i dokumentene/policy. Prestart Mac-backups
-bestod alle medlems-hasher, readback og F_FULLFSYNC. Host telemetry ble gjenopprettet
-ved én start av eksisterende oppgave, uten innstillings-/vaktendring; siste jobb
-hadde fersk signert nonce- og kapasitetsadmission. En før-admission-timeout er bevart.
+Autoritativ avklaring med kilder og gjenbrukte målinger:
+GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/
+OANDA_PROVIDER_DATA_AND_TEST_SCOPE_REVIEW_20261126_001.json, bundet i policy.
+Kalender-/makrodokumentene er presisert i samme bølge. Ingen ny rå-/array-
+dekoding, broker-API, NN-forward, optimizerjobb, datakilde- eller vaktendring.
+Ny datert OANDA/TMS GOLD.pro-kilde er ikke mapet til XAU_USD/practice og
+klassifiserer ingen nye slots som stengt.
 
-Gjenstår: eksakt historisk XAU_USD/practice kalender og17870uavklarte klokke-
-fravær, full61felters første-vintage/revisjon/publiseringskronologi, ubetinget
-representativitet, målt V3-læring og senere generalisering. Ingen ny hovedfit,
-TEST/M1/GC-tilpasning, live/paper, spending eller promotion. Ingen automatisk
-repetisjon av lukkede kildesøk. Ukjente kildefakta skal ikke erstattes med antagelser.
-Siste sluttkontroll26.11: aktive hashbindinger,4 nye private AST-syntakser,20 parsercaser, stale-stier/prosa, handover --check og git diff --check PASS. Ingen gjentatt numerisk suite; kvalifikasjon13/3/4 og24 lukkede prelearning-stadier. Separat Mac-backup PRELEARNING_EXTERNAL_FINAL_20261126_001:44filer/16955889B; readback/medlemshasher/F_FULLFSYNC PASS. Eksakte audit-/backupkvitteringer er bundet i policy.
+Neste steg er en konkret, reviewbar avgrenset V3-utviklingsprotokoll:
+kildeklokkekohort velges før målinnsyn; faktisk funksjon/input/norm/factoryprior
+og matchet scoreprior, INITIAL/replay, budsjett og påstandsomfang bindes.
+Frosne-data-optimering kan ikke ommerkes til historisk kausalitet eller edge.
+Full kalender, relevant kjent-før-bruk/revisjonsbevis, ubetinget representativitet,
+V3-læring og senere generalisering er fortsatt ubevist. Ingen hovedfit,
+TEST/M1/GC-tilpasning, broker/live/paper/ordre/spending/promotion er åpnet.
+Sluttkontroll:2 uavhengige scopereviews, JSON/hashbindinger/syntaks/stale-stier, handover --check og git diff --check PASS; ingen numerisk suite gjentatt. Separat Mac-backup OANDA_SCOPE_REVIEW_20261126_001:11filer/6175190B, alle medlems-hasher/readback/F_FULLFSYNC PASS. Eksakte review-/backupkvitteringer er bundet i policy.
 <!-- END GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
 
 <!-- BEGIN GX1 ALL TF V3 TARGET GOAL 20261125 -->

@@ -274,6 +274,10 @@
     }
   },
   "May18_point_remaining_limit": "First eligible input use is now measured and current2.89 was authentically captured2467s before it. This does not prove first-ever publication or full61field chronology.",
+  "OANDA_data_and_admission_scope_review": {
+    "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/OANDA_PROVIDER_DATA_AND_TEST_SCOPE_REVIEW_20261126_001.json",
+    "sha256": "dc5d85d6ca961cde20705cbdd4186144803c71d77b1d27e16347a0379a671a5e"
+  },
   "actual_Apr1_input_consumer_clock": {
     "May18_actual_first_use_measured_by_this_Apr1_witness": false,
     "NN_forwards": 0,
@@ -1152,6 +1156,14 @@
     "release_DATE": "Observationdate, referencevintagedate, originalpublicarchivecaptureUTC, retrievalUTC andactualfirstmodelconsumption areseparate. D+1referencedatealone suppliesno exactintradayclock; theone authenticatedarchivecapture suppliesaspecificUTCupperbound, notfirst-everpublication.",
     "revision_flags": "Manifest revised_after_publication flags copied by fetch_bounded_files are declarations, not empirical revision tests. A policy allowing restatements does not prove a consumed observation changed."
   },
+  "known_by_use_proof_requirement": {
+    "OANDA44_closed_price_clock_code_qualified": true,
+    "OANDA44_historical_correction_finality_guarantee_qualified": false,
+    "all61_historical_asof_qualified": false,
+    "current_OANDA44_lookahead_violation_measured": false,
+    "other17_publication_version_requirements_retained": true,
+    "requirement": "Value/source-versionavailablebyactualinputuse,withnecessaryrevisionhistoryandcorrectidentity/time/units. Literalfirst-everreceiptforeverypricecandleisnotautomaticallyrequired."
+  },
   "nominal_archive_body_followup": {
     "HTTP_requests": 3,
     "active_input_or_mask_changes": 0,
@@ -1687,7 +1699,7 @@
     "status": "ORIGINAL75_CANDIDATE_SCOPE_CLOSED_93MATCH_1DIFF_54ROWABSENT_4NETWORK_UNKNOWN",
     "unqualified_after_followup_failure_cells": 4
   },
-  "observed_utc": "2026-11-25T23:17:00.261978+00:00",
+  "observed_utc": "2026-11-26T05:48:40.785426+00:00",
   "operating_gates_at_final_metadata_update": {
     "NEXT_RUN_POLICY_is_only_work_status": true,
     "full_step09_qualified": false,
@@ -2046,7 +2058,7 @@
     "policy_is_only_run_authority": true,
     "repository": "/home/andre2/src/GX1_CURRENT",
     "sole_owned_path": "docs/NATIVE_PRELEARNING_MACRO_EVIDENCE_20261125_001.json",
-    "source_commit_at_document_update": "d86f1c6c137633d8465ce1f420865decb308c5fc",
+    "source_commit_at_document_update": "f17030e66cf8ac1b6f249b43e811346566ab188b",
     "source_commit_at_initial_review": "3f522a825d8661787eceead4c4043359677eb1ed",
     "subsequent_completed_payload_evidence_reused_by_JSON_reference": true,
     "training_authorized": false,
@@ -2123,5 +2135,5 @@
       "sha256": "146d58e5242501827d671341cf5b99ec97b747c56d5e8e1e013b42f3ca03b7e2"
     }
   },
-  "status": "MEASURED_ACTUAL_INPUT_CLOCKS_PARTIAL_SOURCE_WITNESSES_ALL61_PUBLICATION_AND_CALENDAR_UNKNOWN"
+  "status": "CURRENT_OANDA_DATA_PRESENT_DECLARED_CLOCKS_QUALIFIED_HISTORICAL_ASOF_STILL_PARTIAL"
 }
