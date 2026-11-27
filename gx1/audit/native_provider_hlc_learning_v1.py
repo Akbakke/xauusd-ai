@@ -1043,7 +1043,7 @@ DEV_PARENT='3ef40c291594a5bcc6d923ec5dcc4fd4e18ab746'
 DEV_PROTOCOL=REPO/'configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_PROTOCOL_20261127_001.json'
 DEV_PHASES=('cohort','warm','cold','fit')
 DEV_PARENT_STAGE='native_v3_bounded_development_test_20261127_001'
-DEV_PLANS={phase:REPO/'configs/research'/(DEV_NAME+'_'+phase.upper()+'.json')for phase in DEV_PHASES}
+DEV_PLANS={phase:REPO/'configs/research'/(DEV_NAME+'_'+phase.upper()+('_002'if phase=='warm'else'')+'.json')for phase in DEV_PHASES}
 DEV_ROOTS={phase:Path('/home/andre2/GX1_RUNS')/(DEV_NAME+'_'+phase)for phase in DEV_PHASES}
 DEV_STAGES={phase:DEV_NAME.lower()+'_'+phase for phase in DEV_PHASES}
 DEV_SCHEMA='gx1_native_all_tf_provider_hlc_v3_development_plan_v1'

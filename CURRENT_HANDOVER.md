@@ -27,6 +27,12 @@ kvalifisering kommer før fit; tekniske replayvekter er aldri fit-initializer.
 Kildekvalifisering:110unike fokuserte tester PASS, syntaks/diffcheck og
 uavhengig integrasjonsreview PASS;72av74baselineeiere byteuendret, kun
 2additive kjøringsvakter. Alle6globalflagg false; ingen fase admitted/claimet.
+COHORT er fullført:20727rader/1377bøtter, sertifikat og alle7bookends PASS;
+0NN/0oppdateringer, faktisk216batcher/pass×2=432støttede oppdateringer.
+Første GPU-preflight stoppet før CLAIM på en miljøvariabel som kanonisk
+wrapper ikke eksporterer. Ingen modellstart; gammel warm-plan bevares som
+retired/unclaimed. Minste koblingsrettelse er kvalifisert med43berørte guardtester PASS,
+inkludert reell wrapper-exportkontroll. WARM_002 er ennå ikke admitted.
 Kildekvittering: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DEVELOPMENT_SOURCE_QUALIFICATION_20261127_001.json.
 
 Vurder alle5TF mot samme frosne scoreprior med rad-/målbarvekting,

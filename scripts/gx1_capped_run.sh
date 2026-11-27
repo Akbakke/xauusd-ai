@@ -1367,7 +1367,9 @@ matches_bound_native_v3_development() {
     && "$4" == --v3-development-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ \
     && "$6" == --phase ]] || return 1
   case "$7" in cohort|warm|cold|fit) ;; *) return 1 ;; esac
-  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001_${7^^}.json"
+  local plan_suffix="${7^^}"
+  if [[ "$7" == warm ]]; then plan_suffix=WARM_002; fi
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001_${plan_suffix}.json"
   [[ -f "$expected_plan" && ! -L "$expected_plan" \
     && "$(readlink -f "$expected_plan")" == "$expected_plan" \
     && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]

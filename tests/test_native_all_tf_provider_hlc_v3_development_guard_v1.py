@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -60,7 +61,7 @@ def fixture(monkeypatch, tmp_path, phase='fit', preflight=False, bad=None):
     if bad == 'updates': plan['limits']['optimizer_steps'] += 1
     if bad == 'owner': source_owners[OWNERS[0]] = 'f' * 64
     if bad == 'bridge': plan['guard_source_bridge'] = {**bridge, 'extra':True}
-    path = repo / 'configs/research' / (NAME + '_' + phase.upper() + '.json')
+    path = repo / 'configs/research' / (NAME + '_' + phase.upper() + ('_002' if phase == 'warm' else '') + '.json')
     path.write_text(json.dumps(plan, sort_keys=True))
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     gate = dict(status='ADMITTED_EXACT_V3_DEVELOPMENT_' + phase.upper(),
@@ -106,7 +107,7 @@ def fixture(monkeypatch, tmp_path, phase='fit', preflight=False, bad=None):
             GPU_INDEX=0,GPU_MAX_POWER_LIMIT_W=250,GPU_MAX_POWER_DRAW_W=250,GPU_MAX_CORE_TEMP_C=75,
             GPU_MAX_MEMORY_TEMP_C=80,GPU_MAX_MEMORY_USED_MIB=12288,GPU_MONITOR_INTERVAL_SECONDS=1,
             CPU_MAX_TEMP_C=80,CPU_MAX_PACKAGE_POWER_W=125,HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592,
-            HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592,OUT_BUNDLE_DIR=str(output))
+            HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592)
         env.update({'GX1_TRAINER_' + k:str(v) for k,v in fields.items()})
     if bad == 'hardware_env': env['GX1_TRAINER_GPU_MAX_POWER_DRAW_W'] = '251'
     if bad == 'unknown_env': env['GX1_NATIVE_V3_DEVELOPMENT_UNSAFE'] = 'false'
@@ -160,6 +161,33 @@ def test_shell_phase_cli_and_profile_are_fixed(monkeypatch,tmp_path,phase):
         result=subprocess.run(['bash','-c',script+tail],cwd=f['repo'],capture_output=True,text=True)
         assert result.returncode==(75 if wrong else 0),result.stderr
         if not wrong: assert result.stdout.strip()==phase+(',' if phase=='cohort' else ',5400,5370' if phase=='fit' else ',1800,1770')+(',' if phase=='cohort' else '')
+
+
+@pytest.mark.parametrize('phase', ('warm','cold','fit'))
+def test_gpu_guard_requests_only_actual_wrapper_exports(monkeypatch,tmp_path,phase):
+    f=fixture(monkeypatch,tmp_path,phase,preflight=True)
+    wrapper=(Path(__file__).resolve().parents[1]/'scripts/gx1_capped_run.sh').read_text()
+    exported=set(re.findall(r'--setenv=([A-Z0-9_]+)=',wrapper))
+    assert 'GX1_TRAINER_OUT_BUNDLE_DIR' not in exported
+    requested=set()
+    class ActualWrapperEnvironment(dict):
+        def get(self,key,default=None):
+            requested.add(key)
+            return super().get(key,default)
+    actual={key:value for key,value in os.environ.items() if not key.startswith('GX1_') or key in exported}
+    monkeypatch.setattr(os,'environ',ActualWrapperEnvironment(actual))
+    f['call']()
+    assert requested <= exported
+    assert f['called']==['cuda']
+
+
+def test_warm_has_no_legacy_plan_alias(monkeypatch,tmp_path):
+    f=fixture(monkeypatch,tmp_path,'warm',preflight=True)
+    assert f['path'].name==NAME+'_WARM_002.json'
+    old=f['path'].with_name(NAME+'_WARM.json')
+    f['path'].rename(old)
+    with pytest.raises(RuntimeError,match='CANONICAL_JSON'): f['call']()
+    assert not f['called']
 
 
 def _actual_owners():
