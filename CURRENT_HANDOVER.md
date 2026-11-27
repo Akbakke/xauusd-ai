@@ -28,21 +28,24 @@ Eldre «neste steg» i underliggende prelearning-/20-stegsfelt er historikk,
 ikke launchautoritet over nyeste top-level status og de to nyeste scopefeltene.
 Kriterier: `docs/NATIVE_QUALIFICATION_20_STEPS.json`.
 
-Alle seks modell-/launchflagg er false: `training_enabled`,
-`native_training_enabled`, `native_launch_authorized`,
-`full_epoch_training_allowed`, `full_val_allowed`,
-`exit_training_and_evaluation_this_wave`. Hostdeploy-admission er også lukket.
-Ingen ny fit, automatisk retry/serie eller hovedtrening er autorisert.
-Appmålet er fortsatt ufullført/blocked; ikke marker det oppnådd for å lage nytt.
+Bruker27.11 ber om nytt mål og videre arbeid mot retningsedge med alle
+indikatorer og samspillet mellom dem. Nytt appmål er registrert aktivt.
+Root kvalifiserer én ny FIT_003 som neste avgrensede læringsmilepæl under
+stående integratoradgang16.11; gammel FIT_001/FIT_002 relanseres aldri.
+Autorisasjon og presis tolkning er bundet i
+`fit003_continuation_authorization` i utviklingstestfeltet.
 
-Neste arbeid:
+Alle seks modell-/launchflagg er foreløpig false. Ingen ny kjøring er
+innrømmet før kilde-/input-/hostkontroll og metadata-preflight består.
+FIT_003 beholder20727rader, alle5TF/familier, fullt koblet None, fersk
+factoryINITIAL, B96/E256,2fastepass/maks432oppdateringer og barePASS2-kandidat.
+Kohort/warm/cold gjenbrukes; ingen endring av modell, tap, vekter eller terskler.
+Samme låste INITIAL og COHORT-prior måles med rad-/målbarvekting på alleTF.
+Dette er TRAIN-optimeringsdiagnostikk, ingen senere generalisering eller edge.
 
-1. Ved nytt vedlikeholdsflagg: les journalens eksakte komponenter og korreler
-   UTC/nonce/monotonic med den originale guardloggen.
-2. En eventuell ny fit krever nytt uttrykkelig operatørvedtak, ny engangsplan,
-   fersk signert host-/idle-admission og kilde-/input-/policyfrys.
-3. Gjenbruk kvalifisert kohort, V3-fasit/prior/INITIAL og warm/cold-bevis.
-   Ingen fullført, claimet eller avbrutt plan skal relanseres.
+Neste arbeid: kvalifiser og innrøm kun den nye eksakte engangsplanen med
+fersk signert host-/idle-status og fryst kilde/policy. Ved stopp leses
+journalens eksakte komponenter. Ingen automatisk retry/serie/hovedtrening.
 
 ## Vedlikeholdslogging — ferdig
 

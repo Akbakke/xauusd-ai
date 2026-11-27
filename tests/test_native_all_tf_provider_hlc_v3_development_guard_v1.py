@@ -47,7 +47,7 @@ def fixture(monkeypatch, tmp_path, phase='fit', preflight=False, bad=None):
         contract_sha256='58fd7f15bdf35646680829a718caa2991f2029ed99f48030e3a85c86aae380c5')
     contract = dict(contract_sha256='ded7f2a05417d108ef8bed4d88f31d40ea1de21292e964586598ddaa818010c3',
         target_contract_sha256=target['contract_sha256'], target_metadata_as_model_input=False)
-    output = runs / (NAME + '_' + phase + ('_002' if phase == 'fit' else ''))
+    output = runs / (NAME + '_' + phase + ('_003' if phase == 'fit' else ''))
     plan = dict(schema_version='gx1_native_all_tf_provider_hlc_v3_development_plan_v1', phase=phase,
         stage=(NAME + '_' + phase).lower(), source_commit='a' * 40, output_root=str(output),
         execution=g._native_v3_development_execution(phase), protocol=protocol_ref,
@@ -62,7 +62,8 @@ def fixture(monkeypatch, tmp_path, phase='fit', preflight=False, bad=None):
     if bad == 'owner': source_owners[OWNERS[0]] = 'f' * 64
     if bad == 'bridge': plan['guard_source_bridge'] = {**bridge, 'extra':True}
     if bad == 'old_fit_root': plan['output_root'] = str(runs / (NAME + '_fit'))
-    path = repo / 'configs/research' / (NAME + '_' + phase.upper() + ('_002' if phase in ('warm','fit') else '') + '.json')
+    if bad == 'old_fit002_root': plan['output_root'] = str(runs / (NAME + '_fit_002'))
+    path = repo / 'configs/research' / (NAME + '_' + phase.upper() + ('_002' if phase == 'warm' else '_003' if phase == 'fit' else '') + '.json')
     path.write_text(json.dumps(plan, sort_keys=True))
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     gate = dict(status='ADMITTED_EXACT_V3_DEVELOPMENT_' + phase.upper(),
@@ -134,7 +135,7 @@ def test_exact_phase_guard_preserves_resource_only_authority(monkeypatch,tmp_pat
 
 @pytest.mark.parametrize('bad', ('schema','model','target','execution','updates','owner','bridge',
     'selection','target_filter','recipe','protocol_digest','parent_protocol','parent_phase','spent','second_gate','flags',
-    'existing','symlink','argv','hardware_env','unknown_env','legacy_env','old_fit_root'))
+    'existing','symlink','argv','hardware_env','unknown_env','legacy_env','old_fit_root','old_fit002_root'))
 def test_exact_scope_rejects_before_kernel_proof(monkeypatch,tmp_path,bad):
     f = fixture(monkeypatch,tmp_path,bad=bad)
     with pytest.raises(RuntimeError): f['call']()
@@ -184,24 +185,25 @@ def test_gpu_guard_requests_only_actual_wrapper_exports(monkeypatch,tmp_path,pha
     assert f['called']==['cuda']
 
 
-@pytest.mark.parametrize('phase', ('warm','fit'))
-def test_revised_phase_has_no_legacy_plan_alias(monkeypatch,tmp_path,phase):
+@pytest.mark.parametrize('phase,old_suffix', (('warm',''),('fit',''),('fit','_002')))
+def test_revised_phase_has_no_legacy_plan_alias(monkeypatch,tmp_path,phase,old_suffix):
     f=fixture(monkeypatch,tmp_path,phase,preflight=True)
-    assert f['path'].name==NAME+'_'+phase.upper()+'_002.json'
-    old=f['path'].with_name(NAME+'_'+phase.upper()+'.json')
+    assert f['path'].name==NAME+'_'+phase.upper()+('_002' if phase=='warm' else '_003')+'.json'
+    old=f['path'].with_name(NAME+'_'+phase.upper()+old_suffix+'.json')
     f['path'].rename(old)
     with pytest.raises(RuntimeError,match='CANONICAL_JSON'): f['call']()
     assert not f['called']
 
 
-def test_fresh_fit_namespace_preserves_consumed_old_fit(monkeypatch,tmp_path):
+@pytest.mark.parametrize('old_suffix', ('','_002'))
+def test_fresh_fit_namespace_preserves_consumed_old_fit(monkeypatch,tmp_path,old_suffix):
     f=fixture(monkeypatch,tmp_path,'fit',preflight=True)
-    assert f['output'].name==NAME+'_fit_002'
-    old_output=f['runs']/(NAME+'_fit')
+    assert f['output'].name==NAME+'_fit_003'
+    old_output=f['runs']/(NAME+'_fit'+old_suffix)
     old_output.mkdir()
     old_claim=old_output/'CLAIM.json'
     old_claim.write_text('{"status":"CONSUMED_OLD_FIT"}\n')
-    old_plan=f['path'].with_name(NAME+'_FIT.json')
+    old_plan=f['path'].with_name(NAME+'_FIT'+old_suffix+'.json')
     value=json.loads(f['path'].read_text())
     value['output_root']=str(old_output)
     old_plan.write_text(json.dumps(value,sort_keys=True))
