@@ -20,7 +20,7 @@ Les disse policyfeltene for deres respektive scope:
 | Felt | Siste avsluttede tilstand |
 |---|---|
 | `native_host_maintenance_logging_20261127_001` | Logging utrullet og verifisert; delmålet fullført. |
-| `native_v3_bounded_development_test_20261127_001` | FIT_001 og FIT_002 er `FAILED_CONSUMED`; kun delresultater. |
+| `native_v3_bounded_development_test_20261127_001` | FIT_001/002/003/004 er forbrukt; FIT004-stoppets MoUso-komponent er identifisert. |
 | `prelearning_validity_remediation_20261125_001` | OANDA-/historisk scopereview ferdig; ingen ny fit-admission. |
 | `native_twenty_step_qualification_20261123_001` | Fagstatus 13 PASS / 3 FAIL / 4 UNKNOWN; samlet ikke kvalifisert. |
 
@@ -37,24 +37,40 @@ Autorisasjon og presis tolkning er bundet i
 
 FIT_003 namespaceendring er kvalifisert:74 fokuserte tester, begge kildebroer,
 72 uendrede baselineeiere og uavhengig diff-review PASS. Ingen modelljobb.
-FIT_003 bestod metadata-preflight, men faktisk detached oppstart stoppet
-22:44:34UTC27.11 før runroot/CLAIM, modelldata eller NN: Windows BootId-
-oppslag via powershell feilet med WSL UtilAcceptVsock/accept4timeout110.
-Originale guard-/trainer-/ytterlogger er bundet i `fit003_preclaim_stop`.
-Ingen RESULT/TERMINAL oppdiktes; originalrunroot mangler. Ingen updates.
-Alle6flagg og admissioner er nå false; FIT_003 er forbrukt og relanseres ikke.
+FIT_003 feilet før runroot/CLAIM/NN fordi den opprinnelige SSH/WSL-økten
+ble avsluttet etter en frakoblet start. En identisk BootId-probe reproduserte
+feilen. FIT_004 holdt økten åpen, og denne oppstartsrettelsen fungerte.
 
-WSL-feilen er reprodusert med nøyaktig BootId-funksjon: tilkoblet PASS,
-frakoblet barn med opprinnelig forelder i live PASS, etter opprinnelig
-SSH-exit FAIL med samme accept4timeout. Minste rettelse er å holde samme
-SSH/WSL-økt åpen til capped kommando er ferdig; ingen host-/interop-/vaktpatch.
+FIT_004 stoppet 27.11 kl. 23:12:57 UTC på `host_maintenance_active`,
+167,38 s etter claim. Alle seks bookends består. Original RESULT/TERMINAL er
+`FAILED_CONSUMED`. INITIAL-score og logit-SHA er identiske med factory-
+kontrollen fra FIT002. CURSOR001.json/.pt er hash-/readbackbekreftet og
+beviser én varig oppdatering. Totalt utført er UNKNOWN innen 1..216.
+PASS1/PASS2/FINAL mangler; ingen kandidat eller endelig læringsdom foreligger.
 
-FIT_004 får ny engangsplan/root og uendret modell/data/recipe. Kilderuten er
-kvalifisert med52nye guardtester og25uendrede gjenbrukte utviklingstester,
-begge kildebroer/72baselineeiere/syntaks/diff PASS. Original FIT_003 bevares.
-Alle6flagg erfalse. Neste steg: kildefrys, fersk runtime og identisk tilkoblet
-metadata-preflight, separat backup og kun én planbundet admission.
-Kohort/INITIAL/warm/cold gjenbrukes. Læring/generalisering/edge er ubevist.
+Journalens snapshot kl. 23:12:57.2028323 UTC, monotonic 462425811, viser kun
+MoUsoCoreWorker.exe PID 9752, parent 5764, opprettet kl. 23:12:56.4419880 UTC.
+Setup/OOBE/CBS/WU/reboot-in-progress var false/0. Dette beviser tilstedeværelse
+av prosessen; aktiv installasjon eller tomgang er UNKNOWN. Guardloggen har
+UTC/reason, men ikke nonce/monotonic. Direkte noncebinding mellom filene
+påstås derfor ikke. Kl. 23:27 UTC var prosessen borte og signert vedlikehold/
+CBS/WU false. Ingen prosessinngrep, hostendring, omstart eller svekket vakt.
+
+Alle seks flagg og alle admissioner er false. FIT_001/002/003/004 er forbrukt
+og bevares. Appmålet er aktivt og uoppfylt. Neste konkrete arbeid er å
+undersøke det tilbakevendende MoUso-stoppet og en tillatt kjøreperiode før
+eventuell ny eksakt plan. Ingen automatisk fitserie. Nåværende klarering
+beviser ikke at vedlikehold uteblir den neste timen. En snever taskkontroll
+viser ingen tidsstyrt kjøring de neste 90 minuttene, men queued-/hendelses-
+triggere består; et uavbrutt vindu er derfor UNKNOWN. Årsakstilknytning til
+Schedule Scan er ikke påvist. De målte pendingflaggene
+begrunner ikke alene en omstart. Alle åtte familier og fem TF er teknisk
+koblet til felles læring. Nyttige enkeltindikatorer, V3-læring, senere
+kronologisk generalisering og økonomisk edge er fortsatt ubevist.
+
+Neste avgrensede kildekontroll vurderer gjenbruk av eksisterende native
+restore/replay fra originalt FIT004-C1 for samme 432-updatetrajektorie.
+Dette er lesende designkontroll, ingen ny kode eller recovery-admission.
 
 ## Vedlikeholdslogging — ferdig
 
@@ -84,29 +100,23 @@ WindowsUpdateBox/wuauclt, også en idle worker, eller setup/OOBE/reboot-in-progr
 Det beviser ikke aktiv installasjon. Eksakte utløsere ved de gamle stoppene
 forblir UNKNOWN; historikken omskrives ikke.
 
-## Siste V3-utviklingstest — avbrutt
+## Siste V3-utviklingstest — FIT004 avbrutt
 
-Kohorten har 20 727 TRAIN-rader fra 1 377 kildeklokkebøtter, valgt før målinnsyn.
-Alle fem TF og genuine familier beholdes; ingen etikettkvoter/topup.
-Whole-TRAIN factoryprior/normalisering beholdes. COHORT-prior er kun scoring.
-COHORT/WARM/COLD er COMPLETE med seks bookends PASS og alle ti cold-bevis
-bitidentiske. Tekniske replayvekter er aldri fit-initializer.
+Kohorten har 20 727 TRAIN-rader fra 1 377 kildeklokkebøtter, valgt før
+målinnsyn. Alle fem TF og genuine familier beholdes uten etikettkvoter/topup.
+Whole-TRAIN factoryprior/normalisering beholdes; COHORT-prior brukes bare
+ved scoring. COHORT/WARM/COLD er COMPLETE med alle ti kalde bevis bitidentiske.
+Tekniske vekter brukes aldri som fit-initializer. Funksjonen er uendret:
+fullt koblet None, B96/E256, seed 20260911, to faste pass, maks 432 updates
+og bare PASS2 som kandidat.
 
-FIT_002-planen er kun referanse for bundne inputs/recipe, ikke en launchordre:
-`configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001_FIT_002.json`.
-Den hadde None/default, fersk factoryINITIAL, B96/E256, seed 20260911,
-to faste pass og maksimalt 432 oppdateringer. Bare PASS2 var kandidat.
-
-FIT_001 stoppet på vedlikehold før første oppdatering. FIT_002 stoppet
-17:44:41 UTC 27.11 etter 468 s på samme flagg. Øvrige ressursgrenser ble ikke
-brutt. Begge originale RESULT/TERMINAL er FAILED_CONSUMED med bookends PASS.
-
-FIT_002 bevarer INITIAL_SCORE/LOGITS, nøyaktig lik factory-kontrollen og
-`NOT_CANDIDATE_FIXED_PASS2`, samt hash-/readbackbekreftet CURSOR001.json/.pt.
-Checkpointet beviser én varig oppdatering. Totalt utført er UNKNOWN, begrenset
-til 1..216 av kontrollflyt og manglende PASS1-artefakter; ikke kall dette
-nøyaktig én oppdatering. PASS1/PASS2/FINAL mangler. Ingen endelig læringsdom,
-senere generalisering eller økonomisk edge er påvist.
+Forbrukt plan er referanse, aldri launchordre:
+`configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001_FIT_004.json`.
+Originale delresultater ligger i tilsvarende `_fit_004`-root under GX1_RUNS.
+Stopp-, journal- og backupbindinger finnes i policyfeltene med `fit004_`.
+FINAL-backup er verifisert på separat Mac-disk med full fsync og uavhengig
+readback av alle 138 filer, inklusive originalt delcheckpoint.
+PASS1/PASS2/FINAL mangler. Ingen endelig læringsdom, generalisering eller edge.
 
 ## Kvalifisert datagrunnlag og funksjon
 
