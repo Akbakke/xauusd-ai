@@ -68,9 +68,22 @@ begrunner ikke alene en omstart. Alle åtte familier og fem TF er teknisk
 koblet til felles læring. Nyttige enkeltindikatorer, V3-læring, senere
 kronologisk generalisering og økonomisk edge er fortsatt ubevist.
 
-Neste avgrensede kildekontroll vurderer gjenbruk av eksisterende native
-restore/replay fra originalt FIT004-C1 for samme 432-updatetrajektorie.
-Dette er lesende designkontroll, ingen ny kode eller recovery-admission.
+Neste milepæl er eksakt recovery fra ekte FIT004-C1 for samme låste
+432-stegsforløp. Kildekontrollen viser gjenbruk av eksisterende strict_restore,
+training_step, checkpoint_proof og scoring. Ingen modell-, mål-, taps-,
+indikator- eller vaktendring trengs. Faktisk kvalifisering gjenstår:
+
+1. Fersk teknisk referanse må matche original C1 på ti semantiske bevis før C2.
+2. En separat kald prosess må gjenopprette ekte C1 og matche referansens C2.
+3. En ny engangsrecovery må laste original C1 på nytt, aldri tekniske vekter.
+   Avledet rest er 431 nye updates og 596 forwards, samme PASS2 ved global432.
+
+Opprinnelig fil-/produsentidentitet valideres separat. Referansekjøringens
+produsentmetadata skal være ekte; full checkpoint-SHA forventes forskjellig
+mellom utførelser. Første C1 kan legitimt ha null backbone-momenter.
+Kun semantiske bevis sammenlignes på tvers av tekniske utførelser.
+Designkvittering: policyfeltet `fit004_exact_recovery_design`.
+Ingen recoverykode, fysiske replaybevis eller ny admission finnes ennå.
 
 ## Vedlikeholdslogging — ferdig
 
