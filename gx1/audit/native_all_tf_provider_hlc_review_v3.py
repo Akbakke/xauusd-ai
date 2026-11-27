@@ -288,3 +288,200 @@ def review_outputs(*, context, outputs, spec, references, expect_initial=False):
         'new_NN_forwards': 0, 'optimizer_updates': 0, 'prior_fits': 0,
         'execution_authorized': False, 'training_authorized': False,
         'learning_qualified': False, 'later_generalization': 'UNKNOWN', 'economic_edge': 'UNKNOWN'}
+
+
+# Selected-cohort authority is separate from the immutable whole-TRAIN review.
+COHORT_SPEC_SCHEMA = 'gx1_native_all_tf_provider_hlc_selected_cohort_spec_v1'
+COHORT_REVIEW_SCHEMA = 'gx1_native_all_tf_provider_hlc_selected_cohort_review_v1'
+COHORT_PHASES = ('INITIAL', 'PASS1', 'PASS2')
+COHORT_RULES = {**RULES,
+    'pooled_primary': 'All5TF side NLL/Brier strictly below the same frozen COHORT score prior in row AND equal_target weighting; 20 dependent comparisons. Whole-TRAIN factory prior and actual factory INITIAL are separate references.',
+    'timeblocks': 'Every TF x UTC target-start year 2021..2025, row and equal_target weighting; NLL/Brier<=the same pooled COHORT prior. No block refit/drop; empty/one-class UNKNOWN.',
+    'scope': 'One separately admitted retrospective TRAIN development test, unchanged function/defaultNone, exactly two canonical passes. INITIAL/PASS1 diagnostic only; PASS2 is the sole fixed candidate. No best-pass selection, chronological OOF, later-generalization or edge claim.',
+}
+
+
+def _cohort_ref(value):
+    _need(type(value) is dict and set(value) == {'path', 'sha256'} and _hash(value['sha256'])
+          and type(value['path']) is str and PurePosixPath(value['path']).is_absolute()
+          and str(PurePosixPath(value['path'])) == value['path'] and '..' not in PurePosixPath(value['path']).parts
+          and PurePosixPath(value['path']).suffix == '.json', 'COHORT_SELECTION_REF')
+
+
+def _cohort_selection(selection, whole, population):
+    _need(type(selection) is dict and _hash(selection.get('contract_sha256'))
+          and _sha({k: v for k, v in selection.items() if k != 'contract_sha256'}) == selection['contract_sha256'], 'COHORT_SELECTION_SEAL')
+    keys = {'schema_version', 'design', 'whole_TRAIN_rows', 'whole_TRAIN_issue_ns_sha256', 'selector',
+            'bucket_origin_ns', 'bucket_duration_ns', 'nonempty_buckets', 'rows', 'selected_positions_sha256',
+            'selected_ranks_sha256', 'selected_source_rows_sha256', 'selected_issue_ns_sha256', 'first_issue_ns',
+            'last_issue_ns', 'bucket_sizes', 'selected_per_bucket', 'target_filter', 'class_or_observability_quotas',
+            'top_up', 'contract_sha256'}
+    _need(set(selection) == keys, 'COHORT_SELECTION_KEYS'); _cohort_ref(selection['design'])
+    _need(selection['schema_version'] == 'gx1_native_future_state_source_clock_selection_v1'
+          and selection['whole_TRAIN_rows'] == whole['issue_rows']
+          and selection['whole_TRAIN_issue_ns_sha256'] == whole['issue_ns_sha256']
+          and selection['selector'] == 'bucket=floor((issue_ns-22h)/24h);min16_linspace_int64_including_endpoints'
+          and selection['bucket_origin_ns'] == 79_200_000_000_000
+          and selection['bucket_duration_ns'] == 86_400_000_000_000
+          and all(selection[k] is False for k in ('target_filter', 'class_or_observability_quotas', 'top_up')), 'COHORT_CLOCK_ONLY_SELECTION')
+    sizes, selected = selection['bucket_sizes'], selection['selected_per_bucket']
+    _need(type(sizes) is list and sizes and all(type(n) is int and n > 0 for n in sizes)
+          and type(selection['nonempty_buckets']) is int and selection['nonempty_buckets'] == len(sizes)
+          and sum(sizes) == whole['issue_rows'] and type(selected) is list
+          and all(type(n) is int for n in selected) and selected == [min(16, n) for n in sizes]
+          and type(selection['rows']) is int and selection['rows'] == sum(selected)
+          and population['issue_rows'] == selection['rows']
+          and population['issue_ns_sha256'] == selection['selected_issue_ns_sha256']
+          and population['first_issue_ns'] == selection['first_issue_ns']
+          and population['last_issue_ns'] == selection['last_issue_ns']
+          and whole['first_issue_ns'] <= selection['first_issue_ns'] <= selection['last_issue_ns'] <= whole['last_issue_ns']
+          and population['cutoff_ns'] == whole['cutoff_ns'], 'COHORT_POPULATION_SELECTION')
+    _need(all(_hash(selection[k]) for k in ('selected_positions_sha256', 'selected_ranks_sha256',
+          'selected_source_rows_sha256', 'selected_issue_ns_sha256')), 'COHORT_SELECTION_HASHES')
+
+
+def build_cohort_spec(*, whole_spec, selection, selection_ref, factory_prior, cohort_prior):
+    """Metadata only; callers authenticate durable selection/ref bytes before truth access."""
+    validate_spec(whole_spec); target = whole_spec['target_contract']
+    factory = objective.require_native_future_state_train_prior(factory_prior, target_contract=target)
+    cohort = objective.require_native_future_state_train_prior(cohort_prior, target_contract=target)
+    _need(factory['contract_sha256'] == whole_spec['prior_contract_sha256']
+          and factory['fit_population'] == whole_spec['fit_population']
+          and factory['per_task'] == whole_spec['populations'], 'COHORT_FACTORY_PRIOR_IDENTITY')
+    return validate_cohort_spec(_seal({'schema_version': COHORT_SPEC_SCHEMA,
+        'whole_TRAIN_spec': copy.deepcopy(whole_spec), 'selection': copy.deepcopy(selection),
+        'selection_ref': copy.deepcopy(selection_ref), 'cohort_prior': copy.deepcopy(cohort),
+        'timeframes': list(TF), 'UTC_target_years': list(YEARS), 'phases': list(COHORT_PHASES),
+        'candidate_phase': 'PASS2', 'canonical_passes': 2, 'backbone_gradient_policy': None,
+        'rules': copy.deepcopy(COHORT_RULES), 'later_generalization': 'NOT_MEASURED',
+        'out_of_fit_evaluation': 'NOT_MEASURED', 'execution_authorized': False,
+        'training_authorized': False, 'main_fit_authorized': False, 'test_authorized': False}))
+
+
+def validate_cohort_spec(spec):
+    keys = {'schema_version', 'whole_TRAIN_spec', 'selection', 'selection_ref', 'cohort_prior',
+            'timeframes', 'UTC_target_years', 'phases', 'candidate_phase', 'canonical_passes',
+            'backbone_gradient_policy', 'rules', 'later_generalization', 'out_of_fit_evaluation',
+            'execution_authorized', 'training_authorized', 'main_fit_authorized', 'test_authorized', 'contract_sha256'}
+    _need(type(spec) is dict and set(spec) == keys and _hash(spec['contract_sha256'])
+          and _sha({k: v for k, v in spec.items() if k != 'contract_sha256'}) == spec['contract_sha256'], 'COHORT_SPEC_SEAL')
+    _need(spec['schema_version'] == COHORT_SPEC_SCHEMA and spec['timeframes'] == list(TF)
+          and spec['UTC_target_years'] == list(YEARS) and spec['phases'] == list(COHORT_PHASES)
+          and spec['candidate_phase'] == 'PASS2' and spec['canonical_passes'] == 2
+          and spec['backbone_gradient_policy'] is None and spec['rules'] == COHORT_RULES
+          and spec['later_generalization'] == spec['out_of_fit_evaluation'] == 'NOT_MEASURED'
+          and all(spec[k] is False for k in ('execution_authorized', 'training_authorized',
+              'main_fit_authorized', 'test_authorized')), 'COHORT_FROZEN_SCOPE')
+    whole = validate_spec(spec['whole_TRAIN_spec']); _cohort_ref(spec['selection_ref'])
+    _need('backbone_gradient_policy' not in whole['model_contract'], 'COHORT_FACTORY_DEFAULT_NONE')
+    cohort = objective.require_native_future_state_train_prior(spec['cohort_prior'], target_contract=whole['target_contract'])
+    _cohort_selection(spec['selection'], whole['fit_population'], cohort['fit_population'])
+    return spec
+
+
+def _cohort_panel(logits, score_logit, factory_logit, labels, mask, starts, *, side):
+    panel = _panel(logits, score_logit, labels, mask, starts, side=side)
+    factory = binary_panel(logits, np.full(len(logits), factory_logit, np.float32), labels, mask, starts)
+    panel['frozen_COHORT_prior'] = panel.pop('frozen_V3_prior')
+    panel['frozen_whole_TRAIN_factory_prior'] = factory['matched_v2_prior']
+    panel['delta_model_minus_factory'] = factory['delta_model_minus_prior']
+    if panel['equal_target_weight'] is not None:
+        eq = panel['equal_target_weight']; eq['frozen_COHORT_prior'] = eq.pop('frozen_V3_prior')
+        eq['frozen_whole_TRAIN_factory_prior'] = factory['equal_target_weight']['matched_v2_prior']
+        eq['delta_model_minus_factory'] = factory['equal_target_weight']['delta_model_minus_prior']
+    return panel
+
+
+def review_cohort_outputs(*, truth, outputs, factory_prior, cohort_prior, selected_positions,
+                          source_rows, selection_ref, spec, phase, input_binding, normalization):
+    """Review one fixed cohort phase; pure scoring, no model/fit/IO or admission."""
+    validate_cohort_spec(spec); whole = spec['whole_TRAIN_spec']; target = whole['target_contract']
+    _need(phase in COHORT_PHASES and selection_ref == spec['selection_ref'], 'COHORT_PHASE_SELECTION_REF')
+    factory = objective.require_native_future_state_train_prior(factory_prior, target_contract=target)
+    cohort = objective.require_native_future_state_train_prior(cohort_prior, target_contract=target)
+    _need(factory['contract_sha256'] == whole['prior_contract_sha256']
+          and factory['fit_population'] == whole['fit_population'] and factory['per_task'] == whole['populations']
+          and cohort == spec['cohort_prior'], 'COHORT_PRIOR_IDENTITY')
+    _need(input_binding['contract_sha256'] == whole['model_contract']['input_binding_sha256']
+          and normalization['contract_sha256'] == whole['model_contract']['input_normalization_sha256'], 'COHORT_FEATURE_IDENTITY')
+    n = cohort['fit_population']['issue_rows']; selection = spec['selection']
+    _need(type(truth) is dict and set(truth) == set(TRUTH_FIELDS) | {'target_observation_certificate_ref'}
+          and {k for k, v in truth.items() if isinstance(v, np.ndarray)} == set(TRUTH_FIELDS)
+          and truth['target_observation_certificate_ref'] == whole['target_observation_certificate_ref'], 'COHORT_TRUTH_INVENTORY_CERTIFICATE')
+    for value, key in ((selected_positions, 'selected_positions_sha256'), (source_rows, 'selected_source_rows_sha256'),
+                       (truth['issue_ns'], 'selected_issue_ns_sha256')):
+        _need(isinstance(value, np.ndarray) and value.dtype == np.int64 and value.shape == (n,)
+              and np.all(value >= 0) and np.all(np.diff(value) > 0)
+              and _array_sha(value) == selection[key], 'COHORT_AXIS_' + key)
+    _need(int(truth['issue_ns'][0]) == selection['first_issue_ns'] and int(truth['issue_ns'][-1]) == selection['last_issue_ns'], 'COHORT_ISSUE_BOUNDS')
+    masks = objective._native_future_state_truth(truth, rows=n, fold_upper_ns=cohort['fit_population']['cutoff_ns'], target_contract=target)
+    _need(objective.native_future_state_truth_sha256(truth, target_contract=target) == cohort['fit_population']['truth_sha256'], 'COHORT_TRUTH_SHA')
+    logits = {task: [] for task in ('activity', 'side')}; factory_logits = copy.deepcopy(logits)
+    for task, label in (('activity', 'activity'), ('side', 'side_up')):
+        for j, tf in enumerate(TF):
+            mask = masks[task][:, j]; cell = cohort['per_task'][task][tf]; y = truth[label][mask, j]
+            _need(_array_sha(mask) == cell['mask_sha256'] and int(mask.sum()) == cell['count']
+                  and int(np.unique(truth['target_start_ns'][mask, j]).size) == cell['unique_target_starts']
+                  and np.bincount(y.astype(np.int64), minlength=2).tolist() == cell['class_counts']
+                  and objective._native_prior_array_sha({'issue_ns': truth['issue_ns'][mask],
+                      'target_start_ns': truth['target_start_ns'][mask, j], 'label': y}) == cell['population_sha256'], 'COHORT_MASK_POPULATION')
+            for prior, dest in ((cohort, logits), (factory, factory_logits)):
+                p = prior['per_task'][task][tf]['probabilities']; dest[task].append(np.float32(np.log(p[1]) - np.log(p[0])))
+    _need(type(outputs) is dict and set(outputs) == {'activity_logits', 'side_logits'}
+          and all(isinstance(v, np.ndarray) and v.dtype == np.float32 and v.shape == (n, 5)
+                  and np.isfinite(v).all() for v in outputs.values()), 'COHORT_LOGIT_HEADER')
+    if phase == 'INITIAL':
+        _need(all(np.array_equal(outputs[task + '_logits'], np.broadcast_to(np.asarray(factory_logits[task], np.float32), (n, 5)))
+                  for task in logits), 'COHORT_INITIAL_EXACT_FACTORY_NOT_SCORE_PRIOR')
+    import torch
+    canonical = objective.native_future_state_score_sums(model_output={k: torch.from_numpy(v.copy()) for k, v in outputs.items()},
+        truth=truth, fold_upper_ns=cohort['fit_population']['cutoff_ns'], target_contract=target)
+    pooled, years, outside, support = {}, {}, {}, {}
+    for j, tf in enumerate(TF):
+        starts = truth['target_start_ns'][:, j]; year = starts.astype('datetime64[ns]').astype('datetime64[Y]').astype(np.int64) + 1970
+        def panel(take):
+            return {task: _cohort_panel(outputs[task + '_logits'][:, j], logits[task][j], factory_logits[task][j],
+                    truth[label][:, j], take & masks[task][:, j], starts, side=task == 'side')
+                    for task, label in (('activity', 'activity'), ('side', 'side_up'))}
+        pooled[tf] = panel(np.ones(n, np.bool_)); years[tf] = {str(y): panel(year == y) for y in YEARS}
+        support[tf] = {'activity_known': int(masks['activity'][:, j].sum()), 'side_known': int(masks['side'][:, j].sum()),
+            'FLAT': int((masks['activity'][:, j] & ~truth['activity'][:, j]).sum()),
+            'ACTIVE_unknown_side': int((masks['activity'][:, j] & truth['activity'][:, j] & ~masks['side'][:, j]).sum()),
+            'mature_unknown_activity': int((truth['mature'][:, j] & ~masks['activity'][:, j]).sum()),
+            'unknown_activity': int((~masks['activity'][:, j]).sum()), 'immature': int((~truth['mature'][:, j]).sum())}
+        take = ~np.isin(year, YEARS); outside[tf] = {'issue_rows': int(take.sum()),
+            'activity_known': int((take & masks['activity'][:, j]).sum()), 'side_known': int((take & masks['side'][:, j]).sum())}
+        for task in ('activity', 'side'):
+            p, cell = pooled[tf][task], canonical['per_tf'][tf][task]
+            _need(p['count'] == cell['count'] and p['unique_target_starts'] == cell['unique_target_starts']
+                  and (all(np.isclose(p['model'][metric] * p['count'], cell[total], rtol=1e-12, atol=1e-7)
+                      for metric, total in (('NLL', 'log_loss_sum'), ('brier', 'brier_sum'))) if p['count'] else cell['count'] == 0),
+                  'COHORT_CANONICAL_ROW_SCORES')
+    primary = {tf: {w: _metric_verdict(pooled[tf]['side'], w, True) for w in ('row', 'equal_target')} for tf in TF}
+    stability = {tf: {y: {w: _metric_verdict(years[tf][y]['side'], w, False) for w in ('row', 'equal_target')}
+                 for y in map(str, YEARS)} for tf in TF}
+    macro = {}
+    for tf in TF:
+        macro[tf] = {}
+        for weight in ('row', 'equal_target'):
+            panels = [years[tf][str(y)]['side'] for y in YEARS]
+            values = [x['model'] if weight == 'row' else (x['equal_target_weight'] or {}).get('model') for x in panels]
+            macro[tf][weight] = {'status': 'DESCRIPTIVE' if all(v is not None for v in values) else 'UNKNOWN',
+                'model': {metric: float(np.mean([v[metric] for v in values])) for metric in ('NLL', 'brier')}
+                         if all(v is not None for v in values) else None}
+    proper = _aggregate(v for x in primary.values() for v in x.values()); rank = {tf: _side_rank_guard(pooled[tf]['side']) for tf in TF}
+    stable = _aggregate(v for x in stability.values() for y in x.values() for v in y.values())
+    verdict = _aggregate([proper, *rank.values(), stable])
+    return {'schema_version': COHORT_REVIEW_SCHEMA, 'spec_sha256': spec['contract_sha256'], 'phase': phase, 'rows': n,
+        'selection_ref': copy.deepcopy(selection_ref), 'selection_contract_sha256': selection['contract_sha256'],
+        'truth_sha256': cohort['fit_population']['truth_sha256'], 'factory_prior_sha256': factory['contract_sha256'],
+        'COHORT_score_prior_sha256': cohort['contract_sha256'], 'output_sha256': {k: _array_sha(v) for k, v in outputs.items()},
+        'canonical_scores': canonical, 'all_TF': pooled, 'by_UTC_target_year': years, 'outside_declared_target_year_counts': outside,
+        'support': support, 'equal_year_macro': macro,
+        'proper_partial_NLL': sum(x['partial_log_loss_sum'] for x in canonical['per_tf'].values()) / max(1, sum(x['activity']['count'] for x in canonical['per_tf'].values())),
+        'primary_proper_score_checks': primary, 'primary_proper_score_verdict': proper, 'primary_metric_witnesses': 20,
+        'side_rank_guard_by_TF': rank, 'timeblock_stability': stability, 'timeblock_stability_verdict': stable,
+        'fixed_phase_comparison_verdict': verdict, 'candidate_TRAIN_comparison_verdict': verdict if phase == 'PASS2' else 'NOT_CANDIDATE_FIXED_PASS2',
+        'candidate_phase': 'PASS2', 'later_generalization': 'NOT_MEASURED', 'out_of_fit_evaluation': 'NOT_MEASURED',
+        'new_NN_forwards': 0, 'optimizer_updates': 0, 'prior_fits': 0, 'execution_authorized': False,
+        'training_authorized': False, 'learning_qualified': False, 'economic_edge': 'UNKNOWN'}

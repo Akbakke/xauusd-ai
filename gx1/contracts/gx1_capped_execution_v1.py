@@ -2693,6 +2693,154 @@ def native_all_tf_provider_hlc_v3_replay_source_bridge(previous_guard_owners,*,p
 
 # END GX1 ALL TF V3 GUARDS 20261125 001
 
+# BEGIN GX1 V3 DEVELOPMENT GUARDS 20261127 001
+_V3_DEVELOPMENT_NAME = 'NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001'
+_V3_DEVELOPMENT_PARENT = '3ef40c291594a5bcc6d923ec5dcc4fd4e18ab746'
+_V3_DEVELOPMENT_SHELL_ADDITIONS = (('NATIVE_PROVIDER_HLC_INITIAL=false\n', 'before', 'NATIVE_V3_DEVELOPMENT=false\nNATIVE_V3_DEVELOPMENT_PLAN_SHA256=\nNATIVE_V3_DEVELOPMENT_PHASE=\n'), ('# BEGIN GX1 ALL TF V3 ROUTES 20261125 001 MATCHERS\n', 'before', '# BEGIN GX1 V3 DEVELOPMENT ROUTE 20261127 001\nmatches_bound_native_v3_development() {\n  if [[ $# -eq 8 ]]; then\n    [[ "$8" == --preflight ]] || return 1\n    set -- "${@:1:7}"\n  fi\n  [[ $# -eq 7 && "$(pwd -P)" == "$REPO_ROOT" \\\n    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == gx1.audit.native_provider_hlc_learning_v1 \\\n    && "$4" == --v3-development-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ \\\n    && "$6" == --phase ]] || return 1\n  case "$7" in cohort|warm|cold|fit) ;; *) return 1 ;; esac\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001_${7^^}.json"\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" \\\n    && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\nconfigure_native_v3_development() {\n  matches_bound_native_v3_development "$@" || { echo \'FATAL: exact V3 development CLI/plan required\' >&2; exit 75; }\n  [[ "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \\\n    && "$SWAP" == 512M && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo \'FATAL: V3 development forbids alternate resource modes\' >&2; exit 75;\n  }\n  local output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001_$7"\n  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \\\n    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {\n    echo \'FATAL: V3 development output must be fresh and canonical\' >&2; exit 75;\n  }\n  NATIVE_V3_DEVELOPMENT=true\n  NATIVE_V3_DEVELOPMENT_PLAN_SHA256="$5"\n  NATIVE_V3_DEVELOPMENT_PHASE="$7"\n  if [[ "$7" == cohort ]]; then\n    [[ "$JOB_CLASS" == producer && "$MEM" == 12G ]] || { echo \'FATAL: V3 cohort requires CPU producer12G\' >&2; exit 75; }\n    return\n  fi\n  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G ]] || { echo \'FATAL: V3 NN requires canonical trainer20G\' >&2; exit 75; }\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$output"\n  TRAINER_MAX_WALL_SECONDS=1800\n  TRAINER_MODEL_MAX_WALL_SECONDS=1770\n  if [[ "$7" == fit ]]; then TRAINER_MAX_WALL_SECONDS=5400; TRAINER_MODEL_MAX_WALL_SECONDS=5370; fi\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 V3 DEVELOPMENT ROUTE 20261127 001\n\n'), ('# BEGIN GX1 ALL TF LEARNING ROUTE 20261124 001 DISPATCH\n', 'before', '# BEGIN GX1 V3 DEVELOPMENT DISPATCH 20261127 001\n  local development_arg\n  for development_arg in "$@"; do\n    case "$development_arg" in\n      --v3-development-plan-sha256|--v3-development-plan-sha256=*) configure_native_v3_development "$@"; return ;;\n    esac\n  done\n# END GX1 V3 DEVELOPMENT DISPATCH 20261127 001\n'), ('  --setenv=GX1_NATIVE_PROVIDER_HLC_ALL_TF_LEARNING="$NATIVE_PROVIDER_HLC_ALL_TF_LEARNING" \\\n', 'before', '  --setenv=GX1_NATIVE_V3_DEVELOPMENT="$NATIVE_V3_DEVELOPMENT" \\\n  --setenv=GX1_NATIVE_V3_DEVELOPMENT_PLAN_SHA256="$NATIVE_V3_DEVELOPMENT_PLAN_SHA256" \\\n  --setenv=GX1_NATIVE_V3_DEVELOPMENT_PHASE="$NATIVE_V3_DEVELOPMENT_PHASE" \\\n'))
+
+def _native_v3_development_execution(phase):
+    _native_v3_development_require(phase in ('cohort','warm','cold','fit'),'PHASE')
+    if phase=='cohort':
+        return {'class':'producer','device':'cpu','memory':'12G','swap':'512M','numerical_threads':1,
+            'cpu_affinity':list(range(8)),'tasks_max':64,'outer_seconds':600,'internal_seconds':570}
+    outer,inner=(5400,5370)if phase=='fit'else(1800,1770)
+    return {'class':'trainer','device':'cuda:0','memory':'20G','swap':'512M','numerical_threads':8,
+        'cpu_affinity':list(range(19)),'tasks_max':128,'outer_seconds':outer,'internal_seconds':inner,
+        'kill_after_seconds':10,'cuda_peak_reserved_bytes_max':12884901888,'GPU_core_stop_C':75,
+        'GPU_memory_stop_C':80,'GPU_power_limit_W':250,'GPU_draw_stop_W':250,'CPU_stop_C':80,
+        'CPU_package_stop_W':125,'host_min_available_bytes':8589934592,
+        'host_min_commit_headroom_bytes':8589934592,'watchdog_interval_seconds':1}
+
+def _native_v3_development_require(ok,why):
+    if not bool(ok):raise RuntimeError('[GX1_V3_DEVELOPMENT_'+why+']')
+
+def _native_v3_development_read(path,digest=None):
+    import hashlib,json
+    require=_native_v3_development_require;path=Path(path)
+    require(path.is_file()and not path.is_symlink()and path.resolve()==path,'CANONICAL_JSON')
+    raw=path.read_bytes();require(digest is None or hashlib.sha256(raw).hexdigest()==digest,'JSON_SHA')
+    value=json.loads(raw);require(type(value)is dict,'JSON_OBJECT');return value
+
+def _native_v3_development_bound_plan(plan_sha256,phase):
+    import hashlib,subprocess
+    require=_native_v3_development_require
+    require(type(plan_sha256)is str and re.fullmatch('[0-9a-f]{64}',plan_sha256)is not None,'PLAN_SHA')
+    require(type(phase)is str and phase in ('cohort','warm','cold','fit'),'PHASE')
+    repo=Path(__file__).resolve().parents[2];name=_V3_DEVELOPMENT_NAME
+    args=['--v3-development-plan-sha256',plan_sha256,'--phase',phase]
+    preflight=sys.argv[-1:]==['--preflight']
+    if preflight:args+=['--preflight']
+    require(Path.cwd().resolve()==repo and Path(sys.argv[0]).resolve()==repo/'gx1/audit/native_provider_hlc_learning_v1.py'
+        and Path(sys.executable).absolute()==repo/'.venv/bin/python'and sys.argv[1:]==args,'EXACT_ARGV')
+    path=repo/'configs/research'/(name+'_'+phase.upper()+'.json');plan=_native_v3_development_read(path,plan_sha256)
+    output=Path('/home/andre2/GX1_RUNS')/(name+'_'+phase)
+    require(plan.get('schema_version')=='gx1_native_all_tf_provider_hlc_v3_development_plan_v1'
+        and plan.get('phase')==phase and plan.get('stage')==(name+'_'+phase).lower()
+        and plan.get('output_root')==str(output),'PLAN_IDENTITY')
+    require(not output.exists()and not output.is_symlink()and output.parent.is_dir()
+        and not output.parent.is_symlink()and output.parent.resolve()==output.parent,'FRESH_OUTPUT')
+    require(plan.get('source_commit')==subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),'SOURCE_COMMIT')
+    require(plan.get('execution')==_native_v3_development_execution(phase),'EXACT_EXECUTION')
+    protocol_ref=plan.get('protocol');protocol_path=repo/'configs/research'/(name.replace('_20261127_001','_PROTOCOL_20261127_001')+'.json')
+    require(type(protocol_ref)is dict and set(protocol_ref)=={'path','sha256'}and protocol_ref['path']==str(protocol_path)
+        and type(protocol_ref['sha256'])is str and re.fullmatch('[0-9a-f]{64}',protocol_ref['sha256'])is not None,'PROTOCOL_REF')
+    protocol=_native_v3_development_read(protocol_path,protocol_ref['sha256']);recipe=plan.get('recipe')
+    require(protocol.get('schema_version')=='gx1_native_all_tf_provider_hlc_v3_development_protocol_v1'
+        and protocol.get('experiment_id')==name and recipe==protocol.get('recipe')and type(recipe)is dict
+        and recipe.get('passes')==2 and recipe.get('seed')==20260911 and recipe.get('train_batch_rows')==96
+        and recipe.get('eval_batch_rows')==256 and recipe.get('gradient_clip_norm')==1.,'BOUNDED_RECIPE')
+    selection=protocol.get('selection',{})
+    require(selection.get('rows')==20727 and selection.get('whole_TRAIN_rows')==354550
+        and selection.get('selected_issue_ns_sha256')=='ca9868f542d290045c2640c320d1e3517329c8a4223c8ec3a58a153d86a283f1'
+        and selection.get('selected_source_rows_sha256')=='84fca333ffd882d679e6339ea9663811b9d16564cb8f8617072753f4f6db5025'
+        and selection.get('target_filter')is False and selection.get('top_up')is False and selection.get('quotas')is False,'CLOCK_ONLY_COHORT')
+    limits=plan.get('limits');require(type(limits)is dict and type(limits.get('optimizer_steps'))is int
+        and limits['optimizer_steps']=={'cohort':0,'warm':3,'cold':1,'fit':432}[phase],'BOUNDED_UPDATES')
+    contract=plan.get('model_contract',{});target=plan.get('metadata',{}).get('target_contract',{})
+    require(contract.get('contract_sha256')=='ded7f2a05417d108ef8bed4d88f31d40ea1de21292e964586598ddaa818010c3'
+        and 'backbone_gradient_policy'not in contract and contract.get('target_metadata_as_model_input')is False
+        and contract.get('target_contract_sha256')==target.get('contract_sha256')=='58fd7f15bdf35646680829a718caa2991f2029ed99f48030e3a85c86aae380c5'
+        and target.get('schema_version')=='gx1_native_m5_fully_future_state_dataset_v3_all_tf_provider_hlc'
+        and plan.get('backbone_gradient_policy')is None,'EXACT_V3_FUNCTION')
+    owners=plan.get('source_owners');require(type(owners)is dict and {'gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh','gx1/audit/native_provider_hlc_learning_v1.py'}<=set(owners),'SOURCE_INVENTORY')
+    for name,digest in owners.items():
+        p=repo/name
+        require(type(name)is str and not Path(name).is_absolute()and '..'not in Path(name).parts
+            and p.is_file()and not p.is_symlink()and p.resolve()==p and hashlib.sha256(p.read_bytes()).hexdigest()==digest,'SOURCE_SHA')
+    bridge=plan.get('guard_source_bridge',{});old={n:v['original_sha256']for n,v in bridge.get('owners',{}).items()}
+    require(bridge==native_provider_hlc_v3_development_source_bridge(old,producer_commit=bridge.get('producer_commit')),'SOURCE_BRIDGE')
+    policy=_native_v3_development_read(repo/'NEXT_RUN_POLICY.json');parent=policy.get('native_v3_bounded_development_test_20261127_001',{})
+    require(parent.get('protocol')==protocol_ref and parent.get('main_fit_authorized')is False
+        and parent.get('test_authorized')is False and parent.get('spending_authorized')is False,'PARENT_SCOPE')
+    flags=('training_enabled','native_training_enabled','native_launch_authorized','full_epoch_training_allowed','full_val_allowed')
+    require(all(policy.get(k)is (not preflight and phase!='cohort'and k in flags[:2])for k in flags)
+        and policy.get('exit_training_and_evaluation_this_wave')is False,'EXACT_FLAGS')
+    phases=parent.get('phase_gates',{});require(type(phases)is dict and set(phases)<=set(('cohort','warm','cold','fit')),'PHASE_GATES')
+    if preflight:
+        require(parent.get('execution_authorized')is False and parent.get('active_phase')in(None,'')
+            and all(v.get('execution_authorized')is False and v.get('remaining_invocations')==0 for v in phases.values()),'PREFLIGHT_CLOSED')
+    else:
+        status='ADMITTED_EXACT_V3_DEVELOPMENT_'+phase.upper()
+        gate={'status':status,'plan':{'path':str(path),'sha256':plan_sha256},'execution_authorized':True,
+            'remaining_invocations':1,'relaunch_allowed':False,'training_authorized':phase!='cohort','test_authorized':False}
+        require(parent.get('status')==status and parent.get('execution_authorized')is True
+            and parent.get('active_phase')==phase and phases.get(phase)==gate
+            and all(v.get('execution_authorized')is False and v.get('remaining_invocations')==0 for k,v in phases.items()if k!=phase),'ONE_USE_GATE')
+    return {'plan':{'path':str(path),'sha256':plan_sha256},'output_root':str(output),'preflight':preflight,'execution':plan['execution']}
+
+def _native_v3_development_environment(plan_sha256,phase,output):
+    require=_native_v3_development_require;prefix='GX1_NATIVE_V3_DEVELOPMENT'
+    expected={prefix:'true',prefix+'_PLAN_SHA256':plan_sha256,prefix+'_PHASE':phase,
+        'GX1_POWER_BENCHMARK_SCOPE_JSON':'','GX1_POWER_BENCHMARK_SCOPE_SHA256':''}
+    require(all(not k.startswith(prefix)or k in expected for k in os.environ),'UNKNOWN_DEVELOPMENT_ENV')
+    require(all(v in('false','')for k,v in os.environ.items()if k.startswith('GX1_NATIVE_')and not k.startswith(prefix)),'MIXED_LEGACY_ENV')
+    if phase!='cohort':
+        execution=_native_v3_development_execution(phase)
+        fields={'MAX_WALL_SECONDS':execution['outer_seconds'],'MODEL_MAX_WALL_SECONDS':execution['internal_seconds'],
+            'ATTENDED_STAGE_REQUIRED':'false','GPU_INDEX':0,'GPU_MAX_POWER_LIMIT_W':250,'GPU_MAX_POWER_DRAW_W':250,
+            'GPU_MAX_CORE_TEMP_C':75,'GPU_MAX_MEMORY_TEMP_C':80,'GPU_MAX_MEMORY_USED_MIB':12288,
+            'GPU_MONITOR_INTERVAL_SECONDS':1,'CPU_MAX_TEMP_C':80,'CPU_MAX_PACKAGE_POWER_W':125,
+            'HOST_MIN_AVAILABLE_MEMORY_BYTES':8589934592,'HOST_MIN_COMMIT_HEADROOM_BYTES':8589934592,
+            'OUT_BUNDLE_DIR':output}
+        expected.update({'GX1_TRAINER_'+k:str(v)for k,v in fields.items()})
+    require(all(os.environ.get(k)==v for k,v in expected.items()),'EXACT_RESOURCE_ENV')
+    return require_capped_cpu_research_producer_execution()if phase=='cohort'else require_guarded_cuda_trainer_execution()
+
+def require_native_all_tf_provider_hlc_v3_development_execution(*,plan_sha256,phase):
+    """Exact one-use development containment; the leaf owns atomic CLAIM publication."""
+    bound=_native_v3_development_bound_plan(plan_sha256,phase)
+    proof=_native_v3_development_environment(plan_sha256,phase,bound['output_root'])
+    return {**proof,**bound,'kind':'provider_hlc_all_tf_v3_development','phase':phase,
+        'resource_proof_only':True,'training_authority_granted':False,'optimizer_authority_granted':False}
+
+def native_provider_hlc_v3_development_source_bridge(producer_hashes,*,producer_commit=_V3_DEVELOPMENT_PARENT):
+    import ast,hashlib,subprocess
+    require=_native_v3_development_require;require(producer_commit==_V3_DEVELOPMENT_PARENT,'BRIDGE_PARENT')
+    repo=Path(__file__).resolve().parents[2];names=('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')
+    before={n:subprocess.check_output(['git','show',producer_commit+':'+n],cwd=repo).decode()for n in names}
+    original={n:hashlib.sha256(v.encode()).hexdigest()for n,v in before.items()};require(producer_hashes==original,'BRIDGE_PRODUCER_HASHES')
+    current={n:(repo/n).read_text()for n in names}
+    begin='# BEGIN GX1 V3 DEVELOPMENT GUARDS 20261127 001\n';end='# END GX1 V3 DEVELOPMENT GUARDS 20261127 001\n\n'
+    text=current[names[0]];require(text.count(begin)==text.count(end)==1,'ONE_DEVELOPMENT_BLOCK')
+    first,tail=text.split(begin);body,last=tail.split(end);nodes=ast.parse(body).body
+    functions=[n for n in nodes if isinstance(n,ast.FunctionDef)];assignments=[n for n in nodes if isinstance(n,ast.Assign)]
+    require(len(nodes)==10 and len(functions)==7 and len(assignments)==3
+        and {n.name for n in functions}=={'_native_v3_development_execution','_native_v3_development_require','_native_v3_development_read','_native_v3_development_bound_plan','_native_v3_development_environment','require_native_all_tf_provider_hlc_v3_development_execution','native_provider_hlc_v3_development_source_bridge'}
+        and all(len(n.targets)==1 and isinstance(n.targets[0],ast.Name)for n in assignments),'EXACT_DEVELOPMENT_AST')
+    literals={n.targets[0].id:ast.literal_eval(n.value)for n in assignments}
+    require(literals=={'_V3_DEVELOPMENT_NAME':_V3_DEVELOPMENT_NAME,'_V3_DEVELOPMENT_PARENT':_V3_DEVELOPMENT_PARENT,'_V3_DEVELOPMENT_SHELL_ADDITIONS':_V3_DEVELOPMENT_SHELL_ADDITIONS},'EXACT_DEVELOPMENT_LITERALS')
+    require(first+last==before[names[0]],'UNCHANGED_PREDECESSOR_PYTHON')
+    shell=current[names[1]]
+    for anchor,position,fragment in _V3_DEVELOPMENT_SHELL_ADDITIONS:
+        require(position=='before'and shell.count(anchor)==shell.count(fragment)==shell.count(fragment+anchor)==1,'EXACT_SHELL_ADDITION')
+        shell=shell.replace(fragment+anchor,anchor,1)
+    require(shell==before[names[1]],'UNCHANGED_PREDECESSOR_SHELL')
+    return {'producer_commit':producer_commit,'checked_guard_owners':2,'old_guard_routes_preserved':True,
+        'old_numeric_resource_environment_function_unchanged':True,'owners':{n:{'original_sha256':original[n],
+        'current_sha256':hashlib.sha256(current[n].encode()).hexdigest()}for n in names}}
+
+# END GX1 V3 DEVELOPMENT GUARDS 20261127 001
+
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")
     operation = parser.add_mutually_exclusive_group(required=True)

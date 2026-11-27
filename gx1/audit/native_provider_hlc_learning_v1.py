@@ -130,6 +130,7 @@ def run(sha):
  except BaseException as error:pub(ROOT,'TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'plan':binding,'claim':claim,'error':type(error).__name__+':'+str(error)[:1800],'remaining_invocations':0,'relaunch_allowed':False});raise
  finally:signal.setitimer(signal.ITIMER_REAL,0)
 def main():
+ if sys.argv[1:2]==['--v3-development-plan-sha256']:return main_v3_development()
  if sys.argv[1:2]==['--all-tf-learning-plan-sha256']:return main_all_tf()
  if sys.argv[1:2]==['--all-tf-learning-resume-plan-sha256']:return main_all_tf_resume()
  if sys.argv[1:2]==['--resume-plan-sha256']:return main_resume()
@@ -1036,4 +1037,298 @@ def main_all_tf_resume():
  return main_all_tf(mode='resume')
 # End all-TF learning authority.
 
+# BEGIN GX1 V3 BOUNDED DEVELOPMENT 20261127
+DEV_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001'
+DEV_PARENT='3ef40c291594a5bcc6d923ec5dcc4fd4e18ab746'
+DEV_PROTOCOL=REPO/'configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_PROTOCOL_20261127_001.json'
+DEV_PHASES=('cohort','warm','cold','fit')
+DEV_PARENT_STAGE='native_v3_bounded_development_test_20261127_001'
+DEV_PLANS={phase:REPO/'configs/research'/(DEV_NAME+'_'+phase.upper()+'.json')for phase in DEV_PHASES}
+DEV_ROOTS={phase:Path('/home/andre2/GX1_RUNS')/(DEV_NAME+'_'+phase)for phase in DEV_PHASES}
+DEV_STAGES={phase:DEV_NAME.lower()+'_'+phase for phase in DEV_PHASES}
+DEV_SCHEMA='gx1_native_all_tf_provider_hlc_v3_development_plan_v1'
+DEV_TEST='tests/test_native_provider_hlc_v3_development_v1.py'
+DEV_REVIEW='gx1/audit/native_all_tf_provider_hlc_review_v3.py'
+DEV_GUARD_TEST='tests/test_native_all_tf_provider_hlc_v3_development_guard_v1.py'
+DEV_ROW_SHA='84fca333ffd882d679e6339ea9663811b9d16564cb8f8617072753f4f6db5025'
+DEV_ISSUE_SHA='ca9868f542d290045c2640c320d1e3517329c8a4223c8ec3a58a153d86a283f1'
+DEV_FLAGS=(*FLAGS,'exit_training_and_evaluation_this_wave')
+
+def development_reverse_source(raw):
+ start=b'# BEGIN GX1 V3 BOUNDED DEVELOPMENT 20261127\n';end=b'# END GX1 V3 BOUNDED DEVELOPMENT 20261127\n'
+ need(raw.count(start)==raw.count(end)==1,'DEV_SINGLE_ADDITIVE_BLOCK');first,tail=raw.split(start);_,last=tail.split(end)
+ dispatch=b" if sys.argv[1:2]==['--v3-development-plan-sha256']:return main_v3_development()\n"
+ need(first.count(dispatch)==1,'DEV_EXACT_DISPATCH');return first.replace(dispatch,b'')+last
+
+def development_source_bridge():
+ before=subprocess.check_output(['git','show',DEV_PARENT+':'+SELF],cwd=REPO);after=(REPO/SELF).read_bytes()
+ need(development_reverse_source(after)==before,'DEV_LEGACY_BYTES_UNCHANGED')
+ return {'parent_commit':DEV_PARENT,'owner':SELF,'parent_sha256':hashlib.sha256(before).hexdigest(),'current_sha256':hashlib.sha256(after).hexdigest(),'only_one_additive_block_and_dispatch':True,'baseline74_numeric_functions_changed':0}
+
+def development_json_value(value):
+ if type(value)in(type(None),bool,int,float,str):return value
+ if type(value)in(list,tuple):return [development_json_value(x)for x in value]
+ if type(value)is dict:
+  need(all(type(k)is str for k in value),'DEV_JSON_STRING_KEYS');return {k:development_json_value(v)for k,v in value.items()}
+ raise ValueError('PROVIDER_HLC_DEV_UNSUPPORTED_JSON:'+type(value).__name__)
+
+def development_json_bytes(value):
+ expected=development_json_value(value);raw=(json.dumps(expected,sort_keys=True,indent=2,allow_nan=False)+'\n').encode()
+ need(json.loads(raw)==expected,'DEV_JSON_PREPUBLICATION');return raw
+
+def development_publish(root,name,value):
+ raw=value if type(value)is bytes else development_json_bytes(value);path=root/name;_publish_bytes(path,raw)
+ need(path.read_bytes()==raw,'DEV_PHYSICAL_READBACK');return ref(path)
+
+def development_recipe(protocol):
+ reference=read(protocol['references']['canonical_recipe_plan']);canonical=core.future_cpu_recipe(reference)
+ paired=read(protocol['references']['canonical_paired_recipe'])['recipe']
+ recipe={k:copy.deepcopy(canonical[k])for k in ('optimizer','gradient_clip_norm','scheduler','seed')}
+ recipe.update({k:copy.deepcopy(paired[k])for k in ('train_batch_rows','eval_batch_rows','passes','checkpoint_every_optimizer_updates','allocator_phase_policy')})
+ need(recipe==paired==protocol['recipe']and protocol['backbone_gradient_policy']is None and protocol['score_phases']==['INITIAL','PASS1','PASS2']and recipe['passes']==2 and recipe['train_batch_rows']==96 and recipe['eval_batch_rows']==256 and recipe['seed']==20260911 and recipe['scheduler']is None and recipe['gradient_clip_norm']==1. and recipe['checkpoint_every_optimizer_updates']==256,'DEV_EXACT_CANONICAL_PAIRED_RECIPE')
+ need(protocol['fit_checkpoint_cursors']==[1,432]and protocol['technical_checkpoint_cursors']=={'warm':[1,2],'cold':[3]},'DEV_PAIRED_CHECKPOINT_CURSORS');return recipe
+
+def development_selection(selection):
+ need(selection['rows']==20727 and selection['nonempty_buckets']==1377 and selection['whole_TRAIN_rows']==354550 and selection['whole_TRAIN_issue_ns_sha256']==train.TRAIN_SHA and selection['selected_issue_ns_sha256']==DEV_ISSUE_SHA and selection['selected_source_rows_sha256']==DEV_ROW_SHA,'DEV_CANONICAL_SELECTION')
+ need(selection['selector']=='bucket=floor((issue_ns-22h)/24h);min16_linspace_int64_including_endpoints'and selection['bucket_origin_ns']==train.ORIGIN and selection['bucket_duration_ns']==train.DAY and selection['target_filter']is False and selection['class_or_observability_quotas']is False and selection['top_up']is False,'DEV_CLOCK_ONLY_SELECTION')
+ need(len(selection['bucket_sizes'])==len(selection['selected_per_bucket'])==1377 and sum(selection['bucket_sizes'])==354550 and sum(selection['selected_per_bucket'])==20727 and all(b==min(16,a)for a,b in zip(selection['bucket_sizes'],selection['selected_per_bucket'])),'DEV_ALL_BUCKETS_ENDPOINT_GEOMETRY');return selection
+
+def development_gate(binding,phase,admitted=False):
+ need(phase in DEV_PHASES,'DEV_PHASE')
+ return {'status':'ADMITTED_EXACT_V3_DEVELOPMENT_'+phase.upper()if admitted else'PREPARED_CLOSED_NOT_ADMITTED','plan':binding,'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':admitted and phase!='cohort','test_authorized':False}
+
+def development_validate_flags(policy,phase,admitted=False):
+ wanted={k:False for k in DEV_FLAGS}
+ if admitted and phase!='cohort':wanted.update(training_enabled=True,native_training_enabled=True)
+ need(all(policy.get(k)is value for k,value in wanted.items()),'DEV_EXACT_PHASE_FLAGS')
+
+def development_execution(phase,base):
+ from gx1.contracts.gx1_capped_execution_v1 import _native_v3_development_execution
+ return _native_v3_development_execution(phase)
+
+def development_limits(phase):
+ if phase=='cohort':return {'feature_cache_payload_loads':1,'target_archive_loads':1,'cohort_prior_fits':1,'factory_prior_fits':0,'normalization_fits':0,'model_constructions':0,'optimizer_constructions':0,'model_forwards':0,'optimizer_steps':0,'new_array_archives':0}
+ from gx1.audit import native_provider_hlc_replay_v1 as replay
+ if phase in('warm','cold'):
+  value=copy.deepcopy(replay.ALL_LIMITS[phase]);value.update(checkpoint_prepublication_loads=2 if phase=='warm'else 1,logit_archive_writes=0,logit_archive_readbacks=0,normalization_fits=0,prior_fits=0,skipped_batches=0);return value
+ return {'model_constructions':1,'optimizer_constructions':1,'feature_cache_payload_loads':1,'target_archive_loads':1,'model_forwards':678,'backbone_forwards':678,'readout_forwards':678,'optimizer_steps':432,'backward_calls':432,'autograd_calls':9,'skipped_batches':0,'diagnostic_skips':0,'checkpoint_writes':2,'checkpoint_readbacks':2,'checkpoint_receipt_writes':2,'checkpoint_prepublication_loads':2,'checkpoint_loads':0,'model_restores':0,'logit_archive_writes':3,'logit_archive_readbacks':3,'normalization_fits':0,'prior_fits':0}
+
+def development_closed(phase):
+ root=DEV_ROOTS[phase];terminal_ref=ref(root/'TERMINAL.json');terminal=read(terminal_ref);binding=terminal['plan'];result_ref=terminal['result'];result=read(result_ref)
+ need(binding['path']==str(DEV_PLANS[phase])and terminal['status']=='COMPLETE'and terminal['exit_code']==0 and terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False and result['status']=='COMPLETE_V3_DEVELOPMENT_'+phase.upper()and result['phase']==phase and result['plan']==binding and result['claim']==terminal['claim']and result['error']is None and all(result['bookends'].values()),'DEV_CLOSED_'+phase.upper())
+ return {'plan':binding,'result':result_ref,'terminal':terminal_ref,'value':result}
+
+def build_v3_development_plan(phase,runtime=None,source_commit=None):
+ """Metadata/source only. Never load tensors, truth arrays, features or CUDA."""
+ from gx1.contracts.gx1_capped_execution_v1 import native_provider_hlc_v3_development_source_bridge
+ need(phase in DEV_PHASES,'DEV_PHASE');protocol_ref=ref(DEV_PROTOCOL);protocol=read(protocol_ref);need(protocol['schema_version']=='gx1_native_all_tf_provider_hlc_v3_development_protocol_v1','DEV_PROTOCOL_SCHEMA');recipe=development_recipe(protocol)
+ refs=protocol['references'];base=read(refs['V3_replay_plan']);initial=read(refs['V3_initial_acceptance']);qualified=read(refs['V3_replay_acceptance']);selection=development_selection(read(refs['canonical_clock_selection']))
+ need(base['backbone_gradient_policy']is None and base['initial_reference']['initial_only']is True and base['initial_reference']['optimizer_updates']==0 and base['model_contract']['contract_sha256']=='ded7f2a05417d108ef8bed4d88f31d40ea1de21292e964586598ddaa818010c3'and base['initial_reference']['model_state_sha256']=='be5b6266739021319e5fdc9f87bde70aa987e56c0979b2bda1586302a48b5491'and base['initial_reference']['rng_sha256']=='343bc9e441680c73e99ed7fe89595ed2d423ac91b7f2071cb19d74043494305d','DEV_OWN_FRESH_V3_FACTORY')
+ need(initial['full_initialbaseline_qualified']is True and qualified['status']=='PASS_ALL_TF_PROVIDER_HLC_V3_OWN_C2_COLD_REPLAY'and qualified['all10_proofs_equal']is True and qualified['both_boots_source_inputs_policy_closed']is True,'DEV_QUALIFIED_ORIGINAL_FUNCTION')
+ head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip();need(source_commit in(None,head),'DEV_SOURCE_COMMIT');meta=copy.deepcopy(base['metadata'])
+ if phase!='cohort':
+  need(runtime is not None,'DEV_RUNTIME_REQUIRED');core.future_cuda_require_runtime(runtime);need(runtime['source_commit']==head and all(runtime[k]==meta['runtime'][k]for k in('gpu','library_versions')),'DEV_QUALIFIED_RUNTIME');meta['runtime']=copy.deepcopy(runtime)
+ owners=dict(base['source_owners'])
+ for name,digest in owners.items():
+  if name not in GUARDS:need(ref(REPO/name)['sha256']==digest,'DEV_IMMUTABLE_BASELINE_OWNER:'+name)
+ producer_hashes={name:base['source_owners'][name]for name in GUARDS};guard=native_provider_hlc_v3_development_source_bridge(producer_hashes,producer_commit=DEV_PARENT)
+ owners.update({name:ref(REPO/name)['sha256']for name in(*GUARDS,SELF,DEV_TEST,DEV_GUARD_TEST,DEV_REVIEW)});inputs={**copy.deepcopy(base['inputs']),'development_protocol':protocol_ref,**{key:value for key,value in refs.items()}}
+ parents={};schedule=None
+ if phase!='cohort':
+  parent=development_closed('cohort');report=parent['value']['report'];need(parent['value']['protocol']==protocol_ref,'DEV_SAME_COHORT_PROTOCOL');parents['cohort']={k:parent[k]for k in('plan','result','terminal')};inputs.update({'development_cohort_'+k:parent[k]for k in('plan','result','terminal')});inputs.update({k:report[k]for k in('selection_ref','cohort_prior','cohort_spec')});schedule=copy.deepcopy(report['schedule']if phase=='fit'else report['technical_schedule'])
+ if phase in('cold','fit'):
+  parent=development_closed('warm');need(parent['value']['protocol']==protocol_ref,'DEV_SAME_WARM_PROTOCOL');parents['warm']={k:parent[k]for k in('plan','result','terminal')};inputs.update({'development_warm_'+k:parent[k]for k in('plan','result','terminal')});inputs.update({k:parent['value']['report'][k]for k in('cursor2_receipt','cursor3_proof')})
+ if phase=='fit':
+  parent=development_closed('cold');report=parent['value']['report'];need(parent['value']['protocol']==protocol_ref and report['cold_replay_bit_exact']is True and len(report['full_cursor3_proof'])==10 and all(n>0 for n in report['restored_nonzero_moments'].values()),'DEV_OWN_SELECTED_COHORT_REPLAY');parents['cold']={k:parent[k]for k in('plan','result','terminal')};inputs.update({'development_cold_'+k:parent[k]for k in('plan','result','terminal')})
+ if phase=='cold':inputs['selected_cursor2_checkpoint']=read(inputs['cursor2_receipt'])['checkpoint']
+ metadata_roles=set(inputs)-{'feature_archive','target_arrays','selected_cursor2_checkpoint'}-{k for k in inputs if k.startswith('provider_raw_response_')};payload_roles=set(inputs)-metadata_roles
+ return {'schema_version':DEV_SCHEMA,'phase':phase,'stage':DEV_STAGES[phase],'output_root':str(DEV_ROOTS[phase]),'source_commit':head,'source_owners':owners,'baseline_source_owners':base['source_owners'],'guard_source_bridge':guard,'owner_source_bridge':development_source_bridge(),'protocol':protocol_ref,'metadata':meta,'model_contract':base['model_contract'],'initial_reference':base['initial_reference'],'inputs':inputs,'metadata_input_roles':sorted(metadata_roles),'payload_stat':{k:{'size':Path(inputs[k]['path']).stat().st_size,'mtime_ns':Path(inputs[k]['path']).stat().st_mtime_ns}for k in sorted(payload_roles)},'parents':parents,'recipe':recipe,'schedule':schedule,'checkpoint_cursors':[]if phase=='cohort'else[1,432]if phase=='fit'else[1,2]if phase=='warm'else[3],'backbone_gradient_policy':None,'execution':development_execution(phase,base),'limits':development_limits(phase),'selection':selection,'scope':protocol['scope']}
+
+def development_check_inputs(plan,physical=False):
+ need(Path.cwd().resolve()==REPO and subprocess.check_output(['git','branch','--show-current'],cwd=REPO,text=True).strip()=='work/gx1-current'and subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()==plan['source_commit'],'DEV_FROZEN_CWD_BRANCH_HEAD')
+ for name,digest in plan['source_owners'].items():need(ref(REPO/name)['sha256']==digest,'DEV_SOURCE_SHA:'+name)
+ for role,binding in plan['inputs'].items():
+  if physical or role in plan['metadata_input_roles']:need(ref(binding['path'])==binding,'DEV_INPUT_SHA:'+role)
+  else:
+   stat=Path(binding['path']).stat();need({'size':stat.st_size,'mtime_ns':stat.st_mtime_ns}==plan['payload_stat'][role],'DEV_PAYLOAD_STAT:'+role)
+
+def inspect_v3_development(sha,phase,admitted=False):
+ binding={'path':str(DEV_PLANS[phase]),'sha256':sha};plan=read(binding)
+ need(plan==build_v3_development_plan(phase,None if phase=='cohort'else plan['metadata']['runtime'],plan['source_commit']),'DEV_EXACT_PLAN');development_check_inputs(plan)
+ pref=ref(POLICY);policy=read(pref);development_validate_flags(policy,phase,admitted);parent=policy.get(DEV_PARENT_STAGE,{});need(parent.get('protocol')==plan['protocol']and parent.get('phase_gates',{}).get(phase)==development_gate(binding,phase,admitted),'DEV_ONE_USE_PARENT_GATE');need(not DEV_ROOTS[phase].exists()and not DEV_ROOTS[phase].is_symlink(),'DEV_FRESH_ROOT')
+ live=None
+ if phase!='cohort':live=core.collect_future_cuda_runtime_metadata();core.future_cuda_runtime_matches(plan['metadata']['runtime'],live)
+ return plan,binding,pref,live
+
+def development_context(plan):
+ """One existing V3 full loader, one unchanged clock selector, one exact slice."""
+ context=adapter.load_context(plan['metadata']);clock=train.select_study_clock_rows({'provider':context['provider']});need(clock['manifest']==plan['selection'],'DEV_PHYSICAL_CLOCK_MANIFEST')
+ take=np.searchsorted(context['positions'],clock['selected_positions']);need(np.array_equal(context['positions'][take],clock['selected_positions']),'DEV_CLOCK_POSITIONS')
+ truth=train.slice_provider_hlc_truth(context['truth'],take,target_contract=context['target_contract'],fold_upper_ns=train.UPPER)
+ from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+ truth_sha=objective.native_future_state_truth_sha256(truth,target_contract=context['target_contract'])
+ masks=objective._native_future_state_truth(truth,rows=20727,fold_upper_ns=train.UPPER,target_contract=context['target_contract']);batches=core.all_score_batches(np.arange(20727,dtype=np.int64),96);known=[int(masks['activity'][b].sum())for b in batches]
+ schedule=train.make_schedule(clock['selected_source_rows'],truth['issue_ns'],batch_rows=96,passes=2,known_activity_by_batch=known)
+ need(schedule['batches_per_pass']==216 and schedule['logical_batches']==schedule['optimizer_updates']==432 and schedule['skipped_batches']==0 and len(batches[-1])==87,'DEV_EXACT_SUPPORTED_SCHEDULE')
+ technical=train.make_schedule(clock['selected_source_rows'][:288],truth['issue_ns'][:288],batch_rows=96,passes=1,known_activity_by_batch=known[:3]);need(technical['optimizer_updates']==3,'DEV_SUPPORTED_TECHNICAL_PREFIX')
+ selected={**context,'positions':clock['selected_positions'],'source_rows':clock['selected_source_rows'],'truth':truth,'truth_sha256':truth_sha,'batches':batches,'schedule':schedule,'technical_schedule':technical}
+ return selected
+
+def development_cohort(plan,root):
+ from gx1.audit import native_all_tf_provider_hlc_review_v3 as review
+ from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+ selection_ref=development_publish(root,'SELECTION.json',plan['selection'])
+ context=development_context(plan);cohort_prior=objective.fit_native_future_state_train_prior(truth=context['truth'],fold_upper_ns=train.UPPER,target_contract=context['target_contract'])
+ prior_ref=development_publish(root,'COHORT_SCORING_PRIOR.json',cohort_prior)
+ spec=review.build_cohort_spec(whole_spec=read(plan['inputs']['whole_review_spec']),selection=plan['selection'],selection_ref=selection_ref,factory_prior=context['prior'],cohort_prior=cohort_prior);review.validate_cohort_spec(spec);spec_ref=development_publish(root,'COHORT_REVIEW_SPEC.json',spec)
+ return {'selection_ref':selection_ref,'cohort_prior':prior_ref,'cohort_spec':spec_ref,'schedule':context['schedule'],'technical_schedule':context['technical_schedule'],'truth_sha256':context['truth_sha256'],'rows':20727,'nonempty_buckets':1377,'matched_scoring_prior_fits':1,'factory_prior_fits':0,'normalization_fits':0,'certificate_preserved':True,'counts':plan['limits']}
+
+def development_nn_context(plan):
+ from gx1.audit import native_all_tf_provider_hlc_review_v3 as review
+ from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+ context=development_context(plan);report=read(plan['inputs']['development_cohort_result'])['report'];selection_ref=plan['inputs']['selection_ref'];need(read(selection_ref)==plan['selection']and context['truth_sha256']==report['truth_sha256'],'DEV_QUALIFIED_SELECTED_TRUTH')
+ prior=objective.require_native_future_state_train_prior(read(plan['inputs']['cohort_prior']),target_contract=context['target_contract']);need(prior['fit_population']['issue_rows']==20727 and prior['fit_population']['truth_sha256']==context['truth_sha256']and prior['fit_population']['issue_ns_sha256']==DEV_ISSUE_SHA,'DEV_SELECTED_PRIOR_POPULATION')
+ need(plan['schedule']==(context['schedule']if plan['phase']=='fit'else context['technical_schedule']),'DEV_PHYSICAL_SCHEDULE')
+ spec=read(plan['inputs']['cohort_spec']);review.validate_cohort_spec(spec);context.update(scoring_prior=prior,selection_ref=selection_ref,review_spec=spec);return context
+
+def development_trajectory(plan):
+ return train.seal({'schema_version':'gx1_v3_selected_development_trajectory_v1','protocol':plan['protocol'],'cohort_result':plan['inputs']['development_cohort_result'],'cohort_spec':plan['inputs']['cohort_spec'],'selection':plan['selection'],'model_contract':plan['model_contract'],'schedule':plan['schedule'],'recipe':plan['recipe'],'runtime_compatibility':{k:plan['metadata']['runtime'][k]for k in('gpu','library_versions')},'baseline_source_owners':plan['baseline_source_owners']})
+
+def development_checkpoint(root,name,checkpoint,counts,execution_ref):
+ import io,torch
+ before=core.state_sha(core.training_rng());stream=io.BytesIO();torch.save(checkpoint,stream);raw=stream.getvalue();stream.close()
+ loaded=torch.load(io.BytesIO(raw),map_location='cpu',weights_only=True);counts['checkpoint_prepublication_loads']+=1
+ need(core.state_sha(loaded)==core.state_sha(checkpoint)and train.checkpoint_proof(loaded)==train.checkpoint_proof(checkpoint),'DEV_CHECKPOINT_PREPUBLICATION');del loaded
+ binding=development_publish(root,name,raw);counts['checkpoint_writes']+=1;loaded=torch.load(binding['path'],map_location='cpu',weights_only=True);counts['checkpoint_readbacks']+=1;need(core.state_sha(loaded)==core.state_sha(checkpoint),'DEV_CHECKPOINT_PHYSICAL_READBACK');del loaded
+ receipt={'schema_version':'gx1_native_future_state_training_checkpoint_receipt_v1','checkpoint':binding,'original_plan':checkpoint['producer']['original_plan'],'execution_plan':execution_ref,'producer_lane':checkpoint['producer']['lane'],'producer_runtime':checkpoint['producer']['runtime'],'logical_cursor':checkpoint['position']['logical_cursor'],'optimizer_updates':checkpoint['position']['optimizer_updates'],'trajectory_sha256':checkpoint['trajectory']['contract_sha256'],'proof':train.checkpoint_proof(checkpoint)}
+ result=development_publish(root,Path(name).with_suffix('.json').name,receipt);counts['checkpoint_receipt_writes']+=1;need(core.state_sha(core.training_rng())==before,'DEV_CHECKPOINT_RNG_UNCHANGED');return result
+
+def development_logits(root,label,issues,outputs,counts):
+ import io
+ arrays={'issue_ns':issues,**outputs};memory=io.BytesIO();np.savez_compressed(memory,**arrays);raw=memory.getvalue();memory.close()
+ def validate(saved):
+  need(set(saved.files)==set(arrays),'DEV_LOGITS_INVENTORY')
+  for name,value in arrays.items():
+   other=saved[name];need(other.dtype==value.dtype and other.shape==value.shape and core.digest(other)==core.digest(value),'DEV_LOGITS_BYTES')
+ with np.load(io.BytesIO(raw),allow_pickle=False)as saved:validate(saved)
+ binding=development_publish(root,label+'_LOGITS.npz',raw);counts['logit_archive_writes']+=1
+ with np.load(binding['path'],allow_pickle=False)as saved:validate(saved)
+ counts['logit_archive_readbacks']+=1;return binding
+
+def development_score(model,context,plan,root,label,counts):
+ import torch
+ from gx1.audit import native_provider_hlc_replay_v1 as replay
+ from gx1.audit import native_all_tf_provider_hlc_review_v3 as review
+ from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+ captured={};records=[]
+ def capture(module,args,output):
+  for key,value in output.items():captured.setdefault(key,[]).append(value.detach().cpu().numpy().copy())
+ hook=model.register_forward_hook(capture)
+ try:
+  for take in core.all_score_batches(np.arange(20727,dtype=np.int64),256):records.append(replay.score(model,adapter.packet(context,take),plan))
+ finally:hook.remove()
+ outputs={key:np.concatenate(value)for key,value in captured.items()};need(set(outputs)=={'activity_logits','side_logits'}and all(v.shape==(20727,5)and v.dtype==np.float32 and np.isfinite(v).all()for v in outputs.values()),'DEV_COMPLETE_SELECTED_OUTPUTS')
+ cpu={key:torch.from_numpy(value)for key,value in outputs.items()};kwargs={'truth':context['truth'],'fold_upper_ns':train.UPPER,'target_contract':context['target_contract']};scores=objective.native_future_state_score_sums(model_output=cpu,**kwargs)
+ constants={}
+ for name,prior in [('factory',context['prior']),('cohort',context['scoring_prior'])]:
+  logits=objective.native_future_state_train_prior_logits(prior,rows=20727,target_contract=context['target_contract']);constants[name]=objective.native_future_state_score_sums(model_output=logits,**kwargs)
+  if label=='INITIAL'and name=='factory':need(all(torch.equal(cpu[key],value)for key,value in logits.items()),'DEV_INITIAL_EXACT_FACTORY_PRIOR')
+ panel=review.review_cohort_outputs(truth=context['truth'],outputs=outputs,factory_prior=context['prior'],cohort_prior=context['scoring_prior'],selected_positions=context['positions'],source_rows=context['source_rows'],selection_ref=context['selection_ref'],spec=context['review_spec'],phase=label,input_binding=context['input_binding'],normalization=context['normalization'])
+ logits_ref=development_logits(root,label,context['truth']['issue_ns'],outputs,counts);value={'phase':label,'rows':20727,'batches':81,'canonical_scores':scores,'constant_scores':constants,'logits':logits_ref,'review':panel,'truth_sha256':context['truth_sha256'],'certificate':context['truth']['target_observation_certificate_ref'],'batch_score_hashes':[record['output_sha256']for record in records]}
+ return development_publish(root,label+'_SCORE.json',value)
+
+def development_nn(plan,binding,root,live):
+ import torch
+ from gx1.audit import native_provider_hlc_replay_v1 as replay
+ from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_future_state_model
+ phase=plan['phase'];context=development_nn_context(plan);counts=dict.fromkeys(plan['limits'],0);counts['feature_cache_payload_loads']=counts['target_archive_loads']=1
+ core.future_cuda_seed_and_runtime({'recipe':plan['recipe'],'metadata':{'runtime':live}})
+ model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=context['input_binding'],architecture=plan['metadata']['architecture'],device=torch.device('cuda'),train_prior=context['prior'],target_contract=context['target_contract'],backbone_gradient_policy=None);counts['model_constructions']=1
+ initial=plan['initial_reference'];need(model.research_objective==plan['model_contract']and core.state_sha(model.state_dict())==initial['model_state_sha256']and core.state_sha(core.training_rng())==initial['rng_sha256'],'DEV_FRESH_FACTORY_STATE_RNG')
+ optimizer=torch.optim.AdamW(model.parameters(),**plan['recipe']['optimizer']);counts['optimizer_constructions']=1;need(not optimizer.state,'DEV_FRESH_ADAMW');trajectory=development_trajectory(plan);steps=[];scores={};extra={}
+ def counter(key):
+  def hook(*args):counts[key]+=1;need(counts[key]<=plan['limits'][key],'DEV_FORWARD_BOUND')
+  return hook
+ hooks=[model.register_forward_pre_hook(counter('model_forwards')),model.backbone.register_forward_pre_hook(counter('backbone_forwards')),model.readout.register_forward_pre_hook(counter('readout_forwards'))]
+ def checkpoint(cursor,name,original=binding,lane=phase):
+  cp=train.make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=original,lane=lane,cursor=cursor,steps=list(steps),scores=copy.deepcopy(scores),producer_runtime=live);return development_checkpoint(root,name,cp,counts,binding)
+ try:
+  if phase=='warm':
+   batches=context['batches'][:3];first=adapter.packet(context,batches[0]);extra['finite_check_gradient_parity']=core.future_cuda_parity_pair(model,first,plan,counts,equal_tf=False);extra['equal_TF_eval_parity']=core.future_cuda_parity_pair(model,first,plan,counts,equal_tf=True)
+   for j,take in enumerate(batches):
+    current=first if j==0 else adapter.packet(context,take);steps.append(train.training_step(model,optimizer,current,plan,counts,j));need(not steps[-1]['skip_update'],'DEV_PREFIX_SUPPORT')
+    if j==0:extra['post_first_head_data_gradient']=core.future_cuda_gradient_probe(model,current,plan,counts);extra['cursor1_receipt']=checkpoint(1,'CURSOR001.pt')
+    if j==1:extra['nonzero_moments_at_cursor2']=replay.nonzero_moments(model,optimizer);extra['cursor2_receipt']=checkpoint(2,'CURSOR002.pt');need(steps[-1]['backbone_data_gradient_l2']>0,'DEV_SELECTED_REAL_BACKBONE_GRADIENT')
+   scores['CURSOR3']=replay.score(model,current,plan);cp=train.make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=binding,lane='warm',cursor=3,steps=steps,scores=scores,producer_runtime=live);extra['cursor3_proof']=development_publish(root,'CURSOR003_PROOF.json',{'proof':train.checkpoint_proof(cp),'nonzero_moments':replay.nonzero_moments(model,optimizer)})
+  elif phase=='cold':
+   warm=read(plan['inputs']['development_warm_plan']);warm_ref=plan['inputs']['development_warm_plan'];warm_result=read(plan['inputs']['development_warm_result']);core.future_cpu_parent_stopped(warm_result['process_identity']);trajectory=development_trajectory(warm)
+   need(trajectory==development_trajectory(plan),'DEV_SAME_SELECTED_TECHNICAL_TRAJECTORY');receipt=read(plan['inputs']['cursor2_receipt']);reference=read(plan['inputs']['cursor3_proof']);need(receipt['original_plan']==receipt['execution_plan']==warm_ref and receipt['producer_lane']=='warm'and receipt['logical_cursor']==receipt['optimizer_updates']==2 and receipt['trajectory_sha256']==trajectory['contract_sha256'],'DEV_AUTHENTIC_SELECTED_C2')
+   need(receipt['checkpoint']==plan['inputs']['selected_cursor2_checkpoint']and ref(receipt['checkpoint']['path'])==receipt['checkpoint'],'DEV_SELECTED_C2_BYTES_BEFORE_LOAD');cp=torch.load(receipt['checkpoint']['path'],map_location='cpu',weights_only=True);counts['checkpoint_loads']=1
+   train.strict_restore(model,optimizer,cp,trajectory=trajectory,original_plan_ref=warm_ref,expected_cursor=2,current_runtime=live,expected_state_proof=receipt['proof']);counts['model_restores']=1;extra['restored_nonzero_moments']=replay.nonzero_moments(model,optimizer);need(extra['restored_nonzero_moments']==warm_result['report']['nonzero_moments_at_cursor2'],'DEV_OWN_C2_MOMENT_COUNTS');steps=copy.deepcopy(cp['steps']);scores=copy.deepcopy(cp['scores']);current=adapter.packet(context,context['batches'][2]);steps.append(train.training_step(model,optimizer,current,plan,counts,2));scores['CURSOR3']=replay.score(model,current,plan)
+   next_cp=train.make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=warm_ref,lane='cold',cursor=3,steps=steps,scores=scores,producer_runtime=live);proof=train.checkpoint_proof(next_cp);need(proof==reference['proof']and len(proof)==10,'DEV_SELECTED_ALL10_PROOFS_BITEXACT');extra.update(cold_replay_bit_exact=True,full_cursor3_proof=proof,replayed_checkpoint_receipt=development_checkpoint(root,'REPLAYED_CURSOR003.pt',next_cp,counts,binding))
+  else:
+   scores['INITIAL']=development_score(model,context,plan,root,'INITIAL',counts);train.release_phase_allocator_cache(model,optimizer,label='DEV_INITIAL_SCORE_TO_TRAIN')
+   for j in range(432):
+    steps.append(train.training_step(model,optimizer,adapter.packet(context,context['batches'][j%216]),plan,counts,j));need(not steps[-1]['skip_update']and counts['optimizer_steps']==j+1,'DEV_CANONICAL_STEP')
+    if j==0:extra['cursor1_receipt']=checkpoint(1,'CURSOR001.pt')
+    if(j+1)%216==0:
+     label='PASS'+str((j+1)//216);train.release_phase_allocator_cache(model,optimizer,label='DEV_TRAIN_TO_'+label);scores[label]=development_score(model,context,plan,root,label,counts);train.release_phase_allocator_cache(model,optimizer,label='DEV_'+label+'_TO_NEXT_PHASE')
+   before=core.state_sha(optimizer.state_dict());panels=train.diagnostic_panels(context['schedule']);need(panels['supported_panels']==3 and not panels['skipped_empty_batch_indices'],'DEV_FIXED_DIAGNOSTIC_PANELS');extra['gradient_diagnostics']=[]
+   for index in panels['candidate_batch_indices']:extra['gradient_diagnostics'].append({'batch_index':index,'report':core.future_cuda_gradient_probe(model,adapter.packet(context,context['batches'][index]),plan,counts)})
+   need(core.state_sha(optimizer.state_dict())==before,'DEV_DIAGNOSTICS_NO_OPTIMIZER_MUTATION');extra['final_checkpoint_receipt']=checkpoint(432,'FINAL.pt')
+  need(counts==plan['limits'],'DEV_EXACT_PHYSICAL_COUNTS');need(torch.cuda.max_memory_reserved()<=plan['execution']['cuda_peak_reserved_bytes_max'],'DEV_VRAM_BOUND')
+  return {'counts':counts,'trajectory':trajectory,'fresh_initial_state_sha256':initial['model_state_sha256'],'fresh_initial_rng_sha256':initial['rng_sha256'],'model_contract_sha256':plan['model_contract']['contract_sha256'],'scores':scores,'optimizer_updates':counts['optimizer_steps'],'later_generalization':'NOT_MEASURED','economic_edge':'UNKNOWN','technical_weights_never_fit_initializer':True,**extra}
+ finally:
+  for hook in hooks:hook.remove()
+
+def development_bookends(plan,binding,pref,boot):
+ checks={}
+ tests={'plan':lambda:ref(DEV_PLANS[plan['phase']])==binding,'sources':lambda:all(ref(REPO/n)['sha256']==h for n,h in plan['source_owners'].items()),'inputs':lambda:all(ref(q['path'])==q for q in plan['inputs'].values()),'policy':lambda:ref(POLICY)==pref,'boots':lambda:{'physical_windows_boot_id':core.physical_windows_boot_id(),'wsl_boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip()}==boot,'HEAD':lambda:subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()==plan['source_commit']}
+ for name,fn in tests.items():
+  try:checks[name]=bool(fn())
+  except BaseException:checks[name]=False
+ return checks
+
+def development_allowed_payloads(plan):
+ phase=plan['phase'];root=DEV_ROOTS[phase];allowed={str(Path(plan['inputs'][role]['path']).resolve())for role in ('feature_archive','target_arrays')}
+ names=[]if phase=='cohort'else['CURSOR001.pt','CURSOR002.pt']if phase=='warm'else['REPLAYED_CURSOR003.pt']if phase=='cold'else['CURSOR001.pt','FINAL.pt','INITIAL_LOGITS.npz','PASS1_LOGITS.npz','PASS2_LOGITS.npz']
+ allowed.update(str(root/name)for name in names)
+ if phase=='cold':allowed.add(str(Path(plan['inputs']['selected_cursor2_checkpoint']['path']).resolve()))
+ return allowed
+
+def development_io_audit(allowed,event,args):
+ if event in ('socket.connect','socket.getaddrinfo','urllib.Request'):raise RuntimeError('V3_DEVELOPMENT_NETWORK_FORBIDDEN')
+ if event=='open'and args and isinstance(args[0],(str,bytes,os.PathLike)):
+  name=os.fsdecode(args[0])
+  if name.endswith(('.npz','.npy','.pt','.pth','.parquet','.safetensors','.pkl','.pickle','.joblib'))and str(Path(name).resolve())not in allowed:raise RuntimeError('V3_DEVELOPMENT_PAYLOAD_PATH_FORBIDDEN')
+
+def run_v3_development(sha,phase):
+ from gx1.contracts.gx1_capped_execution_v1 import require_native_all_tf_provider_hlc_v3_development_execution
+ execution=require_native_all_tf_provider_hlc_v3_development_execution(plan_sha256=sha,phase=phase);plan,binding,pref,live=inspect_v3_development(sha,phase,True);root=DEV_ROOTS[phase];boot={'physical_windows_boot_id':core.physical_windows_boot_id(),'wsl_boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip()};started=time.monotonic();root.mkdir(exist_ok=False)
+ claim=development_publish(root,'CLAIM.json',{'plan':binding,'policy_at_claim':pref,'boots':boot,'phase':phase,'execution':execution,'process_identity':core.future_cpu_process_identity(),'remaining_invocations':0,'relaunch_allowed':False});report=None;error=None
+ def stop(*_):raise TimeoutError('V3_DEVELOPMENT_INTERNAL_WALL_OR_SIGNAL')
+ handlers={sig:signal.getsignal(sig)for sig in(signal.SIGALRM,signal.SIGTERM,signal.SIGINT)}
+ for sig in handlers:signal.signal(sig,stop)
+ signal.setitimer(signal.ITIMER_REAL,plan['execution']['internal_seconds'])
+ try:
+  allowed=development_allowed_payloads(plan);sys.addaudithook(lambda event,args:development_io_audit(allowed,event,args))
+  development_check_inputs(plan,physical=True);report=development_cohort(plan,root)if phase=='cohort'else development_nn(plan,binding,root,live)
+  need(core.common.firewall_state()['denied_attempts']==0,'DEV_ZERO_FIREWALL_DENIALS')
+ except BaseException as exc:error=type(exc).__name__+':'+str(exc)[:2400]
+ finally:
+  signal.setitimer(signal.ITIMER_REAL,0);book=development_bookends(plan,binding,pref,boot);error=error or(None if all(book.values())else'DEV_BOOKEND_FAILED')
+  result=development_publish(root,'RESULT.json',{'status':'COMPLETE_V3_DEVELOPMENT_'+phase.upper()if error is None else'FAILED_CONSUMED','phase':phase,'plan':binding,'protocol':plan['protocol'],'claim':claim,'process_identity':core.future_cpu_process_identity(),'report':report,'error':error,'bookends':book,'elapsed_seconds':time.monotonic()-started,'test_data_used':False,'later_generalization':'NOT_MEASURED','economic_edge':'UNKNOWN'})
+  terminal=development_publish(root,'TERMINAL.json',{'status':'COMPLETE'if error is None else'FAILED_CONSUMED','exit_code':0 if error is None else 1,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False})
+  for sig,handler in handlers.items():signal.signal(sig,handler)
+ if error:raise RuntimeError(error)
+ return {'result':result,'terminal':terminal,'phase':phase}
+
+def main_v3_development():
+ from gx1.contracts.gx1_capped_execution_v1 import require_native_all_tf_provider_hlc_v3_development_execution
+ parser=argparse.ArgumentParser();parser.add_argument('--v3-development-plan-sha256',required=True);parser.add_argument('--phase',choices=DEV_PHASES,required=True);parser.add_argument('--preflight',action='store_true');args=parser.parse_args();sha=args.v3_development_plan_sha256
+ need(sys.argv[1:]==['--v3-development-plan-sha256',sha,'--phase',args.phase]+(['--preflight']if args.preflight else[]),'DEV_EXACT_CLI')
+ if args.preflight:
+  require_native_all_tf_provider_hlc_v3_development_execution(plan_sha256=sha,phase=args.phase);plan,binding,pref,live=inspect_v3_development(sha,args.phase,False);print(json.dumps({'status':'PREFLIGHT_V3_DEVELOPMENT_METADATA_ONLY','phase':args.phase,'plan':binding,'policy':pref,'models':0,'payloads_decoded':0,'CUDA_initialized':False,'CLAIM_created':False}))
+ else:print(json.dumps(run_v3_development(sha,args.phase),sort_keys=True))
+# END GX1 V3 BOUNDED DEVELOPMENT 20261127
 if __name__=='__main__':main()

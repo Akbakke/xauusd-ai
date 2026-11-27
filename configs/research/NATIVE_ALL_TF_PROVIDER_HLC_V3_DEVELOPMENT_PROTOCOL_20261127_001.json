@@ -1,0 +1,120 @@
+{
+  "backbone_gradient_policy": null,
+  "experiment_id": "NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001",
+  "fit_checkpoint_cursors": [
+    1,
+    432
+  ],
+  "question": "Does one fixed fully coupled V3 factory model improve on the same frozen source-clock TRAIN cohort against both its INITIAL and one matched scoring prior?",
+  "recipe": {
+    "allocator_phase_policy": {
+      "boundaries": "score_to_train_train_to_score_score_to_final_diagnostics_and_changed_diagnostic_shape",
+      "function": "release_phase_allocator_cache",
+      "peak_reset": false,
+      "per_step": false,
+      "unused_cache_only": true
+    },
+    "checkpoint_every_optimizer_updates": 256,
+    "eval_batch_rows": 256,
+    "gradient_clip_norm": 1.0,
+    "optimizer": {
+      "amsgrad": false,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "capturable": false,
+      "differentiable": false,
+      "eps": 1e-08,
+      "foreach": null,
+      "fused": null,
+      "lr": 0.0001,
+      "maximize": false,
+      "weight_decay": 0.0001
+    },
+    "passes": 2,
+    "scheduler": null,
+    "seed": 20260911,
+    "train_batch_rows": 96
+  },
+  "references": {
+    "V3_initial_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_V3_INITIAL_ACCEPTANCE_20261125_001.json",
+      "sha256": "d937fc7686835dcadc04b2ac817627ff406706e9fb4b35c6daac72a0d6dddb25"
+    },
+    "V3_replay_acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/ALL_TF_V3_REPLAY_ACCEPTANCE_20261125_001.json",
+      "sha256": "bfef62953888249fcfea418bae81e15891b72fff9ddbd59a3c3a03538701cf60"
+    },
+    "V3_replay_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_COLD_REPLAY_20261125_001.json",
+      "sha256": "95657ffecdcd81980a3ed2477e1f338436b43137acec20a416a5b748b89ed59d"
+    },
+    "canonical_clock_selection": {
+      "path": "/home/andre2/GX1_RUNS/GX1_FUTURE_STATE_TRAIN_READINESS_20261121_001/PAIRED_COHORT_SELECTION001.json",
+      "sha256": "f9208763e8cbc87a6978ae4443536ee202d98e4715988f7e173ffab9d7b031d3"
+    },
+    "canonical_paired_recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_FUTURE_STATE_PAIRED_LEARNING_20261121_001.json",
+      "sha256": "3234066fee6b0ccbb3066b3692ddc171693c731fed6fa6a361919ea19fda0636"
+    },
+    "canonical_recipe_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_M5_TA_ATR03_FIVE_YEAR_FIT_20261120_003.json",
+      "sha256": "20c964020752318c507957ec0b71645e419e023defd7275637cc85fd48b2b5fd"
+    },
+    "whole_review_spec": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_COMPARISON_SPEC_20261125_001.json",
+      "sha256": "f22ae6a88ca348df26ec0bea19d1f9d36708b786ecb7190c8680dddbe9111df0"
+    }
+  },
+  "schema_version": "gx1_native_all_tf_provider_hlc_v3_development_protocol_v1",
+  "scope": {
+    "GC_or_M1": false,
+    "TRAIN_optimization_diagnostic_only": true,
+    "automatic_continuation": false,
+    "calendar_or_historical_causality_qualified": false,
+    "chronological_OOF": false,
+    "economic_edge": "UNKNOWN",
+    "later_control_or_VAL_or_TEST_rows": 0,
+    "later_generalization": "NOT_MEASURED",
+    "main_fit_or_HPO_or_spend": false,
+    "model_or_loss_formula_changes": 0,
+    "new_factory_prior_fits": 0,
+    "new_normalization_fits": 0,
+    "selected_scoring_prior_fits": 1
+  },
+  "score_phases": [
+    "INITIAL",
+    "PASS1",
+    "PASS2"
+  ],
+  "selection": {
+    "nonempty_buckets": 1377,
+    "quotas": false,
+    "rows": 20727,
+    "selected_issue_ns_sha256": "ca9868f542d290045c2640c320d1e3517329c8a4223c8ec3a58a153d86a283f1",
+    "selected_source_rows_sha256": "84fca333ffd882d679e6339ea9663811b9d16564cb8f8617072753f4f6db5025",
+    "target_filter": false,
+    "top_up": false,
+    "whole_TRAIN_rows": 354550
+  },
+  "technical_checkpoint_cursors": {
+    "cold": [
+      3
+    ],
+    "warm": [
+      1,
+      2
+    ]
+  },
+  "technical_replay": {
+    "all10_proofs_required": true,
+    "batch_rows": 96,
+    "cold_updates": 1,
+    "prefix_rows": 288,
+    "replay_step": 3,
+    "restore_cursor": 2,
+    "technical_weights_allowed_as_fit_initializer": false,
+    "warm_updates": 3
+  }
+}

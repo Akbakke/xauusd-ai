@@ -5,6 +5,38 @@ GX1_RULES.md er lest helt og uendret: SHA2c7f0fc9...683a58.
 NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
 terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
+<!-- BEGIN GX1 V3 BOUNDED DEVELOPMENT TEST 20261127 -->
+## Aktiv oppgave: én avgrenset V3-utviklingstest
+
+Bruker27.11 ba om nytt mål og å gjennomføre testen. Root eier policy/launch.
+NEXT_RUN_POLICY.native_v3_bounded_development_test_20261127_001 er arbeidsstatus.
+App-målverktøyet avviste nytt mål fordi gammelt mål er ufullført; gammelt mål
+er ikke markert oppnådd. Dette stanser ikke den nye autoriserte lokale oppgaven.
+
+Klargjør én None/fullt-koblet V3-fit med eksisterende målblinde22UTC-
+klokkeutvalg20727rader/1377døgn; B96/E256,2kanoniske pass, maksimalt432fit-
+oppdateringer, samme seed/AdamW/klipping uten scheduler. Ingen valgt epoke.
+Factoryprior/normalisering og kvalifisert V3 INITIAL beholdes; matchet
+COHORTprior brukes bare til scoring og er ikke lik factoryINITIAL generelt.
+
+Målte adaptergrenser er gammel V1-cohortpreparer og truth-concat som ikke
+bevarer V3-sertifikatet. Minste ny rute legges i eksisterende learning- og
+review-eiere uten å endre74baseline-numerikkeiere. Eksisterende V3-packet,
+step/checkpoint/replay-matematikk gjenbrukes. Ny selected-cohort warm/cold-
+kvalifisering kommer før fit; tekniske replayvekter er aldri fit-initializer.
+Kildekvalifisering:110unike fokuserte tester PASS, syntaks/diffcheck og
+uavhengig integrasjonsreview PASS;72av74baselineeiere byteuendret, kun
+2additive kjøringsvakter. Alle6globalflagg false; ingen fase admitted/claimet.
+Kildekvittering: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DEVELOPMENT_SOURCE_QUALIFICATION_20261127_001.json.
+
+Vurder alle5TF mot samme frosne scoreprior med rad-/målbarvekting,
+kalibrering ogUP/DOWN-stabilitet ved INITIAL/PASS1/PASS2. Bare PASS2 er
+endelig fitutfall. Senere generalisering er NOT_MEASURED: wholeTRAIN-
+normalisering/factoryprior kan ikke gjøres om til en uavhengig senere OOF.
+Historisk kalender/makrovintage og13/3/4-fagstatus er uendret. Ingen større
+trening, serie/HPO, M1/GC/TEST, Entry/Exit, broker/live/paper/ordre/spending.
+<!-- END GX1 V3 BOUNDED DEVELOPMENT TEST 20261127 -->
+
 <!-- BEGIN GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
 ## OANDA-data bekreftet; teknisk kvalifikasjon og historisk kausalitet skilles
 
