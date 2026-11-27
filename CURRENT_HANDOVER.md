@@ -6,26 +6,38 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
 terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
 <!-- BEGIN GX1 HOST MAINTENANCE LOGGING 20261127 -->
-## Aktivt delmål: eksakt årsakslogging for vedlikeholdsvakten
+## Årsakslogging er utrullet og verifisert; ingen ny fit
 
-Bruker: «Ja, oppdater mål og fortsett». NEXT_RUN_POLICY.
-native_host_maintenance_logging_20261127_001 eier aktiv loggingoppgave.
-Appmålverktøyet støtter ikke måltekstendring og eldre mål er ufullført/blocked;
-prosjektpolicyen er oppdatert uten å markere det gamle målet oppnådd.
+Brukerens «Ja, oppdater mål og fortsett» gjaldt årsakslogging. Delmålet i
+NEXT_RUN_POLICY.native_host_maintenance_logging_20261127_001 er fullført.
+Appverktøyet støtter ikke måltekstendring; eldre appmål ble ikke feilaktig
+markert oppnådd. Det bredere læringsmålet er fortsatt ufullført.
 
-Målt mangel: signert maintenance_active stoppet FIT001/FIT002, men komponenten
-var ikke logget. Utløser for gamle stopp forblir UNKNOWN. Ny logging skal bruke
-samme eksisterende snapshot og korrelere UTC/monotonic/nonce med prosessnavn/PID/
-starttid og setup/OOBE/reboot-komponenter. Samme predikat,14felt/signatur og alle
-maskinvarevakter bevares. Ingen nye WMI-prober for å rekonstruere et annet øyeblikk.
-Root eier policy/deploy. Kilde og syntetiske feilbaner kvalifiseres før sikker
-utskifting av bare offentlig servicekode med backup/readback ved ledig maskin.
-Ingen helinstaller, nye nøkler/sertifikat/porter/oppgaver eller deaktivert vedlikehold.
-Kilden er kvalifisert:18unike fokuserte tester og faktisk PowerShell-
-funksjonskjøring PASS; uavhengig exact-normalisering bevarer alle tidligere
-installerbytes utenom loggingtillegget. Alle74modell-/runtimeeiere er byteuendret.
-Service er ennå ikke utrullet. Alle6trenings-/launchflagg forblir false; begge fit-planer er forbrukt og ingen
-ny fit er autorisert av denne loggingoppgaven.
+Samme eksisterende SYSTEM-task kjører offentlig servicekode SHA94cb46fc...1a9.
+Kun logging er lagt til: én append-only GX1-HostTelemetryBridgeMaintenance.jsonl
+under eksisterende bridgeV4-katalog. Samme snapshot gir prosessnavn/PID/parent/
+kjent starttid og setup/OOBE/reboot/CBS/WU-komponenter, UTC/nonce/monotonic.
+Første sample/endringer/alle aktive forespørsler lagres; uendret idle dedupliseres.
+Fsync+strictreadback skjer før200; IO-feil følger eksisterende503.18unike
+fokuserte tester med faktisk PowerShellsyntetikk og uavhengig kildereview PASS.
+Alle74modell-/runtimeeiere, predikatet og signert14felt/wire er uendret.
+
+Originalkode og foreslått kode er bevart på separat Mac-disk. Første private
+utrullingskontroll feilet førstop/replace på scalar-CIM Count; kun tellingen
+ble rettet og gammel kvittering bevart. Korrigert opptak byttet servicefilen
+atomisk og startet samme task én gang. ACL/loggprefix/runner/config/offentlig
+sertifikat/taskdefinisjon er bevart; ingen helinstaller/portproxy/nøkler/endretvakt.
+Første forespørsel etterrestart timeoutet på uendret2s mens vitnet var skrevet;
+etter readonly tjenestekontroll bestod neste signerte14feltforespørsel. Faktisk
+idle-vitne og deduplisering er lest tilbake. Ingen virkelig aktiv vedlikeholds-
+hendelse er observert i nyjournal ennå; positive/negative feilbaner er syntetisk
+verifisert. Gamle stopputløsere forblir UNKNOWN; historikken omskrives ikke.
+
+Alle6trenings-/launchflagg og hostdeployadmission er lukket.0nye modellkjøringer.
+Begge gamle fit-planer er fortsatt forbrukt. Neste: bruk journalen ved neste
+vedlikeholdsflagg; eventuell ny fit krever nytt eksplisitt vedtak/ny engangsplan.
+Separatdiskbackup/readback: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/HOST_MAINTENANCE_LOGGING_FINAL_BACKUP_20261127_001.json
+Aksept: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/HOST_MAINTENANCE_LOGGING_ACCEPTANCE_20261127_001.json
 <!-- END GX1 HOST MAINTENANCE LOGGING 20261127 -->
 
 <!-- BEGIN GX1 V3 BOUNDED DEVELOPMENT TEST 20261127 -->
