@@ -365,6 +365,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $responseSchema = 'gx1_host_resource_telemetry_v2'
 $requestSchema = 'gx1_host_gpu_telemetry_request_v1'
+$script:MaintenanceWitnessState = $null
 $invariant = [System.Globalization.CultureInfo]::InvariantCulture
 
 function Add-BridgeUpdateVisitor {
@@ -521,6 +522,130 @@ function Get-CpuResourceTelemetry {
     }
 }
 
+function New-MaintenanceWitnessSnapshot {
+    param([AllowEmptyCollection()][object[]]$Workers, [object]$Setup, [object]$CbsPending, [object]$WuRequired, [object]$Rebooting)
+    foreach ($flag in @($CbsPending, $WuRequired, $Rebooting)) {
+        if ($flag -isnot [bool]) { throw 'Maintenance registry flag is unknown' }
+    }
+    foreach ($name in @('SystemSetupInProgress', 'OOBEInProgress')) {
+        $value = $Setup.$name
+        if (($value -isnot [int] -and $value -isnot [long] -and $value -isnot [uint32] -and $value -isnot [uint64]) -or $value -notin @(0, 1)) {
+            throw 'Maintenance setup flag is unknown'
+        }
+    }
+    $allowed = @('TiWorker.exe', 'MoUsoCoreWorker.exe', 'SetupHost.exe', 'SetupPrep.exe', 'WindowsUpdateBox.exe', 'wuauclt.exe')
+    $seen = @{}
+    $rows = @(foreach ($worker in $Workers) {
+        $workerId = [uint32]0
+        $parentId = [uint32]0
+        if ($null -eq $worker -or $worker.Name -notin $allowed -or
+            -not [uint32]::TryParse([string]$worker.ProcessId, [ref]$workerId) -or $workerId -eq 0 -or $seen.ContainsKey($workerId)) {
+            throw 'Maintenance worker identity is unknown'
+        }
+        $seen[$workerId] = $true
+        $parentProperty = $worker.PSObject.Properties['ParentProcessId']
+        $parentValue = $(if ($null -eq $parentProperty) { $null } else { $parentProperty.Value })
+        if ($null -ne $parentValue -and -not [uint32]::TryParse([string]$parentValue, [ref]$parentId)) {
+            throw 'Maintenance worker parent identity is unknown'
+        }
+        $created = $null
+        $creationProperty = $worker.PSObject.Properties['CreationDate']
+        $creationValue = $(if ($null -eq $creationProperty) { $null } else { $creationProperty.Value })
+        if ($null -ne $creationValue) {
+            if ($creationValue -isnot [datetime]) { throw 'Maintenance worker creation time is unknown' }
+            $created = $creationValue.ToUniversalTime().ToString('o', [Globalization.CultureInfo]::InvariantCulture)
+        }
+        [pscustomobject][ordered]@{name = [string]$worker.Name; pid = $workerId;
+            parent_pid = $(if ($null -eq $parentValue) { $null } else { $parentId });
+            creation_utc = $created; creation_utc_known = ($null -ne $created)}
+    })
+    $rows = @($rows | Sort-Object name, pid)
+    $reasons = @($rows | ForEach-Object { 'worker:' + $_.name + ':' + $_.pid })
+    if ($Setup.SystemSetupInProgress -ne 0) { $reasons += 'system_setup_in_progress' }
+    if ($Setup.OOBEInProgress -ne 0) { $reasons += 'oobe_in_progress' }
+    if ($Rebooting) { $reasons += 'reboot_in_progress' }
+    return [pscustomobject][ordered]@{
+        observed_utc = [datetime]::UtcNow.ToString('o', [Globalization.CultureInfo]::InvariantCulture)
+        components = [pscustomobject][ordered]@{workers = $rows;
+            system_setup_in_progress = [int]$Setup.SystemSetupInProgress; oobe_in_progress = [int]$Setup.OOBEInProgress;
+            cbs_reboot_pending = $CbsPending; wu_reboot_required = $WuRequired; reboot_in_progress = $Rebooting}
+        maintenance_reasons = $reasons
+    }
+}
+
+function ConvertTo-MaintenanceWitnessJson {
+    param([object]$Value)
+    $witnessJson = ConvertTo-Json -InputObject $Value -Compress -Depth 8 -ErrorAction Stop
+    $parsed = ConvertFrom-Json -InputObject $witnessJson -ErrorAction Stop
+    if ((ConvertTo-Json -InputObject $parsed -Compress -Depth 8 -ErrorAction Stop) -cne $witnessJson) {
+        throw 'Maintenance witness JSON roundtrip failed'
+    }
+    return $witnessJson
+}
+
+function Write-MaintenanceWitness {
+    param([object]$HostResources, [string]$Nonce, [object]$ObservedMonotonicMs, [string]$JournalPath)
+    if ($Nonce -cnotmatch '^[0-9a-f]{64}$' -or
+        ($ObservedMonotonicMs -isnot [long] -and $ObservedMonotonicMs -isnot [int]) -or $ObservedMonotonicMs -lt 0 -or
+        $HostResources.maintenance_active -isnot [bool] -or $HostResources.cbs_reboot_pending -isnot [bool] -or $HostResources.wu_reboot_required -isnot [bool]) {
+        throw 'Maintenance request correlation is invalid'
+    }
+    $snapshot = $HostResources.maintenance_snapshot
+    $parsedTime = [datetime]::MinValue
+    if (-not [datetime]::TryParseExact($snapshot.observed_utc, 'o', [Globalization.CultureInfo]::InvariantCulture,
+            [Globalization.DateTimeStyles]::RoundtripKind, [ref]$parsedTime) -or $parsedTime.Kind -ne [DateTimeKind]::Utc) {
+        throw 'Maintenance snapshot UTC is invalid'
+    }
+    $facts = $snapshot.components
+    $derived = [bool](@($facts.workers).Count -gt 0 -or $facts.system_setup_in_progress -ne 0 -or $facts.oobe_in_progress -ne 0 -or $facts.reboot_in_progress)
+    if ($derived -ne $HostResources.maintenance_active -or $facts.cbs_reboot_pending -ne $HostResources.cbs_reboot_pending -or
+        $facts.wu_reboot_required -ne $HostResources.wu_reboot_required -or ([bool](@($snapshot.maintenance_reasons).Count -gt 0)) -ne $derived) {
+        throw 'Maintenance witness disagrees with signed snapshot'
+    }
+    $state = [pscustomobject][ordered]@{maintenance_active = $HostResources.maintenance_active;
+        components = $facts; maintenance_reasons = $snapshot.maintenance_reasons}
+    $stateJson = ConvertTo-MaintenanceWitnessJson -Value $state
+    if (-not $HostResources.maintenance_active -and $stateJson -ceq $script:MaintenanceWitnessState) { return }
+    $entry = [pscustomobject][ordered]@{schema_version = 'gx1_host_maintenance_witness_v1';
+        observed_utc = $snapshot.observed_utc; request_nonce = $Nonce; observed_monotonic_ms = [long]$ObservedMonotonicMs;
+        maintenance_active = $HostResources.maintenance_active; components = $facts; maintenance_reasons = $snapshot.maintenance_reasons}
+    $line = ConvertTo-MaintenanceWitnessJson -Value $entry
+    $utf8 = [Text.UTF8Encoding]::new($false, $true)
+    $bytes = $utf8.GetBytes($line + "`n")
+    if ([string]::IsNullOrWhiteSpace($JournalPath) -or -not [IO.Directory]::Exists([IO.Path]::GetDirectoryName($JournalPath))) {
+        throw 'Maintenance journal directory is unavailable'
+    }
+    if ([IO.File]::Exists($JournalPath) -and (([IO.File]::GetAttributes($JournalPath) -band [IO.FileAttributes]::ReparsePoint) -ne 0)) {
+        throw 'Maintenance journal must not be a reparse point'
+    }
+    $stream = [IO.FileStream]::new($JournalPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read)
+    try {
+        $offset = $stream.Length
+        if ($offset -gt 0) {
+            $null = $stream.Seek(-1, [IO.SeekOrigin]::End)
+            if ($stream.ReadByte() -ne 10) { throw 'Maintenance journal has an incomplete prior record' }
+        }
+        $null = $stream.Seek(0, [IO.SeekOrigin]::End)
+        $stream.Write($bytes, 0, $bytes.Length)
+        $stream.Flush($true)
+        $null = $stream.Seek($offset, [IO.SeekOrigin]::Begin)
+        $readback = [byte[]]::new($bytes.Length)
+        $copied = 0
+        while ($copied -lt $readback.Length) {
+            $count = $stream.Read($readback, $copied, $readback.Length - $copied)
+            if ($count -le 0) { throw 'Maintenance witness readback is incomplete' }
+            $copied += $count
+        }
+        if ([Convert]::ToBase64String($readback) -cne [Convert]::ToBase64String($bytes) -or
+            (ConvertTo-MaintenanceWitnessJson -Value (ConvertFrom-Json -InputObject $utf8.GetString($readback) -ErrorAction Stop)) -cne $line) {
+            throw 'Maintenance witness readback differs'
+        }
+    }
+    finally { $stream.Dispose() }
+    # Advance dedup state only after durable write and strict readback.
+    $script:MaintenanceWitnessState = $stateJson
+}
+
 function Get-HostResourceTelemetry {
     # Read real Windows counters; WSL /proc memory is a separate cgroup gate.
     $memory = Get-CimInstance Win32_PerfRawData_PerfOS_Memory -ErrorAction Stop
@@ -554,6 +679,7 @@ function Get-HostResourceTelemetry {
         cbs_reboot_pending = [bool]$cbs
         wu_reboot_required = [bool]$wu
         maintenance_active = [bool]($workers.Count -gt 0 -or $setup.SystemSetupInProgress -ne 0 -or $setup.OOBEInProgress -ne 0 -or $rebooting)
+        maintenance_snapshot = New-MaintenanceWitnessSnapshot -Workers $workers -Setup $setup -CbsPending $cbs -WuRequired $wu -Rebooting $rebooting
     }
 }
 
@@ -650,6 +776,7 @@ try {
             $payload += "`n"
             $signature = Sign-BridgePayload -Rsa $rsa -Payload $payload
             $json = '{"schema_version":"' + $responseSchema + '","request_nonce":"' + $nonce + '","gpu_uuid":"' + $native.uuid + '","core_temp_c":' + $coreField + ',"memory_temp_c":' + $memoryField + ',"power_draw_w":' + $drawField + ',"power_limit_w":' + $limitField + ',"memory_used_mib":' + $native.memory_used_mib + ',"observed_monotonic_ms":' + $observed + ',"cpu_max_temp_c":' + $cpuTempField + ',"cpu_package_power_w":' + $cpuPowerField + ',"host_physical_total_bytes":' + $hostResources.host_physical_total_bytes + ',"host_physical_available_bytes":' + $hostResources.host_physical_available_bytes + ',"host_commit_used_bytes":' + $hostResources.host_commit_used_bytes + ',"host_commit_limit_bytes":' + $hostResources.host_commit_limit_bytes + ',"cbs_reboot_pending":' + $cbsField + ',"wu_reboot_required":' + $wuField + ',"maintenance_active":' + $maintenanceField + ',"signature":"'  + $signature + '"}'
+            $null = Write-MaintenanceWitness -HostResources $hostResources -Nonce $nonce -ObservedMonotonicMs $observed -JournalPath (Join-Path $PSScriptRoot 'GX1-HostTelemetryBridgeMaintenance.jsonl')
             Write-BridgeResponse -Context $context -StatusCode 200 -Body $json
         }
         catch {

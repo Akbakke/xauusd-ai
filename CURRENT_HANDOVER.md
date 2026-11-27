@@ -5,6 +5,29 @@ GX1_RULES.md er lest helt og uendret: SHA2c7f0fc9...683a58.
 NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
 terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
+<!-- BEGIN GX1 HOST MAINTENANCE LOGGING 20261127 -->
+## Aktivt delmål: eksakt årsakslogging for vedlikeholdsvakten
+
+Bruker: «Ja, oppdater mål og fortsett». NEXT_RUN_POLICY.
+native_host_maintenance_logging_20261127_001 eier aktiv loggingoppgave.
+Appmålverktøyet støtter ikke måltekstendring og eldre mål er ufullført/blocked;
+prosjektpolicyen er oppdatert uten å markere det gamle målet oppnådd.
+
+Målt mangel: signert maintenance_active stoppet FIT001/FIT002, men komponenten
+var ikke logget. Utløser for gamle stopp forblir UNKNOWN. Ny logging skal bruke
+samme eksisterende snapshot og korrelere UTC/monotonic/nonce med prosessnavn/PID/
+starttid og setup/OOBE/reboot-komponenter. Samme predikat,14felt/signatur og alle
+maskinvarevakter bevares. Ingen nye WMI-prober for å rekonstruere et annet øyeblikk.
+Root eier policy/deploy. Kilde og syntetiske feilbaner kvalifiseres før sikker
+utskifting av bare offentlig servicekode med backup/readback ved ledig maskin.
+Ingen helinstaller, nye nøkler/sertifikat/porter/oppgaver eller deaktivert vedlikehold.
+Kilden er kvalifisert:18unike fokuserte tester og faktisk PowerShell-
+funksjonskjøring PASS; uavhengig exact-normalisering bevarer alle tidligere
+installerbytes utenom loggingtillegget. Alle74modell-/runtimeeiere er byteuendret.
+Service er ennå ikke utrullet. Alle6trenings-/launchflagg forblir false; begge fit-planer er forbrukt og ingen
+ny fit er autorisert av denne loggingoppgaven.
+<!-- END GX1 HOST MAINTENANCE LOGGING 20261127 -->
+
 <!-- BEGIN GX1 V3 BOUNDED DEVELOPMENT TEST 20261127 -->
 ## FIT_002 stoppet av vedlikeholdsvakt; kun delresultater
 
