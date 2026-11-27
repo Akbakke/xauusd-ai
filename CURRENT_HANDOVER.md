@@ -34,12 +34,17 @@ ferdig report/INITIAL_LOGITS/checkpoint.0fitoppdateringer følger av fryst
 kontrollflyt: INITIAL-arkivet publiseres før første training_step. Eksakt
 forwardantall er ikke durabelt registrert og forblir UNKNOWN.
 
-Alle6flagg og alle admissioner er lukket; ingen modellprosess er aktiv.
-Signert poststop-hostobservasjon viser maintenance=false igjen; dette gir
-ikke ny kjøreautoritet. Ikke relanser den claimede FIT-planen. Ny plan krever
-nytt uttrykkelig operatørvedtak etter AGENTS.md. Ingen automatisk retry/serie.
-Neste: avklar ett nytt avgrenset fit-vedtak; gjenbruk kvalifisert cohort/replay,
-samme recipe, fersk factoryINITIAL og alle vakter. Ingen ny kildeinnsamling.
+Bruker27.11 har nå svart «Ja» til én ny engangs-fit med samme oppsett.
+FIT_001 og originale kvitteringer forblir forbrukt/urørt; ingen relaunch.
+Ny FIT_002 får egen plansti og fit_002-root, samme phase/stage/CLI/protocol,
+B96/E256,2pass/maks432oppdateringer, samme factoryprior/norm/seed/optimizer.
+Kohort/warm/cold og alle10replaybevis gjenbrukes uten omkjøring.
+Bare namespace-endring i learning- og kjøringsvakter; ingen NN-/tallendring.
+FIT_002-kilden er kvalifisert:46berørte guardtester PASS, eksakt2namespace-
+uttrykk i learning-eieren og uendret numerikk/recipe. Alle6flagg og alle
+admissioner er fortsatt lukket under klargjøringen.
+Root åpner kun én eksakt ny plan etter kildefrys, signert idle/vedlikeholds-
+kontroll og metadata-preflight. Ingen automatisk retry/serie eller hovedfit.
 Senere generalisering/edge er ubevist; historisk kalender/makrovintage og13/3/4
 fagstatus er uendret. Ingen TEST/M1/GC/Entry/Exit/broker/ordre/spending.
 

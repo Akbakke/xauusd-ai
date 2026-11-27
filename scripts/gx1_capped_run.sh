@@ -1369,6 +1369,7 @@ matches_bound_native_v3_development() {
   case "$7" in cohort|warm|cold|fit) ;; *) return 1 ;; esac
   local plan_suffix="${7^^}"
   if [[ "$7" == warm ]]; then plan_suffix=WARM_002; fi
+  if [[ "$7" == fit ]]; then plan_suffix=FIT_002; fi
   local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001_${plan_suffix}.json"
   [[ -f "$expected_plan" && ! -L "$expected_plan" \
     && "$(readlink -f "$expected_plan")" == "$expected_plan" \
@@ -1381,6 +1382,7 @@ configure_native_v3_development() {
     echo 'FATAL: V3 development forbids alternate resource modes' >&2; exit 75;
   }
   local output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001_$7"
+  if [[ "$7" == fit ]]; then output="${output}_002"; fi
   [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \
     && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {
     echo 'FATAL: V3 development output must be fresh and canonical' >&2; exit 75;

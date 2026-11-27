@@ -47,7 +47,7 @@ def fixture(monkeypatch, tmp_path, phase='fit', preflight=False, bad=None):
         contract_sha256='58fd7f15bdf35646680829a718caa2991f2029ed99f48030e3a85c86aae380c5')
     contract = dict(contract_sha256='ded7f2a05417d108ef8bed4d88f31d40ea1de21292e964586598ddaa818010c3',
         target_contract_sha256=target['contract_sha256'], target_metadata_as_model_input=False)
-    output = runs / (NAME + '_' + phase)
+    output = runs / (NAME + '_' + phase + ('_002' if phase == 'fit' else ''))
     plan = dict(schema_version='gx1_native_all_tf_provider_hlc_v3_development_plan_v1', phase=phase,
         stage=(NAME + '_' + phase).lower(), source_commit='a' * 40, output_root=str(output),
         execution=g._native_v3_development_execution(phase), protocol=protocol_ref,
@@ -61,7 +61,8 @@ def fixture(monkeypatch, tmp_path, phase='fit', preflight=False, bad=None):
     if bad == 'updates': plan['limits']['optimizer_steps'] += 1
     if bad == 'owner': source_owners[OWNERS[0]] = 'f' * 64
     if bad == 'bridge': plan['guard_source_bridge'] = {**bridge, 'extra':True}
-    path = repo / 'configs/research' / (NAME + '_' + phase.upper() + ('_002' if phase == 'warm' else '') + '.json')
+    if bad == 'old_fit_root': plan['output_root'] = str(runs / (NAME + '_fit'))
+    path = repo / 'configs/research' / (NAME + '_' + phase.upper() + ('_002' if phase in ('warm','fit') else '') + '.json')
     path.write_text(json.dumps(plan, sort_keys=True))
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     gate = dict(status='ADMITTED_EXACT_V3_DEVELOPMENT_' + phase.upper(),
@@ -133,7 +134,7 @@ def test_exact_phase_guard_preserves_resource_only_authority(monkeypatch,tmp_pat
 
 @pytest.mark.parametrize('bad', ('schema','model','target','execution','updates','owner','bridge',
     'selection','target_filter','recipe','protocol_digest','parent_protocol','parent_phase','spent','second_gate','flags',
-    'existing','symlink','argv','hardware_env','unknown_env','legacy_env'))
+    'existing','symlink','argv','hardware_env','unknown_env','legacy_env','old_fit_root'))
 def test_exact_scope_rejects_before_kernel_proof(monkeypatch,tmp_path,bad):
     f = fixture(monkeypatch,tmp_path,bad=bad)
     with pytest.raises(RuntimeError): f['call']()
@@ -149,7 +150,7 @@ def test_shell_phase_cli_and_profile_are_fixed(monkeypatch,tmp_path,phase):
     state = dict(REPO_ROOT=str(f['repo']),CANONICAL_TRAINER_PYTHON=str(f['repo'] / '.venv/bin/python'),
         JOB_CLASS='producer' if phase=='cohort' else 'trainer',MEM='12G' if phase=='cohort' else '20G',
         SWAP='512M',ATTENDED_SMOKE='false',CUDA_PRODUCER_GUARD='false',
-        POWER_BENCHMARK_SCOPE_JSON='',POWER_BENCHMARK_SCOPE_SHA256='',TRAINER_MAX_WALL_SECONDS='',TRAINER_MODEL_MAX_WALL_SECONDS='')
+        POWER_BENCHMARK_SCOPE_JSON='',POWER_BENCHMARK_SCOPE_SHA256='',TRAINER_MAX_WALL_SECONDS='',TRAINER_MODEL_MAX_WALL_SECONDS='',TRAINER_OUT_BUNDLE_DIR='')
     script='set -eu\n'+''.join(k+'='+shlex.quote(v)+'\n'for k,v in state.items())+variables+functions
     script+='validate_target_command() {\n'+dispatch+'return 88\n}\n'
     argv=[state['CANONICAL_TRAINER_PYTHON'],'-m','gx1.audit.native_provider_hlc_learning_v1',
@@ -157,10 +158,12 @@ def test_shell_phase_cli_and_profile_are_fixed(monkeypatch,tmp_path,phase):
     for wrong in (False,True):
         args=list(argv)
         if wrong: args[2]='gx1.audit.native_provider_hlc_replay_v1'
-        tail='validate_target_command '+' '.join(map(shlex.quote,args))+'\nprintf "%s,%s,%s\n" "$NATIVE_V3_DEVELOPMENT_PHASE" "$TRAINER_MAX_WALL_SECONDS" "$TRAINER_MODEL_MAX_WALL_SECONDS"\n'
+        tail='validate_target_command '+' '.join(map(shlex.quote,args))+'\nprintf "%s,%s,%s,%s\n" "$NATIVE_V3_DEVELOPMENT_PHASE" "$TRAINER_MAX_WALL_SECONDS" "$TRAINER_MODEL_MAX_WALL_SECONDS" "$TRAINER_OUT_BUNDLE_DIR"\n'
         result=subprocess.run(['bash','-c',script+tail],cwd=f['repo'],capture_output=True,text=True)
         assert result.returncode==(75 if wrong else 0),result.stderr
-        if not wrong: assert result.stdout.strip()==phase+(',' if phase=='cohort' else ',5400,5370' if phase=='fit' else ',1800,1770')+(',' if phase=='cohort' else '')
+        if not wrong:
+            expected=[phase,*(['',''] if phase=='cohort' else ['5400','5370'] if phase=='fit' else ['1800','1770']),str(f['output']) if phase!='cohort' else '']
+            assert result.stdout.strip()==','.join(expected)
 
 
 @pytest.mark.parametrize('phase', ('warm','cold','fit'))
@@ -181,13 +184,32 @@ def test_gpu_guard_requests_only_actual_wrapper_exports(monkeypatch,tmp_path,pha
     assert f['called']==['cuda']
 
 
-def test_warm_has_no_legacy_plan_alias(monkeypatch,tmp_path):
-    f=fixture(monkeypatch,tmp_path,'warm',preflight=True)
-    assert f['path'].name==NAME+'_WARM_002.json'
-    old=f['path'].with_name(NAME+'_WARM.json')
+@pytest.mark.parametrize('phase', ('warm','fit'))
+def test_revised_phase_has_no_legacy_plan_alias(monkeypatch,tmp_path,phase):
+    f=fixture(monkeypatch,tmp_path,phase,preflight=True)
+    assert f['path'].name==NAME+'_'+phase.upper()+'_002.json'
+    old=f['path'].with_name(NAME+'_'+phase.upper()+'.json')
     f['path'].rename(old)
     with pytest.raises(RuntimeError,match='CANONICAL_JSON'): f['call']()
     assert not f['called']
+
+
+def test_fresh_fit_namespace_preserves_consumed_old_fit(monkeypatch,tmp_path):
+    f=fixture(monkeypatch,tmp_path,'fit',preflight=True)
+    assert f['output'].name==NAME+'_fit_002'
+    old_output=f['runs']/(NAME+'_fit')
+    old_output.mkdir()
+    old_claim=old_output/'CLAIM.json'
+    old_claim.write_text('{"status":"CONSUMED_OLD_FIT"}\n')
+    old_plan=f['path'].with_name(NAME+'_FIT.json')
+    value=json.loads(f['path'].read_text())
+    value['output_root']=str(old_output)
+    old_plan.write_text(json.dumps(value,sort_keys=True))
+    before={p:p.read_bytes()for p in (old_claim,old_plan)}
+    proof=f['call']()
+    assert proof['output_root']==str(f['output'])
+    assert not f['output'].exists()
+    assert all(p.read_bytes()==raw for p,raw in before.items())
 
 
 def _actual_owners():
