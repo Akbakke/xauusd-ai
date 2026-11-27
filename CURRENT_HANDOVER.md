@@ -35,6 +35,8 @@ stående integratoradgang16.11; gammel FIT_001/FIT_002 relanseres aldri.
 Autorisasjon og presis tolkning er bundet i
 `fit003_continuation_authorization` i utviklingstestfeltet.
 
+FIT_003 namespaceendring er kvalifisert:74 fokuserte tester, begge kildebroer,
+72 uendrede baselineeiere og uavhengig diff-review PASS. Ingen modelljobb.
 Alle seks modell-/launchflagg er foreløpig false. Ingen ny kjøring er
 innrømmet før kilde-/input-/hostkontroll og metadata-preflight består.
 FIT_003 beholder20727rader, alle5TF/familier, fullt koblet None, fersk
