@@ -6,50 +6,48 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
 terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
 <!-- BEGIN GX1 V3 BOUNDED DEVELOPMENT TEST 20261127 -->
-## V3-kvalifisering bestått; fit stoppet av Windows-vedlikehold
+## FIT_002 stoppet av vedlikeholdsvakt; kun delresultater
 
-Bruker27.11 ba om nytt mål og én avgrenset utviklingstest. Root eier policy/launch.
-NEXT_RUN_POLICY.native_v3_bounded_development_test_20261127_001 er eneste status.
-Appmål kunne ikke opprettes: eldre appmål er ufullført/blocked. Det gamle målet
-ble ikke markert oppnådd. Denne oppgaven er ikke fullført med læringsresultat.
+NEXT_RUN_POLICY.native_v3_bounded_development_test_20261127_001 er status.
+Brukerens nye «Ja» autoriserte én FIT_002 med samme oppsett. Den er nå
+FAILED_CONSUMED; ingen videre fit/relaunch/serie er autorisert. Appmål kunne
+ikke nyopprettes fordi eldre appmål er ufullført; dette er ikke markert oppnådd.
 
-Gjort: source-clock-only20727TRAIN-rader/1377bøtter, alle5TF og14truth-arrays+
-V3-sertifikat. WholeTRAIN factoryprior/normalisering uendret; COHORTprior kun
-SCORING_ONLY. Ingen etikettkvoter/topup, ingen input/target-/NN-matematikkendring.
-72av74baselineeiere er byteuendret; kun2additive kjøringsvakter. Fokuserte
-tester46score/25learning/43guard PASS, pluss obligatoriske commitkontroller.
-Første GPU-preflight fant fiktiv OUT_BUNDLE_DIR-envforventning; minimal rettelse
-binder reelle wrapperexports. Ubrukt WARM001 beholdes pensjonert; WARM_002 brukt.
+Gjenbrukt kvalifisert20727TRAIN-raders22UTC-kohort/1377bøtter, alle5TF,
+14truth-arrays+V3sertifikat, wholeTRAIN factoryprior/normalisering og separat
+COHORT scoreprior. COHORT/WARM/COLD COMPLETE med alle6bookends PASS og
+alle10coldbevis bitidentiske. Ingen genuine indikator-/familie-/TF-reduksjon.
+FIT_002 endret bare plan/output-namespace.72av74baselineeiere er byteuendret;
+NN-, factory-, recipe-, score-, step- og checkpointfunksjoner er uendret.
+46berørte guardtester, syntaks/diffcheck, uavhengig namespace-review og
+obligatoriske commitkontroller PASS. Gammel FIT_001 er bevart/avvist av launch.
 
-COHORT/WARM/COLD er COMPLETE med alle7bookends PASS. WARM har3tekniske
-oppdateringer, COLD1gjenopptatt oppdatering; alle10bevis er bitidentiske og
-optimizer-momenter nonzero426backbone/20readout. Disse er kvalifisering,
-ikke læringsdom. Originale checkpoints er bevart og separat Mac-readback PASS.
+Ny plan dd1a7e2b...fe663, root ...20261127_001_fit_002. Fersk signert host-
+kontroll/preflight bestod etter en dokumentert sensor-timeout;0hostendringer.
+Fit hadde None/default, B96/E256,2pass/maks432oppdateringer; bare PASS2 kandidat.
+Den stoppet17:44:41UTC på maintenance_active=true etter468s. Originale RESULT/
+TERMINAL er FAILED_CONSUMED/reportNone med alle6bookends PASS. GPU/CPU-/minne- og
+effektgrenser ble ikke brutt; guardens vedlikeholdspredikat utløste SIGTERM.
 
-Én FIT ble admitted/claimet med krav om fersk factorytilstand, plan5317bfb9...43698,
-None/default, B96/E256,2faste pass/maks432oppdateringer; bare PASS2 skulle scores
-som kandidat. Vakten stoppet14:12:58UTC med maintenance_active=true etter
-ca42s. Original RESULT/TERMINAL er FAILED_CONSUMED, alle7bookends PASS, ingen
-ferdig report/INITIAL_LOGITS/checkpoint.0fitoppdateringer følger av fryst
-kontrollflyt: INITIAL-arkivet publiseres før første training_step. Eksakt
-forwardantall er ikke durabelt registrert og forblir UNKNOWN.
+INITIAL_SCORE/LOGITS er ferdig og nøyaktig lik factory-kontrollen, med korrekt
+NOT_CANDIDATE_FIXED_PASS2. CURSOR001.json/.pt er hash-/readbackbekreftet og
+beviser1varig oppdatering. Totalt utførte oppdateringer er UNKNOWN, avgrenset
+1..216 av fryst kontrollflyt og manglende PASS1-artefakter. Ikke kall dette
+nøyaktig1oppdatering. PASS1/PASS2/FINAL mangler; ingen endelig læringsdom.
 
-Bruker27.11 har nå svart «Ja» til én ny engangs-fit med samme oppsett.
-FIT_001 og originale kvitteringer forblir forbrukt/urørt; ingen relaunch.
-Ny FIT_002 får egen plansti og fit_002-root, samme phase/stage/CLI/protocol,
-B96/E256,2pass/maks432oppdateringer, samme factoryprior/norm/seed/optimizer.
-Kohort/warm/cold og alle10replaybevis gjenbrukes uten omkjøring.
-Bare namespace-endring i learning- og kjøringsvakter; ingen NN-/tallendring.
-FIT_002-kilden er kvalifisert:46berørte guardtester PASS, eksakt2namespace-
-uttrykk i learning-eieren og uendret numerikk/recipe. Alle6flagg og alle
-admissioner er fortsatt lukket under klargjøringen.
-Root åpner kun én eksakt ny plan etter kildefrys, signert idle/vedlikeholds-
-kontroll og metadata-preflight. Ingen automatisk retry/serie eller hovedfit.
-Senere generalisering/edge er ubevist; historisk kalender/makrovintage og13/3/4
-fagstatus er uendret. Ingen TEST/M1/GC/Entry/Exit/broker/ordre/spending.
+Vedlikeholdsflagget betyr tilstedeværelse av én av6updaterprosesser (også idle)
+eller setup/OOBE/reboot-in-progress; det beviser ikke aktiv installasjon.
+Eksakt utløser ved begge stopp er UNKNOWN uten komponentvitne. Ingen vakter,
+Windows-tjenester/-oppgaver eller effekttak er endret. Alle6trenings-/launch-
+flagg og alle faseadmissioner er lukket. Begge fit-planer forblir forbrukt.
+Neste: avklar/dokumenter vedlikeholdsutløser og nytt eksplisitt operatørvedtak
+før en ny engangsplan. Ikke relanser gamle planer eller omgå prosessvakten.
+Senere generalisering/edge og historisk kalender/makrovintage er ubevist;
+13/3/4-fagstatus endres ikke. Ingen TEST/M1/GC/Entry/Exit/broker/ordre/spending.
 
-Endelig separatdiskbackup/readback: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DEVELOPMENT_FINAL_BACKUP_20261127_001.json
-Stoppkvittering: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DEVELOPMENT_STOP_ACCEPTANCE_20261127_001.json
+Vedlikeholdsdiagnose: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DEVELOPMENT_FIT002_MAINTENANCE_DIAGNOSIS_20261127_001.json
+Separatdiskbackup/readback: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DEVELOPMENT_FIT002_FINAL_BACKUP_20261127_001.json
+Stoppkvittering: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DEVELOPMENT_FIT002_STOP_ACCEPTANCE_20261127_001.json
 <!-- END GX1 V3 BOUNDED DEVELOPMENT TEST 20261127 -->
 
 <!-- BEGIN GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
