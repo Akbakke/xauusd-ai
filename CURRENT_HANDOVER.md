@@ -37,17 +37,24 @@ Autorisasjon og presis tolkning er bundet i
 
 FIT_003 namespaceendring er kvalifisert:74 fokuserte tester, begge kildebroer,
 72 uendrede baselineeiere og uavhengig diff-review PASS. Ingen modelljobb.
-Alle seks modell-/launchflagg er foreløpig false. Ingen ny kjøring er
-innrømmet før kilde-/input-/hostkontroll og metadata-preflight består.
-FIT_003 beholder20727rader, alle5TF/familier, fullt koblet None, fersk
-factoryINITIAL, B96/E256,2fastepass/maks432oppdateringer og barePASS2-kandidat.
-Kohort/warm/cold gjenbrukes; ingen endring av modell, tap, vekter eller terskler.
-Samme låste INITIAL og COHORT-prior måles med rad-/målbarvekting på alleTF.
-Dette er TRAIN-optimeringsdiagnostikk, ingen senere generalisering eller edge.
+FIT_003 bestod metadata-preflight, men faktisk detached oppstart stoppet
+22:44:34UTC27.11 før runroot/CLAIM, modelldata eller NN: Windows BootId-
+oppslag via powershell feilet med WSL UtilAcceptVsock/accept4timeout110.
+Originale guard-/trainer-/ytterlogger er bundet i `fit003_preclaim_stop`.
+Ingen RESULT/TERMINAL oppdiktes; originalrunroot mangler. Ingen updates.
+Alle6flagg og admissioner er nå false; FIT_003 er forbrukt og relanseres ikke.
 
-Neste arbeid: kvalifiser og innrøm kun den nye eksakte engangsplanen med
-fersk signert host-/idle-status og fryst kilde/policy. Ved stopp leses
-journalens eksakte komponenter. Ingen automatisk retry/serie/hovedtrening.
+WSL-feilen er reprodusert med nøyaktig BootId-funksjon: tilkoblet PASS,
+frakoblet barn med opprinnelig forelder i live PASS, etter opprinnelig
+SSH-exit FAIL med samme accept4timeout. Minste rettelse er å holde samme
+SSH/WSL-økt åpen til capped kommando er ferdig; ingen host-/interop-/vaktpatch.
+
+FIT_004 får ny engangsplan/root og uendret modell/data/recipe. Kilderuten er
+kvalifisert med52nye guardtester og25uendrede gjenbrukte utviklingstester,
+begge kildebroer/72baselineeiere/syntaks/diff PASS. Original FIT_003 bevares.
+Alle6flagg erfalse. Neste steg: kildefrys, fersk runtime og identisk tilkoblet
+metadata-preflight, separat backup og kun én planbundet admission.
+Kohort/INITIAL/warm/cold gjenbrukes. Læring/generalisering/edge er ubevist.
 
 ## Vedlikeholdslogging — ferdig
 
