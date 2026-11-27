@@ -6,41 +6,45 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus; faktiske prosesser og originale
 terminalkvitteringer overstyrer prosa. Brukte engangsplaner relanseres aldri.
 
 <!-- BEGIN GX1 V3 BOUNDED DEVELOPMENT TEST 20261127 -->
-## Aktiv oppgave: én avgrenset V3-utviklingstest
+## V3-kvalifisering bestått; fit stoppet av Windows-vedlikehold
 
-Bruker27.11 ba om nytt mål og å gjennomføre testen. Root eier policy/launch.
-NEXT_RUN_POLICY.native_v3_bounded_development_test_20261127_001 er arbeidsstatus.
-App-målverktøyet avviste nytt mål fordi gammelt mål er ufullført; gammelt mål
-er ikke markert oppnådd. Dette stanser ikke den nye autoriserte lokale oppgaven.
+Bruker27.11 ba om nytt mål og én avgrenset utviklingstest. Root eier policy/launch.
+NEXT_RUN_POLICY.native_v3_bounded_development_test_20261127_001 er eneste status.
+Appmål kunne ikke opprettes: eldre appmål er ufullført/blocked. Det gamle målet
+ble ikke markert oppnådd. Denne oppgaven er ikke fullført med læringsresultat.
 
-Klargjør én None/fullt-koblet V3-fit med eksisterende målblinde22UTC-
-klokkeutvalg20727rader/1377døgn; B96/E256,2kanoniske pass, maksimalt432fit-
-oppdateringer, samme seed/AdamW/klipping uten scheduler. Ingen valgt epoke.
-Factoryprior/normalisering og kvalifisert V3 INITIAL beholdes; matchet
-COHORTprior brukes bare til scoring og er ikke lik factoryINITIAL generelt.
+Gjort: source-clock-only20727TRAIN-rader/1377bøtter, alle5TF og14truth-arrays+
+V3-sertifikat. WholeTRAIN factoryprior/normalisering uendret; COHORTprior kun
+SCORING_ONLY. Ingen etikettkvoter/topup, ingen input/target-/NN-matematikkendring.
+72av74baselineeiere er byteuendret; kun2additive kjøringsvakter. Fokuserte
+tester46score/25learning/43guard PASS, pluss obligatoriske commitkontroller.
+Første GPU-preflight fant fiktiv OUT_BUNDLE_DIR-envforventning; minimal rettelse
+binder reelle wrapperexports. Ubrukt WARM001 beholdes pensjonert; WARM_002 brukt.
 
-Målte adaptergrenser er gammel V1-cohortpreparer og truth-concat som ikke
-bevarer V3-sertifikatet. Minste ny rute legges i eksisterende learning- og
-review-eiere uten å endre74baseline-numerikkeiere. Eksisterende V3-packet,
-step/checkpoint/replay-matematikk gjenbrukes. Ny selected-cohort warm/cold-
-kvalifisering kommer før fit; tekniske replayvekter er aldri fit-initializer.
-Kildekvalifisering:110unike fokuserte tester PASS, syntaks/diffcheck og
-uavhengig integrasjonsreview PASS;72av74baselineeiere byteuendret, kun
-2additive kjøringsvakter. Alle6globalflagg false; ingen fase admitted/claimet.
-COHORT er fullført:20727rader/1377bøtter, sertifikat og alle7bookends PASS;
-0NN/0oppdateringer, faktisk216batcher/pass×2=432støttede oppdateringer.
-Første GPU-preflight stoppet før CLAIM på en miljøvariabel som kanonisk
-wrapper ikke eksporterer. Ingen modellstart; gammel warm-plan bevares som
-retired/unclaimed. Minste koblingsrettelse er kvalifisert med43berørte guardtester PASS,
-inkludert reell wrapper-exportkontroll. WARM_002 er ennå ikke admitted.
-Kildekvittering: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DEVELOPMENT_SOURCE_QUALIFICATION_20261127_001.json.
+COHORT/WARM/COLD er COMPLETE med alle7bookends PASS. WARM har3tekniske
+oppdateringer, COLD1gjenopptatt oppdatering; alle10bevis er bitidentiske og
+optimizer-momenter nonzero426backbone/20readout. Disse er kvalifisering,
+ikke læringsdom. Originale checkpoints er bevart og separat Mac-readback PASS.
 
-Vurder alle5TF mot samme frosne scoreprior med rad-/målbarvekting,
-kalibrering ogUP/DOWN-stabilitet ved INITIAL/PASS1/PASS2. Bare PASS2 er
-endelig fitutfall. Senere generalisering er NOT_MEASURED: wholeTRAIN-
-normalisering/factoryprior kan ikke gjøres om til en uavhengig senere OOF.
-Historisk kalender/makrovintage og13/3/4-fagstatus er uendret. Ingen større
-trening, serie/HPO, M1/GC/TEST, Entry/Exit, broker/live/paper/ordre/spending.
+Én FIT ble admitted/claimet med krav om fersk factorytilstand, plan5317bfb9...43698,
+None/default, B96/E256,2faste pass/maks432oppdateringer; bare PASS2 skulle scores
+som kandidat. Vakten stoppet14:12:58UTC med maintenance_active=true etter
+ca42s. Original RESULT/TERMINAL er FAILED_CONSUMED, alle7bookends PASS, ingen
+ferdig report/INITIAL_LOGITS/checkpoint.0fitoppdateringer følger av fryst
+kontrollflyt: INITIAL-arkivet publiseres før første training_step. Eksakt
+forwardantall er ikke durabelt registrert og forblir UNKNOWN.
+
+Alle6flagg og alle admissioner er lukket; ingen modellprosess er aktiv.
+Signert poststop-hostobservasjon viser maintenance=false igjen; dette gir
+ikke ny kjøreautoritet. Ikke relanser den claimede FIT-planen. Ny plan krever
+nytt uttrykkelig operatørvedtak etter AGENTS.md. Ingen automatisk retry/serie.
+Neste: avklar ett nytt avgrenset fit-vedtak; gjenbruk kvalifisert cohort/replay,
+samme recipe, fersk factoryINITIAL og alle vakter. Ingen ny kildeinnsamling.
+Senere generalisering/edge er ubevist; historisk kalender/makrovintage og13/3/4
+fagstatus er uendret. Ingen TEST/M1/GC/Entry/Exit/broker/ordre/spending.
+
+Endelig separatdiskbackup/readback: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DEVELOPMENT_FINAL_BACKUP_20261127_001.json
+Stoppkvittering: /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DEVELOPMENT_STOP_ACCEPTANCE_20261127_001.json
 <!-- END GX1 V3 BOUNDED DEVELOPMENT TEST 20261127 -->
 
 <!-- BEGIN GX1 PRELEARNING VALIDITY REMEDIATION 20261125 -->
@@ -48,7 +52,7 @@ trening, serie/HPO, M1/GC/TEST, Entry/Exit, broker/live/paper/ordre/spending.
 
 Bruker26.11: «Ja, undersøk dette». Undersøkelsen er ferdig. NEXT_RUN_POLICY
 prelearning_validity_remediation_20261125_001 eier status; root eier admission.
-Ingen modelljobb er startet. Alle6 trenings-/launchflagg er false og24 tidligere
+Ingen modelljobb ble startet i OANDA-undersøkelsen26.11. Alle6 trenings-/launchflagg er false og24 tidligere
 prelearning-engangsplaner er lukket. Målet er ikke fullført; status13PASS/3FAIL/
 4UNKNOWN beholdes uten oppgradering av03/09/11/12 eller læring/generalisering.
 
