@@ -4082,6 +4082,7 @@ _V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SHELL_ADDITIONS = (('NATIVE_V3_ACTUAL_STE
 
 
 def _native_v3_actual_step_observer_cold_recovery_without_additions(current):
+    current=_native_v3_observed_train_continuation_without_additions(current)
     require = _native_v3_development_require; current = dict(current)
     name = 'gx1/contracts/gx1_capped_execution_v1.py'
     begin = '# BEGIN GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY GUARDS 20261128 001\n'
@@ -4267,6 +4268,207 @@ def require_native_v3_actual_step_observer_cold_recovery_execution(*, plan_sha25
             'training_authority_granted': False, 'optimizer_authority_granted': False}
 
 # END GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY GUARDS 20261128 001
+
+# BEGIN GX1 V3 OBSERVED TRAIN CONTINUATION GUARDS 20261128 001
+_V3_OBSERVED_TRAIN_CONTINUATION_PARENT = '4c6124d988e977143006559840adb5ddffca9955'
+_V3_OBSERVED_TRAIN_CONTINUATION_NAME = 'NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_001'
+_V3_OBSERVED_TRAIN_CONTINUATION_STAGE = 'native_v3_observed_train_continuation_20261128_001'
+_V3_OBSERVED_TRAIN_CONTINUATION_PROFILE = 'gx1_native_observed_train_continuation_trainer20g_v1'
+_V3_OBSERVED_TRAIN_CONTINUATION_SHELL_ADDITIONS = (('NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY=false\n', 'before', 'NATIVE_V3_OBSERVED_TRAIN_CONTINUATION=false\nNATIVE_V3_OBSERVED_TRAIN_CONTINUATION_PLAN_SHA256=\n'), ('# BEGIN GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY ROUTE 20261128 001\n', 'before', '# BEGIN GX1 V3 OBSERVED TRAIN CONTINUATION ROUTE 20261128 001\nmatches_bound_native_v3_observed_train_continuation() {\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" \\\n    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == gx1.audit.native_future_state_observed_train_continuation_v1 \\\n    && "$4" == --v3-observed-train-continuation-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_001.json"\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" \\\n    && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\nconfigure_native_v3_observed_train_continuation() {\n  matches_bound_native_v3_observed_train_continuation "$@" || { echo \'FATAL: exact V3 observed TRAIN continuation CLI/plan required\' >&2; exit 75; }\n  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G && "$SWAP" == 512M \\\n    && "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo \'FATAL: V3 observed TRAIN continuation requires canonical trainer containment\' >&2; exit 75;\n  }\n  local output="/home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_001"\n  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \\\n    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {\n    echo \'FATAL: V3 observed TRAIN continuation output must be fresh and canonical\' >&2; exit 75;\n  }\n  NATIVE_V3_OBSERVED_TRAIN_CONTINUATION=true\n  NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$output"\n  TRAINER_MAX_WALL_SECONDS=1800\n  TRAINER_MODEL_MAX_WALL_SECONDS=1770\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 V3 OBSERVED TRAIN CONTINUATION ROUTE 20261128 001\n\n'), ('# BEGIN GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY DISPATCH 20261128 001\n', 'before', '# BEGIN GX1 V3 OBSERVED TRAIN CONTINUATION DISPATCH 20261128 001\n  local observed_train_continuation_arg\n  for observed_train_continuation_arg in "$@"; do\n    case "$observed_train_continuation_arg" in\n      --v3-observed-train-continuation-plan-sha256|--v3-observed-train-continuation-plan-sha256=*) configure_native_v3_observed_train_continuation "$@"; return ;;\n    esac\n  done\n# END GX1 V3 OBSERVED TRAIN CONTINUATION DISPATCH 20261128 001\n'), ('  --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY="$NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY" \\\n', 'before', '  --setenv=GX1_NATIVE_V3_OBSERVED_TRAIN_CONTINUATION="$NATIVE_V3_OBSERVED_TRAIN_CONTINUATION" \\\n  --setenv=GX1_NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_PLAN_SHA256="$NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_PLAN_SHA256" \\\n'))
+
+
+def _native_v3_observed_train_continuation_without_additions(current):
+    require = _native_v3_development_require; current = dict(current)
+    name = 'gx1/contracts/gx1_capped_execution_v1.py'
+    begin = '# BEGIN GX1 V3 OBSERVED TRAIN CONTINUATION GUARDS 20261128 001\n'
+    end = '# END GX1 V3 OBSERVED TRAIN CONTINUATION GUARDS 20261128 001\n\n'
+    text = current[name]; require(text.count(begin) == text.count(end) == 1, 'ONE_OBSERVED_TRAIN_CONTINUATION_BLOCK')
+    first, tail = text.split(begin); _, last = tail.split(end); text = first + last
+    hook = '    current=_native_v3_observed_train_continuation_without_additions(current)\n'
+    require(text.count(hook) == 1, 'ONE_OBSERVED_TRAIN_CONTINUATION_BRIDGE_HOOK')
+    current[name] = text.replace(hook, '', 1)
+    shell = current['scripts/gx1_capped_run.sh']
+    for anchor, position, fragment in _V3_OBSERVED_TRAIN_CONTINUATION_SHELL_ADDITIONS:
+        require(position == 'before' and shell.count(anchor) == shell.count(fragment)
+                == shell.count(fragment + anchor) == 1, 'EXACT_OBSERVED_TRAIN_CONTINUATION_SHELL_ADDITION')
+        shell = shell.replace(fragment + anchor, anchor, 1)
+    current['scripts/gx1_capped_run.sh'] = shell
+    return current
+
+
+def native_v3_observed_train_continuation_guard_source_bridge(producer_hashes, *, producer_commit=_V3_OBSERVED_TRAIN_CONTINUATION_PARENT):
+    import hashlib, subprocess
+    require = _native_v3_development_require; repo = Path(__file__).resolve().parents[2]
+    require(producer_commit == _V3_OBSERVED_TRAIN_CONTINUATION_PARENT, 'OBSERVED_TRAIN_CONTINUATION_BRIDGE_PARENT')
+    names = ('gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh')
+    before = {n: subprocess.check_output(['git', 'show', producer_commit + ':' + n], cwd=repo).decode() for n in names}
+    original = {n: hashlib.sha256(v.encode()).hexdigest() for n, v in before.items()}
+    require(producer_hashes == original, 'OBSERVED_TRAIN_CONTINUATION_BRIDGE_PRODUCER_HASHES')
+    current = {n: (repo / n).read_text() for n in names}
+    require(_native_v3_observed_train_continuation_without_additions(current) == before, 'OBSERVED_TRAIN_CONTINUATION_OLD_GUARDS_BYTE_EXACT')
+    immutable = ('gx1/audit/native_future_state_step_observer_qualify_v1.py',
+        'gx1/audit/native_future_state_step_observer_v1.py', 'gx1/audit/native_future_state_training_v1.py',
+        'gx1/audit/qualify_native_m5_full_gc_direction_v1.py', 'gx1/contracts/market_state_ta_integrated_model_v1.py',
+        'gx1/contracts/market_state_ta_integrated_objective_v1.py')
+    proof = {}
+    for name in immutable:
+        old = subprocess.check_output(['git', 'show', producer_commit + ':' + name], cwd=repo); path = repo / name
+        require(path.is_file() and not path.is_symlink() and path.resolve() == path and path.read_bytes() == old,
+                'OBSERVED_TRAIN_CONTINUATION_IMMUTABLE_NN_OWNER')
+        proof[name] = hashlib.sha256(old).hexdigest()
+    return {'producer_commit': producer_commit, 'checked_guard_owners': 2, 'old_guard_routes_preserved': True,
+            'old_numeric_resource_environment_function_unchanged': True, 'old_NN_source_byte_unchanged': proof,
+            'new_continuation_controlflow_requires_scoped_review': True,
+            'owners': {n: {'original_sha256': original[n], 'current_sha256': hashlib.sha256(current[n].encode()).hexdigest()} for n in names}}
+
+
+def _native_v3_observed_train_continuation_bound_plan(plan_sha256):
+    import hashlib, subprocess
+    require = _native_v3_development_require; repo = Path(__file__).resolve().parents[2]
+    require(type(plan_sha256) is str and re.fullmatch('[0-9a-f]{64}', plan_sha256) is not None, 'OBSERVED_CONTINUATION_PLAN_SHA')
+    args = ['--v3-observed-train-continuation-plan-sha256', plan_sha256]; preflight = sys.argv[-1:] == ['--preflight']
+    if preflight: args += ['--preflight']
+    require(Path.cwd().resolve() == repo and Path(sys.argv[0]).resolve() == repo / 'gx1/audit/native_future_state_observed_train_continuation_v1.py'
+            and Path(sys.executable).absolute() == repo / '.venv/bin/python' and sys.argv[1:] == args, 'OBSERVED_CONTINUATION_EXACT_ARGV')
+    path = repo / 'configs/research' / (_V3_OBSERVED_TRAIN_CONTINUATION_NAME + '.json')
+    plan = _native_v3_development_read(path, plan_sha256)
+    output = Path('/home/andre2/GX1_RUNS') / _V3_OBSERVED_TRAIN_CONTINUATION_NAME
+    require(plan.get('schema_version') == 'gx1_native_v3_observed_train_continuation_plan_v1'
+            and plan.get('stage') == _V3_OBSERVED_TRAIN_CONTINUATION_STAGE and plan.get('output_root') == str(output),
+            'OBSERVED_CONTINUATION_PLAN_IDENTITY')
+    require(not output.exists() and not output.is_symlink() and output.parent.is_dir()
+            and not output.parent.is_symlink() and output.parent.resolve() == output.parent, 'OBSERVED_CONTINUATION_FRESH_OUTPUT')
+    require(plan.get('source_commit') == subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
+            'OBSERVED_CONTINUATION_SOURCE_COMMIT')
+    require(plan.get('execution') == _native_v3_development_execution('warm')
+            and plan.get('execution_profile') == _V3_OBSERVED_TRAIN_CONTINUATION_PROFILE, 'OBSERVED_CONTINUATION_EXACT_EXECUTION')
+    evidence = Path('/home/andre2/GX1_RUNS') / 'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'
+    design_ref = {'path': str(evidence / 'V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_001.json'),
+                  'sha256': '5b04f35e2765c45c2cf331cada40f0d96497b1561e69183add7a38be6a5eb269'}
+    producer_ref = {'path': str(repo / 'configs/research' / (_V3_ISSUE_MIX_NAME + '_FIT.json')),
+                    'sha256': '25ca4cc9d780f5d16376a765ec58f6d84c58a1f16f55d48033d11168fda2d4a8'}
+    final_root = Path('/home/andre2/GX1_RUNS') / (_V3_ISSUE_MIX_NAME + '_fit')
+    receipt_ref = {'path': str(final_root / 'FINAL.json'), 'sha256': '1b67d9e51e211480c168b0eae05e5c1677e804e4e4d58e7b9bb1fb619271884d'}
+    checkpoint_ref = {'path': str(final_root / 'FINAL.pt'), 'sha256': '577b5b37f5c4cfa98744cfeefb06e8156231488a7adc038f33cdfd685df86632'}
+    require(plan.get('design') == design_ref and plan.get('producer_plan') == producer_ref
+            and plan.get('authentic_final_receipt') == receipt_ref and plan.get('authentic_final_checkpoint') == checkpoint_ref,
+            'OBSERVED_CONTINUATION_GENUINE_FINAL432_REFS')
+    design = _native_v3_development_read(design_ref['path'], design_ref['sha256'])
+    producer = _native_v3_development_read(producer_ref['path'], producer_ref['sha256'])
+    receipt = _native_v3_development_read(receipt_ref['path'], receipt_ref['sha256'])
+    require(type(receipt.get('logical_cursor')) is int and type(receipt.get('optimizer_updates')) is int
+            and receipt['logical_cursor'] == receipt['optimizer_updates'] == 432 and receipt.get('producer_lane') == 'fit'
+            and receipt.get('original_plan') == receipt.get('execution_plan') == producer_ref and receipt.get('checkpoint') == checkpoint_ref
+            and plan.get('metadata', {}).get('producer') == producer and plan.get('metadata', {}).get('receipt') == receipt
+            and plan.get('metadata', {}).get('original') == producer.get('metadata', {}).get('original')
+            and plan.get('recipe') == producer.get('recipe') and plan.get('model_contract') == producer.get('model_contract')
+            and plan.get('physical_input_identity') == producer.get('physical_input_identity')
+            and 'backbone_gradient_policy' in plan and plan['backbone_gradient_policy'] is None, 'OBSERVED_CONTINUATION_UNCHANGED_FUNCTION')
+    require(type(plan.get('starting_cursor')) is int and plan['starting_cursor'] == 432
+            and type(plan.get('ending_cursor')) is int and plan['ending_cursor'] == 648
+            and plan.get('checkpoint_cursors') == [433, 648] and all(type(v) is int for v in plan['checkpoint_cursors'])
+            and plan.get('observer_enabled') is True and plan.get('phase_alias') == design.get('phase_alias'),
+            'OBSERVED_CONTINUATION_FIXED_ENDPOINT_AND_ALIAS')
+    old = producer['schedule']; schedule = plan.get('schedule'); expected = dict(old); expected.pop('contract_sha256')
+    expected.update(schema_version='gx1_native_v3_observed_train_continuation_schedule_v1', logical_batches=648,
+        optimizer_updates=648, passes=3, skipped_batches=0, original_prefix_schedule_sha256=old['contract_sha256'],
+        original_take_indices_appended=list(range(216, 432)), order_mode='repeat_locked_original_second_pass_once')
+    for key in ('cohort_takes', 'logical_step_rows', 'cohort_take_state_sha256_by_logical_batch', 'update_flags'):
+        expected[key] = old[key] + old[key][216:432]
+    for key in ('raw_permutation_state_sha256_by_pass', 'actual_sorted_partition_stream_state_sha256_by_pass'):
+        expected[key] = old[key] + [old[key][1]]
+    require(type(schedule) is dict and set(schedule) == set(expected) | {'contract_sha256'}
+            and all(schedule.get(k) == v for k, v in expected.items())
+            and type(schedule.get('contract_sha256')) is str and re.fullmatch('[0-9a-f]{64}', schedule['contract_sha256']) is not None
+            and all(type(schedule.get(k)) is int for k in ('logical_batches', 'optimizer_updates', 'passes', 'skipped_batches'))
+            and all(type(v) is int for v in schedule['logical_step_rows'] + schedule['original_take_indices_appended'])
+            and all(type(v) is bool for v in schedule['update_flags'])
+            and all(type(take) is list and all(type(v) is int for v in take) for take in schedule['cohort_takes'])
+            and plan.get('metadata', {}).get('trajectory', {}).get('schedule') == schedule, 'OBSERVED_CONTINUATION_EXACT_648_SCHEDULE')
+    limits = dict.fromkeys(producer['limits'], 0)
+    limits.update(model_constructions=1, optimizer_constructions=1, feature_cache_payload_loads=1,
+        target_archive_loads=1, checkpoint_loads=1, model_restores=1, model_forwards=297, backbone_forwards=297,
+        readout_forwards=297, backward_calls=216, optimizer_steps=216, observer_records=216,
+        checkpoint_writes=2, checkpoint_readbacks=2, checkpoint_prepublication_loads=2,
+        checkpoint_receipt_writes=2, logit_archive_writes=1, logit_archive_readbacks=1)
+    require(type(plan.get('limits')) is dict and all(type(v) is int for v in plan['limits'].values())
+            and plan['limits'] == limits, 'OBSERVED_CONTINUATION_EXACT_BUDGET')
+    require(type(plan.get('inputs')) is dict and all(plan['inputs'].get(k) == v for k, v in producer['inputs'].items()),
+            'OBSERVED_CONTINUATION_PRESERVED_INPUT_ROLES')
+    owners = plan.get('source_owners'); new = {'gx1/audit/native_future_state_observed_train_continuation_v1.py',
+        'tests/test_native_future_state_observed_train_continuation_v1.py', 'tests/test_native_observed_train_continuation_guard_v1.py'}
+    require(type(owners) is dict and set(producer['source_owners']) | new <= set(owners), 'OBSERVED_CONTINUATION_SOURCE_INVENTORY')
+    guards = {'gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh'}
+    for owner, digest in owners.items():
+        p = repo / owner
+        require(type(owner) is str and not Path(owner).is_absolute() and '..' not in Path(owner).parts
+                and p.is_file() and not p.is_symlink() and p.resolve() == p
+                and hashlib.sha256(p.read_bytes()).hexdigest() == digest, 'OBSERVED_CONTINUATION_SOURCE_SHA')
+        if owner not in new | guards:
+            previous = subprocess.check_output(['git', 'show', _V3_OBSERVED_TRAIN_CONTINUATION_PARENT + ':' + owner], cwd=repo)
+            require(hashlib.sha256(previous).hexdigest() == digest, 'OBSERVED_CONTINUATION_ALL_OLD_NON_GUARD_SOURCE_UNCHANGED')
+    bridge = plan.get('guard_source_bridge', {}); hashes = {n: v['original_sha256'] for n, v in bridge.get('owners', {}).items()}
+    require(bridge == native_v3_observed_train_continuation_guard_source_bridge(hashes, producer_commit=bridge.get('producer_commit')),
+            'OBSERVED_CONTINUATION_STRICT_GUARD_SOURCE_BRIDGE')
+    policy_path = repo / 'NEXT_RUN_POLICY.json'; policy = _native_v3_development_read(policy_path)
+    flags = ('training_enabled', 'native_training_enabled', 'native_launch_authorized',
+             'full_epoch_training_allowed', 'full_val_allowed', 'exit_training_and_evaluation_this_wave')
+    require(all(policy.get(k) is (not preflight and k in flags[:2]) for k in flags), 'OBSERVED_CONTINUATION_EXACT_FLAGS')
+    for name, prior in policy.items():
+        if name.startswith('native_') and name != _V3_OBSERVED_TRAIN_CONTINUATION_STAGE and type(prior) is dict:
+            require(all(k not in prior or prior[k] is False for k in ('execution_authorized', 'training_authorized'))
+                    and ('remaining_invocations' not in prior or type(prior['remaining_invocations']) is int and prior['remaining_invocations'] == 0),
+                    'OBSERVED_CONTINUATION_OLD_NATIVE_ROUTES_CLOSED')
+            grouped = prior.get('lane_gates', prior.get('phase_gates', {})); require(type(grouped) is dict, 'OBSERVED_CONTINUATION_TYPED_OLD_LANES')
+            for value in list(grouped.values()) + ([prior['aggregation_completion']] if 'aggregation_completion' in prior else []):
+                require(type(value) is dict and type(value.get('remaining_invocations')) is int and value['remaining_invocations'] == 0
+                        and all(value.get(k) is False for k in ('execution_authorized', 'training_authorized', 'relaunch_allowed')),
+                        'OBSERVED_CONTINUATION_OLD_NATIVE_ROLE_GATES_CLOSED')
+    recovery = policy.get(_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_STAGE, {})
+    require(recovery.get('status') == 'CLOSED_CONSUMED_COMPLETE' and recovery.get('actual_review') == design.get('basis'),
+            'OBSERVED_CONTINUATION_OPERATIONAL_OBSERVER_QUALIFIED')
+    parent = policy.get(_V3_OBSERVED_TRAIN_CONTINUATION_STAGE, {})
+    gate = {'status': 'PREPARED_CLOSED_NOT_ADMITTED' if preflight else 'ADMITTED_EXACT_V3_OBSERVED_TRAIN_CONTINUATION',
+            'plan': {'path': str(path), 'sha256': plan_sha256}, 'execution_authorized': not preflight,
+            'remaining_invocations': int(not preflight), 'relaunch_allowed': False, 'training_authorized': not preflight,
+            'test_authorized': False, 'spending_authorized': False}
+    require(parent.get('design') == design_ref and parent.get('source_preparation_authorized') is True
+            and type(parent.get('remaining_invocations')) is int
+            and all(type(parent.get(k)) is bool for k in ('execution_authorized', 'training_authorized', 'test_authorized',
+                'spending_authorized', 'relaunch_allowed')) and all(parent.get(k) == v for k, v in gate.items()),
+            'OBSERVED_CONTINUATION_EXACT_ONE_USE_GATE')
+    if not preflight:
+        snapshot = evidence / 'V3_OBSERVED_TRAIN_CONTINUATION_ADMITTED_POLICY_20261128_001.json'
+        require(_native_v3_development_read(snapshot, hashlib.sha256(policy_path.read_bytes()).hexdigest()) == policy,
+                'OBSERVED_CONTINUATION_EXACT_ADMITTED_POLICY_SNAPSHOT')
+    return {'plan': {'path': str(path), 'sha256': plan_sha256}, 'output_root': str(output), 'preflight': preflight, 'execution': plan['execution']}
+
+
+def _native_v3_observed_train_continuation_environment(plan_sha256):
+    require = _native_v3_development_require; prefix = 'GX1_NATIVE_V3_OBSERVED_TRAIN_CONTINUATION'
+    execution = _native_v3_development_execution('warm')
+    expected = {prefix: 'true', prefix + '_PLAN_SHA256': plan_sha256,
+                'GX1_POWER_BENCHMARK_SCOPE_JSON': '', 'GX1_POWER_BENCHMARK_SCOPE_SHA256': ''}
+    require(all(not k.startswith(prefix) or k in expected for k in os.environ), 'UNKNOWN_OBSERVED_CONTINUATION_ENV')
+    require(all(v in ('false', '') for k, v in os.environ.items() if k.startswith('GX1_NATIVE_') and not k.startswith(prefix)),
+            'OBSERVED_CONTINUATION_MIXED_LEGACY_ENV')
+    fields = {'MAX_WALL_SECONDS': execution['outer_seconds'], 'MODEL_MAX_WALL_SECONDS': execution['internal_seconds'],
+        'ATTENDED_STAGE_REQUIRED': 'false', 'GPU_INDEX': 0, 'GPU_MAX_POWER_LIMIT_W': 250, 'GPU_MAX_POWER_DRAW_W': 250,
+        'GPU_MAX_CORE_TEMP_C': 75, 'GPU_MAX_MEMORY_TEMP_C': 80, 'GPU_MAX_MEMORY_USED_MIB': 12288,
+        'GPU_MONITOR_INTERVAL_SECONDS': 1, 'CPU_MAX_TEMP_C': 80, 'CPU_MAX_PACKAGE_POWER_W': 125,
+        'HOST_MIN_AVAILABLE_MEMORY_BYTES': 8589934592, 'HOST_MIN_COMMIT_HEADROOM_BYTES': 8589934592}
+    expected.update({'GX1_TRAINER_' + k: str(v) for k, v in fields.items()})
+    require(all(os.environ.get(k) == v for k, v in expected.items()), 'OBSERVED_CONTINUATION_EXACT_RESOURCE_ENV')
+    return require_guarded_cuda_trainer_execution()
+
+
+def require_native_v3_observed_train_continuation_execution(*, plan_sha256):
+    bound = _native_v3_observed_train_continuation_bound_plan(plan_sha256)
+    proof = _native_v3_observed_train_continuation_environment(plan_sha256)
+    return {**proof, **bound, 'kind': 'provider_hlc_v3_observed_train_continuation', 'resource_proof_only': True,
+            'training_authority_granted': False, 'optimizer_authority_granted': False}
+
+# END GX1 V3 OBSERVED TRAIN CONTINUATION GUARDS 20261128 001
 
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")

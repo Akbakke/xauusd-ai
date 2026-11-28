@@ -15,30 +15,39 @@
 
 ## Gjeldende status og neste steg
 
-NEXT_RUN_POLICY.json er eneste arbeidsstatus. Sist fullført felt er
-native_v3_actual_step_observer_cold_recovery_20261128_001: faktisk COMPLETE,
-indre/ytre exit0, alle6bookends og alle10C434-bevis PASS. Rollen er stengt/
-forbrukt0/relaunch=false og faktisk prosess avsluttet. Alle seks globale flagg er
-false. Original COLD beholder FAILED_CONSUMED/forbrukt0, aldri relanser/omskriv;
-REFERENCE er COMPLETE/forbrukt0 og ble ikke kjørt om. Edge-målet er aktivt/
-uoppfylt; låst issue-miks PASS2 feiler fortsatt M5/samlet TRAIN-kvalitet.
+NEXT_RUN_POLICY.json er eneste arbeidsstatus. Gjeldende felt er
+native_v3_observed_train_continuation_20261128_001: SOURCE_QUALIFIED_PLAN_PENDING,
+execution=false/training=false/remaining=0/relaunch=false. Alle seks globale
+flagg er false. Ingen ny NN/fit er startet eller innrømmet. Edge er uoppfylt.
 
-Neste felt native_v3_observed_train_continuation_20261128_001 er kun stengt
-kildeklargjøring, execution=false/training=false/remaining=0. Designet
-V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_001.json binder én forhåndslåst
-216updatepassering av hele20727TRAIN-utvalget fra ekte opprinnelig FINAL432
-mot terminal648, med samme andrepass-takes216..431, recipe/inputs/prior/norm/
-Nonepolicy/alle5TF/8familier+D1makro. Tekniske C433/C434 skal ALDRI initializer.
-Observatøren skal følge alle216steg uten ekstra NN; kun full sluttmåling81EVAL-
-forwards. Baseline432/factoryINITIAL/COHORTprior gjenbrukes. Ingen adaptiv
-forlengelse/besteendepunkt eller automatisk nyfit. Ingen NN/fit er ennå innrømmet.
+Ny additiv kjørerute binder ekte opprinnelig FINAL432 til ett låst FINAL648:
+216oppdateringer med nøyaktig opprinnelige andrepass-takes216..431, hele20727TRAIN,
+alle5TF/8familier+D1makro/None. Samme inputs/prior/norm/modell/tap/AdamW/RNG/
+klipp/precision. Tekniske C433/C434 er ALDRI initializer. Observatørens216
+rapporter ligger utenfor legacy steps/scores. Mekanisk C433 og kandidatFINAL648;
+ingen mellompunktseleksjon, adaptiv forlengelse eller automatisk neste fit.
+297forwards=216TRAIN+81fullFINAL-EVAL. Baseline432/factoryINITIAL/COHORTprior
+og alle gamle kriterier gjenbrukes. Faktisk FINAL648 har eget navnerom og ytre
+fasealias; uendret numerisk eier bruker PASS2/gammel spec uten å omskrive gamle
+PASS2-kvitteringer. Alle5TF/år/rad- og målbarvekting/proper/rank/kalibrering/
+støtte/stabilitet bevares, også forverring/UNKNOWN. TRAIN er ikke senere edge.
 
-Aktuell gammel skåreier tillater bare fase INITIAL/PASS1/PASS2. Ny studie må
-binde en eksplisitt alias: faktisk kandidat FINAL648, uendret numerisk eierfase
-PASS2/gammel spec. Ytre rapport/navnerom skal vise faktisk cursor/ny studie;
-ingen gammel PASS2-kvittering omskrives, ingen metrikker/terskler endres.
-Alle5TF/år/rad- og målbarvekting/proper/rank/kalibrering/støtte/stabilitet skal
-rapporteres, også forverring/UNKNOWN. TRAIN er ikke senere generalisering/edge.
+Kildekvalifisering e24fa2751762674b0cd7f013521e2dbf82043ac10197bf39c6c2543f0569697f:
+10nye adapterkontroller og50nye vaktkontroller PASS. Ny testimport/fixturefeil
+ble rettet før NN; originale001/002/003-feilkvitteringer er bevart. Ingen
+vaktpredikater ble svekket.86eiere/fersk modellkontrakt/inputidentitet faktisk
+kontrollert med forbud mot metadata-modell/optimizer/checkpoint/NPZ/CUDA:
+alle fem forsøkstellere0. Original432prefix+eksakt216hale og gamle inputroller
+bevart. Ny schedule-SHA4e1633777841d65b3704284004ed24f204fda64d6275b48c1842bbb22be923b2.
+Eksakt additiv guard-/shellreversering matcher4c6124d988; seks NN-eiere og egen
+hardwarevakt er byte-uendret. Uavhengig lesekontroll fant ingen kildeblokkering.
+
+Neste: fryst kildecommit, fersk eksakt plan/runtime, faktisk CLI-metadatakontroll,
+kanonisk hardware-preflight, fysisk SOURCEbackup og ny snapshot-først admission.
+Bruk eksisterende20G/512M,1770intern/1800ytre,8tråder/CPU0..18/12GiBVRAM og alle
+maskinvare-/bootvakter uendret. Ingen senereVAL/Control/TEST/M1/GC/Entry/Exit/
+broker/ordre/spending/promotion. Siste cold-recovery er COMPLETE/forbrukt0;
+original COLD beholder FAILED_CONSUMED/forbrukt0 og REFERENCE COMPLETE/forbrukt0.
 
 ### Fullført separat kald gjenopptakelse
 

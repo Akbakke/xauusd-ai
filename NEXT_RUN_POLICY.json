@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "ACTUAL_STEP_OBSERVER_COLD_RECOVERY_COMPLETE",
+  "status": "OBSERVED_TRAIN_CONTINUATION_SOURCE_QUALIFIED_PLAN_PENDING",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Prepareminimumfixed216updateobserverenabledTRAINcontinuation fromauthFINAL432 tolocked648, all5TF/fullcohort/prior/yearscore; nofitadmitteduntilnewqualification/admission.",
+  "next_action": "Commitqualifiedsource thenfreshplan/preflight/SOURCEbackup beforeexact216updateadmission; noautomaticnextfit.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -110848,7 +110848,7 @@
     }
   },
   "native_v3_observed_train_continuation_20261128_001": {
-    "status": "DESIGNED_SOURCE_PREPARATION_ONLY_CLOSED",
+    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_001.json",
       "sha256": "5b04f35e2765c45c2cf331cada40f0d96497b1561e69183add7a38be6a5eb269"
@@ -110858,6 +110858,10 @@
     "training_authorized": false,
     "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "next_action": "Prepareminimumfixed216updateobserverenabledTRAINcontinuation fromauthFINAL432 tolocked648, all5TF/fullcohort/prior/yearscore; nofitadmitteduntilnewqualification/admission."
+    "next_action": "Prepareminimumfixed216updateobserverenabledTRAINcontinuation fromauthFINAL432 tolocked648, all5TF/fullcohort/prior/yearscore; nofitadmitteduntilnewqualification/admission.",
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_SOURCE_QUALIFICATION_20261128_001.json",
+      "sha256": "e24fa2751762674b0cd7f013521e2dbf82043ac10197bf39c6c2543f0569697f"
+    }
   }
 }

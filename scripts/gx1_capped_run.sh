@@ -148,6 +148,8 @@ NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE=
 # END GX1 PROVIDER HLC ALL TF ROUTES 20261124 001 STATE
 # BEGIN GX1 PROVIDER HLC INITIAL ROUTE 20261123 001 STATE
 NATIVE_PROVIDER_HLC_INITIAL_MODULE=gx1.audit.native_future_state_provider_hlc_initial_v1
+NATIVE_V3_OBSERVED_TRAIN_CONTINUATION=false
+NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_PLAN_SHA256=
 NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY=false
 NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PLAN_SHA256=
 NATIVE_V3_ACTUAL_STEP_OBSERVER=false
@@ -1375,6 +1377,54 @@ configure_native_provider_hlc_learning_resume() {
 }
 # END GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 MATCHERS
 
+# BEGIN GX1 V3 OBSERVED TRAIN CONTINUATION ROUTE 20261128 001
+matches_bound_native_v3_observed_train_continuation() {
+  if [[ $# -eq 6 ]]; then
+    [[ "$6" == --preflight ]] || return 1
+    set -- "${@:1:5}"
+  fi
+  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" \
+    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == gx1.audit.native_future_state_observed_train_continuation_v1 \
+    && "$4" == --v3-observed-train-continuation-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_001.json"
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" \
+    && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]
+}
+configure_native_v3_observed_train_continuation() {
+  matches_bound_native_v3_observed_train_continuation "$@" || { echo 'FATAL: exact V3 observed TRAIN continuation CLI/plan required' >&2; exit 75; }
+  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G && "$SWAP" == 512M \
+    && "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \
+    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {
+    echo 'FATAL: V3 observed TRAIN continuation requires canonical trainer containment' >&2; exit 75;
+  }
+  local output="/home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_001"
+  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \
+    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {
+    echo 'FATAL: V3 observed TRAIN continuation output must be fresh and canonical' >&2; exit 75;
+  }
+  NATIVE_V3_OBSERVED_TRAIN_CONTINUATION=true
+  NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_PLAN_SHA256="$5"
+  TRAINER_DEVICE=cuda
+  TRAINER_EXECUTION_MODE=canonical
+  TRAINER_OUT_BUNDLE_DIR="$output"
+  TRAINER_MAX_WALL_SECONDS=1800
+  TRAINER_MODEL_MAX_WALL_SECONDS=1770
+  TRAINER_GPU_INDEX=0
+  TRAINER_GPU_MAX_POWER_LIMIT_W=250
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_MEMORY_TEMP_C=80
+  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+  TRAINER_CPU_MAX_TEMP_C=80
+  TRAINER_CPU_MAX_PACKAGE_POWER_W=125
+  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592
+  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592
+}
+# END GX1 V3 OBSERVED TRAIN CONTINUATION ROUTE 20261128 001
+
 # BEGIN GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY ROUTE 20261128 001
 matches_bound_native_v3_actual_step_observer_cold_recovery() {
   if [[ $# -eq 6 ]]; then
@@ -2593,6 +2643,14 @@ validate_target_command() {
     return
   fi
 # END GX1 PROVIDER HLC ENDPOINT CROSS ROUTE 20261124 001 DISPATCH
+# BEGIN GX1 V3 OBSERVED TRAIN CONTINUATION DISPATCH 20261128 001
+  local observed_train_continuation_arg
+  for observed_train_continuation_arg in "$@"; do
+    case "$observed_train_continuation_arg" in
+      --v3-observed-train-continuation-plan-sha256|--v3-observed-train-continuation-plan-sha256=*) configure_native_v3_observed_train_continuation "$@"; return ;;
+    esac
+  done
+# END GX1 V3 OBSERVED TRAIN CONTINUATION DISPATCH 20261128 001
 # BEGIN GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY DISPATCH 20261128 001
   local actual_step_observer_cold_recovery_arg
   for actual_step_observer_cold_recovery_arg in "$@"; do
@@ -4628,6 +4686,8 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_NATIVE_PROVIDER_HLC_GRADIENT_PROFILE_PLAN_SHA256="$NATIVE_PROVIDER_HLC_GRADIENT_PROFILE_PLAN_SHA256" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS="$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256="$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_V3_OBSERVED_TRAIN_CONTINUATION="$NATIVE_V3_OBSERVED_TRAIN_CONTINUATION" \
+  --setenv=GX1_NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_PLAN_SHA256="$NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_PLAN_SHA256" \
   --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY="$NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY" \
   --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PLAN_SHA256="$NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PLAN_SHA256" \
   --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER="$NATIVE_V3_ACTUAL_STEP_OBSERVER" \
