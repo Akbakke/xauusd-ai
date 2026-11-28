@@ -33,7 +33,7 @@ def snapshot(binding,pref):
 def original_metadata():
     design=read(DESIGN);old=read(design['original_failed_COLD']['plan']);reference=q.closed_reference();need({k:reference[k]for k in('plan','result','terminal','claim')}==design['reference'],'OBSERVER_COLD_RECOVERY_ORIGINAL_REFERENCE')
     reference_plan=read(reference['plan']);need(old['lane']=='cold'and old['observer_enabled']is True and old['starting_cursor']==433 and old['ending_cursor']==434 and old['checkpoint_cursors']==[434]and old['parents']['reference']['plan']==reference['plan']and old['metadata']['trajectory']==reference_plan['metadata']['trajectory']and old['protocol']==reference_plan['protocol'],'OBSERVER_COLD_RECOVERY_EXACT_OLD_TRAJECTORY')
-    refs={'recovery_design':DESIGN,'original_cold_plan':design['original_failed_COLD']['plan'],**{'original_failed_cold_'+k:v for k,v in design['original_failed_COLD'].items()if k!='plan'},**{'reused_reference_'+k:v for k,v in design['reference'].items()},'original_reference_backup':design['reference_backup'],'original_source_qualification':design['source_qualification'],'post_failure_host_observation':design['post_failure_host'],'original_actual_review':design['basis']}
+    refs={'observer_cold_recovery_design':DESIGN,'original_cold_plan':design['original_failed_COLD']['plan'],**{'original_failed_cold_'+k:v for k,v in design['original_failed_COLD'].items()if k!='plan'},**{'reused_reference_'+k:v for k,v in design['reference'].items()},'original_reference_backup':design['reference_backup'],'original_source_qualification':design['source_qualification'],'post_failure_host_observation':design['post_failure_host'],'original_actual_review':design['basis']}
     failed=read(refs['original_failed_cold_result']);terminal=read(refs['original_failed_cold_terminal']);acceptance=read(refs['original_failed_cold_acceptance']);need(failed['plan']==terminal['plan']==design['original_failed_COLD']['plan']and terminal['result']==refs['original_failed_cold_result']and failed['status']==terminal['status']=='FAILED_CONSUMED'and terminal['exit_code']==1 and terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False and acceptance['status']=='FAILED_CONSUMED'and acceptance['result']==refs['original_failed_cold_result']and acceptance['terminal']==refs['original_failed_cold_terminal'],'OBSERVER_COLD_RECOVERY_PRESERVED_FAILED_COLD')
     core.future_cpu_parent_stopped(read(failed['claim'])['process_identity'])
     for cursor,key in((433,'reference_C433_receipt'),(434,'reference_C434_receipt')):
@@ -49,6 +49,11 @@ def original_metadata():
     return old,reference_plan,refs,identity
 
 
+def merge_inputs(original,extra):
+    need(all(name not in original or original[name]==binding for name,binding in extra.items()),'OBSERVER_COLD_RECOVERY_INPUT_ROLE_COLLISION')
+    return {**copy.deepcopy(original),**copy.deepcopy(extra)}
+
+
 def execution_plan(old,runtime,head,owners,inputs,bridge):
     """Change execution generation only; preserve the genuine technical trajectory."""
     plan=copy.deepcopy(old);plan.update(schema_version='gx1_native_v3_actual_step_observer_cold_recovery_plan_v1',stage=STAGE,source_commit=head,output_root=str(ROOT),source_owners=owners,guard_source_bridge=bridge,original_cold_plan=inputs['original_cold_plan'],reference_plan=old['parents']['reference']['plan'],recovery_design=DESIGN,inputs=inputs,execution_profile=PROFILE)
@@ -62,7 +67,7 @@ def build_plan(runtime,source_commit=None):
     for name,digest in old['source_owners'].items():
         current=ref(REPO/name)['sha256'];need(name in allowed or current==digest,'OBSERVER_COLD_RECOVERY_ONLY_GUARD_GENERATION:'+name);owners[name]=current
     owners.update({name:ref(REPO/name)['sha256']for name in(SELF,TEST)});old_guards={name:hashlib.sha256(subprocess.check_output(['git','show',ANCHOR+':'+name],cwd=REPO)).hexdigest()for name in o.GUARDS};bridge=guard.native_v3_actual_step_observer_cold_recovery_guard_source_bridge(old_guards,producer_commit=ANCHOR)
-    inputs={**copy.deepcopy(old['inputs']),**extra};plan=execution_plan(old,runtime,head,owners,inputs,bridge);need(plan['physical_input_identity']==identity and plan['execution']==guard._native_v3_development_execution('warm'),'OBSERVER_COLD_RECOVERY_UNCHANGED_IDENTITY_CAPS');return plan
+    inputs=merge_inputs(old['inputs'],extra);plan=execution_plan(old,runtime,head,owners,inputs,bridge);need(plan['physical_input_identity']==identity and plan['execution']==guard._native_v3_development_execution('warm'),'OBSERVER_COLD_RECOVERY_UNCHANGED_IDENTITY_CAPS');return plan
 
 
 def inspect(sha,admitted=False):

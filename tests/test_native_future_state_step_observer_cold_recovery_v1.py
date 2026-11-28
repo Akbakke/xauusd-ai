@@ -73,3 +73,15 @@ def test_run_delegates_unchanged_physical_and_preserves_math_proof_on_failed_boo
         with pytest.raises(RuntimeError,match='BOOKEND_FAILED'):r.run('b'*64)
     assert len(calls)==1 and calls[0][0]is plan and published['RESULT.json']['report']==report and published['RESULT.json']['bookend_evidence']==evidence
     assert published['TERMINAL.json']['exit_code']==int(not boot_pass)and published['TERMINAL.json']['remaining_invocations']==0 and published['TERMINAL.json']['relaunch_allowed']is False
+
+
+@pytest.mark.parametrize('collision',[None,'recovery_design','reference_checkpoint'])
+def test_new_design_role_preserves_original_bindings_and_rejects_any_collision(collision):
+    legacy={'path':'/old/FIT004-recovery-design.json','sha256':'1'*64};checkpoint={'path':'/old/REFERENCE_C433.pt','sha256':'2'*64};original={'recovery_design':legacy,'reference_checkpoint':checkpoint};before=copy.deepcopy(original);extra={'observer_cold_recovery_design':r.DESIGN}
+    if collision is not None:extra[collision]={'path':'/wrong/replacement.json','sha256':'3'*64}
+    if collision is not None:
+        with pytest.raises(ValueError,match='INPUT_ROLE_COLLISION'):r.merge_inputs(original,extra)
+    else:
+        merged=r.merge_inputs(original,extra);assert merged['recovery_design']==legacy and merged['reference_checkpoint']==checkpoint and merged['observer_cold_recovery_design']==r.DESIGN
+        merged['recovery_design']['path']='/later/mutation';assert original==before
+    assert original==before

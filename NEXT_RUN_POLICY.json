@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T07:17:57.479537+00:00",
+  "observed_utc": "2026-11-28T07:36:24.689480+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -110795,8 +110795,28 @@
     "relaunch_allowed": false,
     "next_action": "Prepareonlyminimumdistinctone-stepCOLDrecovery aftercurrenthostqualification; reuseREFERENCE/sourceproofs, oldCOLDneverrelaunch. No modelmathchange or fit.",
     "source_qualification": {
-      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SOURCE_QUALIFICATION_20261128_001.json",
-      "sha256": "b44e7a62fcc154c6f43c4beb130ff7421123aedca5345dab278ca2aa3d3fb311"
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SOURCE_QUALIFICATION_20261128_002.json",
+      "sha256": "055c30cd00e086a712f578f408580f8b908159ccd425e67d08ed1769af635ddc"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_20261128_001.json",
+      "sha256": "f7f1c0aa33bb0135989fdfc292cc0ca2e6487f20b618bceb9e33d9084527a092"
+    },
+    "test_authorized": false,
+    "spending_authorized": false,
+    "superseded_unclaimed": {
+      "canonical_binding": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_20261128_001.json",
+        "sha256": "f7f1c0aa33bb0135989fdfc292cc0ca2e6487f20b618bceb9e33d9084527a092"
+      },
+      "preserved_raw_plan": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_UNCLAIMED_PLAN_20261128_001.json",
+        "sha256": "f7f1c0aa33bb0135989fdfc292cc0ca2e6487f20b618bceb9e33d9084527a092"
+      },
+      "failure": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_UNCLAIMED_PREFLIGHT_FAILURE_20261128_001.json",
+        "sha256": "583262dd269c14529350402d42a00dd19ada33bb0b958c23586979dda61c39e2"
+      }
     }
   }
 }

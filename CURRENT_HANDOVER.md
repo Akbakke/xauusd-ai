@@ -31,7 +31,14 @@ av guard-/shelltillegg matcher23b166541; gamle vakter/kaps er bevart.
 Boot-bookend bruker samme likhetspredikat og20sforespørsel, men lagrer faktiske
 IDer eller spørrefeil. Ukjent/mismatch er fortsatt FAIL; ingen retry/timeoutrelaksasjon.
 
-66fokuserte kontroller består (13adapter/53guard); gamle7/70-suiter er gjenbrukt,
+66opprinnelige kontroller består (13adapter/53guard). Faktisk metadata-preflight
+fanget en rolle-kollisjon før CLAIM/NN: nytt recovery_design overskrev gammel
+FIT004-referanse. Nytt felt heter observer_cold_recovery_design; en streng merge
+avviser alle endrede opprinnelige bindinger.8berørte regresjoner består, inkludert
+3nye kollisjonskontroller. Ubrukt planf7f1c0aa og opprinnelige feillogger er bevart
+immutable i E; ny kilde og ny plan-SHA kreves, ingen gammel admission finnes.
+Klargjøring skal også kjøre faktisk metadata-bound-plan med eksakt CLI før
+hardware-preflight. Gamle7/70-suiter er gjenbrukt,
 ikke kjørt om.83kildeeiere og fersk faktisk modellkontrakt/inputidentitet er
 kontrollert, med runtime-forbud mot modell/optimizer/checkpoint/NPZ/CUDA under
 metadataarbeidet. Referansebackupens C433/C434-dekning er validert. Før admission
