@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T08:25:17.930170+00:00",
+  "observed_utc": "2026-11-28T08:56:06.523416+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "OBSERVED_TRAIN_CONTINUATION_002_SOURCE_QUALIFIED_PLAN_PENDING",
+  "status": "OBSERVED_TRAIN_CONTINUATION_002_COMPLETE",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Commitqualified002source thenfreshplan/preflight/SOURCEbackup beforeexact648to864admission; noautomaticseries.",
+  "next_action": "Qualifyminimalzero-updateFINAL864modegapowner reusingqualifiedfivepassloop/summary; noNNuntilfreshsource/backup/host/exactexecutionadmission. No newfit.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -46798,7 +46798,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_OBSERVED_TRAIN_CONTINUATION",
+  "training_enabled_scope": "CLOSED_OBSERVED_TRAIN_CONTINUATION_002",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -110903,7 +110903,7 @@
     }
   },
   "native_v3_observed_train_continuation_20261128_002": {
-    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
+    "status": "CLOSED_CONSUMED_COMPLETE",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_002.json",
       "sha256": "f52d056a1715f13180b6aee375ae17fd45eb992644bf447f38a0239ebf34bf30"
@@ -110913,10 +110913,61 @@
     "training_authorized": false,
     "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "next_action": "Prepareminimumnewexact216updatecontinuationfromauthFINAL648to864; reusequalifiedmath/observer/fullscore; noNNuntilnewsource/backup/host/admission.",
+    "next_action": "Assessfixedall5TRAINoutcome thenpredeclareonlythenecessarynextlearningorgeneralizationstudy; noautomaticfit.",
     "source_qualification": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_SOURCE_QUALIFICATION_20261128_002.json",
       "sha256": "8a9b2fc84e97403779a2eb7622e2db327868121626ae63f762f67ba605cc5209"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_002.json",
+      "sha256": "be53cb01fce7c80f8ba120c88de2f36d299112f20a573e85b85cda82d8db6875"
+    },
+    "test_authorized": false,
+    "spending_authorized": false,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_PREFLIGHT_20261128_002.json",
+      "sha256": "f6f172aae4a660be2ab9bbd6d2edff3043f5cf6cf0d8553345f8d96c7ec17b29"
+    },
+    "source_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_SOURCE_BACKUP_20261128_002.json",
+      "sha256": "532505a6aa41f08eea02c485f3cebd54c30ee695cf57a3484403a7d33eb663b6"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_002/RESULT.json",
+      "sha256": "9865459b2c54472da9dd4b553095e7ed837a405389bc5c2423ce8551c961fd18"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_002/TERMINAL.json",
+      "sha256": "449ca41ca5678dc918a60ebe54e431d20e19dc6c2dba16460a73cc0244b92c1a"
+    },
+    "acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_ACCEPTANCE_20261128_002.json",
+      "sha256": "9d567620bd7e46ca374ec3b3ec26985bbed81f5a2b94ebe9fc5ebb7927c90a1a"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_ACTUAL_REVIEW_20261128_002.json",
+      "sha256": "a9e04e62111ace56874b586791413d0c85943eb9b57197786cd3e475a0844790"
+    },
+    "endpoint_assessment": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_ENDPOINT_ASSESSMENT_20261128_002.json",
+      "sha256": "1a18bbd1ff7021e57b2569ca525b75f25679d444033f6e519fce0b2151a9fa51"
+    },
+    "final_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_FINAL_BACKUP_20261128_002.json",
+      "sha256": "87258dec3afb00eaea036145c46c2334a60b1398ce9f51997c65cb52bb7a60ce"
     }
+  },
+  "native_v3_frozen_final864_mode_gap_20261128_001": {
+    "status": "DESIGNED_SOURCE_PREPARATION_ONLY_CLOSED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_FINAL864_MODE_GAP_DESIGN_20261128_001.json",
+      "sha256": "3b49a1de3bb2bc257e157d9fd8de137b57121d94fe30b76c75edac0b7519c097"
+    },
+    "source_preparation_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "next_action": "Qualifyminimalzero-updateFINAL864modegapowner reusingqualifiedfivepassloop/summary; noNNuntilfreshsource/backup/host/exactexecutionadmission. No newfit."
   }
 }
