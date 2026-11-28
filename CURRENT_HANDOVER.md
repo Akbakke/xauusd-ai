@@ -16,22 +16,33 @@
 ## Gjeldende status og neste steg
 
 NEXT_RUN_POLICY.json er eneste arbeidsstatus. Aktuelt felt
-native_v3_actual_step_observer_20261128_001 har REFERENCE faktisk COMPLETE og
-COLD faktisk FAILED_CONSUMED, begge stengt/forbrukt0/relaunch=false. COLDs
-oppdatering/observasjon og alle10C2-bevis ble fullført, men boot-bookend feilet
-og ytre maskinvarevakt stoppet på host_maintenance_active (exit75). Hele
-kvalifiseringen er derfor IKKE PASS. Ingen originalkvittering omskrives.
-Alle seks globale trenings-/evalueringsflagg er false, active_lane=null.
-Ingen ny NN-/fit-/kandidat-/servingadmisjon. Edge-målet er aktivt/uoppfylt;
-låst issue-miks PASS2 feiler fortsatt M5/samlet TRAIN-kvalitet.
+native_v3_actual_step_observer_cold_recovery_20261128_001 er kildekvalifisert,
+men ingen ny NN-/update-/fitplan er innrømmet. Alle seks globale flagg er false.
+Ny rute gjenbruker ekte REFERENCE-C433/C434 og uendret q.physical; bare én ny
+teknisk oppdatering på globalindex433 er planlagt etter egen eksakt admission.
+Original COLD beholder FAILED_CONSUMED/forbrukt0, aldri relanser/omskriv.
+REFERENCE er COMPLETE/forbrukt0. Edge-målet er aktivt/uoppfylt; låst issue-miks
+PASS2 feiler fortsatt M5/samlet TRAIN-kvalitet. Ingen ny læringskandidat/epoch.
 
-Neste felt native_v3_actual_step_observer_cold_recovery_20261128_001 er kun
-stengt kildeklargjøring, execution=false/training=false/remaining=0.
-V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_DESIGN_20261128_001.json binder minste
-separate enstegs gjenopptakelse fra samme originale REFERENCE-C433 mot C434,
-med uendret matematikk/inputs/observer, eksakt gammel teknisk trajektorie og
-fersk host-/boot-/maintenancefri admission. REFERENCE og beståtte kildebevis
-skal gjenbrukes; original COLD-plan relanseres aldri. Ingen hovedfit/ekstraepoch.
+Ny separat adapter/CLI/plan/root og flat engangsport er lagt til; gammel teknisk
+trajektorie/steps/scores/input/recipe/23budsjettfelt bevares. Core/observatør/
+modell/tap/treningskode/forrige adapter er byte-uendret. Eksakt additiv reversering
+av guard-/shelltillegg matcher23b166541; gamle vakter/kaps er bevart.
+Boot-bookend bruker samme likhetspredikat og20sforespørsel, men lagrer faktiske
+IDer eller spørrefeil. Ukjent/mismatch er fortsatt FAIL; ingen retry/timeoutrelaksasjon.
+
+66fokuserte kontroller består (13adapter/53guard); gamle7/70-suiter er gjenbrukt,
+ikke kjørt om.83kildeeiere og fersk faktisk modellkontrakt/inputidentitet er
+kontrollert, med runtime-forbud mot modell/optimizer/checkpoint/NPZ/CUDA under
+metadataarbeidet. Referansebackupens C433/C434-dekning er validert. Før admission
+skal SOURCE-manifest dekke gjeldende plan/design/kildekvalifisering/alle kildeeiere.
+Både indre terminal og den faktiske ytre maskinvarevaktens exit må godkjenne ny rolle.
+
+Én hostobservasjon07:24:55–58UTC viste BootID4/sammeWSL, maintenance/rebootpending
+false og ingen tung prosjektlås. Dette er ikke ny NN-admisjon. Neste konkrete
+steg er commit fryst kvalifisert kilde, fersk plan/preflight/verifisert SOURCE-
+backup og egen én-stegs teknisk admission. Samtlige gamle feil/checkpoints beholdes.
+Ingen hovedfit/ekstraepoch, senere VAL/Control, TEST, ordre/broker/spending/promotion.
 
 ### Faktisk observatørkvalifisering og bevarte funn
 
@@ -272,6 +283,8 @@ generalisering må måles som utfall, ikke antas bevist før første fit.
 E betyr /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001.
 Policy binder eksakte SHA, originale kvitteringer og egne snapshots.
 
+- V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SOURCE_QUALIFICATION_20261128_001.json:
+  66fokuserte kontroller,83eiere, fersk inputidentitet og uendret numerisk funksjon.
 - V3_ACTUAL_STEP_OBSERVER_ACTUAL_REVIEW_20261128_001.json: faktiske2+1roller,
   all10paritet og alle5TF-observasjoner under original COLD-fail.
 - V3_ACTUAL_STEP_OBSERVER_POST_FAILURE_HOST_OBSERVATION_20261128_001.json og

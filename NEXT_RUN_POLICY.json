@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "REFERENCE_COMPLETE_COLD_FAILED_CONSUMED_PARITY_OBSERVED_HOST_UNQUALIFIED",
+  "status": "OBSERVER_COLD_RECOVERY_SOURCE_QUALIFIED_PLAN_PENDING",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Prepareonlyminimumdistinctone-stepCOLDrecovery aftercurrenthostqualification; reuseREFERENCE/sourceproofs, oldCOLDneverrelaunch. No modelmathchange or fit.",
+  "next_action": "Commitqualifiedrecoveryroute thenfreshplan/preflight/SOURCEbackup before1technicalupdateadmission; nofit.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -110783,7 +110783,7 @@
     }
   },
   "native_v3_actual_step_observer_cold_recovery_20261128_001": {
-    "status": "DESIGNED_SOURCE_PREPARATION_ONLY_CLOSED",
+    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_DESIGN_20261128_001.json",
       "sha256": "a4e157293c9339b2afbc4ef2bbf34718c832d932bead198398fc0a636b32b173"
@@ -110793,6 +110793,10 @@
     "training_authorized": false,
     "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "next_action": "Prepareonlyminimumdistinctone-stepCOLDrecovery aftercurrenthostqualification; reuseREFERENCE/sourceproofs, oldCOLDneverrelaunch. No modelmathchange or fit."
+    "next_action": "Prepareonlyminimumdistinctone-stepCOLDrecovery aftercurrenthostqualification; reuseREFERENCE/sourceproofs, oldCOLDneverrelaunch. No modelmathchange or fit.",
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SOURCE_QUALIFICATION_20261128_001.json",
+      "sha256": "b44e7a62fcc154c6f43c4beb130ff7421123aedca5345dab278ca2aa3d3fb311"
+    }
   }
 }

@@ -3846,6 +3846,7 @@ def _native_v3_actual_step_observer_core_projection(current):
 
 
 def _native_v3_actual_step_observer_without_additions(current):
+    current=_native_v3_actual_step_observer_cold_recovery_without_additions(current)
     require = _native_v3_development_require; current = dict(current)
     name = 'gx1/contracts/gx1_capped_execution_v1.py'
     begin = '# BEGIN GX1 V3 ACTUAL STEP OBSERVER GUARDS 20261128 001\n'
@@ -4071,6 +4072,201 @@ def require_native_v3_actual_step_observer_execution(*, plan_sha256):
             'training_authority_granted': False, 'optimizer_authority_granted': False}
 
 # END GX1 V3 ACTUAL STEP OBSERVER GUARDS 20261128 001
+
+# BEGIN GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY GUARDS 20261128 001
+_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PARENT = '23b166541d86a02b91205c8ce3de7b63392c6be6'
+_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_NAME = 'NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_20261128_001'
+_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_STAGE = 'native_v3_actual_step_observer_cold_recovery_20261128_001'
+_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PROFILE = 'gx1_native_actual_step_observer_cold_recovery_trainer20g_v1'
+_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SHELL_ADDITIONS = (('NATIVE_V3_ACTUAL_STEP_OBSERVER=false\n', 'before', 'NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY=false\nNATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PLAN_SHA256=\n'), ('# BEGIN GX1 V3 ACTUAL STEP OBSERVER ROUTE 20261128 001\n', 'before', '# BEGIN GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY ROUTE 20261128 001\nmatches_bound_native_v3_actual_step_observer_cold_recovery() {\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" \\\n    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == gx1.audit.native_future_state_step_observer_cold_recovery_v1 \\\n    && "$4" == --v3-actual-step-observer-cold-recovery-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_20261128_001.json"\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" \\\n    && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\nconfigure_native_v3_actual_step_observer_cold_recovery() {\n  matches_bound_native_v3_actual_step_observer_cold_recovery "$@" || { echo \'FATAL: exact V3 actual-step observer cold recovery CLI/plan required\' >&2; exit 75; }\n  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G && "$SWAP" == 512M \\\n    && "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo \'FATAL: V3 actual-step observer cold recovery requires canonical trainer containment\' >&2; exit 75;\n  }\n  local output="/home/andre2/GX1_RUNS/NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_20261128_001"\n  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \\\n    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {\n    echo \'FATAL: V3 actual-step observer cold recovery output must be fresh and canonical\' >&2; exit 75;\n  }\n  NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY=true\n  NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$output"\n  TRAINER_MAX_WALL_SECONDS=1800\n  TRAINER_MODEL_MAX_WALL_SECONDS=1770\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY ROUTE 20261128 001\n\n'), ('# BEGIN GX1 V3 ACTUAL STEP OBSERVER DISPATCH 20261128 001\n', 'before', '# BEGIN GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY DISPATCH 20261128 001\n  local actual_step_observer_cold_recovery_arg\n  for actual_step_observer_cold_recovery_arg in "$@"; do\n    case "$actual_step_observer_cold_recovery_arg" in\n      --v3-actual-step-observer-cold-recovery-plan-sha256|--v3-actual-step-observer-cold-recovery-plan-sha256=*) configure_native_v3_actual_step_observer_cold_recovery "$@"; return ;;\n    esac\n  done\n# END GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY DISPATCH 20261128 001\n'), ('  --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER="$NATIVE_V3_ACTUAL_STEP_OBSERVER" \\\n', 'before', '  --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY="$NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY" \\\n  --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PLAN_SHA256="$NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PLAN_SHA256" \\\n'))
+
+
+def _native_v3_actual_step_observer_cold_recovery_without_additions(current):
+    require = _native_v3_development_require; current = dict(current)
+    name = 'gx1/contracts/gx1_capped_execution_v1.py'
+    begin = '# BEGIN GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY GUARDS 20261128 001\n'
+    end = '# END GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY GUARDS 20261128 001\n\n'
+    text = current[name]; require(text.count(begin) == text.count(end) == 1, 'ONE_OBSERVER_COLD_RECOVERY_BLOCK')
+    first, tail = text.split(begin); _, last = tail.split(end); text = first + last
+    hook = '    current=_native_v3_actual_step_observer_cold_recovery_without_additions(current)\n'
+    require(text.count(hook) == 1, 'ONE_OBSERVER_COLD_RECOVERY_BRIDGE_HOOK')
+    current[name] = text.replace(hook, '', 1)
+    shell = current['scripts/gx1_capped_run.sh']
+    for anchor, position, fragment in _V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SHELL_ADDITIONS:
+        require(position == 'before' and shell.count(anchor) == shell.count(fragment)
+                == shell.count(fragment + anchor) == 1, 'EXACT_OBSERVER_COLD_RECOVERY_SHELL_ADDITION')
+        shell = shell.replace(fragment + anchor, anchor, 1)
+    current['scripts/gx1_capped_run.sh'] = shell
+    return current
+
+
+def native_v3_actual_step_observer_cold_recovery_guard_source_bridge(producer_hashes, *, producer_commit=_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PARENT):
+    import hashlib, subprocess
+    require = _native_v3_development_require; repo = Path(__file__).resolve().parents[2]
+    require(producer_commit == _V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PARENT, 'OBSERVER_COLD_RECOVERY_BRIDGE_PARENT')
+    names = ('gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh')
+    before = {n: subprocess.check_output(['git', 'show', producer_commit + ':' + n], cwd=repo).decode() for n in names}
+    original = {n: hashlib.sha256(v.encode()).hexdigest() for n, v in before.items()}
+    require(producer_hashes == original, 'OBSERVER_COLD_RECOVERY_BRIDGE_PRODUCER_HASHES')
+    current = {n: (repo / n).read_text() for n in names}
+    require(_native_v3_actual_step_observer_cold_recovery_without_additions(current) == before, 'OBSERVER_COLD_RECOVERY_OLD_GUARDS_BYTE_EXACT')
+    immutable = ('gx1/audit/native_future_state_step_observer_qualify_v1.py',
+        'gx1/audit/native_future_state_step_observer_v1.py', 'gx1/audit/native_future_state_training_v1.py',
+        'gx1/audit/qualify_native_m5_full_gc_direction_v1.py', 'gx1/contracts/market_state_ta_integrated_model_v1.py',
+        'gx1/contracts/market_state_ta_integrated_objective_v1.py')
+    proof = {}
+    for name in immutable:
+        old = subprocess.check_output(['git', 'show', producer_commit + ':' + name], cwd=repo); path = repo / name
+        require(path.is_file() and not path.is_symlink() and path.resolve() == path and path.read_bytes() == old,
+                'OBSERVER_COLD_RECOVERY_IMMUTABLE_MATH_OR_EXECUTION_OWNER')
+        proof[name] = hashlib.sha256(old).hexdigest()
+    return {'producer_commit': producer_commit, 'checked_guard_owners': 2, 'old_guard_routes_preserved': True,
+            'old_numeric_resource_environment_function_unchanged': True, 'old_qualifier_and_math_byte_unchanged': proof,
+            'new_cold_recovery_controlflow_requires_scoped_review': True,
+            'owners': {n: {'original_sha256': original[n], 'current_sha256': hashlib.sha256(current[n].encode()).hexdigest()} for n in names}}
+
+
+def _native_v3_actual_step_observer_cold_recovery_bound_plan(plan_sha256):
+    import hashlib, subprocess
+    require = _native_v3_development_require; repo = Path(__file__).resolve().parents[2]
+    require(type(plan_sha256) is str and re.fullmatch('[0-9a-f]{64}', plan_sha256) is not None, 'OBSERVER_COLD_RECOVERY_PLAN_SHA')
+    args = ['--v3-actual-step-observer-cold-recovery-plan-sha256', plan_sha256]; preflight = sys.argv[-1:] == ['--preflight']
+    if preflight: args += ['--preflight']
+    require(Path.cwd().resolve() == repo and Path(sys.argv[0]).resolve() == repo / 'gx1/audit/native_future_state_step_observer_cold_recovery_v1.py'
+            and Path(sys.executable).absolute() == repo / '.venv/bin/python' and sys.argv[1:] == args, 'OBSERVER_COLD_RECOVERY_EXACT_ARGV')
+    path = repo / 'configs/research' / (_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_NAME + '.json')
+    plan = _native_v3_development_read(path, plan_sha256)
+    output = Path('/home/andre2/GX1_RUNS') / _V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_NAME
+    require(plan.get('schema_version') == 'gx1_native_v3_actual_step_observer_cold_recovery_plan_v1'
+            and plan.get('stage') == _V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_STAGE and plan.get('output_root') == str(output),
+            'OBSERVER_COLD_RECOVERY_PLAN_IDENTITY')
+    require(not output.exists() and not output.is_symlink() and output.parent.is_dir()
+            and not output.parent.is_symlink() and output.parent.resolve() == output.parent, 'OBSERVER_COLD_RECOVERY_FRESH_OUTPUT')
+    require(plan.get('source_commit') == subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
+            'OBSERVER_COLD_RECOVERY_SOURCE_COMMIT')
+    require(plan.get('execution') == _native_v3_development_execution('warm')
+            and plan.get('execution_profile') == _V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PROFILE, 'OBSERVER_COLD_RECOVERY_EXACT_EXECUTION')
+    evidence = Path('/home/andre2/GX1_RUNS') / 'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'
+    design_ref = {'path': str(evidence / 'V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_DESIGN_20261128_001.json'),
+                  'sha256': 'a4e157293c9339b2afbc4ef2bbf34718c832d932bead198398fc0a636b32b173'}
+    cold_ref = {'path': str(repo / 'configs/research' / (_V3_ACTUAL_STEP_OBSERVER_NAME + '_COLD.json')),
+                'sha256': 'cb14e5d4cdc9d65b76a689bf9994cf5528388571771318b496362922d45d23ac'}
+    reference_ref = {'path': str(repo / 'configs/research' / (_V3_ACTUAL_STEP_OBSERVER_NAME + '_REFERENCE.json')),
+                     'sha256': 'c578814baea374e9ab11e7b9ea6dbd6ce0f76f1f550e4321c249f5ee117aa78f'}
+    require(plan.get('recovery_design') == design_ref and plan.get('original_cold_plan') == cold_ref
+            and plan.get('reference_plan') == reference_ref, 'OBSERVER_COLD_RECOVERY_BOUND_ORIGINAL_REFS')
+    design = _native_v3_development_read(design_ref['path'], design_ref['sha256'])
+    cold = _native_v3_development_read(cold_ref['path'], cold_ref['sha256'])
+    require(design.get('original_failed_COLD', {}).get('plan') == cold_ref
+            and design.get('reference', {}).get('plan') == reference_ref
+            and plan.get('metadata', {}).get('original_cold') == cold, 'OBSERVER_COLD_RECOVERY_AUTHENTIC_OLD_PLAN')
+    unchanged = ('design', 'protocol', 'producer_plan', 'authentic_final_receipt', 'authentic_final_checkpoint',
+        'recipe', 'model_contract', 'physical_input_identity', 'backbone_gradient_policy', 'parents')
+    require(all(plan.get(k) == cold.get(k) for k in unchanged)
+            and all(plan.get('metadata', {}).get(k) == cold.get('metadata', {}).get(k)
+                for k in ('original', 'producer', 'receipt', 'trajectory')),
+            'OBSERVER_COLD_RECOVERY_UNCHANGED_FUNCTION_AND_TRAJECTORY')
+    require(plan.get('lane') == 'cold' and type(plan.get('starting_cursor')) is int and plan['starting_cursor'] == 433
+            and type(plan.get('ending_cursor')) is int and plan['ending_cursor'] == 434
+            and plan.get('checkpoint_cursors') == [434] and type(plan['checkpoint_cursors'][0]) is int
+            and plan.get('observer_enabled') is True and plan.get('technical_weights_never_initializer') is True,
+            'OBSERVER_COLD_RECOVERY_ONE_TECHNICAL_STEP')
+    require(type(plan.get('limits')) is dict and all(type(v) is int for v in plan['limits'].values())
+            and plan['limits'] == cold.get('limits'), 'OBSERVER_COLD_RECOVERY_EXACT_OLD_COLD_BUDGET')
+    inputs = plan.get('inputs', {})
+    require(type(inputs) is dict and all(inputs.get(k) == v for k, v in cold['inputs'].items())
+            and inputs.get('reference_cursor1_receipt') == design.get('reference_C433_receipt')
+            and inputs.get('reference_cursor2_receipt') == design.get('reference_C434_receipt'),
+            'OBSERVER_COLD_RECOVERY_AUTHENTIC_REFERENCE_C433_C434')
+    owners = plan.get('source_owners')
+    require(type(owners) is dict and set(cold['source_owners']) <= set(owners)
+            and 'gx1/audit/native_future_state_step_observer_cold_recovery_v1.py' in owners, 'OBSERVER_COLD_RECOVERY_SOURCE_INVENTORY')
+    mutable = {'gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh',
+               'tests/test_native_all_tf_provider_hlc_v3_development_guard_v1.py'}
+    require(all(owners.get(k) == v for k, v in cold['source_owners'].items() if k not in mutable),
+            'OBSERVER_COLD_RECOVERY_ALL_NON_GUARD_OWNERS_UNCHANGED')
+    for owner, digest in owners.items():
+        p = repo / owner
+        require(type(owner) is str and not Path(owner).is_absolute() and '..' not in Path(owner).parts
+                and p.is_file() and not p.is_symlink() and p.resolve() == p
+                and hashlib.sha256(p.read_bytes()).hexdigest() == digest, 'OBSERVER_COLD_RECOVERY_SOURCE_SHA')
+    bridge = plan.get('guard_source_bridge', {}); old = {n: v['original_sha256'] for n, v in bridge.get('owners', {}).items()}
+    require(bridge == native_v3_actual_step_observer_cold_recovery_guard_source_bridge(old, producer_commit=bridge.get('producer_commit')),
+            'OBSERVER_COLD_RECOVERY_EXACT_GUARD_ONLY_SOURCE_BRIDGE')
+    policy_path = repo / 'NEXT_RUN_POLICY.json'; policy = _native_v3_development_read(policy_path)
+    flags = ('training_enabled', 'native_training_enabled', 'native_launch_authorized',
+             'full_epoch_training_allowed', 'full_val_allowed', 'exit_training_and_evaluation_this_wave')
+    require(all(policy.get(k) is (not preflight and k in flags[:2]) for k in flags), 'OBSERVER_COLD_RECOVERY_EXACT_FLAGS')
+    original = policy.get(_V3_ACTUAL_STEP_OBSERVER_STAGE, {}); lanes = original.get('lane_gates', {})
+    require(original.get('execution_authorized') is False and original.get('training_authorized') is False
+            and type(original.get('remaining_invocations')) is int and original['remaining_invocations'] == 0
+            and original.get('active_lane') in (None, '') and original.get('relaunch_allowed') is False
+            and type(lanes) is dict and set(lanes) == {'reference', 'cold'}, 'OBSERVER_COLD_RECOVERY_OLD_QUALIFICATION_CLOSED')
+    for lane, status in (('reference', 'CLOSED_CONSUMED_COMPLETE'), ('cold', 'CLOSED_CONSUMED_FAILED_CONSUMED')):
+        v = lanes[lane]
+        require(v.get('status') == status and type(v.get('remaining_invocations')) is int and v['remaining_invocations'] == 0
+                and all(v.get(k) is False for k in ('execution_authorized', 'training_authorized', 'test_authorized', 'relaunch_allowed'))
+                and v.get('plan') == (reference_ref if lane == 'reference' else cold_ref), 'OBSERVER_COLD_RECOVERY_OLD_ROLE_TERMINALS_CLOSED')
+    for name, prior in policy.items():
+        if name.startswith('native_') and name not in (_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_STAGE, _V3_ACTUAL_STEP_OBSERVER_STAGE) and type(prior) is dict:
+            require(all(k not in prior or prior[k] is False for k in ('execution_authorized', 'training_authorized'))
+                    and ('remaining_invocations' not in prior or type(prior['remaining_invocations']) is int and prior['remaining_invocations'] == 0),
+                    'OBSERVER_COLD_RECOVERY_OTHER_NATIVE_ROUTES_CLOSED')
+            grouped = prior.get('lane_gates', prior.get('phase_gates', {}))
+            require(type(grouped) is dict, 'OBSERVER_COLD_RECOVERY_TYPED_OLD_ROLE_GATES')
+            aggregation = prior.get('aggregation_completion')
+            if aggregation is not None:
+                require(type(aggregation) is dict and type(aggregation.get('remaining_invocations')) is int
+                        and aggregation['remaining_invocations'] == 0
+                        and all(aggregation.get(k) is False for k in ('execution_authorized', 'training_authorized', 'relaunch_allowed')),
+                        'OBSERVER_COLD_RECOVERY_OLD_AGGREGATION_CLOSED')
+            for gate in grouped.values():
+                require(type(gate) is dict and type(gate.get('remaining_invocations')) is int and gate['remaining_invocations'] == 0
+                        and all(gate.get(k) is False for k in ('execution_authorized', 'training_authorized', 'test_authorized', 'relaunch_allowed')),
+                        'OBSERVER_COLD_RECOVERY_OTHER_NATIVE_ROLE_GATES_CLOSED')
+    parent = policy.get(_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_STAGE, {})
+    status = 'PREPARED_CLOSED_NOT_ADMITTED' if preflight else 'ADMITTED_EXACT_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY'
+    gate = {'status': status, 'plan': {'path': str(path), 'sha256': plan_sha256}, 'execution_authorized': not preflight,
+            'remaining_invocations': int(not preflight), 'relaunch_allowed': False, 'training_authorized': not preflight,
+            'test_authorized': False, 'spending_authorized': False}
+    require(parent.get('design') == design_ref and parent.get('source_preparation_authorized') is True
+            and type(parent.get('remaining_invocations')) is int
+            and all(type(parent.get(k)) is bool for k in ('execution_authorized', 'training_authorized', 'test_authorized',
+                'spending_authorized', 'relaunch_allowed')) and all(parent.get(k) == v for k, v in gate.items()),
+            'OBSERVER_COLD_RECOVERY_EXACT_ONE_USE_GATE')
+    if not preflight:
+        snapshot = evidence / 'V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_ADMITTED_POLICY_20261128_001.json'
+        require(_native_v3_development_read(snapshot, hashlib.sha256(policy_path.read_bytes()).hexdigest()) == policy,
+                'OBSERVER_COLD_RECOVERY_EXACT_ADMITTED_POLICY_SNAPSHOT')
+    return {'plan': {'path': str(path), 'sha256': plan_sha256}, 'output_root': str(output), 'preflight': preflight,
+            'execution': plan['execution'], 'lane': 'cold'}
+
+
+def _native_v3_actual_step_observer_cold_recovery_environment(plan_sha256):
+    require = _native_v3_development_require; prefix = 'GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY'
+    execution = _native_v3_development_execution('warm')
+    expected = {prefix: 'true', prefix + '_PLAN_SHA256': plan_sha256,
+                'GX1_POWER_BENCHMARK_SCOPE_JSON': '', 'GX1_POWER_BENCHMARK_SCOPE_SHA256': ''}
+    require(all(not k.startswith(prefix) or k in expected for k in os.environ), 'UNKNOWN_OBSERVER_COLD_RECOVERY_ENV')
+    require(all(v in ('false', '') for k, v in os.environ.items() if k.startswith('GX1_NATIVE_') and not k.startswith(prefix)),
+            'OBSERVER_COLD_RECOVERY_MIXED_LEGACY_ENV')
+    fields = {'MAX_WALL_SECONDS': execution['outer_seconds'], 'MODEL_MAX_WALL_SECONDS': execution['internal_seconds'],
+        'ATTENDED_STAGE_REQUIRED': 'false', 'GPU_INDEX': 0, 'GPU_MAX_POWER_LIMIT_W': 250, 'GPU_MAX_POWER_DRAW_W': 250,
+        'GPU_MAX_CORE_TEMP_C': 75, 'GPU_MAX_MEMORY_TEMP_C': 80, 'GPU_MAX_MEMORY_USED_MIB': 12288,
+        'GPU_MONITOR_INTERVAL_SECONDS': 1, 'CPU_MAX_TEMP_C': 80, 'CPU_MAX_PACKAGE_POWER_W': 125,
+        'HOST_MIN_AVAILABLE_MEMORY_BYTES': 8589934592, 'HOST_MIN_COMMIT_HEADROOM_BYTES': 8589934592}
+    expected.update({'GX1_TRAINER_' + k: str(v) for k, v in fields.items()})
+    require(all(os.environ.get(k) == v for k, v in expected.items()), 'OBSERVER_COLD_RECOVERY_EXACT_RESOURCE_ENV')
+    return require_guarded_cuda_trainer_execution()
+
+
+def require_native_v3_actual_step_observer_cold_recovery_execution(*, plan_sha256):
+    bound = _native_v3_actual_step_observer_cold_recovery_bound_plan(plan_sha256)
+    proof = _native_v3_actual_step_observer_cold_recovery_environment(plan_sha256)
+    return {**proof, **bound, 'kind': 'provider_hlc_v3_actual_step_observer_cold_recovery', 'resource_proof_only': True,
+            'training_authority_granted': False, 'optimizer_authority_granted': False}
+
+# END GX1 V3 ACTUAL STEP OBSERVER COLD RECOVERY GUARDS 20261128 001
 
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")

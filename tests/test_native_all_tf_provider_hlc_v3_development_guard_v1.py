@@ -1810,3 +1810,197 @@ def test_actual_step_observer_guard_bridge_rejects_unreviewed_delta(monkeypatch,
             return text
         monkeypatch.setattr(Path, 'read_text', changed)
     with pytest.raises(RuntimeError): g.native_v3_actual_step_observer_guard_source_bridge(owners)
+
+
+def actual_step_observer_cold_recovery_fixture(monkeypatch, tmp_path, preflight=False, bad=None):
+    f = actual_step_observer_fixture(monkeypatch, tmp_path, 'cold', preflight=True)
+    repo, runs = f['repo'], f['runs']; cold = copy.deepcopy(f['plan'])
+    evidence = runs / 'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'
+    cold_ref = dict(path=str(repo / 'configs/research' / (g._V3_ACTUAL_STEP_OBSERVER_NAME + '_COLD.json')),
+        sha256='cb14e5d4cdc9d65b76a689bf9994cf5528388571771318b496362922d45d23ac')
+    reference_ref = dict(path=str(repo / 'configs/research' / (g._V3_ACTUAL_STEP_OBSERVER_NAME + '_REFERENCE.json')),
+        sha256='c578814baea374e9ab11e7b9ea6dbd6ce0f76f1f550e4321c249f5ee117aa78f')
+    cold['parents']['reference']['plan'] = reference_ref
+    root = runs / (g._V3_ACTUAL_STEP_OBSERVER_NAME + '_reference')
+    c433 = dict(path=str(root / 'CURSOR433.json'), sha256='2549dc79fbe7d4312f2e10a5b687053e0dcca1d9bd9bde2275021d6f8cf6412e')
+    c434 = dict(path=str(root / 'CURSOR434.json'), sha256='dd20636570a9d00d0e2dee04ef71ac36b7db7da722624e99e80afb2a753bd050')
+    cold['inputs'] = dict(reference_cursor1_receipt=c433, reference_cursor2_receipt=c434,
+        reference_checkpoint=dict(path=str(root / 'CURSOR433.pt'), sha256='1' * 64))
+    design_ref = dict(path=str(evidence / 'V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_DESIGN_20261128_001.json'),
+        sha256='a4e157293c9339b2afbc4ef2bbf34718c832d932bead198398fc0a636b32b173')
+    design = dict(original_failed_COLD={'plan': cold_ref}, reference={'plan': reference_ref},
+        reference_C433_receipt=c433, reference_C434_receipt=c434)
+    output = runs / g._V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_NAME
+    plan = copy.deepcopy(cold); plan['metadata']['original_cold'] = cold
+    adapter = 'gx1/audit/native_future_state_step_observer_cold_recovery_v1.py'
+    (repo / adapter).write_text('# source-only recovery fixture\n')
+    plan['source_owners'][adapter] = hashlib.sha256((repo / adapter).read_bytes()).hexdigest()
+    bridge = dict(producer_commit=g._V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PARENT,
+        owners={n: dict(original_sha256='f' * 64, current_sha256=plan['source_owners'][n]) for n in OWNERS})
+    plan.update(schema_version='gx1_native_v3_actual_step_observer_cold_recovery_plan_v1',
+        stage=g._V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_STAGE, output_root=str(output), source_commit='a' * 40,
+        execution_profile=g._V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PROFILE,
+        recovery_design=design_ref, original_cold_plan=cold_ref, reference_plan=reference_ref,
+        guard_source_bridge=bridge)
+    if bad == 'schema': plan['schema_version'] = 'old'
+    if bad == 'profile': plan['execution_profile'] = 'generic'
+    if bad == 'execution': plan['execution']['GPU_draw_stop_W'] = 251
+    if bad == 'old_cold_plan': plan['original_cold_plan'] = {}
+    if bad == 'reference_plan': plan['reference_plan'] = {}
+    if bad == 'design': plan['recovery_design'] = {}
+    if bad == 'old_metadata': plan['metadata']['original_cold'] = {}
+    if bad == 'trajectory': plan['metadata']['trajectory'] = {}
+    if bad == 'recipe': plan['recipe'] = {}
+    if bad == 'parents': plan['parents'] = {}
+    if bad == 'cursor': plan['starting_cursor'] = 432
+    if bad == 'boolean_cursor': plan['starting_cursor'] = True
+    if bad == 'observer': plan['observer_enabled'] = False
+    if bad == 'initializer': plan['technical_weights_never_initializer'] = False
+    if bad == 'updates': plan['limits']['optimizer_steps'] = 2
+    if bad == 'autograd': plan['limits']['autograd_calls'] = 1
+    if bad == 'records': plan['limits']['observer_records'] = 2
+    if bad == 'bool_budget': plan['limits']['model_constructions'] = True
+    if bad == 'checkpoint': plan['inputs']['reference_checkpoint'] = {}
+    if bad == 'C434': plan['inputs']['reference_cursor2_receipt'] = {}
+    if bad == 'owner': plan['source_owners'][adapter] = '0' * 64
+    if bad == 'math_owner': plan['source_owners'][g._V3_ACTUAL_STEP_OBSERVER_CORE] = '0' * 64
+    if bad == 'bridge': plan['guard_source_bridge'] = {**bridge, 'extra': True}
+    path = repo / 'configs/research' / (g._V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_NAME + '.json')
+    path.write_text(json.dumps(plan)); digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    policy_path = repo / 'NEXT_RUN_POLICY.json'; policy = json.loads(policy_path.read_text())
+    for flag in ('training_enabled', 'native_training_enabled'): policy[flag] = not preflight
+    old = policy[g._V3_ACTUAL_STEP_OBSERVER_STAGE]
+    old.update(execution_authorized=False, training_authorized=False, remaining_invocations=0, relaunch_allowed=False, active_lane=None)
+    old['lane_gates'] = {lane: dict(status='CLOSED_CONSUMED_COMPLETE' if lane == 'reference' else 'CLOSED_CONSUMED_FAILED_CONSUMED',
+        plan=reference_ref if lane == 'reference' else cold_ref, execution_authorized=False,
+        training_authorized=False, test_authorized=False, relaunch_allowed=False, remaining_invocations=0) for lane in ('reference', 'cold')}
+    parent = dict(status='PREPARED_CLOSED_NOT_ADMITTED' if preflight else 'ADMITTED_EXACT_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY',
+        source_preparation_authorized=True, design=design_ref, plan=dict(path=str(path), sha256=digest),
+        execution_authorized=not preflight, remaining_invocations=int(not preflight), relaunch_allowed=False,
+        training_authorized=not preflight, test_authorized=False, spending_authorized=False)
+    policy[g._V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_STAGE] = parent
+    if bad == 'bool_gate': parent['remaining_invocations'] = not preflight
+    if bad == 'spent': parent['remaining_invocations'] = 0
+    if bad == 'flags': policy['native_launch_authorized'] = True
+    if bad == 'old_cold_open': old['lane_gates']['cold']['execution_authorized'] = True
+    if bad == 'old_cold_status': old['lane_gates']['cold']['status'] = 'CLOSED_CONSUMED_COMPLETE'
+    if bad == 'old_reference_status': old['lane_gates']['reference']['status'] = 'CLOSED_CONSUMED_FAILED_CONSUMED'
+    if bad == 'old_boolean_gate': old['lane_gates']['cold']['remaining_invocations'] = False
+    if bad == 'old_aggregation': policy[TRAIN_EVAL_GAP_NAME.lower()]['aggregation_completion']['remaining_invocations'] = 1
+    policy_path.write_text(json.dumps(policy))
+    if not preflight:
+        snapshot = evidence / 'V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_ADMITTED_POLICY_20261128_001.json'
+        snapshot.write_bytes(b'{}' if bad == 'snapshot' else policy_path.read_bytes())
+    if bad == 'existing': output.mkdir()
+    if bad == 'symlink':
+        other = path.with_suffix('.original'); path.rename(other); path.symlink_to(other)
+    read = g._native_v3_development_read
+    def fixture_read(candidate, candidate_digest=None):
+        for binding, value in ((cold_ref, cold), (design_ref, design)):
+            if str(candidate) == binding['path']:
+                assert candidate_digest == binding['sha256']; return value
+        return read(candidate, candidate_digest)
+    monkeypatch.setattr(g, '_native_v3_development_read', fixture_read)
+    monkeypatch.setattr(g, 'native_v3_actual_step_observer_cold_recovery_guard_source_bridge', lambda *a, **k: bridge)
+    argv = [str(repo / adapter), '--v3-actual-step-observer-cold-recovery-plan-sha256', digest] + (['--preflight'] if preflight else [])
+    if bad == 'argv': argv += ['--lane', 'cold']
+    monkeypatch.setattr(sys, 'argv', argv)
+    if bad == 'python': monkeypatch.setattr(sys, 'executable', '/usr/bin/python3')
+    for key in list(os.environ):
+        if key.startswith('GX1_NATIVE_'): monkeypatch.delenv(key)
+    env = dict(GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY='true',
+        GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PLAN_SHA256=digest)
+    if bad == 'hardware_env': env['GX1_TRAINER_GPU_MAX_POWER_DRAW_W'] = '251'
+    if bad == 'legacy_env': env['GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER'] = 'true'
+    if bad == 'unknown_env': env['GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_EXTRA'] = 'false'
+    for key, value in env.items(): monkeypatch.setenv(key, value)
+    return dict(f, path=path, digest=digest, plan=plan, output=output,
+        call=lambda: g.require_native_v3_actual_step_observer_cold_recovery_execution(plan_sha256=digest))
+
+
+@pytest.mark.parametrize('preflight', (False, True))
+def test_actual_step_observer_cold_recovery_has_only_exact_resource_authority(monkeypatch, tmp_path, preflight):
+    f = actual_step_observer_cold_recovery_fixture(monkeypatch, tmp_path, preflight); proof = f['call']()
+    assert proof['preflight'] is preflight and proof['lane'] == 'cold'
+    assert proof['training_authority_granted'] is proof['optimizer_authority_granted'] is False
+    assert f['called'] == ['cuda'] and not f['output'].exists()
+
+
+@pytest.mark.parametrize('bad', ('schema', 'profile', 'execution', 'old_cold_plan', 'reference_plan', 'design',
+    'old_metadata', 'trajectory', 'recipe', 'parents', 'cursor', 'boolean_cursor', 'observer', 'initializer',
+    'updates', 'autograd', 'records', 'bool_budget', 'checkpoint', 'C434', 'owner', 'math_owner', 'bridge',
+    'bool_gate', 'spent', 'flags', 'old_cold_open', 'old_cold_status', 'old_reference_status', 'old_boolean_gate',
+    'old_aggregation', 'snapshot', 'existing', 'symlink', 'argv', 'python', 'hardware_env', 'legacy_env', 'unknown_env'))
+def test_actual_step_observer_cold_recovery_rejects_scope_or_source_relaxation(monkeypatch, tmp_path, bad):
+    f = actual_step_observer_cold_recovery_fixture(monkeypatch, tmp_path, bad=bad)
+    with pytest.raises(RuntimeError): f['call']()
+    assert not f['called'] and not (f['output'] / 'CLAIM.json').exists()
+
+
+def test_actual_step_observer_cold_recovery_preflight_rejects_boolean_zero_gate(monkeypatch, tmp_path):
+    f = actual_step_observer_cold_recovery_fixture(monkeypatch, tmp_path, preflight=True, bad='bool_gate')
+    with pytest.raises(RuntimeError, match='OBSERVER_COLD_RECOVERY_EXACT_ONE_USE_GATE'): f['call']()
+    assert not f['called']
+
+
+def test_actual_step_observer_cold_recovery_shell_exact_cli_and_unchanged_caps(monkeypatch, tmp_path):
+    f = actual_step_observer_cold_recovery_fixture(monkeypatch, tmp_path)
+    variables, functions, dispatch, _ = [v[2] for v in g._V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SHELL_ADDITIONS]
+    functions = functions.replace('/home/andre2/GX1_RUNS', str(f['runs']))
+    state = dict(REPO_ROOT=str(f['repo']), CANONICAL_TRAINER_PYTHON=str(f['repo'] / '.venv/bin/python'),
+        JOB_CLASS='trainer', MEM='20G', SWAP='512M', ATTENDED_SMOKE='false', CUDA_PRODUCER_GUARD='false',
+        POWER_BENCHMARK_SCOPE_JSON='', POWER_BENCHMARK_SCOPE_SHA256='')
+    script = 'set -eu\n' + ''.join(k + '=' + shlex.quote(v) + '\n' for k, v in state.items()) + variables + functions
+    script += 'validate_target_command() {\n' + dispatch + 'return 88\n}\n'
+    argv = [state['CANONICAL_TRAINER_PYTHON'], '-m', 'gx1.audit.native_future_state_step_observer_cold_recovery_v1',
+        '--v3-actual-step-observer-cold-recovery-plan-sha256', f['digest']]
+    for extra in ([], ['--preflight'], ['--lane', 'cold']):
+        tail = 'validate_target_command ' + ' '.join(map(shlex.quote, argv + extra))
+        tail += '\nprintf "%s,%s,%s,%s\\n" "$NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY" "$TRAINER_MAX_WALL_SECONDS" "$TRAINER_MODEL_MAX_WALL_SECONDS" "$TRAINER_OUT_BUNDLE_DIR"\n'
+        result = subprocess.run(['bash', '-c', script + tail], cwd=f['repo'], capture_output=True, text=True)
+        assert result.returncode == (75 if extra == ['--lane', 'cold'] else 0), result.stderr
+        if result.returncode == 0: assert result.stdout.strip() == 'true,1800,1770,' + str(f['output'])
+
+
+def test_actual_step_observer_cold_recovery_guard_requests_only_actual_wrapper_exports(monkeypatch, tmp_path):
+    f = actual_step_observer_cold_recovery_fixture(monkeypatch, tmp_path, preflight=True)
+    wrapper = (Path(__file__).resolve().parents[1] / 'scripts/gx1_capped_run.sh').read_text()
+    exported = set(re.findall(r'--setenv=([A-Z0-9_]+)=', wrapper)); requested = set()
+    class ActualWrapperEnvironment(dict):
+        def get(self, key, default=None):
+            requested.add(key); return super().get(key, default)
+    actual = {k: v for k, v in os.environ.items() if not k.startswith('GX1_') or k in exported}
+    monkeypatch.setattr(os, 'environ', ActualWrapperEnvironment(actual)); f['call']()
+    assert requested <= exported and f['called'] == ['cuda']
+
+
+def _actual_step_observer_cold_recovery_guard_owners():
+    repo = Path(g.__file__).resolve().parents[2]
+    return {n: hashlib.sha256(subprocess.check_output(['git', 'show', g._V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PARENT + ':' + n], cwd=repo)).hexdigest() for n in OWNERS}
+
+
+def test_actual_step_observer_cold_recovery_bridge_preserves_qualifier_math_and_old_guard_bytes():
+    proof = g.native_v3_actual_step_observer_cold_recovery_guard_source_bridge(_actual_step_observer_cold_recovery_guard_owners())
+    assert proof['old_guard_routes_preserved'] and proof['old_numeric_resource_environment_function_unchanged']
+    assert len(proof['old_qualifier_and_math_byte_unchanged']) == 6
+
+
+@pytest.mark.parametrize('bad', ('legacy_resource', 'new_shell_limit', 'producer_hash', 'math_owner'))
+def test_actual_step_observer_cold_recovery_bridge_rejects_unreviewed_delta(monkeypatch, bad):
+    owners = _actual_step_observer_cold_recovery_guard_owners(); repo = Path(g.__file__).resolve().parents[2]
+    if bad == 'producer_hash': owners[OWNERS[0]] = '0' * 64
+    elif bad == 'math_owner':
+        original = Path.read_bytes
+        monkeypatch.setattr(Path, 'read_bytes', lambda p, *a, **k: original(p, *a, **k) + (b'\n# mutation\n' if p == repo / g._V3_ACTUAL_STEP_OBSERVER_CORE else b''))
+    else:
+        original = Path.read_text
+        def changed(path, *a, **kw):
+            text = original(path, *a, **kw)
+            if path == repo / OWNERS[0] and bad == 'legacy_resource':
+                text = text.replace('_MAX_MEMORY_BYTES = 20 * 1024**3', '_MAX_MEMORY_BYTES = 21 * 1024**3', 1)
+            if path == repo / OWNERS[1] and bad == 'new_shell_limit':
+                fragment = g._V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SHELL_ADDITIONS[1][2]
+                text = text.replace(fragment, fragment.replace('TRAINER_GPU_MAX_POWER_DRAW_W=250', 'TRAINER_GPU_MAX_POWER_DRAW_W=251'), 1)
+            return text
+        monkeypatch.setattr(Path, 'read_text', changed)
+    with pytest.raises(RuntimeError): g.native_v3_actual_step_observer_cold_recovery_guard_source_bridge(owners)
