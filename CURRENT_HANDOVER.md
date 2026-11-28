@@ -108,8 +108,14 @@ eksisterende packet-API. Modellruten har ingen carry mellom issues; hver rad
 får sine egne genuine kausale vinduer. Ingen generisk inputeier må endres.
 Dette er en kontroll av batchsammensetning, ingen bevist forbedring eller årsak.
 
-Neste er minste adapter i eksisterende trenings-/checkpoint-/guard-eiere,
-fokuserte negative kontraktkontroller og faktisk fersk C1/C2-kald paritet.
+Adapteren i eksisterende trenings-/checkpoint-/guard-eiere er kildekvalifisert:
+62 guard-/kildebrotester og31 fokuserte leaf-kontroller består, inkludert
+negative medlemskaps-, produsent-, snapshot- og kopieringsporter. Eksakt
+byte-reversering bevarer gammel numerikk og alle vakter. Faktisk metadata for
+78 kildeeiere og eksisterende input-/INITIAL-identitet er kontrollert uten NN.
+Ny fysisk STREAM_BINDING og fersk C1/C2-kald paritet er fortsatt IKKE MÅLT.
+Neste er eksakt REFERENCE, separat COLD og først deretter fersk FIT432,
+med samme kilde/protokoll gjennom alle tre roller.
 INITIAL gjenbrukes bare etter fersk factory/fullRNG/truth-identitet; tekniske
 eller gamle FINAL-vekter er aldri initializer. Samme fem TF, åtte familier,
 D1/makro, mål, masker, tapsformel, optimizer, klipping og kanoniske score beholdes.
@@ -118,10 +124,9 @@ Ny engangsplan, aktuell preflight/admisjon, backup og fryst kilde kreves.
 Alle seks globale flagg er false: design åpner ingen kjøring, retry,
 kalibrator, ekstra epokeserie, TEST, VAL, Control eller handel.
 
-Kildekvalifisering før den fullførte bølgen bestod73 guard-/kildebrotester og
-18 syntetiske leaf-kontroller, syntaks og native kontrakter. Original numerikk
-og vakter er uendret. Ny metadata-/handoverkontroll avslutter denne bølgen;
-uendrede fullsuiter skal ikke gjentas.
+Tidligere bestått mekanikk og numeriske eiere gjenbrukes. Syntaks,
+shellsyntaks og git diff --check består; uendrede fullsuiter gjentas ikke.
+Teknisk kvalifikasjon erstatter ikke faktisk replay eller TRAIN-læring.
 
 ## Kvalifisert datagrunnlag og funksjon
 
@@ -192,6 +197,8 @@ generalisering må måles som utfall, ikke antas bevist før første fit.
 E betyr /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001.
 Policy binder eksakte SHA, originalkvitteringer og egne policy-snapshots.
 
+- V3_DIRECTION_ISSUE_MIX_SOURCE_QUALIFICATION_20261128_001.json:
+  kildebroer,93 fokuserte tester, faktisk metadata og fortsatt umålt kald paritet.
 - V3_DIRECTION_ISSUE_MIX_DESIGN_20261128_001.json: neste énvariabelhypotese,
   låste kildeposisjonspermutasjoner og stengt kjøringsport.
 - V3_BLOCK_ORDER_EXACT_RECOVERY_TRAIN_REVIEW_20261128_001.json:

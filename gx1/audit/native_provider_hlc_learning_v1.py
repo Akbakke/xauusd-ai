@@ -130,6 +130,7 @@ def run(sha):
  except BaseException as error:pub(ROOT,'TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'plan':binding,'claim':claim,'error':type(error).__name__+':'+str(error)[:1800],'remaining_invocations':0,'relaunch_allowed':False});raise
  finally:signal.setitimer(signal.ITIMER_REAL,0)
 def main():
+ if sys.argv[1:2]==['--v3-issue-mix-plan-sha256']:return main_v3_issue_mix()
  if sys.argv[1:2]==['--v3-block-order-recovery-plan-sha256']:return main_v3_block_order_recovery()
  if sys.argv[1:2]==['--v3-direction-block-order-plan-sha256']:return main_v3_direction_block_order()
  if sys.argv[1:2]==['--v3-direction-gradient-plan-sha256']:return main_v3_direction_gradient()
@@ -1061,6 +1062,7 @@ DEV_FLAGS=(*FLAGS,'exit_training_and_evaluation_this_wave')
 def development_reverse_source(raw):
  start=b'# BEGIN GX1 V3 BOUNDED DEVELOPMENT 20261127\n';end=b'# END GX1 V3 BOUNDED DEVELOPMENT 20261127\n'
  need(raw.count(start)==raw.count(end)==1,'DEV_SINGLE_ADDITIVE_BLOCK');first,tail=raw.split(start);_,last=tail.split(end)
+ first=issue_mix_reverse_legacy(first)
  dispatch=b" if sys.argv[1:2]==['--v3-development-plan-sha256']:return main_v3_development()\n"
  if DEV_RECOVERY_DISPATCH in first:
   need(first.count(DEV_RECOVERY_DISPATCH)==1,'DEV_RECOVERY_EXACT_DISPATCH');first=first.replace(DEV_RECOVERY_DISPATCH,b'')
@@ -1359,6 +1361,7 @@ DEV_RECOVERY_REVERSE=b" if DEV_RECOVERY_DISPATCH in first:\n  need(first.count(D
 def recovery_source_bridge():
  raw=(REPO/SELF).read_bytes();a=b'\n# BEGIN GX1 V3 EXACT RECOVERY 20261128\n';b=b'# END GX1 V3 EXACT RECOVERY 20261128\n'
  need(raw.count(a)==raw.count(b)==1,'RECOVERY_ONE_BLOCK');first,tail=raw.split(a);_,last=tail.split(b);raw=first+last
+ raw=issue_mix_reverse_legacy(raw)
  if BLOCK_RECOVERY_DISPATCH in raw:
   need(raw.count(BLOCK_RECOVERY_DISPATCH)==raw.count(BLOCK_RECOVERY_LEGACY_REVERSE)==1,'BLOCK_RECOVERY_OUTER_REVERSAL');raw=raw.replace(BLOCK_RECOVERY_DISPATCH,b'').replace(BLOCK_RECOVERY_LEGACY_REVERSE,b'')
  if BLOCK_ORDER_DISPATCH in raw:
@@ -1576,6 +1579,7 @@ DIRECTION_GRADIENT_RECOVERY_REVERSE=b" if DIRECTION_GRADIENT_DISPATCH in raw:\n 
 
 def direction_gradient_source_bridge():
  raw=(REPO/SELF).read_bytes();a=b'\n# BEGIN GX1 V3 DIRECTION GRADIENT 20261128\n';b=b'# END GX1 V3 DIRECTION GRADIENT 20261128\n';need(raw.count(a)==raw.count(b)==1,'DIRECTION_GRADIENT_ONE_BLOCK');first,tail=raw.split(a);_,last=tail.split(b);raw=first+last
+ raw=issue_mix_reverse_legacy(raw)
  if BLOCK_RECOVERY_DISPATCH in raw:
   need(raw.count(BLOCK_RECOVERY_DISPATCH)==raw.count(BLOCK_RECOVERY_LEGACY_REVERSE)==raw.count(BLOCK_RECOVERY_RAW_REVERSE)==1,'BLOCK_RECOVERY_DIRECTION_REVERSAL');raw=raw.replace(BLOCK_RECOVERY_DISPATCH,b'').replace(BLOCK_RECOVERY_LEGACY_REVERSE,b'').replace(BLOCK_RECOVERY_RAW_REVERSE,b'')
  if BLOCK_ORDER_DISPATCH in raw:
@@ -1747,6 +1751,7 @@ BLOCK_ORDER_DIRECTION_REVERSE=b" if BLOCK_ORDER_DISPATCH in raw:\n  need(raw.cou
 
 def block_order_source_bridge():
  raw=(REPO/SELF).read_bytes();a=b'\n# BEGIN GX1 V3 DIRECTION BLOCK ORDER 20261128\n';b=b'# END GX1 V3 DIRECTION BLOCK ORDER 20261128\n';need(raw.count(a)==raw.count(b)==1,'BLOCK_ORDER_ONE_BLOCK');first,tail=raw.split(a);_,last=tail.split(b);raw=first+last
+ raw=issue_mix_reverse_legacy(raw)
  if BLOCK_RECOVERY_DISPATCH in raw:
   need(all(raw.count(f)==1 for f in (BLOCK_RECOVERY_DISPATCH,BLOCK_RECOVERY_LEGACY_REVERSE,BLOCK_RECOVERY_RAW_REVERSE,BLOCK_RECOVERY_DIRECTION_REVERSE)),'BLOCK_RECOVERY_ORDER_REVERSAL');raw=raw.replace(BLOCK_RECOVERY_DISPATCH,b'').replace(BLOCK_RECOVERY_LEGACY_REVERSE,b'').replace(BLOCK_RECOVERY_RAW_REVERSE,b'').replace(BLOCK_RECOVERY_DIRECTION_REVERSE,b'')
  need(all(raw.count(fragment)==1 for fragment in (BLOCK_ORDER_DISPATCH,BLOCK_ORDER_LEGACY_REVERSE,BLOCK_ORDER_RAW_REVERSE,BLOCK_ORDER_DIRECTION_REVERSE)),'BLOCK_ORDER_EXACT_NORMALIZATIONS')
@@ -1905,6 +1910,7 @@ BLOCK_RECOVERY_ORDER_REVERSE=b" if BLOCK_RECOVERY_DISPATCH in raw:\n  need(all(r
 
 def block_recovery_source_bridge():
  raw=(REPO/SELF).read_bytes();a=b'\n# BEGIN GX1 V3 BLOCK ORDER RECOVERY 20261128\n';b=b'# END GX1 V3 BLOCK ORDER RECOVERY 20261128\n';need(raw.count(a)==raw.count(b)==1,'BLOCK_RECOVERY_ONE_BLOCK');first,tail=raw.split(a);_,last=tail.split(b);raw=first+last
+ raw=issue_mix_reverse_legacy(raw)
  for fragment in (BLOCK_RECOVERY_DISPATCH,BLOCK_RECOVERY_LEGACY_REVERSE,BLOCK_RECOVERY_RAW_REVERSE,BLOCK_RECOVERY_DIRECTION_REVERSE,BLOCK_RECOVERY_ORDER_REVERSE):
   need(raw.count(fragment)==1,'BLOCK_RECOVERY_EXACT_NORMALIZATION');raw=raw.replace(fragment,b'')
  old=subprocess.check_output(['git','show',BLOCK_RECOVERY_ANCHOR+':'+SELF],cwd=REPO);need(raw==old,'BLOCK_RECOVERY_OLD_LEAF_UNCHANGED')
@@ -2046,6 +2052,196 @@ def main_v3_block_order_recovery():
  if a.preflight:
   require_native_v3_block_order_recovery_execution(plan_sha256=a.v3_block_order_recovery_plan_sha256,lane=a.lane);plan,binding,pref,live=inspect_v3_block_order_recovery(a.v3_block_order_recovery_plan_sha256,a.lane,False);print(json.dumps({'status':'PREFLIGHT_V3_BLOCK_ORDER_RECOVERY_METADATA_ONLY','plan':binding,'policy':pref,'physical_input_identity':plan['physical_input_identity'],'original_plan':plan['original_plan'],'checkpoint_receipt':plan['checkpoint_receipt'],'models':0,'payloads_decoded':0,'CUDA_initialized':False,'CLAIM_created':False}))
  else:print(json.dumps(run_v3_block_order_recovery(a.v3_block_order_recovery_plan_sha256,a.lane),sort_keys=True))
+# BEGIN GX1 V3 DIRECTION ISSUE MIX 20261128
+ISSUE_MIX_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001'
+ISSUE_MIX_STAGE=ISSUE_MIX_NAME.lower()
+ISSUE_MIX_DESIGN={'path':str(E/'V3_DIRECTION_ISSUE_MIX_DESIGN_20261128_001.json'),'sha256':'93a59021614b48f67a0b71e66c29926e3fc302d2f4bcf6187e9f8bdf7c0d75d2'}
+ISSUE_MIX_PROTOCOL=REPO/'configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_PROTOCOL_20261128_001.json'
+ISSUE_MIX_LANES=('reference','cold','fit')
+ISSUE_MIX_PLANS={lane:REPO/'configs/research'/(ISSUE_MIX_NAME+'_'+lane.upper()+'.json')for lane in ISSUE_MIX_LANES}
+ISSUE_MIX_ROOTS={lane:Path('/home/andre2/GX1_RUNS')/(ISSUE_MIX_NAME+'_'+lane)for lane in ISSUE_MIX_LANES}
+ISSUE_MIX_PROFILE='gx1_native_provider_hlc_v3_issue_mix_trainer20g_v1'
+ISSUE_MIX_ANCHOR='4cb788b15fb47f2b6b2273d34485a34753649f72'
+ISSUE_MIX_DISPATCH=b" if sys.argv[1:2]==['--v3-issue-mix-plan-sha256']:return main_v3_issue_mix()\n"
+
+def issue_mix_reverse_legacy(raw):
+ for fragment in (ISSUE_MIX_DISPATCH,b' first=issue_mix_reverse_legacy(first)\n',b' raw=issue_mix_reverse_legacy(raw)\n'):raw=raw.replace(fragment,b'')
+ return raw
+
+def issue_mix_source_bridge():
+ raw=(REPO/SELF).read_bytes();start=b'# BEGIN GX1 V3 DIRECTION ISSUE MIX 20261128\n';end=b'# END GX1 V3 DIRECTION ISSUE MIX 20261128\n';need(raw.count(start)==raw.count(end)==1,'ISSUE_MIX_ONE_BLOCK');first,tail=raw.split(start);_,last=tail.split(end);raw=issue_mix_reverse_legacy(first+last);old=subprocess.check_output(['git','show',ISSUE_MIX_ANCHOR+':'+SELF],cwd=REPO);need(raw==old,'ISSUE_MIX_EXACT_ADDITIVE_REVERSAL')
+ return {'producer_commit':ISSUE_MIX_ANCHOR,'owner':SELF,'original_sha256':hashlib.sha256(old).hexdigest(),'current_sha256':ref(REPO/SELF)['sha256'],'all_old_numeric_context_scoring_and_restore_owners_unchanged':True,'only_additive_issue_mix_dispatch_and_exact_bridge_normalization':True}
+
+def issue_mix_gate(binding,lane,admitted=False):
+ need(lane in ISSUE_MIX_LANES,'ISSUE_MIX_LANE');return {'status':'ADMITTED_EXACT_V3_ISSUE_MIX_'+lane.upper()if admitted else'PREPARED_CLOSED_NOT_ADMITTED','plan':binding,'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':admitted,'test_authorized':False}
+
+def issue_mix_require_gate(value,binding,lane,admitted=False):
+ expected=issue_mix_gate(binding,lane,admitted);need(type(value)is dict and type(value.get('remaining_invocations'))is int and all(type(value.get(k))is bool for k in('execution_authorized','relaunch_allowed','training_authorized','test_authorized'))and all(value.get(k)==v for k,v in expected.items()),'ISSUE_MIX_TYPED_ONE_USE_GATE');return value
+
+def issue_mix_snapshot_path(lane):
+ need(lane in ISSUE_MIX_LANES,'ISSUE_MIX_LANE');return E/('V3_DIRECTION_ISSUE_MIX_'+lane.upper()+'_ADMITTED_POLICY_20261128_001.json')
+
+def issue_mix_admission_snapshot(lane,binding,protocol,pref):
+ sr=ref(issue_mix_snapshot_path(lane));p=read(sr);need(pref=={'path':str(POLICY),'sha256':sr['sha256']},'ISSUE_MIX_SNAPSHOT_SHA');block_order_flags(p,True);parent=p.get(ISSUE_MIX_STAGE,{})
+ issue_mix_require_gate(parent.get('lane_gates',{}).get(lane),binding,lane,True);need(parent.get('execution_authorized')is True and parent.get('active_lane')==lane and parent.get('protocol')==protocol and parent.get('design')==ISSUE_MIX_DESIGN and parent.get('original_plan')==read(ISSUE_MIX_DESIGN)['evidence']['original_plan']and all(parent.get(k)is False for k in('main_fit_authorized','test_authorized','spending_authorized')),'ISSUE_MIX_ADMITTED_SCOPE');return sr
+
+def issue_mix_schedule(control,design):
+ original=control['metadata']['original'];canonical=original['schedule'];ordered=block_order_validate_schedule(control['schedule'],original);rows=canonical['rows'];passes=original['recipe']['passes'];n=canonical['batches_per_pass'];sizes=[ordered['original_batch_rows'][i]for i in ordered['logical_original_batch_ids']];bound=design['ordering']
+ need(rows==20727 and passes==2 and n==216 and sizes==bound['logical_step_rows']and ordered['contract_sha256']==bound['control_schedule_sha256']and design['fixed']['factory_seed']==original['recipe']['seed']==bound['seed']and bound['generator']=='private_numpy_Generator_PCG64','ISSUE_MIX_FIXED_GEOMETRY')
+ private=np.random.Generator(np.random.PCG64(original['recipe']['seed']));takes=[];raw_hashes=[];stream_hashes=[]
+ for p in range(passes):
+  raw=private.permutation(rows).astype(np.int64);raw_hashes.append(core.state_sha(raw));offset=0;parts=[]
+  for size in sizes[p*n:(p+1)*n]:
+   take=np.sort(raw[offset:offset+size]);need(len(take)==size and np.all(np.diff(take)>0),'ISSUE_MIX_SORTED_MEMBERSHIP');takes.append(take.tolist());parts.append(take);offset+=size
+  stream=np.concatenate(parts);need(offset==rows and np.array_equal(np.sort(stream),np.arange(rows,dtype=np.int64)),'ISSUE_MIX_PASS_BIJECTION');stream_hashes.append(core.state_sha(stream))
+ hashes=[core.state_sha(np.asarray(t,dtype=np.int64))for t in takes]
+ need(raw_hashes==bound['raw_permutation_state_sha256_by_pass']and stream_hashes==bound['actual_sorted_partition_stream_state_sha256_by_pass']and hashes==bound['actual_cohort_take_state_sha256_by_logical_batch'],'ISSUE_MIX_DESIGN_STREAM_HASHES')
+ return train.seal({'schema_version':'gx1_native_v3_issue_mix_schedule_v1','rows':rows,'passes':passes,'batch_rows':original['recipe']['train_batch_rows'],'batches_per_pass':n,'logical_batches':n*passes,'optimizer_updates':n*passes,'skipped_batches':0,'update_flags':[True]*(n*passes),'drop_last':False,'shuffle':True,'generator':bound['generator'],'seed':original['recipe']['seed'],'control_schedule_sha256':ordered['contract_sha256'],'logical_step_rows':sizes,'raw_permutation_state_sha256_by_pass':raw_hashes,'actual_sorted_partition_stream_state_sha256_by_pass':stream_hashes,'cohort_takes':takes,'cohort_take_state_sha256_by_logical_batch':hashes,'source_rows_sha256':canonical['source_rows_sha256'],'issue_ns_sha256':canonical['issue_ns_sha256']})
+
+def issue_mix_validate_schedule(schedule,control,design):
+ need(type(schedule)is dict and type(schedule.get('cohort_takes'))is list and all(type(t)is list and all(type(i)is int for i in t)for t in schedule['cohort_takes']),'ISSUE_MIX_TYPED_TAKES');need(schedule==issue_mix_schedule(control,design),'ISSUE_MIX_EXACT_SCHEDULE');return schedule
+
+def issue_mix_trajectory(original,schedule,control_ref):
+ value={k:copy.deepcopy(v)for k,v in development_trajectory(original).items()if k!='contract_sha256'};value.update(schema_version='gx1_v3_issue_mix_training_trajectory_v1',schedule=schedule,issue_mix_design=ISSUE_MIX_DESIGN,control_plan=control_ref,cohort_prior=original['inputs']['cohort_prior'],cohort_selection=original['selection']);return train.seal(value)
+
+def issue_mix_limits(lane,original):
+ need(lane in ISSUE_MIX_LANES,'ISSUE_MIX_LANE')
+ if lane=='fit':
+  limits=development_limits('fit');e=(original['selection']['rows']+original['recipe']['eval_batch_rows']-1)//original['recipe']['eval_batch_rows'];f=original['schedule']['optimizer_updates']+original['recipe']['passes']*e+len(train.diagnostic_panels(original['schedule'])['candidate_batch_indices']);need(f==597,'ISSUE_MIX_DERIVED_FORWARD_BUDGET');limits.update(model_forwards=f,backbone_forwards=f,readout_forwards=f,logit_archive_writes=original['recipe']['passes'],logit_archive_readbacks=original['recipe']['passes']);return limits
+ limits=recovery_limits(lane,original)
+ if lane=='reference':limits.update(checkpoint_writes=2,checkpoint_readbacks=2,checkpoint_receipt_writes=2,checkpoint_prepublication_loads=2)
+ return limits
+
+def issue_mix_original_metadata():
+ design=read(ISSUE_MIX_DESIGN);control_ref=design['evidence']['original_plan'];control=read(control_ref);original,_,_,lineage,identity=recovery_original_metadata();need(control_ref=={'path':str(BLOCK_ORDER_PLAN),'sha256':'15a59b3840d61d57d6e217967312a6b76e4e89d256ea902b619ec3fa8099a008'}and control['metadata']['original']==original,'ISSUE_MIX_AUTHENTIC_CONTROL_CONTEXT');reuse=block_order_initial_reuse_metadata(original,lineage);need(reuse==control['initial_reuse'],'ISSUE_MIX_UNCHANGED_INITIAL')
+ review=read(design['evidence']['TRAIN_review']);need(review['candidate_phase']=='PASS2'and review['INITIAL']==reuse['INITIAL_score'],'ISSUE_MIX_LOCKED_COMPARISONS');refs={**{k:v for k,v in lineage.items()if k!='original_checkpoint'},'issue_mix_design':ISSUE_MIX_DESIGN,'control_plan':control_ref,'chronological_locked_PASS2':review['chronological_PASS2'],'whole_batch_locked_PASS2':review['new_order_PASS2'],**{'design_'+k:v for k,v in design['evidence'].items()}}
+ return original,control,design,refs,identity,reuse
+
+def build_v3_issue_mix_protocol():
+ original,control,design,refs,identity,reuse=issue_mix_original_metadata();schedule=issue_mix_schedule(control,design)
+ return {'schema_version':'gx1_v3_direction_issue_mix_protocol_v1','experiment_id':ISSUE_MIX_NAME,'design':ISSUE_MIX_DESIGN,'original_plan':design['evidence']['original_plan'],'original_schedule':control['schedule'],'original_trajectory':issue_mix_trajectory(original,schedule,design['evidence']['original_plan']),'schedule':schedule,'original_lineage':refs,'physical_input_identity':identity,'initial_reuse':reuse,'recipe':original['recipe'],'limits':{lane:issue_mix_limits(lane,original)for lane in ISSUE_MIX_LANES},'scope':{'single_changed_variable':design['single_changed_variable'],'candidate_phase':'PASS2','only_all5_and_original_stability_criteria':True,'technical_weights_never_initializer':True,'TEST_VAL_M1_GC_trade_spending':False,'later_generalization':'NOT_MEASURED','economic_edge':'UNKNOWN'}}
+
+def issue_mix_closed(lane):
+ root=ISSUE_MIX_ROOTS[lane];binding=ref(ISSUE_MIX_PLANS[lane]);tr=ref(root/'TERMINAL.json');terminal=read(tr);rr=terminal['result'];result=read(rr);claim=read(result['claim']);plan=read(binding)
+ need(terminal['plan']==result['plan']==claim['plan']==binding and terminal['claim']==result['claim']and terminal['status']=='COMPLETE'and terminal['exit_code']==0 and terminal['remaining_invocations']==claim['remaining_invocations']==0 and terminal['relaunch_allowed']is claim['relaunch_allowed']is False and result['status']=='COMPLETE_V3_ISSUE_MIX_'+lane.upper()and result['lane']==claim['lane']==lane and result['error']is None and set(result['bookends'])=={'plan','sources','inputs','policy','boots','HEAD'}and all(v is True for v in result['bookends'].values()),'ISSUE_MIX_CLOSED_'+lane.upper());snapshot=issue_mix_admission_snapshot(lane,binding,plan['protocol'],claim['policy_at_claim']);need(claim['admitted_policy_snapshot']==snapshot,'ISSUE_MIX_PARENT_SNAPSHOT');core.future_cpu_parent_stopped(claim['process_identity'])
+ return {'plan':binding,'result':rr,'terminal':tr,'claim':result['claim'],'admitted_policy_snapshot':snapshot,'value':result}
+
+def build_v3_issue_mix_plan(lane,runtime,source_commit=None):
+ from gx1.contracts.gx1_capped_execution_v1 import native_v3_issue_mix_source_bridge,_native_v3_issue_mix_execution
+ need(lane in ISSUE_MIX_LANES,'ISSUE_MIX_LANE');pr=ref(ISSUE_MIX_PROTOCOL);protocol=read(pr);need(protocol==build_v3_issue_mix_protocol(),'ISSUE_MIX_EXACT_PROTOCOL');control=read(protocol['original_plan']);original=control['metadata']['original'];head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip();need(source_commit in(None,head)and runtime['source_commit']==head,'ISSUE_MIX_SOURCE_RUNTIME');core.future_cuda_require_runtime(runtime);train.runtime_compatible(protocol['original_trajectory']['runtime_compatibility'],runtime)
+ inputs={**copy.deepcopy(original['inputs']),**protocol['original_lineage'],'issue_mix_protocol':pr};parents={}
+ for parent_lane in (()if lane=='reference'else('reference',)if lane=='cold'else('reference','cold')):
+  closed=issue_mix_closed(parent_lane);parent=read(closed['plan']);need(parent['protocol']==pr and parent['metadata']['trajectory']==protocol['original_trajectory']and parent['source_commit']==head,'ISSUE_MIX_PARENT_GENERATION');parents[parent_lane]={k:closed[k]for k in('plan','result','terminal','claim','admitted_policy_snapshot')};inputs.update({parent_lane+'_'+k:closed[k]for k in parents[parent_lane]});report=closed['value']['report'];inputs[parent_lane+'_stream_binding']=report['stream_binding']
+  if parent_lane=='reference':
+   for cursor in (1,2):
+    role='reference_cursor'+str(cursor)+'_receipt';inputs[role]=report['cursor'+str(cursor)+'_receipt'];r=read(inputs[role]);need(r['original_plan']==r['execution_plan']==closed['plan']and r['producer_lane']=='reference'and r['logical_cursor']==r['optimizer_updates']==cursor and r['trajectory_sha256']==protocol['original_trajectory']['contract_sha256'],'ISSUE_MIX_REFERENCE_PRODUCER')
+   inputs['reference_checkpoint']=read(inputs['reference_cursor1_receipt'])['checkpoint']
+  else:need(report['cold_replay_bit_exact']is True and report['all10_proofs_equal']is True,'ISSUE_MIX_COLD_PARITY')
+ owners=dict(original['source_owners']);owners.update({n:ref(REPO/n)['sha256']for n in(*GUARDS,SELF,DEV_TEST,DEV_GUARD_TEST)})
+ for n,d in owners.items():need(ref(REPO/n)['sha256']==d,'ISSUE_MIX_SOURCE:'+n)
+ for parent_lane in parents:need(read(parents[parent_lane]['plan'])['source_owners']==owners,'ISSUE_MIX_PARENT_SOURCE_FREEZE')
+ mr={k for k,v in inputs.items()if Path(v['path']).suffix not in('.pt','.npz','.npy')and not k.startswith('provider_raw_response_')};payload=set(inputs)-mr;old={n:hashlib.sha256(subprocess.check_output(['git','show',ISSUE_MIX_ANCHOR+':'+n],cwd=REPO)).hexdigest()for n in GUARDS}
+ return {'schema_version':'gx1_native_v3_direction_issue_mix_plan_v1','lane':lane,'stage':ISSUE_MIX_STAGE,'output_root':str(ISSUE_MIX_ROOTS[lane]),'execution_profile':ISSUE_MIX_PROFILE,'source_commit':head,'source_owners':owners,'guard_source_bridge':native_v3_issue_mix_source_bridge(old,producer_commit=ISSUE_MIX_ANCHOR),'owner_source_bridge':issue_mix_source_bridge(),'protocol':pr,'design':ISSUE_MIX_DESIGN,'original_plan':protocol['original_plan'],'metadata':{'original':original,'control':control,'trajectory':protocol['original_trajectory'],'runtime':copy.deepcopy(runtime)},'inputs':inputs,'metadata_input_roles':sorted(mr),'payload_stat':{k:{'size':Path(inputs[k]['path']).stat().st_size,'mtime_ns':Path(inputs[k]['path']).stat().st_mtime_ns}for k in sorted(payload)},'physical_input_identity':protocol['physical_input_identity'],'parents':parents,'recipe':original['recipe'],'schedule':protocol['schedule'],'model_contract':original['model_contract'],'initial_reference':original['initial_reference'],'initial_reuse':protocol['initial_reuse'],'panel_indices':control['panel_indices'],'limits':protocol['limits'][lane],'execution':_native_v3_issue_mix_execution(lane),'starting_cursor':1 if lane=='cold'else 0,'ending_cursor':432 if lane=='fit'else 2,'checkpoint_cursors':[1,432]if lane=='fit'else[1,2]if lane=='reference'else[2],'backbone_gradient_policy':None,'scope':protocol['scope']}
+
+def inspect_v3_issue_mix(sha,lane,admitted=False):
+ need(lane in ISSUE_MIX_LANES,'ISSUE_MIX_LANE');binding={'path':str(ISSUE_MIX_PLANS[lane]),'sha256':sha};plan=read(binding);need(plan==build_v3_issue_mix_plan(lane,plan['metadata']['runtime'],plan['source_commit']),'ISSUE_MIX_EXACT_PLAN');recovery_check_inputs(plan);pref=ref(POLICY);p=read(pref);block_order_flags(p,admitted);parent=p.get(ISSUE_MIX_STAGE,{})
+ issue_mix_require_gate(parent.get('lane_gates',{}).get(lane),binding,lane,admitted);need(parent.get('protocol')==plan['protocol']and parent.get('design')==ISSUE_MIX_DESIGN and parent.get('original_plan')==plan['original_plan'],'ISSUE_MIX_PARENT_SCOPE')
+ if admitted:issue_mix_admission_snapshot(lane,binding,plan['protocol'],pref)
+ need(not ISSUE_MIX_ROOTS[lane].exists()and not ISSUE_MIX_ROOTS[lane].is_symlink(),'ISSUE_MIX_FRESH_ROOT');live=core.collect_future_cuda_runtime_metadata();core.future_cuda_runtime_matches(plan['metadata']['runtime'],live);return plan,binding,pref,live
+
+def issue_mix_actual_stream(context,plan):
+ from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+ schedule=plan['schedule'];original=plan['metadata']['original'];need(context['truth_sha256']==plan['initial_reuse']['truth_sha256']and context['schedule']==original['schedule']and core.digest(context['source_rows'])==schedule['source_rows_sha256']and core.digest(context['truth']['issue_ns'])==schedule['issue_ns_sha256'],'ISSUE_MIX_ACTUAL_COHORT_IDENTITY');records=[]
+ for index,values in enumerate(schedule['cohort_takes']):
+  take=np.asarray(values,dtype=np.int64);truth=train.slice_provider_hlc_truth(context['truth'],take,target_contract=context['target_contract'],fold_upper_ns=train.UPPER);masks=objective._native_future_state_truth(truth,rows=len(take),fold_upper_ns=train.UPPER,target_contract=context['target_contract']);need(len(take)==schedule['logical_step_rows'][index]and int(masks['activity'].sum())>0,'ISSUE_MIX_ACTUAL_SUPPORTED_BATCH')
+  records.append({'logical_index':index,'rows':len(take),'cohort_take_state_sha256':core.state_sha(take),'source_rows_sha256':core.digest(context['source_rows'][take]),'issue_ns_sha256':core.digest(context['truth']['issue_ns'][take]),'truth_sha256':objective.native_future_state_truth_sha256(truth,target_contract=context['target_contract']),'known_activity_cells':int(masks['activity'].sum())})
+ n=schedule['batches_per_pass'];streams=[np.concatenate([np.asarray(t,dtype=np.int64)for t in schedule['cohort_takes'][p*n:(p+1)*n]])for p in range(schedule['passes'])]
+ return train.seal({'schema_version':'gx1_v3_issue_mix_physical_stream_v1','schedule_sha256':schedule['contract_sha256'],'cohort_truth_sha256':context['truth_sha256'],'batches':records,'source_stream_sha256_by_pass':[core.digest(context['source_rows'][s])for s in streams],'issue_stream_sha256_by_pass':[core.digest(context['truth']['issue_ns'][s])for s in streams],'ordered_truth_binding_sha256':core.state_sha([r['truth_sha256']for r in records])})
+
+def issue_mix_step_binding(schedule,stream,index):
+ need(type(index)is int and 0<=index<schedule['logical_batches']and stream['schedule_sha256']==schedule['contract_sha256'],'ISSUE_MIX_STEP_INDEX');return {'schedule_sha256':schedule['contract_sha256'],'stream_sha256':stream['contract_sha256'],'pass_index':index//schedule['batches_per_pass'],'offset_in_pass':index%schedule['batches_per_pass'],**stream['batches'][index]}
+
+def issue_mix_cursor(schedule,stream,cursor):
+ return {'position':train.position(schedule,cursor),'schedule_sha256':schedule['contract_sha256'],'stream_sha256':stream['contract_sha256'],'next_issue_batch':None if cursor==schedule['logical_batches']else issue_mix_step_binding(schedule,stream,cursor)}
+
+def issue_mix_validate_checkpoint(checkpoint,plan,producer,cursor,stream):
+ schedule=issue_mix_validate_schedule(plan['schedule'],plan['metadata']['control'],read(ISSUE_MIX_DESIGN));need(checkpoint['trajectory']==plan['metadata']['trajectory']and checkpoint['trajectory']==issue_mix_trajectory(plan['metadata']['original'],schedule,plan['original_plan'])and checkpoint['producer']['original_plan']==producer and checkpoint['position']==train.position(schedule,cursor)and len(checkpoint['steps'])==cursor,'ISSUE_MIX_CHECKPOINT_TRAJECTORY_CURSOR')
+ for j,step in enumerate(checkpoint['steps']):need(step.get('issue_mix_binding')==issue_mix_step_binding(schedule,stream,j)and step.get('logical_step')==j+1 and step.get('skip_update')is False,'ISSUE_MIX_CHECKPOINT_PREFIX')
+ return issue_mix_cursor(schedule,stream,cursor)
+
+def issue_mix_restore(model,optimizer,checkpoint,plan,live,stream):
+ receipt=read(plan['inputs']['reference_cursor1_receipt']);producer=plan['parents']['reference']['plan'];need(checkpoint['producer']=={'original_plan':producer,'lane':'reference','runtime':receipt['producer_runtime']}and checkpoint['scores']=={'INITIAL':plan['initial_reuse']['INITIAL_score']},'ISSUE_MIX_ACTUAL_REFERENCE_PRODUCER_INITIAL');issue_mix_validate_checkpoint(checkpoint,plan,producer,1,stream)
+ return train.strict_restore(model,optimizer,checkpoint,trajectory=plan['metadata']['trajectory'],original_plan_ref=producer,expected_cursor=1,current_runtime=live,expected_state_proof=receipt['proof'])
+
+def issue_mix_physical(plan,binding,root,live):
+ import torch
+ from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_future_state_model
+ lane=plan['lane'];original=plan['metadata']['original'];schedule=issue_mix_validate_schedule(plan['schedule'],plan['metadata']['control'],read(ISSUE_MIX_DESIGN));context=development_nn_context(original);stream=issue_mix_actual_stream(context,plan);counts=dict.fromkeys(plan['limits'],0);counts['feature_cache_payload_loads']=counts['target_archive_loads']=1;extra={}
+ for parent_lane in plan['parents']:need(read(plan['inputs'][parent_lane+'_stream_binding'])==stream,'ISSUE_MIX_PARENT_ACTUAL_STREAM')
+ stream_ref=development_publish(root,'STREAM_BINDING.json',stream);core.future_cuda_seed_and_runtime({'recipe':original['recipe'],'metadata':{'runtime':live}});model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=context['input_binding'],architecture=original['metadata']['architecture'],device=torch.device('cuda'),train_prior=context['prior'],target_contract=context['target_contract'],backbone_gradient_policy=None);counts['model_constructions']=1
+ initial=original['initial_reference'];need(model.research_objective==original['model_contract']and core.state_sha(model.state_dict())==initial['model_state_sha256']and core.state_sha(core.training_rng())==initial['rng_sha256'],'ISSUE_MIX_FRESH_FACTORY_RNG');optimizer=torch.optim.AdamW(model.parameters(),**original['recipe']['optimizer']);counts['optimizer_constructions']=1;need(not optimizer.state,'ISSUE_MIX_FRESH_ADAMW');scores={'INITIAL':plan['initial_reuse']['INITIAL_score']};steps=[];receipts={};cursors={}
+ extra['initial_reuse']=development_publish(root,'INITIAL_REUSE.json',{'metadata_proof':plan['initial_reuse'],'fresh_model_sha256':core.state_sha(model.state_dict()),'fresh_full_RNG_sha256':core.state_sha(core.training_rng()),'actual_truth_sha256':context['truth_sha256'],'same_named_INITIAL_outputs_reused':True,'new_INITIAL_forwards':0,'old_weight_checkpoint_loads':0})
+ def counter(key):
+  def hook(*args):counts[key]+=1;need(counts[key]<=plan['limits'][key],'ISSUE_MIX_FORWARD_BOUND')
+  return hook
+ hooks=[model.register_forward_pre_hook(counter('model_forwards')),model.backbone.register_forward_pre_hook(counter('backbone_forwards')),model.readout.register_forward_pre_hook(counter('readout_forwards'))]
+ def make(cursor):
+  producer=plan['parents']['reference']['plan']if lane=='cold'else binding;cp=train.make_checkpoint(model,optimizer,trajectory=plan['metadata']['trajectory'],original_plan_ref=producer,lane=lane,cursor=cursor,steps=list(steps),scores=copy.deepcopy(scores),producer_runtime=live);cursors[str(cursor)]=issue_mix_validate_checkpoint(cp,plan,producer,cursor,stream);return cp
+ def checkpoint(cursor,name):
+  cp=make(cursor);r=development_checkpoint(root,name,cp,counts,binding);development_publish(root,Path(name).stem+'_ORDER.json',{'checkpoint_receipt':r,'issue_mix_cursor':cursors[str(cursor)]});receipts[str(cursor)]=r;return r
+ try:
+  if lane=='cold':
+   refcp=plan['inputs']['reference_checkpoint'];need(ref(refcp['path'])==refcp,'ISSUE_MIX_C1_SHA_BEFORE_LOAD');cp=torch.load(refcp['path'],map_location='cpu',weights_only=True);counts['checkpoint_loads']=1;issue_mix_restore(model,optimizer,cp,plan,live,stream);counts['model_restores']=1;steps=copy.deepcopy(cp['steps']);scores=copy.deepcopy(cp['scores']);del cp
+  train.release_phase_allocator_cache(model,optimizer,label='DEV_INITIAL_SCORE_TO_TRAIN')
+  for j in range(plan['starting_cursor'],plan['ending_cursor']):
+   take=np.asarray(schedule['cohort_takes'][j],dtype=np.int64);record=train.training_step(model,optimizer,adapter.packet(context,take),original,counts,j);need(record['skip_update']is False and counts['optimizer_steps']+plan['starting_cursor']==j+1,'ISSUE_MIX_EXACT_STEP');record['issue_mix_binding']=issue_mix_step_binding(schedule,stream,j);steps.append(record)
+   if lane=='reference':extra['cursor'+str(j+1)+'_receipt']=checkpoint(j+1,'REFERENCE_CURSOR'+str(j+1).zfill(3)+'.pt')
+   elif lane=='cold':
+    cp=make(2);proof=train.checkpoint_proof(cp);need(proof==read(plan['inputs']['reference_cursor2_receipt'])['proof']and len(proof)==10,'ISSUE_MIX_COLD_C2_ALL10');extra.update(cold_replay_bit_exact=True,all10_proofs_equal=True,cursor2_receipt=checkpoint(2,'REPLAYED_CURSOR002.pt'),full_cursor2_proof=proof)
+   else:
+    if j+1==1:checkpoint(1,'CURSOR001.pt')
+    if(j+1)%schedule['batches_per_pass']==0:
+     label='PASS'+str((j+1)//schedule['batches_per_pass']);train.release_phase_allocator_cache(model,optimizer,label='DEV_TRAIN_TO_'+label);scores[label]=development_score(model,context,original,root,label,counts);train.release_phase_allocator_cache(model,optimizer,label='DEV_'+label+'_TO_NEXT_PHASE')
+  if lane=='reference':extra['full_cursor2_proof']=train.checkpoint_proof(make(2))
+  if lane=='fit':
+   before=core.state_sha(optimizer.state_dict());extra['gradient_diagnostics']=[]
+   for index in plan['panel_indices']:extra['gradient_diagnostics'].append({'batch_index':index,'report':core.future_cuda_gradient_probe(model,adapter.packet(context,context['batches'][index]),original,counts)})
+   need(core.state_sha(optimizer.state_dict())==before,'ISSUE_MIX_DIAGNOSTICS_NO_OPTIMIZER_MUTATION');extra['final_checkpoint_receipt']=checkpoint(schedule['logical_batches'],'FINAL.pt')
+  need(counts==plan['limits']and torch.cuda.max_memory_reserved()<=plan['execution']['cuda_peak_reserved_bytes_max'],'ISSUE_MIX_EXACT_COUNTS_VRAM')
+  return {'counts':counts,'stream_binding':stream_ref,'trajectory':plan['metadata']['trajectory'],'scores':scores,'checkpoint_receipts':receipts,'checkpoint_order_cursors':cursors,'starting_cursor':plan['starting_cursor'],'ending_cursor':plan['ending_cursor'],'new_optimizer_updates':counts['optimizer_steps'],'final_order_cursor':issue_mix_cursor(schedule,stream,plan['ending_cursor']),'technical_weights_never_initializer':True,'candidate_phase':'PASS2'if lane=='fit'else None,'later_generalization':'NOT_MEASURED','economic_edge':'UNKNOWN',**extra}
+ finally:
+  for hook in hooks:hook.remove()
+
+def issue_mix_bookends(plan,binding,pref,boot):
+ tests={'plan':lambda:ref(ISSUE_MIX_PLANS[plan['lane']])==binding,'sources':lambda:all(ref(REPO/n)['sha256']==d for n,d in plan['source_owners'].items()),'inputs':lambda:all(ref(v['path'])==v for v in plan['inputs'].values())and issue_mix_admission_snapshot(plan['lane'],binding,plan['protocol'],pref)['sha256']==pref['sha256'],'policy':lambda:ref(POLICY)==pref,'boots':lambda:{'physical_windows_boot_id':core.physical_windows_boot_id(),'wsl_boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip()}==boot,'HEAD':lambda:subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()==plan['source_commit']};checks={}
+ for name,fn in tests.items():
+  try:checks[name]=bool(fn())
+  except BaseException:checks[name]=False
+ return checks
+
+def run_v3_issue_mix(sha,lane):
+ from gx1.contracts.gx1_capped_execution_v1 import require_native_v3_issue_mix_execution
+ execution=require_native_v3_issue_mix_execution(plan_sha256=sha,lane=lane);plan,binding,pref,live=inspect_v3_issue_mix(sha,lane,True);root=ISSUE_MIX_ROOTS[lane];root.mkdir(exist_ok=False);boot={k:live[k]for k in('physical_windows_boot_id','wsl_boot_id')};started=time.monotonic();claim=development_publish(root,'CLAIM.json',{'plan':binding,'policy_at_claim':pref,'admitted_policy_snapshot':issue_mix_admission_snapshot(lane,binding,plan['protocol'],pref),'lane':lane,'execution':execution,'boots':boot,'process_identity':core.future_cpu_process_identity(),'remaining_invocations':0,'relaunch_allowed':False});report=None;error=None
+ def stop(*_):raise TimeoutError('ISSUE_MIX_INTERNAL_WALL_OR_SIGNAL')
+ handlers={sig:signal.getsignal(sig)for sig in(signal.SIGALRM,signal.SIGTERM,signal.SIGINT)}
+ for sig in handlers:signal.signal(sig,stop)
+ signal.setitimer(signal.ITIMER_REAL,plan['execution']['internal_seconds'])
+ try:
+  allowed={str(Path(v['path']).resolve())for v in plan['inputs'].values()if Path(v['path']).suffix in('.npz','.npy','.pt','.pth','.parquet','.safetensors','.pkl','.pickle','.joblib')};names=('REFERENCE_CURSOR001.pt','REFERENCE_CURSOR002.pt')if lane=='reference'else('REPLAYED_CURSOR002.pt',)if lane=='cold'else('CURSOR001.pt','FINAL.pt','PASS1_LOGITS.npz','PASS2_LOGITS.npz');allowed.update(str(root/n)for n in names);sys.addaudithook(lambda e,a:development_io_audit(allowed,e,a));recovery_check_inputs(plan,physical=True);report=issue_mix_physical(plan,binding,root,live);need(core.common.firewall_state()['denied_attempts']==0,'ISSUE_MIX_ZERO_FIREWALL_DENIALS')
+ except BaseException as exc:error=type(exc).__name__+':'+str(exc)[:2400]
+ finally:
+  signal.setitimer(signal.ITIMER_REAL,0);book=issue_mix_bookends(plan,binding,pref,boot);error=error or(None if all(book.values())else'ISSUE_MIX_BOOKEND_FAILED');result=development_publish(root,'RESULT.json',{'status':'COMPLETE_V3_ISSUE_MIX_'+lane.upper()if error is None else'FAILED_CONSUMED','lane':lane,'plan':binding,'claim':claim,'report':report,'error':error,'bookends':book,'elapsed_seconds':time.monotonic()-started,'test_data_used':False,'later_generalization':'NOT_MEASURED','economic_edge':'UNKNOWN'});terminal=development_publish(root,'TERMINAL.json',{'status':'COMPLETE'if error is None else'FAILED_CONSUMED','exit_code':0 if error is None else 1,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False})
+  for sig,handler in handlers.items():signal.signal(sig,handler)
+ if error:raise RuntimeError(error)
+ return {'result':result,'terminal':terminal,'lane':lane}
+
+def main_v3_issue_mix():
+ from gx1.contracts.gx1_capped_execution_v1 import require_native_v3_issue_mix_execution
+ p=argparse.ArgumentParser();p.add_argument('--v3-issue-mix-plan-sha256',required=True);p.add_argument('--lane',choices=ISSUE_MIX_LANES,required=True);p.add_argument('--preflight',action='store_true');a=p.parse_args();need(sys.argv[1:]==['--v3-issue-mix-plan-sha256',a.v3_issue_mix_plan_sha256,'--lane',a.lane]+(['--preflight']if a.preflight else[]),'ISSUE_MIX_EXACT_CLI')
+ if a.preflight:
+  require_native_v3_issue_mix_execution(plan_sha256=a.v3_issue_mix_plan_sha256,lane=a.lane);plan,binding,pref,live=inspect_v3_issue_mix(a.v3_issue_mix_plan_sha256,a.lane,False);print(json.dumps({'status':'PREFLIGHT_V3_ISSUE_MIX_METADATA_ONLY','plan':binding,'policy':pref,'physical_input_identity':plan['physical_input_identity'],'schedule_sha256':plan['schedule']['contract_sha256'],'models':0,'payloads_decoded':0,'CUDA_initialized':False,'CLAIM_created':False}))
+ else:print(json.dumps(run_v3_issue_mix(a.v3_issue_mix_plan_sha256,a.lane),sort_keys=True))
+# END GX1 V3 DIRECTION ISSUE MIX 20261128
 # END GX1 V3 BLOCK ORDER RECOVERY 20261128
 # END GX1 V3 DIRECTION BLOCK ORDER 20261128
 # END GX1 V3 DIRECTION GRADIENT 20261128

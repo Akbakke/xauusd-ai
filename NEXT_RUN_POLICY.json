@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "V3_ORDER_TRAIN_FAIL_ISSUE_MIX_SOURCE_DESIGN_ONLY",
+  "status": "SOURCE_QUALIFIED_REFERENCE_PLAN_PENDING",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Implement only an exact source-issue-membership control using existing packet/provider/scoring owners: same432update2pass budget and per-step cardinalities, private fixed issue permutations sorted inside each batch, all genuine windows/5TF preserved. Qualify focused source and fresh cold replay before any fit; no execution is admitted yet.",
+  "next_action": "Commit qualified issue-membership source, prepare exact reference plan/current runtime, guarded metadata preflight and SOURCE backup; then one exact new reference/cold/freshfit protocol, no consumed plan relaunch.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -110347,7 +110347,7 @@
     }
   },
   "native_all_tf_provider_hlc_v3_direction_issue_mix_20261128_001": {
-    "status": "SOURCE_DESIGN_ONLY_NOT_EXECUTION_ADMITTED",
+    "status": "SOURCE_QUALIFIED_REFERENCE_PLAN_PENDING",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_DESIGN_20261128_001.json",
       "sha256": "93a59021614b48f67a0b71e66c29926e3fc302d2f4bcf6187e9f8bdf7c0d75d2"
@@ -110359,6 +110359,51 @@
     "relaunch_allowed": false,
     "test_authorized": false,
     "spending_authorized": false,
-    "next_action": "Implement only an exact source-issue-membership control using existing packet/provider/scoring owners: same432update2pass budget and per-step cardinalities, private fixed issue permutations sorted inside each batch, all genuine windows/5TF preserved. Qualify focused source and fresh cold replay before any fit; no execution is admitted yet."
+    "next_action": "Commit qualified issue-membership source, prepare exact reference plan/current runtime, guarded metadata preflight and SOURCE backup; then one exact new reference/cold/freshfit protocol, no consumed plan relaunch.",
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_SOURCE_QUALIFICATION_20261128_001.json",
+      "sha256": "f24d54fec2c37f5707c07f7979954bbe9a9e1cba93e27401d5b30de721ba5154"
+    },
+    "protocol": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_PROTOCOL_20261128_001.json",
+      "sha256": "fe51cc828772f9050b59aef287814b2e0aaa2f1401acefa8b5bdedd5069c74ad"
+    },
+    "original_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_BLOCK_ORDER_20261128_001.json",
+      "sha256": "15a59b3840d61d57d6e217967312a6b76e4e89d256ea902b619ec3fa8099a008"
+    },
+    "active_lane": null,
+    "main_fit_authorized": false,
+    "cold_parity_qualified": false,
+    "fit_complete": false,
+    "lane_gates": {
+      "reference": {
+        "status": "NOT_PREPARED_CLOSED",
+        "plan": null,
+        "execution_authorized": false,
+        "training_authorized": false,
+        "test_authorized": false,
+        "remaining_invocations": 0,
+        "relaunch_allowed": false
+      },
+      "cold": {
+        "status": "NOT_PREPARED_CLOSED",
+        "plan": null,
+        "execution_authorized": false,
+        "training_authorized": false,
+        "test_authorized": false,
+        "remaining_invocations": 0,
+        "relaunch_allowed": false
+      },
+      "fit": {
+        "status": "NOT_PREPARED_CLOSED",
+        "plan": null,
+        "execution_authorized": false,
+        "training_authorized": false,
+        "test_authorized": false,
+        "remaining_invocations": 0,
+        "relaunch_allowed": false
+      }
+    }
   }
 }

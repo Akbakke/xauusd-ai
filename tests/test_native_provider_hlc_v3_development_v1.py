@@ -638,3 +638,165 @@ def test_block_recovery_snapshot_requires_typed_one_use_and_exact_role(monkeypat
     if bad:
         with pytest.raises(ValueError):owner.block_recovery_admission_snapshot(lane,binding,protocol,pref)
     else:assert owner.block_recovery_admission_snapshot(lane,binding,protocol,pref)==sr
+
+
+def issue_mix_fixture():
+    control=json.loads((owner.REPO/'configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_BLOCK_ORDER_20261128_001.json').read_text())
+    design=json.loads(Path(owner.ISSUE_MIX_DESIGN['path']).read_text())
+    return control,design
+
+
+def test_issue_mix_all_legacy_bridges_are_exact():
+    assert owner.issue_mix_source_bridge()['all_old_numeric_context_scoring_and_restore_owners_unchanged']
+    assert owner.block_recovery_source_bridge()['all_old_numeric_order_and_recovery_paths_unchanged']
+    assert owner.block_order_source_bridge()['all_old_numeric_functions_unchanged']
+    assert owner.direction_gradient_source_bridge()['old_numeric_and_recovery_functions_unchanged']
+    assert owner.recovery_source_bridge()['original_development_nn_and_numeric_paths_unchanged']
+    assert owner.development_source_bridge()['baseline74_numeric_functions_changed']==0
+
+
+def test_issue_mix_private_membership_bijections_and_original_step_cardinalities():
+    import numpy as np
+    import random
+    import torch
+    control,design=issue_mix_fixture();before=owner.core.state_sha({'np':np.random.get_state(),'python':random.getstate(),'torch':torch.get_rng_state()})
+    s=owner.issue_mix_schedule(control,design)
+    assert owner.core.state_sha({'np':np.random.get_state(),'python':random.getstate(),'torch':torch.get_rng_state()})==before
+    assert [i for i,n in enumerate(s['logical_step_rows'])if n==87]==[111,428]
+    assert s['raw_permutation_state_sha256_by_pass']==design['ordering']['raw_permutation_state_sha256_by_pass']
+    for p in range(2):
+        parts=s['cohort_takes'][p*216:(p+1)*216]
+        assert sorted(sum(parts,[]))==list(range(20727))
+        assert all(all(b>a for a,b in zip(t,t[1:]))for t in parts)
+        assert owner.core.state_sha(np.concatenate([np.asarray(t,dtype=np.int64)for t in parts]))==design['ordering']['actual_sorted_partition_stream_state_sha256_by_pass'][p]
+    assert [len(t)for t in s['cohort_takes']]==design['ordering']['logical_step_rows']
+    assert owner.issue_mix_validate_schedule(s,control,design)==s
+
+
+@pytest.mark.parametrize('bad',('duplicate','bool','unsorted','cross_batch_swap','87_step','take_hash','raw_hash','stream_hash','control_schedule','old_schedule'))
+def test_issue_mix_changed_membership_or_binding_is_rejected(bad):
+    control,design=issue_mix_fixture();s=owner.issue_mix_schedule(control,design)
+    if bad=='duplicate':s['cohort_takes'][0][0]=s['cohort_takes'][0][1]
+    if bad=='bool':s['cohort_takes'][0][0]=True
+    if bad=='unsorted':s['cohort_takes'][0].reverse()
+    if bad=='cross_batch_swap':s['cohort_takes'][0][0],s['cohort_takes'][1][0]=s['cohort_takes'][1][0],s['cohort_takes'][0][0]
+    if bad=='87_step':s['logical_step_rows'][111],s['logical_step_rows'][215]=s['logical_step_rows'][215],s['logical_step_rows'][111]
+    if bad=='take_hash':s['cohort_take_state_sha256_by_logical_batch'][0]='0'*64
+    if bad=='raw_hash':s['raw_permutation_state_sha256_by_pass'][0]='0'*64
+    if bad=='stream_hash':s['actual_sorted_partition_stream_state_sha256_by_pass'][0]='0'*64
+    if bad=='control_schedule':s['control_schedule_sha256']='0'*64
+    if bad=='old_schedule':s=control['schedule']
+    with pytest.raises(ValueError):owner.issue_mix_validate_schedule(s,control,design)
+
+
+def test_issue_mix_role_limits_keep_exact_numeric_budget():
+    p=original_fit()
+    for lane,updates,forwards,archives,loads in [('reference',2,2,2,0),('cold',1,1,1,1),('fit',432,597,2,0)]:
+        limits=owner.issue_mix_limits(lane,p)
+        assert set(limits)==set(p['limits'])
+        assert limits['optimizer_steps']==limits['backward_calls']==updates
+        assert limits['model_forwards']==limits['backbone_forwards']==limits['readout_forwards']==forwards
+        assert limits['checkpoint_writes']==limits['checkpoint_readbacks']==limits['checkpoint_receipt_writes']==limits['checkpoint_prepublication_loads']==archives
+        assert limits['checkpoint_loads']==limits['model_restores']==loads
+        assert limits['normalization_fits']==limits['prior_fits']==limits['skipped_batches']==0
+
+
+def fake_issue_mix(monkeypatch,lane):
+    import numpy as np
+    import torch
+    from gx1.contracts import market_state_ta_integrated_model_v1 as factory
+    p0,_,runtime,events,_,_=fake_recovery(monkeypatch,'reference',restore_lane='reference');nn=p0['metadata']['original'];control,design=issue_mix_fixture();control=copy.deepcopy(control);control['metadata']['original']=nn
+    source=np.arange(20727,dtype=np.int64);issues=source+100;batches=owner.core.all_score_batches(source,96)
+    canonical={k:copy.deepcopy(v)for k,v in nn['schedule'].items()if k!='contract_sha256'};canonical['batch_source_rows_sha256']=[owner.core.digest(source[t])for t in batches];canonical['batch_issue_ns_sha256']=[owner.core.digest(issues[t])for t in batches];canonical['source_rows_sha256']=owner.core.digest(source);canonical['issue_ns_sha256']=owner.core.digest(issues);nn['schedule']=owner.train.seal(canonical);control['schedule']=owner.block_order_schedule(nn);design['ordering']['control_schedule_sha256']=control['schedule']['contract_sha256'];schedule=owner.issue_mix_schedule(control,design);control_ref={'path':'/original/order.json','sha256':'a'*64};trajectory=owner.issue_mix_trajectory(nn,schedule,control_ref)
+    context={'normalization':{},'input_binding':{},'prior':{},'target_contract':nn['metadata']['target_contract'],'batches':batches,'source_rows':source,'truth':{'issue_ns':issues},'truth_sha256':'synthetic-truth','schedule':nn['schedule']}
+    stream=owner.train.seal({'schedule_sha256':schedule['contract_sha256'],'batches':[{'logical_index':j,'rows':len(t),'cohort_take_state_sha256':owner.core.state_sha(np.asarray(t,dtype=np.int64)),'source_rows_sha256':owner.core.digest(source[t]),'issue_ns_sha256':owner.core.digest(issues[t]),'truth_sha256':str(j),'known_activity_cells':len(t)*5}for j,t in enumerate(schedule['cohort_takes'])]})
+    reference_binding={'path':'/new/reference.json','sha256':'b'*64};binding=reference_binding if lane=='reference'else{'path':'/new/'+lane+'.json','sha256':'c'*64};initial=p0['inputs']['original_INITIAL_score'];cp_ref=p0['inputs']['original_checkpoint'];c1_ref={'path':'/new/REFERENCE_CURSOR001.json','sha256':'d'*64};c2_ref={'path':'/new/REFERENCE_CURSOR002.json','sha256':'e'*64};sr={'path':'/new/STREAM_BINDING.json','sha256':'f'*64}
+    plan={'lane':lane,'metadata':{'original':nn,'control':control,'trajectory':trajectory},'original_plan':control_ref,'schedule':schedule,'parents':{}if lane=='reference'else{'reference':{'plan':reference_binding}},'inputs':{'reference_checkpoint':cp_ref,'reference_cursor1_receipt':c1_ref,'reference_cursor2_receipt':c2_ref,'reference_stream_binding':sr},'initial_reuse':{'INITIAL_score':initial,'truth_sha256':'synthetic-truth'},'limits':owner.issue_mix_limits(lane,nn),'execution':nn['execution'],'panel_indices':[0,107,214],'starting_cursor':1 if lane=='cold'else 0,'ending_cursor':432 if lane=='fit'else 2}
+    monkeypatch.setattr(owner,'development_nn_context',lambda p:context);monkeypatch.setattr(owner,'issue_mix_actual_stream',lambda c,p:stream)
+    model=factory.build_native_future_state_model();opt=torch.optim.AdamW(model.parameters());owner.core.future_cuda_seed_and_runtime({});steps=[];dummy=dict.fromkeys(plan['limits'],0)
+    for j in range(2):
+        rec=owner.train.training_step(model,opt,{'take':np.asarray(schedule['cohort_takes'][j],dtype=np.int64)},nn,dummy,j);rec['issue_mix_binding']=owner.issue_mix_step_binding(schedule,stream,j);steps.append(rec)
+        cp=owner.train.make_checkpoint(model,opt,trajectory=trajectory,original_plan_ref=reference_binding,lane='reference',cursor=j+1,steps=copy.deepcopy(steps),scores={'INITIAL':initial},producer_runtime=runtime)
+        if j==0:c1=cp
+    c1_receipt={'proof':owner.train.checkpoint_proof(c1),'producer_runtime':runtime};c2_receipt={'proof':owner.train.checkpoint_proof(cp)}
+    def read(binding):
+        if binding==owner.ISSUE_MIX_DESIGN:return design
+        if binding==c1_ref:return c1_receipt
+        if binding==c2_ref:return c2_receipt
+        if binding==sr:return stream
+        raise AssertionError(binding)
+    monkeypatch.setattr(owner,'read',read);monkeypatch.setattr(torch,'load',lambda *a,**k:events['loads'].append(a[0])or copy.deepcopy(c1))
+    def restore(m,opt,c,**kwargs):
+        assert kwargs['original_plan_ref']==reference_binding and kwargs['expected_state_proof']==c1_receipt['proof']
+        m.value=c['model_state']['weight'];opt.value=c['optimizer_state']['moment']
+        # The original synthetic RNG dictionary is owned by the core RNG closure.
+        rng=owner.core.training_rng.__closure__[0].cell_contents;rng.update(c['rng_state']);return c['position']
+    monkeypatch.setattr(owner.train,'strict_restore',restore)
+    for v in events.values():v.clear()
+    return plan,binding,runtime,events,c1,c1_receipt,c2_receipt,stream,context
+
+
+@pytest.mark.parametrize('lane',('reference','cold','fit'))
+def test_issue_mix_synthetic_roles_keep_factory_stream_scores_and_checkpoint_counts(monkeypatch,tmp_path,lane):
+    import numpy as np
+    plan,binding,runtime,events,c1,r1,r2,stream,context=fake_issue_mix(monkeypatch,lane);report=owner.issue_mix_physical(plan,binding,tmp_path,runtime)
+    assert report['counts']==plan['limits']and report['scores']['INITIAL']==plan['initial_reuse']['INITIAL_score']
+    assert len(events['loads'])==(1 if lane=='cold'else 0)
+    assert len(events['steps'])==plan['ending_cursor']-plan['starting_cursor']
+    for j,(index,take)in zip(range(plan['starting_cursor'],plan['ending_cursor']),events['steps']):assert index==j and np.array_equal(take,np.asarray(plan['schedule']['cohort_takes'][j],dtype=np.int64))
+    assert [n for n,_ in events['checkpoints']]==(['REFERENCE_CURSOR001.pt','REFERENCE_CURSOR002.pt']if lane=='reference'else['REPLAYED_CURSOR002.pt']if lane=='cold'else['CURSOR001.pt','FINAL.pt'])
+    assert events['scores']==(['PASS1','PASS2']if lane=='fit'else[])
+    if lane=='cold':assert report['all10_proofs_equal']and report['cold_replay_bit_exact']and report['full_cursor2_proof']==r2['proof']
+    if lane=='reference':assert report['full_cursor2_proof']==r2['proof']
+    if lane=='fit':assert report['ending_cursor']==report['new_optimizer_updates']==432 and report['final_order_cursor']['next_issue_batch']is None
+
+
+@pytest.mark.parametrize('bad',('lane','original_plan','runtime','trajectory','order_binding','scores','stream'))
+def test_issue_mix_cold_wrong_lineage_rejected_before_copy(monkeypatch,bad):
+    plan,binding,runtime,events,cp,r1,r2,stream,context=fake_issue_mix(monkeypatch,'cold')
+    if bad in('lane','original_plan','runtime'):cp['producer'][bad]='wrong'
+    if bad=='trajectory':cp['trajectory']=owner.development_trajectory(plan['metadata']['original'])
+    if bad=='order_binding':cp['steps'][0]['issue_mix_binding']['cohort_take_state_sha256']='wrong'
+    if bad=='scores':cp['scores']={'INITIAL':{'path':'/forged/INITIAL.json','sha256':'0'*64}}
+    if bad=='stream':stream['batches'][0]['truth_sha256']='wrong'
+    copied=[];monkeypatch.setattr(owner.train,'strict_restore',lambda *a,**k:copied.append(True))
+    with pytest.raises(ValueError):owner.issue_mix_restore(None,None,cp,plan,runtime,stream)
+    assert not copied
+
+
+def test_issue_mix_cold_C2_mismatch_never_publishes_replay(monkeypatch,tmp_path):
+    plan,binding,runtime,events,cp,r1,r2,*_=fake_issue_mix(monkeypatch,'cold');r2['proof']['optimizer_state']='wrong'
+    with pytest.raises(ValueError,match='COLD_C2_ALL10'):owner.issue_mix_physical(plan,binding,tmp_path,runtime)
+    assert len(events['steps'])==1 and not events['checkpoints']
+
+
+def test_issue_mix_actual_stream_binds_same_source_issue_and_truth_slices(monkeypatch):
+    import numpy as np
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    control,design=issue_mix_fixture();nn=control['metadata']['original'];source=np.arange(20727,dtype=np.int64);issues=source+100;s=owner.issue_mix_schedule(control,design);s['source_rows_sha256']=owner.core.digest(source);s['issue_ns_sha256']=owner.core.digest(issues);s=owner.train.seal({k:v for k,v in s.items()if k!='contract_sha256'})
+    context={'source_rows':source,'truth':{'issue_ns':issues,'label':source%2},'truth_sha256':'truth','schedule':nn['schedule'],'target_contract':{}}
+    plan={'schedule':s,'metadata':{'original':nn},'initial_reuse':{'truth_sha256':'truth'}};seen=[]
+    def slice_truth(truth,take,**kwargs):seen.append(take.copy());return {k:v[take].copy()for k,v in truth.items()}
+    monkeypatch.setattr(owner.train,'slice_provider_hlc_truth',slice_truth);monkeypatch.setattr(objective,'_native_future_state_truth',lambda t,**k:{'activity':np.ones((len(t['issue_ns']),5),dtype=np.bool_)});monkeypatch.setattr(objective,'native_future_state_truth_sha256',lambda t,**k:owner.core.state_sha(t))
+    stream=owner.issue_mix_actual_stream(context,plan)
+    assert len(seen)==432
+    for j,take in enumerate(seen):
+        record=stream['batches'][j];assert np.array_equal(take,np.asarray(s['cohort_takes'][j],dtype=np.int64))
+        assert record['source_rows_sha256']==owner.core.digest(source[take])and record['issue_ns_sha256']==owner.core.digest(issues[take])
+        assert record['truth_sha256']==owner.core.state_sha({k:v[take]for k,v in context['truth'].items()})
+    context['truth']['label'][0]^=1
+    assert owner.issue_mix_actual_stream(context,plan)['ordered_truth_binding_sha256']!=stream['ordered_truth_binding_sha256']
+    context['truth_sha256']='wrong'
+    with pytest.raises(ValueError,match='ACTUAL_COHORT_IDENTITY'):owner.issue_mix_actual_stream(context,plan)
+
+
+@pytest.mark.parametrize('lane',('reference','cold','fit'))
+@pytest.mark.parametrize('bad',(False,True))
+def test_issue_mix_snapshot_preserves_exact_role_and_strict_gate_types(monkeypatch,lane,bad):
+    binding={'path':'/new/'+lane+'.json','sha256':'1'*64};pr={'path':'/new/protocol.json','sha256':'2'*64};sr={'path':str(owner.issue_mix_snapshot_path(lane)),'sha256':'3'*64};pref={'path':str(owner.POLICY),'sha256':'3'*64};control,design=issue_mix_fixture()
+    p={k:(k in owner.DEV_FLAGS[:2])for k in owner.DEV_FLAGS};p[owner.ISSUE_MIX_STAGE]={'execution_authorized':True,'active_lane':lane,'protocol':pr,'design':owner.ISSUE_MIX_DESIGN,'original_plan':design['evidence']['original_plan'],'main_fit_authorized':False,'test_authorized':False,'spending_authorized':False,'lane_gates':{lane:owner.issue_mix_gate(binding,lane,True)}}
+    if bad:p[owner.ISSUE_MIX_STAGE]['lane_gates'][lane]['remaining_invocations']=True
+    monkeypatch.setattr(owner,'ref',lambda path:sr);monkeypatch.setattr(owner,'read',lambda binding:design if binding==owner.ISSUE_MIX_DESIGN else p)
+    if bad:
+        with pytest.raises(ValueError):owner.issue_mix_admission_snapshot(lane,binding,pr,pref)
+    else:assert owner.issue_mix_admission_snapshot(lane,binding,pr,pref)==sr

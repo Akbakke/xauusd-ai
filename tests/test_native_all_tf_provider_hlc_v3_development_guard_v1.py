@@ -1043,3 +1043,271 @@ def test_block_order_recovery_bridge_rejects_unreviewed_delta(monkeypatch,bad):
             return text
         monkeypatch.setattr(Path,'read_text',changed)
     with pytest.raises(RuntimeError):g.native_v3_block_order_recovery_source_bridge(owners)
+
+
+ISSUE_MIX_NAME = 'NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001'
+ISSUE_MIX_LANES = ('reference', 'cold', 'fit')
+
+
+@pytest.mark.parametrize('lane', ISSUE_MIX_LANES)
+def test_issue_mix_reuses_exact_existing_technical_and_fit_resources(lane):
+    phase = 'fit' if lane == 'fit' else 'cold' if lane == 'cold' else 'warm'
+    assert g._native_v3_issue_mix_execution(lane) == g._native_v3_development_execution(phase)
+    assert g._V3_ISSUE_MIX_PROFILE == 'gx1_native_provider_hlc_v3_issue_mix_trainer20g_v1'
+
+
+def _actual_issue_mix_owners():
+    repo = Path(g.__file__).resolve().parents[2]
+    return {n: hashlib.sha256(subprocess.check_output(
+        ['git', 'show', g._V3_ISSUE_MIX_PARENT + ':' + n], cwd=repo)).hexdigest() for n in OWNERS}
+
+
+def test_issue_mix_bridge_preserves_all_previous_guard_and_shell_bytes():
+    proof = g.native_v3_issue_mix_source_bridge(_actual_issue_mix_owners())
+    assert proof['checked_guard_owners'] == 2 and proof['old_guard_routes_preserved']
+    assert proof['old_numeric_resource_environment_function_unchanged']
+    assert proof['new_issue_mix_controlflow_requires_scoped_review'] is True
+
+
+@pytest.mark.parametrize('bad', ('legacy_resource', 'new_shell_limit', 'extra_statement', 'producer_hash'))
+def test_issue_mix_bridge_rejects_unreviewed_predecessor_or_shell_delta(monkeypatch, bad):
+    owners = _actual_issue_mix_owners()
+    if bad == 'producer_hash':
+        owners[OWNERS[0]] = '0' * 64
+    else:
+        original = Path.read_text; repo = Path(g.__file__).resolve().parents[2]
+        def changed(path, *args, **kwargs):
+            text = original(path, *args, **kwargs)
+            if path == repo / OWNERS[0] and bad == 'legacy_resource':
+                text = text.replace('_MAX_MEMORY_BYTES = 20 * 1024**3', '_MAX_MEMORY_BYTES = 21 * 1024**3', 1)
+            if path == repo / OWNERS[0] and bad == 'extra_statement':
+                text = text.replace('def _main() -> int:', 'UNREVIEWED_ISSUE_MIX_ADDITION = True\n\ndef _main() -> int:', 1)
+            if path == repo / OWNERS[1] and bad == 'new_shell_limit':
+                fragment = g._V3_ISSUE_MIX_SHELL_ADDITIONS[1][2]
+                text = text.replace(fragment, fragment.replace('TRAINER_GPU_MAX_POWER_DRAW_W=250',
+                    'TRAINER_GPU_MAX_POWER_DRAW_W=251'), 1)
+            return text
+        monkeypatch.setattr(Path, 'read_text', changed)
+    with pytest.raises(RuntimeError):
+        g.native_v3_issue_mix_source_bridge(owners)
+
+
+def issue_mix_fixture(monkeypatch, tmp_path, lane='fit', preflight=False, bad=None):
+    f = block_order_recovery_fixture(monkeypatch, tmp_path, preflight=True)
+    repo, runs = f['repo'], f['runs']; control = f['plan']['metadata']['original']
+    original = control['metadata']['original']
+    original['schedule'].update(rows=20727, source_rows_sha256='1' * 64, issue_ns_sha256='2' * 64)
+    control['schedule']['original_batch_rows'] = [96] * 215 + [87]
+    control['initial_reuse'] = {'INITIAL_score': {'path': str(runs / 'INITIAL_SCORE.json'), 'sha256': '3' * 64}}
+    control_ref = dict(path=str(repo / 'configs/research' / (BLOCK_ORDER_NAME + '.json')),
+        sha256='15a59b3840d61d57d6e217967312a6b76e4e89d256ea902b619ec3fa8099a008')
+    evidence = runs / 'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'; evidence.mkdir()
+    design_ref = dict(path=str(evidence / 'V3_DIRECTION_ISSUE_MIX_DESIGN_20261128_001.json'),
+        sha256='93a59021614b48f67a0b71e66c29926e3fc302d2f4bcf6187e9f8bdf7c0d75d2')
+    sizes = [control['schedule']['original_batch_rows'][i] for i in control['schedule']['logical_original_batch_ids']]
+    # Structural synthetic partitions only; the leaf tests own canonical private-PCG64 generation.
+    takes = []
+    for p in range(2):
+        offset = 0
+        for size in sizes[p * 216:(p + 1) * 216]:
+            takes.append(list(range(offset, offset + size))); offset += size
+    ordering = dict(generator='private_numpy_Generator_PCG64', logical_step_rows=sizes,
+        control_schedule_sha256=control['schedule']['contract_sha256'],
+        raw_permutation_state_sha256_by_pass=['4' * 64, '5' * 64],
+        actual_sorted_partition_stream_state_sha256_by_pass=['6' * 64, '7' * 64],
+        actual_cohort_take_state_sha256_by_logical_batch=['8' * 64] * 432)
+    design = dict(ordering=ordering, single_changed_variable='TRAIN minibatch membership only')
+    schedule = dict(schema_version='gx1_native_v3_issue_mix_schedule_v1', rows=20727, passes=2,
+        batch_rows=96, batches_per_pass=216, logical_batches=432, optimizer_updates=432, skipped_batches=0,
+        seed=20260911, drop_last=False, shuffle=True, generator=ordering['generator'], update_flags=[True] * 432,
+        logical_step_rows=sizes, cohort_takes=takes, control_schedule_sha256=ordering['control_schedule_sha256'],
+        raw_permutation_state_sha256_by_pass=ordering['raw_permutation_state_sha256_by_pass'],
+        actual_sorted_partition_stream_state_sha256_by_pass=ordering['actual_sorted_partition_stream_state_sha256_by_pass'],
+        cohort_take_state_sha256_by_logical_batch=ordering['actual_cohort_take_state_sha256_by_logical_batch'],
+        source_rows_sha256=original['schedule']['source_rows_sha256'], issue_ns_sha256=original['schedule']['issue_ns_sha256'])
+    trajectory = dict(schedule=schedule, control_plan=control_ref, issue_mix_design=design_ref)
+    limits = {}
+    for role in ISSUE_MIX_LANES:
+        values = dict.fromkeys(original['limits'], 0)
+        updates, fw, writes = dict(reference=(2, 2, 2), cold=(1, 1, 1), fit=(432, 597, 2))[role]
+        values.update(model_constructions=1, optimizer_constructions=1, feature_cache_payload_loads=1,
+            target_archive_loads=1, model_forwards=fw, backbone_forwards=fw, readout_forwards=fw,
+            optimizer_steps=updates, backward_calls=updates, checkpoint_writes=writes, checkpoint_readbacks=writes,
+            checkpoint_receipt_writes=writes, checkpoint_prepublication_loads=writes)
+        if role == 'cold': values.update(checkpoint_loads=1, model_restores=1)
+        if role == 'fit': values.update(autograd_calls=9, logit_archive_writes=2, logit_archive_readbacks=2)
+        limits[role] = values
+    scope = dict(candidate_phase='PASS2', single_changed_variable=design['single_changed_variable'],
+        only_all5_and_original_stability_criteria=True, technical_weights_never_initializer=True,
+        TEST_VAL_M1_GC_trade_spending=False)
+    protocol = dict(schema_version='gx1_v3_direction_issue_mix_protocol_v1', experiment_id=ISSUE_MIX_NAME,
+        design=design_ref, original_plan=control_ref, original_schedule=control['schedule'],
+        original_trajectory=trajectory, schedule=schedule, recipe=original['recipe'],
+        initial_reuse=control['initial_reuse'], physical_input_identity={'binding': 'unchanged'}, limits=limits, scope=scope)
+    owners = original['source_owners']
+    bridge = dict(producer_commit=g._V3_ISSUE_MIX_PARENT,
+        owners={n: dict(original_sha256='f' * 64, current_sha256=owners[n]) for n in OWNERS})
+    if bad == 'unsorted_take': takes[0].reverse()
+    if bad == 'boolean_take': takes[0][1] = True
+    if bad == 'duplicate_take': takes[0][1] = takes[0][0]
+    if bad == 'cross_batch_duplicate': takes[1][0] = takes[0][0]; takes[1].sort()
+    if bad == 'boolean_geometry': schedule['skipped_batches'] = False
+    if bad == 'integer_update_flag': schedule['update_flags'][0] = 1
+    if bad == 'source_hash': schedule['source_rows_sha256'] = '9' * 64
+    if bad == 'design_take_hash': schedule['cohort_take_state_sha256_by_logical_batch'] = ['9' * 64] * 432
+    if bad == 'budget_bool': limits[lane]['model_constructions'] = True
+    if bad == 'optimizer_steps': limits[lane]['optimizer_steps'] += 1
+    if bad == 'checkpoint_loads': limits[lane]['checkpoint_loads'] += 1
+    if bad == 'absolute_criteria': scope['only_all5_and_original_stability_criteria'] = False
+    proto = repo / 'configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_PROTOCOL_20261128_001.json'
+    proto.write_text(json.dumps(protocol)); protocol_ref = dict(path=str(proto), sha256=hashlib.sha256(proto.read_bytes()).hexdigest())
+    if bad == 'valid_plan_membership_swap':
+        # A valid bijection in the role plan must still match the frozen common protocol.
+        takes[0][0], takes[1][0] = takes[1][0], takes[0][0]; takes[0].sort(); takes[1].sort()
+    parents = {}
+    for role in (() if lane == 'reference' else ('reference',) if lane == 'cold' else ('reference', 'cold')):
+        previous = dict(lane=role, protocol=protocol_ref, source_commit='c' * 40 if bad == 'parent_source' else 'a' * 40,
+            source_owners=owners, schedule=schedule, metadata={'trajectory': trajectory})
+        parent_path = repo / 'configs/research' / (ISSUE_MIX_NAME + '_' + role.upper() + '.json')
+        parent_path.write_text(json.dumps(previous)); parents[role] = {'plan': dict(path=str(parent_path), sha256=hashlib.sha256(parent_path.read_bytes()).hexdigest())}
+    output = runs / (ISSUE_MIX_NAME + '_' + lane)
+    plan = dict(schema_version='gx1_native_v3_direction_issue_mix_plan_v1', stage=ISSUE_MIX_NAME.lower(),
+        lane=lane, source_commit='a' * 40, source_owners=owners, output_root=str(output),
+        execution_profile=g._V3_ISSUE_MIX_PROFILE, execution=g._native_v3_issue_mix_execution(lane),
+        original_plan=control_ref, design=design_ref, protocol=protocol_ref,
+        metadata={'original': original, 'control': control, 'trajectory': trajectory},
+        recipe=original['recipe'], model_contract=original['model_contract'], initial_reference=original['initial_reference'],
+        initial_reuse=control['initial_reuse'], physical_input_identity=protocol['physical_input_identity'],
+        scope=scope, schedule=schedule, limits=limits[lane], guard_source_bridge=bridge, parents=parents,
+        backbone_gradient_policy=None, starting_cursor=1 if lane == 'cold' else 0, ending_cursor=432 if lane == 'fit' else 2,
+        checkpoint_cursors=[1, 432] if lane == 'fit' else [1, 2] if lane == 'reference' else [2], panel_indices=[0, 107, 214])
+    if bad == 'schema': plan['schema_version'] = 'old'
+    if bad == 'profile': plan['execution_profile'] = 'generic_trainer'
+    if bad == 'execution': plan['execution']['GPU_draw_stop_W'] = 251
+    if bad == 'original_plan': plan['original_plan'] = original['original_plan'] if 'original_plan' in original else {}
+    if bad == 'model': plan['model_contract'] = {}
+    if bad == 'initializer': plan['initial_reference'] = {'checkpoint': 'FINAL.pt'}
+    if bad == 'backbone_policy': plan['backbone_gradient_policy'] = 'side_only'
+    if bad == 'trajectory': plan['metadata']['trajectory'] = {}
+    if bad == 'checkpoint_cursor': plan['checkpoint_cursors'] = [1, 431]
+    if bad == 'panels': plan['panel_indices'] = [0, 107, 215]
+    if bad == 'owner': plan['source_owners'] = {**owners, OWNERS[0]: '0' * 64}
+    if bad == 'bridge': plan['guard_source_bridge'] = {**bridge, 'extra': True}
+    path = repo / 'configs/research' / (ISSUE_MIX_NAME + '_' + lane.upper() + '.json')
+    path.write_text(json.dumps(plan)); digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    gate = dict(status='PREPARED_CLOSED_NOT_ADMITTED' if preflight else 'ADMITTED_EXACT_V3_ISSUE_MIX_' + lane.upper(),
+        plan=dict(path=str(path), sha256=digest), execution_authorized=not preflight,
+        remaining_invocations=int(not preflight), relaunch_allowed=False, training_authorized=not preflight, test_authorized=False)
+    closed = lambda binding: dict(status='CLOSED_CONSUMED_COMPLETE', plan=binding, execution_authorized=False,
+        remaining_invocations=0, relaunch_allowed=False, training_authorized=False, test_authorized=False)
+    gates = {role: closed(value['plan']) for role, value in parents.items()}; gates[lane] = gate
+    parent = dict(original_plan=control_ref, design=design_ref, protocol=protocol_ref, main_fit_authorized=False,
+        test_authorized=False, spending_authorized=False, status='SOURCE_PREPARATION_ONLY' if preflight else gate['status'],
+        execution_authorized=not preflight, active_lane=None if preflight else lane, lane_gates=gates)
+    policy_path = repo / 'NEXT_RUN_POLICY.json'; policy = json.loads(policy_path.read_text())
+    for key in ('training_enabled', 'native_training_enabled'): policy[key] = not preflight
+    policy[ISSUE_MIX_NAME.lower()] = parent
+    if bad == 'boolean_gate': gate['remaining_invocations'] = not preflight
+    if bad == 'inactive_boolean_gate':
+        extra = 'cold' if lane == 'reference' else 'reference'; gates[extra] = closed({}); gates[extra]['remaining_invocations'] = False
+    if bad == 'second_lane': gates['cold' if lane == 'reference' else 'reference'] = gate
+    if bad == 'flags': policy['full_val_allowed'] = True
+    if bad == 'old_route': policy[ORDER_RECOVERY_NAME.lower()]['execution_authorized'] = True
+    if bad == 'parent_protocol': parent['protocol'] = {}
+    if bad == 'parent_lane': parent['active_lane'] = 'wrong'
+    policy_path.write_text(json.dumps(policy))
+    snapshot = evidence / ('V3_DIRECTION_ISSUE_MIX_' + lane.upper() + '_ADMITTED_POLICY_20261128_001.json')
+    if not preflight: snapshot.write_bytes(b'{}' if bad == 'snapshot' else policy_path.read_bytes())
+    if bad == 'existing': output.mkdir()
+    if bad == 'symlink':
+        other = path.with_suffix('.original'); path.rename(other); path.symlink_to(other)
+    read = g._native_v3_development_read
+    def fixture_read(candidate, candidate_digest=None):
+        if str(candidate) == control_ref['path']:
+            assert candidate_digest == control_ref['sha256']; return control
+        if str(candidate) == design_ref['path']:
+            assert candidate_digest == design_ref['sha256']; return design
+        return read(candidate, candidate_digest)
+    monkeypatch.setattr(g, '_native_v3_development_read', fixture_read)
+    monkeypatch.setattr(g, 'native_v3_issue_mix_source_bridge', lambda *a, **k: bridge)
+    argv = [str(repo / 'gx1/audit/native_provider_hlc_learning_v1.py'), '--v3-issue-mix-plan-sha256', digest, '--lane', lane]
+    if preflight: argv += ['--preflight']
+    if bad == 'argv': argv += ['--phase', 'fit']
+    if bad == 'python': monkeypatch.setattr(sys, 'executable', '/usr/bin/python3')
+    monkeypatch.setattr(sys, 'argv', argv)
+    for key in list(os.environ):
+        if key.startswith('GX1_NATIVE_'): monkeypatch.delenv(key)
+    execution = g._native_v3_issue_mix_execution(lane)
+    env = dict(GX1_NATIVE_V3_ISSUE_MIX='true', GX1_NATIVE_V3_ISSUE_MIX_PLAN_SHA256=digest,
+        GX1_NATIVE_V3_ISSUE_MIX_LANE=lane, GX1_TRAINER_MAX_WALL_SECONDS=str(execution['outer_seconds']),
+        GX1_TRAINER_MODEL_MAX_WALL_SECONDS=str(execution['internal_seconds']))
+    if bad == 'hardware_env': env['GX1_TRAINER_GPU_MAX_POWER_DRAW_W'] = '251'
+    if bad == 'unknown_env': env['GX1_NATIVE_V3_ISSUE_MIX_UNSAFE'] = 'false'
+    if bad == 'legacy_env': env['GX1_NATIVE_V3_BLOCK_ORDER_RECOVERY'] = 'true'
+    for key, value in env.items(): monkeypatch.setenv(key, value)
+    return dict(f, path=path, digest=digest, plan=plan, output=output, lane=lane,
+        call=lambda: g.require_native_v3_issue_mix_execution(plan_sha256=digest, lane=lane))
+
+
+@pytest.mark.parametrize('lane', ISSUE_MIX_LANES)
+@pytest.mark.parametrize('preflight', (False, True))
+def test_issue_mix_exact_role_guard_has_only_resource_authority(monkeypatch, tmp_path, lane, preflight):
+    f = issue_mix_fixture(monkeypatch, tmp_path, lane, preflight)
+    proof = f['call']()
+    assert proof['lane'] == lane and proof['preflight'] is preflight and f['called'] == ['cuda']
+    assert proof['training_authority_granted'] is proof['optimizer_authority_granted'] is False
+    assert not f['output'].exists()
+
+
+@pytest.mark.parametrize('bad', ('schema', 'profile', 'execution', 'original_plan', 'model', 'initializer',
+    'backbone_policy', 'trajectory', 'checkpoint_cursor', 'panels', 'owner', 'bridge', 'unsorted_take',
+    'boolean_take', 'duplicate_take', 'cross_batch_duplicate', 'boolean_geometry', 'integer_update_flag',
+    'source_hash', 'design_take_hash', 'valid_plan_membership_swap', 'budget_bool', 'optimizer_steps',
+    'checkpoint_loads', 'absolute_criteria', 'parent_source', 'boolean_gate', 'inactive_boolean_gate',
+    'second_lane', 'flags', 'old_route', 'parent_protocol', 'parent_lane', 'snapshot', 'existing', 'symlink',
+    'argv', 'python', 'hardware_env', 'unknown_env', 'legacy_env'))
+def test_issue_mix_rejects_mismatched_membership_source_or_admission(monkeypatch, tmp_path, bad):
+    f = issue_mix_fixture(monkeypatch, tmp_path, bad=bad)
+    with pytest.raises(RuntimeError): f['call']()
+    assert not f['called']
+
+
+def test_issue_mix_preflight_rejects_false_boolean_invocation_count(monkeypatch, tmp_path):
+    f = issue_mix_fixture(monkeypatch, tmp_path, lane='reference', preflight=True, bad='boolean_gate')
+    with pytest.raises(RuntimeError, match='ISSUE_MIX_TYPED_LANES'): f['call']()
+    assert not f['called']
+
+
+@pytest.mark.parametrize('lane', ISSUE_MIX_LANES)
+def test_issue_mix_guard_requests_only_actual_wrapper_exports(monkeypatch, tmp_path, lane):
+    f = issue_mix_fixture(monkeypatch, tmp_path, lane, preflight=True)
+    wrapper = (Path(__file__).resolve().parents[1] / 'scripts/gx1_capped_run.sh').read_text()
+    exported = set(re.findall(r'--setenv=([A-Z0-9_]+)=', wrapper)); requested = set()
+    class ActualWrapperEnvironment(dict):
+        def get(self, key, default=None):
+            requested.add(key); return super().get(key, default)
+    actual = {k: v for k, v in os.environ.items() if not k.startswith('GX1_') or k in exported}
+    monkeypatch.setattr(os, 'environ', ActualWrapperEnvironment(actual)); f['call']()
+    assert requested <= exported and f['called'] == ['cuda']
+
+
+@pytest.mark.parametrize('lane', ISSUE_MIX_LANES)
+def test_issue_mix_shell_exact_roles_and_unchanged_profiles(monkeypatch, tmp_path, lane):
+    f = issue_mix_fixture(monkeypatch, tmp_path, lane)
+    variables, functions, dispatch, _ = [v[2] for v in g._V3_ISSUE_MIX_SHELL_ADDITIONS]
+    functions = functions.replace('/home/andre2/GX1_RUNS', str(f['runs']))
+    state = dict(REPO_ROOT=str(f['repo']), CANONICAL_TRAINER_PYTHON=str(f['repo'] / '.venv/bin/python'),
+        JOB_CLASS='trainer', MEM='20G', SWAP='512M', ATTENDED_SMOKE='false', CUDA_PRODUCER_GUARD='false',
+        POWER_BENCHMARK_SCOPE_JSON='', POWER_BENCHMARK_SCOPE_SHA256='')
+    script = 'set -eu\n' + ''.join(k + '=' + shlex.quote(v) + '\n' for k, v in state.items()) + variables + functions
+    script += 'validate_target_command() {\n' + dispatch + 'return 88\n}\n'
+    argv = [state['CANONICAL_TRAINER_PYTHON'], '-m', 'gx1.audit.native_provider_hlc_learning_v1',
+        '--v3-issue-mix-plan-sha256', f['digest'], '--lane', lane]
+    for extra in ([], ['--preflight'], ['--phase', 'fit']):
+        tail = 'validate_target_command ' + ' '.join(map(shlex.quote, argv + extra))
+        tail += '\nprintf "%s,%s,%s,%s\\n" "$NATIVE_V3_ISSUE_MIX_LANE" "$TRAINER_MAX_WALL_SECONDS" "$TRAINER_MODEL_MAX_WALL_SECONDS" "$TRAINER_OUT_BUNDLE_DIR"\n'
+        result = subprocess.run(['bash', '-c', script + tail], cwd=f['repo'], capture_output=True, text=True)
+        assert result.returncode == (75 if extra == ['--phase', 'fit'] else 0), result.stderr
+        if result.returncode == 0:
+            timing = ['5400', '5370'] if lane == 'fit' else ['1800', '1770']
+            assert result.stdout.strip() == ','.join([lane, *timing, str(f['output'])])

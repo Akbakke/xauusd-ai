@@ -3252,6 +3252,7 @@ _V3_BLOCK_ORDER_RECOVERY_PARENT = 'd405fbebdcd0621501def940bd90855bd1c5709f'
 _V3_BLOCK_ORDER_RECOVERY_SHELL_ADDITIONS = (('NATIVE_V3_DIRECTION_BLOCK_ORDER=false\n', 'before', 'NATIVE_V3_BLOCK_ORDER_RECOVERY=false\nNATIVE_V3_BLOCK_ORDER_RECOVERY_PLAN_SHA256=\nNATIVE_V3_BLOCK_ORDER_RECOVERY_LANE=\n'), ('# BEGIN GX1 V3 DIRECTION BLOCK ORDER ROUTE 20261128 001\n', 'before', '# BEGIN GX1 V3 BLOCK ORDER RECOVERY ROUTE 20261128 001\nmatches_bound_native_v3_block_order_recovery() {\n  if [[ $# -eq 8 ]]; then\n    [[ "$8" == --preflight ]] || return 1\n    set -- "${@:1:7}"\n  fi\n  [[ $# -eq 7 && "$(pwd -P)" == "$REPO_ROOT" \\\n    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == gx1.audit.native_provider_hlc_learning_v1 \\\n    && "$4" == --v3-block-order-recovery-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ \\\n    && "$6" == --lane ]] || return 1\n  case "$7" in reference|cold|recovery) ;; *) return 1 ;; esac\n  local plan_suffix="${7^^}"\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_BLOCK_ORDER_RECOVERY_20261128_001_${plan_suffix}.json"\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" \\\n    && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\nconfigure_native_v3_block_order_recovery() {\n  matches_bound_native_v3_block_order_recovery "$@" || { echo \'FATAL: exact V3 development CLI/plan required\' >&2; exit 75; }\n  [[ "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \\\n    && "$SWAP" == 512M && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo \'FATAL: V3 development forbids alternate resource modes\' >&2; exit 75;\n  }\n  local output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_BLOCK_ORDER_RECOVERY_20261128_001_$7"\n  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \\\n    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {\n    echo \'FATAL: V3 development output must be fresh and canonical\' >&2; exit 75;\n  }\n  NATIVE_V3_BLOCK_ORDER_RECOVERY=true\n  NATIVE_V3_BLOCK_ORDER_RECOVERY_PLAN_SHA256="$5"\n  NATIVE_V3_BLOCK_ORDER_RECOVERY_LANE="$7"\n  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G ]] || { echo \'FATAL: V3 NN requires canonical trainer20G\' >&2; exit 75; }\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$output"\n  TRAINER_MAX_WALL_SECONDS=1800\n  TRAINER_MODEL_MAX_WALL_SECONDS=1770\n  if [[ "$7" == recovery ]]; then TRAINER_MAX_WALL_SECONDS=5400; TRAINER_MODEL_MAX_WALL_SECONDS=5370; fi\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 V3 BLOCK ORDER RECOVERY ROUTE 20261128 001\n\n'), ('# BEGIN GX1 V3 DIRECTION BLOCK ORDER DISPATCH 20261128 001\n', 'before', '# BEGIN GX1 V3 BLOCK ORDER RECOVERY DISPATCH 20261128 001\n  local block_order_recovery_arg\n  for block_order_recovery_arg in "$@"; do\n    case "$block_order_recovery_arg" in\n      --v3-block-order-recovery-plan-sha256|--v3-block-order-recovery-plan-sha256=*) configure_native_v3_block_order_recovery "$@"; return ;;\n    esac\n  done\n# END GX1 V3 BLOCK ORDER RECOVERY DISPATCH 20261128 001\n'), ('  --setenv=GX1_NATIVE_V3_DIRECTION_BLOCK_ORDER="$NATIVE_V3_DIRECTION_BLOCK_ORDER" \\\n', 'before', '  --setenv=GX1_NATIVE_V3_BLOCK_ORDER_RECOVERY="$NATIVE_V3_BLOCK_ORDER_RECOVERY" \\\n  --setenv=GX1_NATIVE_V3_BLOCK_ORDER_RECOVERY_PLAN_SHA256="$NATIVE_V3_BLOCK_ORDER_RECOVERY_PLAN_SHA256" \\\n  --setenv=GX1_NATIVE_V3_BLOCK_ORDER_RECOVERY_LANE="$NATIVE_V3_BLOCK_ORDER_RECOVERY_LANE" \\\n'))
 
 def _native_v3_block_order_recovery_without_additions(current):
+    current=_native_v3_issue_mix_without_additions(current)
     require=_native_v3_development_require;names=('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')
     current=dict(current);begin='# BEGIN GX1 V3 BLOCK ORDER RECOVERY GUARDS 20261128 001\n';end='# END GX1 V3 BLOCK ORDER RECOVERY GUARDS 20261128 001\n\n'
     text=current[names[0]];require(text.count(begin)==text.count(end)==1,'ONE_BLOCK_ORDER_RECOVERY_BLOCK')
@@ -3391,6 +3392,258 @@ def require_native_v3_block_order_recovery_execution(*,plan_sha256,lane):
         'training_authority_granted':False,'optimizer_authority_granted':False}
 
 # END GX1 V3 BLOCK ORDER RECOVERY GUARDS 20261128 001
+
+# BEGIN GX1 V3 ISSUE MIX GUARDS 20261128 001
+_V3_ISSUE_MIX_NAME = 'NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001'
+_V3_ISSUE_MIX_PARENT = '4cb788b15fb47f2b6b2273d34485a34753649f72'
+_V3_ISSUE_MIX_PROFILE = 'gx1_native_provider_hlc_v3_issue_mix_trainer20g_v1'
+_V3_ISSUE_MIX_SHELL_ADDITIONS = (('NATIVE_V3_BLOCK_ORDER_RECOVERY=false\n', 'before', 'NATIVE_V3_ISSUE_MIX=false\nNATIVE_V3_ISSUE_MIX_PLAN_SHA256=\nNATIVE_V3_ISSUE_MIX_LANE=\n'), ('# BEGIN GX1 V3 BLOCK ORDER RECOVERY ROUTE 20261128 001\n', 'before', '# BEGIN GX1 V3 ISSUE MIX ROUTE 20261128 001\nmatches_bound_native_v3_issue_mix() {\n  if [[ $# -eq 8 ]]; then\n    [[ "$8" == --preflight ]] || return 1\n    set -- "${@:1:7}"\n  fi\n  [[ $# -eq 7 && "$(pwd -P)" == "$REPO_ROOT" \\\n    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == gx1.audit.native_provider_hlc_learning_v1 \\\n    && "$4" == --v3-issue-mix-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ \\\n    && "$6" == --lane ]] || return 1\n  case "$7" in reference|cold|fit) ;; *) return 1 ;; esac\n  local plan_suffix="${7^^}"\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_${plan_suffix}.json"\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" \\\n    && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\nconfigure_native_v3_issue_mix() {\n  matches_bound_native_v3_issue_mix "$@" || { echo \'FATAL: exact V3 issue mix CLI/plan required\' >&2; exit 75; }\n  [[ "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \\\n    && "$SWAP" == 512M && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo \'FATAL: V3 issue mix forbids alternate resource modes\' >&2; exit 75;\n  }\n  local output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_$7"\n  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \\\n    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {\n    echo \'FATAL: V3 issue mix output must be fresh and canonical\' >&2; exit 75;\n  }\n  NATIVE_V3_ISSUE_MIX=true\n  NATIVE_V3_ISSUE_MIX_PLAN_SHA256="$5"\n  NATIVE_V3_ISSUE_MIX_LANE="$7"\n  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G ]] || { echo \'FATAL: V3 NN requires canonical trainer20G\' >&2; exit 75; }\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$output"\n  TRAINER_MAX_WALL_SECONDS=1800\n  TRAINER_MODEL_MAX_WALL_SECONDS=1770\n  if [[ "$7" == fit ]]; then TRAINER_MAX_WALL_SECONDS=5400; TRAINER_MODEL_MAX_WALL_SECONDS=5370; fi\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 V3 ISSUE MIX ROUTE 20261128 001\n\n'), ('# BEGIN GX1 V3 BLOCK ORDER RECOVERY DISPATCH 20261128 001\n', 'before', '# BEGIN GX1 V3 ISSUE MIX DISPATCH 20261128 001\n  local issue_mix_arg\n  for issue_mix_arg in "$@"; do\n    case "$issue_mix_arg" in\n      --v3-issue-mix-plan-sha256|--v3-issue-mix-plan-sha256=*) configure_native_v3_issue_mix "$@"; return ;;\n    esac\n  done\n# END GX1 V3 ISSUE MIX DISPATCH 20261128 001\n'), ('  --setenv=GX1_NATIVE_V3_BLOCK_ORDER_RECOVERY="$NATIVE_V3_BLOCK_ORDER_RECOVERY" \\\n', 'before', '  --setenv=GX1_NATIVE_V3_ISSUE_MIX="$NATIVE_V3_ISSUE_MIX" \\\n  --setenv=GX1_NATIVE_V3_ISSUE_MIX_PLAN_SHA256="$NATIVE_V3_ISSUE_MIX_PLAN_SHA256" \\\n  --setenv=GX1_NATIVE_V3_ISSUE_MIX_LANE="$NATIVE_V3_ISSUE_MIX_LANE" \\\n'))
+
+
+def _native_v3_issue_mix_execution(lane):
+    _native_v3_development_require(lane in ('reference', 'cold', 'fit'), 'ISSUE_MIX_LANE')
+    return _native_v3_development_execution('fit' if lane == 'fit' else 'cold' if lane == 'cold' else 'warm')
+
+
+def _native_v3_issue_mix_without_additions(current):
+    require = _native_v3_development_require
+    names = ('gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh')
+    current = dict(current)
+    begin = '# BEGIN GX1 V3 ISSUE MIX GUARDS 20261128 001\n'
+    end = '# END GX1 V3 ISSUE MIX GUARDS 20261128 001\n\n'
+    text = current[names[0]]
+    require(text.count(begin) == text.count(end) == 1, 'ONE_ISSUE_MIX_BLOCK')
+    first, tail = text.split(begin); _, last = tail.split(end); text = first + last
+    hook = '    current=_native_v3_issue_mix_without_additions(current)\n'
+    require(text.count(hook) == 1, 'ONE_ISSUE_MIX_BRIDGE_HOOK')
+    current[names[0]] = text.replace(hook, '', 1)
+    shell = current[names[1]]
+    for anchor, position, fragment in _V3_ISSUE_MIX_SHELL_ADDITIONS:
+        require(position == 'before' and shell.count(anchor) == shell.count(fragment)
+                == shell.count(fragment + anchor) == 1, 'EXACT_ISSUE_MIX_SHELL_ADDITION')
+        shell = shell.replace(fragment + anchor, anchor, 1)
+    current[names[1]] = shell
+    return current
+
+
+def native_v3_issue_mix_source_bridge(producer_hashes, *, producer_commit=_V3_ISSUE_MIX_PARENT):
+    import hashlib, subprocess
+    require = _native_v3_development_require
+    require(producer_commit == _V3_ISSUE_MIX_PARENT, 'ISSUE_MIX_BRIDGE_PARENT')
+    repo = Path(__file__).resolve().parents[2]
+    names = ('gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh')
+    before = {n: subprocess.check_output(['git', 'show', producer_commit + ':' + n], cwd=repo).decode() for n in names}
+    original = {n: hashlib.sha256(v.encode()).hexdigest() for n, v in before.items()}
+    require(producer_hashes == original, 'ISSUE_MIX_BRIDGE_PRODUCER_HASHES')
+    current = {n: (repo / n).read_text() for n in names}
+    require(_native_v3_issue_mix_without_additions(current) == before, 'ISSUE_MIX_UNCHANGED_PREDECESSOR')
+    return {'producer_commit': producer_commit, 'checked_guard_owners': 2, 'old_guard_routes_preserved': True,
+            'old_numeric_resource_environment_function_unchanged': True,
+            'new_issue_mix_controlflow_requires_scoped_review': True,
+            'owners': {n: {'original_sha256': original[n],
+                          'current_sha256': hashlib.sha256(current[n].encode()).hexdigest()} for n in names}}
+
+
+def _native_v3_issue_mix_bound_plan(plan_sha256, lane):
+    import hashlib, subprocess
+    require = _native_v3_development_require
+    require(type(plan_sha256) is str and re.fullmatch('[0-9a-f]{64}', plan_sha256) is not None, 'ISSUE_MIX_PLAN_SHA')
+    require(type(lane) is str and lane in ('reference', 'cold', 'fit'), 'ISSUE_MIX_LANE')
+    repo = Path(__file__).resolve().parents[2]; name = _V3_ISSUE_MIX_NAME
+    args = ['--v3-issue-mix-plan-sha256', plan_sha256, '--lane', lane]
+    preflight = sys.argv[-1:] == ['--preflight']
+    if preflight:
+        args += ['--preflight']
+    require(Path.cwd().resolve() == repo and Path(sys.argv[0]).resolve() == repo / 'gx1/audit/native_provider_hlc_learning_v1.py'
+            and Path(sys.executable).absolute() == repo / '.venv/bin/python' and sys.argv[1:] == args, 'ISSUE_MIX_EXACT_ARGV')
+    path = repo / 'configs/research' / (name + '_' + lane.upper() + '.json')
+    plan = _native_v3_development_read(path, plan_sha256)
+    output = Path('/home/andre2/GX1_RUNS') / (name + '_' + lane)
+    require(plan.get('schema_version') == 'gx1_native_v3_direction_issue_mix_plan_v1'
+            and plan.get('stage') == name.lower() and plan.get('lane') == lane
+            and plan.get('output_root') == str(output), 'ISSUE_MIX_PLAN_IDENTITY')
+    require(not output.exists() and not output.is_symlink() and output.parent.is_dir()
+            and not output.parent.is_symlink() and output.parent.resolve() == output.parent, 'ISSUE_MIX_FRESH_OUTPUT')
+    require(plan.get('source_commit') == subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(), 'ISSUE_MIX_SOURCE_COMMIT')
+    require(plan.get('execution_profile') == _V3_ISSUE_MIX_PROFILE
+            and plan.get('execution') == _native_v3_issue_mix_execution(lane), 'ISSUE_MIX_EXACT_EXECUTION')
+    control_ref = {'path': str(repo / 'configs/research' / (_V3_DIRECTION_BLOCK_ORDER_NAME + '.json')),
+                   'sha256': '15a59b3840d61d57d6e217967312a6b76e4e89d256ea902b619ec3fa8099a008'}
+    evidence = Path('/home/andre2/GX1_RUNS') / 'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'
+    design_ref = {'path': str(evidence / 'V3_DIRECTION_ISSUE_MIX_DESIGN_20261128_001.json'),
+                  'sha256': '93a59021614b48f67a0b71e66c29926e3fc302d2f4bcf6187e9f8bdf7c0d75d2'}
+    require(plan.get('original_plan') == control_ref and plan.get('design') == design_ref, 'ISSUE_MIX_BOUND_REFS')
+    control = _native_v3_development_read(control_ref['path'], control_ref['sha256'])
+    design = _native_v3_development_read(design_ref['path'], design_ref['sha256'])
+    original = control['metadata']['original']; metadata = plan.get('metadata', {})
+    require(metadata.get('control') == control and metadata.get('original') == original
+            and all(plan.get(k) == original.get(k) for k in ('recipe', 'model_contract', 'initial_reference'))
+            and plan.get('backbone_gradient_policy') is None, 'ISSUE_MIX_UNCHANGED_FUNCTION_FACTORY')
+    protocol_ref = plan.get('protocol')
+    protocol_path = repo / 'configs/research' / 'NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_PROTOCOL_20261128_001.json'
+    require(type(protocol_ref) is dict and set(protocol_ref) == {'path', 'sha256'}
+            and protocol_ref['path'] == str(protocol_path) and type(protocol_ref['sha256']) is str
+            and re.fullmatch('[0-9a-f]{64}', protocol_ref['sha256']) is not None, 'ISSUE_MIX_PROTOCOL_REF')
+    protocol = _native_v3_development_read(protocol_path, protocol_ref['sha256'])
+    schedule = plan.get('schedule'); trajectory = metadata.get('trajectory')
+    require(protocol.get('schema_version') == 'gx1_v3_direction_issue_mix_protocol_v1'
+            and protocol.get('experiment_id') == name and protocol.get('original_plan') == control_ref
+            and protocol.get('design') == design_ref and protocol.get('original_schedule') == control['schedule']
+            and protocol.get('recipe') == original['recipe'] and protocol.get('schedule') == schedule
+            and protocol.get('original_trajectory') == trajectory and type(trajectory) is dict
+            and trajectory.get('schedule') == schedule and trajectory.get('control_plan') == control_ref
+            and trajectory.get('issue_mix_design') == design_ref
+            and plan.get('initial_reuse') == protocol.get('initial_reuse') == control['initial_reuse']
+            and plan.get('physical_input_identity') == protocol.get('physical_input_identity'), 'ISSUE_MIX_COMMON_PROTOCOL')
+    scope = protocol.get('scope', {})
+    require(plan.get('scope') == scope and scope.get('candidate_phase') == 'PASS2'
+            and scope.get('single_changed_variable') == design['single_changed_variable']
+            and scope.get('only_all5_and_original_stability_criteria') is True
+            and scope.get('technical_weights_never_initializer') is True
+            and scope.get('TEST_VAL_M1_GC_trade_spending') is False, 'ISSUE_MIX_ABSOLUTE_EVALUATION_SCOPE')
+    ordering = design['ordering']
+    geometry = {'rows': 20727, 'passes': 2, 'batch_rows': 96, 'batches_per_pass': 216,
+                'logical_batches': 432, 'optimizer_updates': 432, 'skipped_batches': 0, 'seed': 20260911}
+    require(type(schedule) is dict and schedule.get('schema_version') == 'gx1_native_v3_issue_mix_schedule_v1'
+            and all(type(schedule.get(k)) is int and schedule[k] == v for k, v in geometry.items())
+            and schedule.get('drop_last') is False and schedule.get('shuffle') is True
+            and schedule.get('generator') == ordering['generator'] == 'private_numpy_Generator_PCG64'
+            and type(schedule.get('update_flags')) is list and len(schedule['update_flags']) == 432
+            and all(v is True for v in schedule['update_flags']), 'ISSUE_MIX_FIXED_GEOMETRY')
+    sizes = schedule.get('logical_step_rows'); takes = schedule.get('cohort_takes')
+    expected_sizes = [control['schedule']['original_batch_rows'][i] for i in control['schedule']['logical_original_batch_ids']]
+    require(type(sizes) is list and all(type(n) is int for n in sizes)
+            and sizes == expected_sizes == ordering['logical_step_rows']
+            and type(takes) is list and len(takes) == 432
+            and all(type(t) is list and len(t) == sizes[j] and all(type(i) is int and 0 <= i < 20727 for i in t)
+                    and t == sorted(set(t)) for j, t in enumerate(takes)), 'ISSUE_MIX_TYPED_SORTED_MEMBERSHIP')
+    require(all(sorted(i for t in takes[p * 216:(p + 1) * 216] for i in t) == list(range(20727)) for p in range(2)), 'ISSUE_MIX_COMPLETE_PASS_BIJECTIONS')
+    hash_fields = {'raw_permutation_state_sha256_by_pass': 'raw_permutation_state_sha256_by_pass',
+                   'actual_sorted_partition_stream_state_sha256_by_pass': 'actual_sorted_partition_stream_state_sha256_by_pass',
+                   'cohort_take_state_sha256_by_logical_batch': 'actual_cohort_take_state_sha256_by_logical_batch'}
+    require(all(schedule.get(k) == ordering[v] for k, v in hash_fields.items())
+            and schedule.get('control_schedule_sha256') == ordering['control_schedule_sha256'] == control['schedule']['contract_sha256']
+            and all(schedule.get(k) == original['schedule'][k] for k in ('source_rows_sha256', 'issue_ns_sha256')),
+            'ISSUE_MIX_DESIGN_STREAM_BINDINGS')
+    checkpoints = {'reference': [1, 2], 'cold': [2], 'fit': [1, 432]}[lane]
+    require(plan.get('checkpoint_cursors') == checkpoints and all(type(v) is int for v in plan['checkpoint_cursors'])
+            and plan.get('panel_indices') == [0, 107, 214] and all(type(v) is int for v in plan['panel_indices'])
+            and type(plan.get('starting_cursor')) is int and plan['starting_cursor'] == (1 if lane == 'cold' else 0)
+            and type(plan.get('ending_cursor')) is int and plan['ending_cursor'] == (432 if lane == 'fit' else 2), 'ISSUE_MIX_EXACT_CURSORS')
+    expected_limits = {}
+    for role in ('reference', 'cold', 'fit'):
+        limits = dict.fromkeys(original['limits'], 0)
+        updates, forwards, writes = {'reference': (2, 2, 2), 'cold': (1, 1, 1), 'fit': (432, 597, 2)}[role]
+        limits.update(model_constructions=1, optimizer_constructions=1, feature_cache_payload_loads=1, target_archive_loads=1,
+            model_forwards=forwards, backbone_forwards=forwards, readout_forwards=forwards, optimizer_steps=updates,
+            backward_calls=updates, checkpoint_writes=writes, checkpoint_readbacks=writes,
+            checkpoint_receipt_writes=writes, checkpoint_prepublication_loads=writes)
+        if role == 'cold':
+            limits.update(checkpoint_loads=1, model_restores=1)
+        if role == 'fit':
+            limits.update(autograd_calls=9, logit_archive_writes=2, logit_archive_readbacks=2)
+        expected_limits[role] = limits
+    limits = plan.get('limits')
+    require(type(limits) is dict and all(type(v) is int for v in limits.values()) and limits == expected_limits[lane]
+            and protocol.get('limits') == expected_limits
+            and all(type(v) is int for values in protocol['limits'].values() for v in values.values()), 'ISSUE_MIX_EXACT_BUDGET')
+    owners = plan.get('source_owners')
+    require(type(owners) is dict and {'gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh',
+            'gx1/audit/native_provider_hlc_learning_v1.py'} <= set(owners), 'ISSUE_MIX_SOURCE_INVENTORY')
+    for owner, digest in owners.items():
+        p = repo / owner
+        require(type(owner) is str and not Path(owner).is_absolute() and '..' not in Path(owner).parts
+                and p.is_file() and not p.is_symlink() and p.resolve() == p
+                and hashlib.sha256(p.read_bytes()).hexdigest() == digest, 'ISSUE_MIX_SOURCE_SHA')
+    bridge = plan.get('guard_source_bridge', {})
+    old = {n: v['original_sha256'] for n, v in bridge.get('owners', {}).items()}
+    require(bridge == native_v3_issue_mix_source_bridge(old, producer_commit=bridge.get('producer_commit')), 'ISSUE_MIX_SOURCE_BRIDGE')
+    parents = plan.get('parents', {})
+    required_parents = () if lane == 'reference' else ('reference',) if lane == 'cold' else ('reference', 'cold')
+    require(type(parents) is dict and set(parents) == set(required_parents), 'ISSUE_MIX_QUALIFIED_ROLE_LINEAGE')
+    for role, parent in parents.items():
+        binding = parent.get('plan', {})
+        require(type(binding) is dict and set(binding) == {'path', 'sha256'}
+                and binding['path'] == str(repo / 'configs/research' / (name + '_' + role.upper() + '.json')), 'ISSUE_MIX_PARENT_PLAN_REF')
+        previous = _native_v3_development_read(binding['path'], binding['sha256'])
+        require(previous.get('lane') == role and previous.get('protocol') == protocol_ref
+                and previous.get('source_commit') == plan['source_commit'] and previous.get('source_owners') == owners
+                and previous.get('schedule') == schedule and previous.get('metadata', {}).get('trajectory') == trajectory,
+                'ISSUE_MIX_FROZEN_ROLE_GENERATION')
+    policy_path = repo / 'NEXT_RUN_POLICY.json'; policy = _native_v3_development_read(policy_path)
+    parent = policy.get(name.lower(), {})
+    flags = ('training_enabled', 'native_training_enabled', 'native_launch_authorized',
+             'full_epoch_training_allowed', 'full_val_allowed', 'exit_training_and_evaluation_this_wave')
+    require(all(policy.get(k) is (not preflight and k in flags[:2]) for k in flags), 'ISSUE_MIX_EXACT_FLAGS')
+    require(parent.get('original_plan') == control_ref and parent.get('design') == design_ref
+            and parent.get('protocol') == protocol_ref and all(parent.get(k) is False
+                for k in ('main_fit_authorized', 'test_authorized', 'spending_authorized')), 'ISSUE_MIX_SCOPE')
+    for scope in ('native_v3_bounded_development_test_20261127_001', 'native_v3_fit004_exact_recovery_20261128_001',
+                  'native_v3_fit004_exact_recovery_20261128_002', _V3_BLOCK_ORDER_RECOVERY_NAME.lower()):
+        prior = policy.get(scope, {})
+        require(prior.get('execution_authorized') is False and prior.get('active_phase') in (None, '')
+                and prior.get('active_lane') in (None, '')
+                and all(type(v) is dict and v.get('execution_authorized') is False
+                    and type(v.get('remaining_invocations')) is int and v['remaining_invocations'] == 0
+                    for v in prior.get('lane_gates', prior.get('phase_gates', {})).values()), 'ISSUE_MIX_CONSUMED_ROUTES_CLOSED')
+    for scope in (_V3_DIRECTION_GRADIENT_NAME.lower(), _V3_DIRECTION_BLOCK_ORDER_NAME.lower()):
+        prior = policy.get(scope, {})
+        require(prior.get('execution_authorized') is False and type(prior.get('remaining_invocations')) is int
+                and prior['remaining_invocations'] == 0 and prior.get('training_authorized') is False
+                and prior.get('relaunch_allowed') is False, 'ISSUE_MIX_CONSUMED_FLAT_ROUTES_CLOSED')
+    lanes = parent.get('lane_gates', {})
+    require(type(lanes) is dict and set(lanes) <= set(('reference', 'cold', 'fit'))
+            and all(type(v) is dict and type(v.get('remaining_invocations')) is int
+                and all(type(v.get(k)) is bool for k in ('execution_authorized', 'relaunch_allowed', 'training_authorized', 'test_authorized'))
+                for v in lanes.values()), 'ISSUE_MIX_TYPED_LANES')
+    closed = lambda v: v['execution_authorized'] is False and v['remaining_invocations'] == 0 and all(
+        v[k] is False for k in ('training_authorized', 'test_authorized', 'relaunch_allowed'))
+    status = 'PREPARED_CLOSED_NOT_ADMITTED' if preflight else 'ADMITTED_EXACT_V3_ISSUE_MIX_' + lane.upper()
+    gate = {'status': status, 'plan': {'path': str(path), 'sha256': plan_sha256}, 'execution_authorized': not preflight,
+            'remaining_invocations': int(not preflight), 'relaunch_allowed': False,
+            'training_authorized': not preflight, 'test_authorized': False}
+    require(lanes.get(lane) == gate and all(closed(v) for k, v in lanes.items() if k != lane)
+            and all(lanes.get(role, {}).get('plan') == parents[role]['plan'] for role in required_parents), 'ISSUE_MIX_ONE_USE_ROLE_GATE')
+    if preflight:
+        require(parent.get('execution_authorized') is False and parent.get('active_lane') in (None, '')
+                and all(closed(v) for v in lanes.values()), 'ISSUE_MIX_PREFLIGHT_CLOSED')
+    else:
+        require(parent.get('status') == status and parent.get('execution_authorized') is True
+                and parent.get('active_lane') == lane, 'ISSUE_MIX_ONLY_ACTIVE_ROLE')
+        snapshot = evidence / ('V3_DIRECTION_ISSUE_MIX_' + lane.upper() + '_ADMITTED_POLICY_20261128_001.json')
+        require(_native_v3_development_read(snapshot, hashlib.sha256(policy_path.read_bytes()).hexdigest()) == policy,
+                'ISSUE_MIX_EXACT_ROLE_POLICY_SNAPSHOT')
+    return {'plan': {'path': str(path), 'sha256': plan_sha256}, 'output_root': str(output),
+            'preflight': preflight, 'execution': plan['execution']}
+
+
+
+def _native_v3_issue_mix_environment(plan_sha256, lane):
+    require = _native_v3_development_require
+    prefix = 'GX1_NATIVE_V3_ISSUE_MIX'; execution = _native_v3_issue_mix_execution(lane)
+    expected = {prefix: 'true', prefix + '_PLAN_SHA256': plan_sha256, prefix + '_LANE': lane,
+                'GX1_POWER_BENCHMARK_SCOPE_JSON': '', 'GX1_POWER_BENCHMARK_SCOPE_SHA256': ''}
+    require(all(not k.startswith(prefix) or k in expected for k in os.environ), 'UNKNOWN_ISSUE_MIX_ENV')
+    require(all(v in ('false', '') for k, v in os.environ.items()
+                if k.startswith('GX1_NATIVE_') and not k.startswith(prefix)), 'ISSUE_MIX_MIXED_LEGACY_ENV')
+    fields = {'MAX_WALL_SECONDS': execution['outer_seconds'], 'MODEL_MAX_WALL_SECONDS': execution['internal_seconds'],
+        'ATTENDED_STAGE_REQUIRED': 'false', 'GPU_INDEX': 0, 'GPU_MAX_POWER_LIMIT_W': 250, 'GPU_MAX_POWER_DRAW_W': 250,
+        'GPU_MAX_CORE_TEMP_C': 75, 'GPU_MAX_MEMORY_TEMP_C': 80, 'GPU_MAX_MEMORY_USED_MIB': 12288,
+        'GPU_MONITOR_INTERVAL_SECONDS': 1, 'CPU_MAX_TEMP_C': 80, 'CPU_MAX_PACKAGE_POWER_W': 125,
+        'HOST_MIN_AVAILABLE_MEMORY_BYTES': 8589934592, 'HOST_MIN_COMMIT_HEADROOM_BYTES': 8589934592}
+    expected.update({'GX1_TRAINER_' + k: str(v) for k, v in fields.items()})
+    require(all(os.environ.get(k) == v for k, v in expected.items()), 'ISSUE_MIX_EXACT_RESOURCE_ENV')
+    return require_guarded_cuda_trainer_execution()
+
+
+def require_native_v3_issue_mix_execution(*, plan_sha256, lane):
+    # Resource containment only; exact source-issue membership and claim remain leaf-owned.
+    bound = _native_v3_issue_mix_bound_plan(plan_sha256, lane)
+    proof = _native_v3_issue_mix_environment(plan_sha256, lane)
+    return {**proof, **bound, 'kind': 'provider_hlc_v3_issue_mix', 'lane': lane, 'resource_proof_only': True,
+            'training_authority_granted': False, 'optimizer_authority_granted': False}
+
+# END GX1 V3 ISSUE MIX GUARDS 20261128 001
 
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")
