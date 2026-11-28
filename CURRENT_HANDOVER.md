@@ -15,138 +15,113 @@
 
 ## Gjeldende status og neste steg
 
-NEXT_RUN_POLICY.json er eneste arbeidsstatus. Aktuelt forberedelsesfelt er
+NEXT_RUN_POLICY.json er eneste arbeidsstatus. Fullført bølge eies av
 native_all_tf_provider_hlc_v3_block_order_recovery_20261128_001.
-Order-feltet native_all_tf_provider_hlc_v3_direction_block_order_20261128_001
-er lukket etter ekstern stopp; originalplanen er forbrukt.
-Siste diagnostikkfelt native_all_tf_provider_hlc_v3_direction_gradient_20261128_001
-er CLOSED_CONSUMED_COMPLETE. Appmålet mot dokumenterbar retningsedge med alle
-genuine indikatorer og deres samspill er aktivt og uoppfylt.
+Neste kildeforberedelse eies av
+native_all_tf_provider_hlc_v3_direction_issue_mix_20261128_001.
+Alle tre nye engangsroller er COMPLETE og lukket/forbrukt med remaining=0;
+alle seks trenings-/evalueringsflagg er false, active_lane=null og ingen
+modelljobb kjører. Appmålet mot dokumenterbar retningsedge med alle genuine
+indikatorer og deres samspill er aktivt og uoppfylt.
 
-Alle seks trenings-/evalueringsflagg er false og var false også under den
-særskilt innrømmede oppdateringsfrie diagnostikken. Alle tidligere fit-,
-recovery- og diagnostikkplaner er forbrukt/lukket. Ingen modelljobb kjører.
-En historisk godkjenning åpner aldri en ny plan; kilde/designforberedelse
-nedenfor er ikke fit-admisjon.
+### Fullført order-kontroll og faktisk kald paritet
 
-### Siste låste læringsutfall
+Felles fryst kilde var 3a36f58ecc2d81e7b5e567cda294d2d2ba51e51c, med samme
+protokoll gjennom REFERENCE, COLD og RECOVERY. Nye produsenter er ærlig bundet;
+full fil-SHA tvinges ikke lik mellom forskjellige produsenter.
+REFERENCE gjenskapte batch116→131 fra fersk factory/full RNG: alle ti C1-bevis
+matcher ekte original-C1. COLD lastet ekte original-C1 i ny prosess, utførte
+bare batch131 og matchet referansens C2 på alle ti bevis. Tekniske2+1 updates
+er ikke læringskandidater og deres vekter ble ikke brukt til videreføring.
 
-V3 FIT004-trajektorien ble fullført gjennom RECOVERY002 til global 432:
-431 nye optimizeroppdateringer, 596 forwards, 805,35 s, alle seks bookends PASS.
-Original C1 var initializer; tekniske vekter ble aldri brukt. REFERENCE002
-fersk C1 og separat COLD002-C2 matcher original/referanse på alle ti bevis.
-Originalt fysisk arbeid før FIT004-stoppet forblir UNKNOWN innen 1..216.
+RECOVERY lastet ekte original-C1 på nytt, aldri teknisk C2. Den fullførte
+431 nye optimizeroppdateringer/596 forwards til opprinnelig logisk432 på
+803,87 s, exit0. Alle seks bookends består i hver av de tre rollene.
+Original INITIAL ble bevart: fersk factory/full RNG og faktisk truth-SHA var
+fysisk kontrollert før original order-fit. Ingen gammel vektinitializer,
+ny prior, normalisering, utvalgsendring eller nye INITIAL-forwards.
 
-Bare forhåndslåste PASS2 er kandidat. Samlet TRAIN-verdict er FAIL og
-learning_qualified=false. Aktivitet slår prior på alle fem TF, men det er
-ikke alene retningslæring. Side NLL/Brier slår COHORT-prioren under begge
-vektinger bare på M5/M15. H1/H4/D1 feiler.
+Studien beholder20 727 TRAIN-issues fra1377 kildeklokkedøgn2021–2025,
+alle åtte familier, D1/makro og M5/M15/H1/H4/D1, fullt koblet None-policy.
+B96/E256, to pass à216 batcher, seed20260911. Bare hele batchers rekkefølge
+ble endret; genuine vinduer, mål, masker og kanonisk scoring er uendret.
+Alle faktiske checkpoints/kvitteringer, opprinnelige tre sluttpaneler og
+separate diskbackuper beholdes. Eksakte referanser/SHA ligger i policy.
 
-| TF | Side-AUC | Side Brier minus prior, radvektet |
-|---|---:|---:|
-| M5 |0,521052|-0,000265981|
-| M15|0,537790|-0,000406239|
-| H1 |0,522139|+0,000358074|
-| H4 |0,500753|+0,002628812|
-| D1 |0,516545|+0,001826896|
+Original order-plan er fortsatt FAILED_CONSUMED etter host_maintenance_active
+02:12:57UTC. Dens C1 er varig; opprinnelig fysisk arbeid før stoppet er
+UNKNOWN innen1..216, separat fra ny431-recovery og logisk432. Ingen relaunch,
+kill, reboot, host-/vaktendring eller vedlikeholdssperre ble brukt.
 
-H1/H4/D1 har gjennomsnittlig UP-feil +2,60/+5,02/+4,49 prosentpoeng.
-M15/H1/H4/D1 har bare UP ved binær argmax. H4/D1 feiler proper-score-
-årskontrollen2021–2024 og består2025; M5 feiler2021.
-Lagret algebraisk Brier-dekomponering viser nivåbidrag for H1/D1 og svak
-sentrert rest/rangering for H4. Ingen kalibrator ble fittet eller innført.
+### Låst PASS2: TRAIN FAIL, blandet forbedring
 
-### Faktisk FINAL-diagnostikk
+Bare forhåndslåst global PASS2 er kandidat; INITIAL/PASS1 er diagnostikk.
+Kronologisk kontroll slo COHORT-prioren i side NLL/Brier på2/5TF;
+whole-batch-stokkingen gjør det på4/5 under både rad- og målbarvekting.
+M15 feiler fortsatt. Samlet proper-score og tidsblokkstabilitet er FAIL,
+learning_qualified=false. Aktivitet består alle fem, men er ikke alene
+retningslæring. Ingen PASS1-, TF-, seed- eller kriterieutvelgelse etter resultat.
 
-Den nye diagnostikken fullførte på 97,84 s med 3 eval-forwards, 30 autograd-kall
-og 0 optimizersteg. Alle seks bookends og alle ti originale FINAL 432-bevis
-består; modell, AdamW, full RNG, treningsmodus og tomme parametergradienter er
-bevart. Fryst kjøringskilde var 15d258835. Ingen checkpoint/logit/refit-
-skriving. Egne heads og delt backbone får ikke-null sidegradient i alle
-15 støttede TF-paneler. Ingen fremmede readout-heads fikk sidegradient.
+| TF | Side-AUC, stokket | Side Brier minus prior, radvektet | År-PASS/5 |
+|---|---:|---:|---:|
+| M5 |0,516900|-0,000110352|4|
+| M15|0,526010|+0,000089618|1|
+| H1 |0,527229|-0,000279881|3|
+| H4 |0,530418|-0,000221191|5|
+| D1 |0,537875|-0,000284807|3|
 
-På samme tre låste paneler [0, 107, 214] er normforholdet mellom summert
-aktivitet og summert side 6,753/20,495/8,882, med positive cosinusverdier
-0,18590/0,06087/0,23657. Samlet rågradient støtter side på hele backbone i
-14 av 15 TF-paneler; bare D1/panel 107 er negativ. Dette er ingen universell
-aktivitetskade eller frakobling. Alle åtte familier og shared-mix er med;
-D1/makroparametre ligger faktisk i session_regime_encoder.
+H1/H4/D1 forbedres mot kronologisk kontroll; M5/M15 forverres. Totalt16/25
+årsceller består mot14/25 før. M5 feiler2024, M15 feiler2021–2024,
+H1 feiler2022–2023 og D1 feiler2024–2025. Pooled score skjuler dermed fortsatt
+regimefeil. Høyere fire TF har fortsatt100%UP ved binær side-argmax; M5 gir
+239/12739DOWN. Dette er ikke full treklassehandling eller påvist tosidig
+handelsvalg. Alle8familier og5TF beholdes;4/5er ingen samlet suksess.
 
-Lokal D1-biasfeil er -17,42/-16,11/+3,48 prosentpoeng, mens pooledTRAIN er
-+4,49. Derfor følger ingen global biasjustering av de tre panelene.
-Gradientene er lokale, uklippede data-gradienter; de er ikke historisk
-kausalbevis, AdamW-oppdateringer, optimale taskvekter eller indikatornytte.
+### Lagret CPU-attribusjon, ingen ny prediksjon
 
-### Nyeste order-fit — avbrutt, ekte C1 bevart
+To CPU-auditer brukte eksisterende FINAL-parametre/outputs og autentisert
+fasit, uten modell-/optimizerkonstruksjon, NN, autograd, optimizersteg,
+featurecache eller ny fit. Alle input-/kilde-/policy-/HEAD-bookends og alle
+checkpointproofs består. Den første lagrede analysens valgfrie momenter ble
+UNKNOWN fordi tuple-betas var krevd; produksjon bruker direkte JSON-list.
+Originalrapporten beholdes. Et smalt tillegg autentiserte alle10 bias-slots
+ved432 mot faktiske direkte konstruktørargumenter, uten å kjøre analysen om.
 
-Den order-only-kilden er kvalifisert med 64 guard-/kildebrokontroller og
-23 ulike leaf-kontroller. Metadata-preflight og separat SOURCE-backup består.
-Kjøringen brukte fryst kilde e63c927316d251cf96d07b6bbc863323f8d20d89.
-Fersk modell og full RNG matchet original INITIAL, og faktisk fasit-SHA ble
-kontrollert før første oppdatering. Ingen gamle vekter ble lastet, og ingen
-nye INITIAL-forwards ble gjort.
+M15s gjennomsnittlige kjente side-logit økte0,059446 mellom kontrollene.
+Direkte native biasendring er bare0,000757; ca98,7% av additiv endring er
+lagret logit-minus-bias-rest, som omfatter representasjon/projeksjon og
+F32-avrunding. Den isolerer ikke disse komponentene eller en kausal feil.
+Fullkohortens analytiske biasderivert bruker103610 kjente aktivitetsceller
+som korrekt tapsnevner. Historiske, globalt klippede minibatchmomenter er
+et annet objekt; fortegnene gir ingen optimal oppdatering eller årsaksdom.
+Ingen enkel biaspatch, kalibrator, rutingendring eller ekstra epokeserie
+følger av dette. Teknisk paritet og TRAIN-resultat er ikke senere edge.
 
-Guard stoppet kl. 02:12:57 UTC på host_maintenance_active, 239,96 s etter claim.
-RESULT/TERMINAL er FAILED_CONSUMED med alle seks bookends PASS. MoUsoCoreWorker
-PID 4676, parent 5764, ble opprettet 02:12:56.3024120 UTC; journalen viser tilstede-
-værelse 02:12:57.6730684. Setup/OOBE/CBS/WU/reboot-in-progress var false/0.
-Aktiv installasjon er UNKNOWN. Guardloggen mangler nonce/monotonic; tids-/
-reason-/flaggkorrelasjon er ikke bevist eksakt noncebinding. Én signert query
-og journalen viste idle 02:27:58 UTC; dette er observert idle, ikke eksakt exit
-eller garanti for neste kjøreperiode. Ingen host-/vaktendring.
+### Neste arbeid — kun kildeforberedelse
 
-CURSOR001.json/.pt og CURSOR001_ORDER.json er varige og hashbekreftet.
-C1 beviser én varig oppdatering. Totalt faktisk utført er UNKNOWN innen 1..216:
-PASS1 publiseres synkront etter update 216 og før 217, men PASS1/PASS2/FINAL
-mangler. Det finnes ingen ny order-kandidat eller læringsdom.
-Første originalbatch var 116; neste logiske indeks 1 bruker originalbatch 131,
-96 rader, samme bundne kilde-/issuehash. ScheduleSHA er
-dba16db2b9c04c1fd988a79d3fd713b9719bbfc3514b76b38174b92ccfef19de.
-C1-checkpointSHA er
-d15de306b8a231b8665f1422ba7c3f7aae211524ffe9ba0970f0ca28f1437e05.
-Eksakte øvrige original-/policy-/proofbindinger ligger i det lukkede feltet.
+V3_DIRECTION_ISSUE_MIX_DESIGN_20261128_001.json låser én ny hypotese:
+globalt blandet medlemskap i TRAIN-minibatcher, samme20727issues/to pass/
+432updates og samme kardinalitet per logisk steg som whole-batch-kontrollen.
+87-raderssteget flyttes ikke. To private PCG64-permutasjoner er kildeklokkebaserte
+og hashbundet før fit; medlemsindeksene sorteres innen hver batch for å bevare
+eksisterende packet-API. Modellruten har ingen carry mellom issues; hver rad
+får sine egne genuine kausale vinduer. Ingen generisk inputeier må endres.
+Dette er en kontroll av batchsammensetning, ingen bevist forbedring eller årsak.
 
-### Neste konkrete arbeid — eksakt videreføring
+Neste er minste adapter i eksisterende trenings-/checkpoint-/guard-eiere,
+fokuserte negative kontraktkontroller og faktisk fersk C1/C2-kald paritet.
+INITIAL gjenbrukes bare etter fersk factory/fullRNG/truth-identitet; tekniske
+eller gamle FINAL-vekter er aldri initializer. Samme fem TF, åtte familier,
+D1/makro, mål, masker, tapsformel, optimizer, klipping og kanoniske score beholdes.
+Bare låst PASS2 vurderes; alle5-/årskriterier og begge vektinger gjelder uendret.
+Ny engangsplan, aktuell preflight/admisjon, backup og fryst kilde kreves.
+Alle seks globale flagg er false: design åpner ingen kjøring, retry,
+kalibrator, ekstra epokeserie, TEST, VAL, Control eller handel.
 
-Design er bundet i V3_BLOCK_ORDER_EXACT_RECOVERY_DESIGN_20261128_001.json.
-Adapteren i eksisterende eiere er kildekvalifisert: 73 guard-/kildebrotester
-og 18 syntetiske rollekontroller består. Faktisk C1-/protokollmetadata og 78
-kildefiler er validert uten NN eller tensor-dekoding. Fysisk paritet gjenstår.
-Felles protokoll er bundet i policy. Neste er de tre eksakte rollene:
-
-1. REFERENCE: fersk samme factory/full RNG, opprinnelige batcher 116→131.
-   Alle ti C1-bevis må matche ekte order-C1 før C2 godtas. Ny produsent er ekte;
-   full fil-SHA skal ikke tvinges lik mellom ulike produsenter.
-2. COLD: ny prosess laster ekte order-C1, autentiserer faktisk full produsent/
-   runtime/scores/proof, og avviser feil ordreschedule før parameterkopiering.
-   Utfør kun batch 131; alle ti C2-bevis må matche referansen.
-3. RECOVERY: last ekte order-C1 på nytt, aldri tekniske vekter. Fortsett opprinnelig
-   globalindeks 1..431 med 431 nye updates/596 forwards til samme sluttpunkt 432.
-   Bevar ordrebindinger, original INITIAL, kanonisk PASS1/PASS2 og tre opprinnelige
-   diagnostikkpaneler. Bare global PASS2 er kandidat; ny FINAL 432 er eneste
-   gjenstående opprinnelige checkpointposisjon.
-
-Nye order-C1/C2-kalde bevis er foreløpig IKKE MÅLT. Gamle kronologiske kaldbevis
-er bare uendret numerisk mekanikk og erstatter ikke denne nye pariteten.
-C1 kan legitimt ha null backbone-momenter. Det opprinnelige ukjente fysiske
-arbeidet og tekniske replay-oppdateringer rapporteres separat fra logisk 432.
-
-Én felles fryst kilde/protokoll gjennom de tre rollene; administrativ lane-
-admisjon bare mellom faktiske terminaler. Hver rolle har ny eksakt engangsplan,
-aktuell runtime/preflight/backup og egen uforanderlig policy-snapshot. Alle
-gates er nå stengt. Ingen relaunch av order-planen, automatisk retry/fitserie,
-nye epoker, tap, ruting, features, prior, normalisering, utvalg eller vaktsvekkelse.
-Alle fem TF og genuine familier beholdes. TEST og øvrige eksklusjoner består.
-
-## Bevarte tekniske grenser
-
-Diagnostikkens 51 guard-/kildebrotester og 20 ulike leaf-kontroller består;
-faktisk FINAL-metadata og 78 kildefiler er validert. Gamle numeriske eiere og
-beståtte kontroller gjenbrukes. Første metadata-preflight stoppet på null
-telemetrisamples før child/CLAIM; aktuell signert query og andre metadata-
-inspeksjon bestod. Timeout/vakter ble ikke endret. Hver NN-plan ble kjørt én gang.
-Originale MoUso-stopp, logger, checkpoints og backuper beholdes; ingen
-prosesskill, reboot, vedlikeholdssperre eller svekket vakt ble brukt.
+Kildekvalifisering før den fullførte bølgen bestod73 guard-/kildebrotester og
+18 syntetiske leaf-kontroller, syntaks og native kontrakter. Original numerikk
+og vakter er uendret. Ny metadata-/handoverkontroll avslutter denne bølgen;
+uendrede fullsuiter skal ikke gjentas.
 
 ## Kvalifisert datagrunnlag og funksjon
 
@@ -211,33 +186,28 @@ generalisering må måles som utfall, ikke antas bevist før første fit.
   DATA/RUNS ryddes bare av `gx1.scripts.cleanup_gx1_evidence_v1` etter regel 9,
   med fersk dry-run, kanonisk prosjektlås, verifisert eierskap/referanseomfang
   og eksakt godkjent inventar.
-- Denne dokumentforkortingen endrer ingen kode, policy, data eller vakter.
 
 ## Bevis som åpnes ved konkret behov
 
 E betyr /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001.
-Policy binder eksakte SHA og originale terminaler/snapshots.
+Policy binder eksakte SHA, originalkvitteringer og egne policy-snapshots.
 
-- V3_DIRECTION_GRADIENT_ACCEPTANCE_20261128_001.json:
-  faktisk 3/30/0, tellinger, proof10 og seks bookends.
-- V3_DIRECTION_GRADIENT_REVIEW_20261128_001.json:
-  alle tre paneler, per-TF readout-bias/vekter og Gram-avledede familiesummer.
-- V3_BLOCK_ORDER_EXACT_RECOVERY_DESIGN_20261128_001.json:
-  neste eksakte C1/C2/recovery-scope; ingen ny fit-admisjon.
+- V3_DIRECTION_ISSUE_MIX_DESIGN_20261128_001.json: neste énvariabelhypotese,
+  låste kildeposisjonspermutasjoner og stengt kjøringsport.
+- V3_BLOCK_ORDER_EXACT_RECOVERY_TRAIN_REVIEW_20261128_001.json:
+  låst PASS2, alle fem TF/begge vektinger, år og ærlige ubeviste grenser.
+- V3_ORDER_READOUT_ATTRIBUTION_20261128_001.json og
+  V3_ORDER_READOUT_MOMENTS_20261128_001.json: bevart CPU-attribusjon og smalt tillegg.
+- V3_BLOCK_ORDER_EXACT_RECOVERY_REFERENCE/COLD/RECOVERY_ACCEPTANCE_20261128_001.json:
+  faktiske roller, full proof10 og seks bookends; åpne konkrete filnavn fra policy.
+- V3_BLOCK_ORDER_EXACT_RECOVERY_SOURCE/QUALIFIED/FINAL_BACKUP_20261128_001.json:
+  SOURCE/QUALIFIED/FINAL er fysisk sikret på separat Mac-disk med fsync og
+  uavhengig readback. FINAL har178 filer; eksakt arkiv-/manifesthash i policy.
 - V3_DIRECTION_BLOCK_ORDER_STOP_REVIEW_20261128_001.json og
-  MAINTENANCE_DIAGNOSIS med samme suffiks: ekstern stopp og bevart order-C1.
-- V3_DIRECTION_BLOCK_ORDER_DESIGN_20261128_001.json:
-  opprinnelig uendret order-only-hypotese og bevarte invariants.
-- V3_DIRECTION_GRADIENT_SOURCE_QUALIFICATION_20261128_001.json:
-  fokuserte tester, navngitte bytekildebroer og faktisk metadata uten NN.
-- V3_DIRECTION_GRADIENT_SOURCE/FINAL_BACKUP_20261128_001.json:
-  separat Mac-disk/fsync/readback,FINAL bare når kvittert.
-- V3_FIT004_EXACT_RECOVERY_TRAIN_REVIEW_20261128_002.json og
-  RECOVERY_ACCEPTANCE med samme 002-suffiks: opprinnelig låst PASS2 og FINAL 432.
+  MAINTENANCE_DIAGNOSIS med samme suffiks: original ekstern stopp og bevart C1.
 
-Aktuell diagnostikkroot:
- /home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_GRADIENT_20261128_001
-Originale002roots har prefiks
-NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_002_ og suffiks
-reference/cold/recovery. Original FIT004 har egen uendret root.
-Originalkvitteringer overstyrer denne prosaen.
+Aktuelle roots har prefiks
+/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_BLOCK_ORDER_RECOVERY_20261128_001_
+og suffiks reference/cold/recovery. Den kronologiske kontrollen ligger i
+NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_002_recovery.
+Originale kvitteringer overstyrer prosa.
