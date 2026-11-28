@@ -15,8 +15,10 @@
 
 ## Gjeldende status og neste steg
 
-NEXT_RUN_POLICY.json er eneste arbeidsstatus. Aktuelt felt er
-native_v3_fit004_exact_recovery_20261128_002. Appmålet mot dokumenterbar
+NEXT_RUN_POLICY.json er eneste arbeidsstatus. Aktuelt forberedelsesfelt er
+native_all_tf_provider_hlc_v3_direction_gradient_20261128_001.
+Siste avsluttede læringsfelt er native_v3_fit004_exact_recovery_20261128_002.
+Appmålet mot dokumenterbar
 retningsedge er aktivt og uoppfylt. Bruker ba om videre arbeid med alle genuine
 indikatorer og deres samspill; ingen generell profittpåstand følger av testen.
 
@@ -72,6 +74,16 @@ skill readout-bias fra vekter/delte familieblokker. Bevar originale masker,
 tapsnevnere, indikatorer og TF. Manglende sidestøtte blir UNKNOWN.
 Dagens aggregat M5-mot-aux skiller ikke aux-aktivitet fra aux-retning;
 det er det konkrete målehullet før eventuell endret ruting/tap vurderes.
+
+Design er immutabelt bundet i V3_DIRECTION_GRADIENT_DESIGN_20261128_001.json.
+Kilde og isolerte syntetiske kontroller er kvalifisert: 51 guard-/kildebro-
+kontroller og20 ulike leaf-kontroller består.78 kildeeiere og faktisk
+FINAL-metadata er validert; numerisk gammelmodell er uendret. Ingen ny
+NN-kjøring er innrømmet. Observerbudsjett: 3 eval-forwards, 30 autograd-kall,
+0 optimizersteg, ingen checkpointskriving eller ny initialscoring. Original
+FINAL432, scores, produsent, runtime og ti semantiske bevis skal autentiseres.
+Modell, AdamW, full RNG, treningsmodus og tomme parametergradienter bevares.
+Alle seks treningsflagg skal være false også ved egen diagnostikkadmisjon.
 
 Dette krever minste observerutvidelse, fokuserte kontroller og en ny eksakt
 engangsplan med aktuell guardadmisjon. Ingen ny fit, epokeserie, kalibrator,

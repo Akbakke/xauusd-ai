@@ -130,6 +130,7 @@ def run(sha):
  except BaseException as error:pub(ROOT,'TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'plan':binding,'claim':claim,'error':type(error).__name__+':'+str(error)[:1800],'remaining_invocations':0,'relaunch_allowed':False});raise
  finally:signal.setitimer(signal.ITIMER_REAL,0)
 def main():
+ if sys.argv[1:2]==['--v3-direction-gradient-plan-sha256']:return main_v3_direction_gradient()
  if sys.argv[1:2]==['--v3-development-recovery-plan-sha256']:return main_v3_development_recovery()
  if sys.argv[1:2]==['--v3-development-plan-sha256']:return main_v3_development()
  if sys.argv[1:2]==['--all-tf-learning-plan-sha256']:return main_all_tf()
@@ -1061,6 +1062,8 @@ def development_reverse_source(raw):
  dispatch=b" if sys.argv[1:2]==['--v3-development-plan-sha256']:return main_v3_development()\n"
  if DEV_RECOVERY_DISPATCH in first:
   need(first.count(DEV_RECOVERY_DISPATCH)==1,'DEV_RECOVERY_EXACT_DISPATCH');first=first.replace(DEV_RECOVERY_DISPATCH,b'')
+ if DIRECTION_GRADIENT_DISPATCH in first:
+  need(first.count(DIRECTION_GRADIENT_DISPATCH)==1,'DIRECTION_GRADIENT_DISPATCH');first=first.replace(DIRECTION_GRADIENT_DISPATCH,b'')
  need(first.count(dispatch)==1,'DEV_EXACT_DISPATCH');return first.replace(dispatch,b'')+last
 
 def development_source_bridge():
@@ -1350,6 +1353,8 @@ DEV_RECOVERY_REVERSE=b" if DEV_RECOVERY_DISPATCH in first:\n  need(first.count(D
 def recovery_source_bridge():
  raw=(REPO/SELF).read_bytes();a=b'\n# BEGIN GX1 V3 EXACT RECOVERY 20261128\n';b=b'# END GX1 V3 EXACT RECOVERY 20261128\n'
  need(raw.count(a)==raw.count(b)==1,'RECOVERY_ONE_BLOCK');first,tail=raw.split(a);_,last=tail.split(b);raw=first+last
+ if DIRECTION_GRADIENT_DISPATCH in raw:
+  need(raw.count(DIRECTION_GRADIENT_DISPATCH)==raw.count(DIRECTION_GRADIENT_REVERSE)==1,'DIRECTION_GRADIENT_RECOVERY_REVERSAL');raw=raw.replace(DIRECTION_GRADIENT_DISPATCH,b'').replace(DIRECTION_GRADIENT_REVERSE,b'')
  need(raw.count(DEV_RECOVERY_DISPATCH)==raw.count(DEV_RECOVERY_REVERSE)==1,'RECOVERY_EXACT_DISPATCH_REVERSE')
  raw=raw.replace(DEV_RECOVERY_DISPATCH,b'').replace(DEV_RECOVERY_REVERSE,b'');old=subprocess.check_output(['git','show',DEV_RECOVERY_ANCHOR+':'+SELF],cwd=REPO)
  need(raw==old,'RECOVERY_ORIGINAL_LEAF_BYTES_UNCHANGED')
@@ -1546,6 +1551,172 @@ def main_v3_development_recovery():
  if args.preflight:
   require_native_all_tf_provider_hlc_v3_development_recovery_execution(plan_sha256=sha,lane=args.lane);plan,binding,pref,live=inspect_v3_development_recovery(sha,args.lane,False);print(json.dumps({'status':'PREFLIGHT_V3_EXACT_RECOVERY_METADATA_ONLY','lane':args.lane,'plan':binding,'policy':pref,'physical_input_identity':plan['physical_input_identity'],'models':0,'payloads_decoded':0,'CUDA_initialized':False,'CLAIM_created':False}))
  else:print(json.dumps(run_v3_development_recovery(sha,args.lane),sort_keys=True))
+
+# BEGIN GX1 V3 DIRECTION GRADIENT 20261128
+DIRECTION_GRADIENT_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_GRADIENT_20261128_001'
+DIRECTION_GRADIENT_STAGE=DIRECTION_GRADIENT_NAME.lower()
+DIRECTION_GRADIENT_PLAN=REPO/'configs/research'/(DIRECTION_GRADIENT_NAME+'.json')
+DIRECTION_GRADIENT_ROOT=Path('/home/andre2/GX1_RUNS')/DIRECTION_GRADIENT_NAME
+DIRECTION_GRADIENT_ANCHOR='70b975652f96ccb47792a35235827aca7e1b849e'
+DIRECTION_GRADIENT_DESIGN={'path':str(E/'V3_DIRECTION_GRADIENT_DESIGN_20261128_001.json'),'sha256':'86c1b9675b29ad2f058fb9424afbd07f79ed796ab45a78fb360b9eb670f56e75'}
+DIRECTION_GRADIENT_POLICY_SNAPSHOT=E/'V3_DIRECTION_GRADIENT_ADMITTED_POLICY_20261128_001.json'
+DIRECTION_GRADIENT_DISPATCH=b" if sys.argv[1:2]==['--v3-direction-gradient-plan-sha256']:return main_v3_direction_gradient()\n"
+DIRECTION_GRADIENT_REVERSE=b" if DIRECTION_GRADIENT_DISPATCH in first:\n  need(first.count(DIRECTION_GRADIENT_DISPATCH)==1,'DIRECTION_GRADIENT_DISPATCH');first=first.replace(DIRECTION_GRADIENT_DISPATCH,b'')\n"
+DIRECTION_GRADIENT_RECOVERY_REVERSE=b" if DIRECTION_GRADIENT_DISPATCH in raw:\n  need(raw.count(DIRECTION_GRADIENT_DISPATCH)==raw.count(DIRECTION_GRADIENT_REVERSE)==1,'DIRECTION_GRADIENT_RECOVERY_REVERSAL');raw=raw.replace(DIRECTION_GRADIENT_DISPATCH,b'').replace(DIRECTION_GRADIENT_REVERSE,b'')\n"
+
+def direction_gradient_source_bridge():
+ raw=(REPO/SELF).read_bytes();a=b'\n# BEGIN GX1 V3 DIRECTION GRADIENT 20261128\n';b=b'# END GX1 V3 DIRECTION GRADIENT 20261128\n';need(raw.count(a)==raw.count(b)==1,'DIRECTION_GRADIENT_ONE_BLOCK');first,tail=raw.split(a);_,last=tail.split(b);raw=first+last
+ for fragment in (DIRECTION_GRADIENT_DISPATCH,DIRECTION_GRADIENT_REVERSE,DIRECTION_GRADIENT_RECOVERY_REVERSE):
+  need(raw.count(fragment)==1,'DIRECTION_GRADIENT_EXACT_NORMALIZATION');raw=raw.replace(fragment,b'')
+ old=subprocess.check_output(['git','show',DIRECTION_GRADIENT_ANCHOR+':'+SELF],cwd=REPO);need(raw==old,'DIRECTION_GRADIENT_OLD_LEAF_UNCHANGED')
+ return {'producer_commit':DIRECTION_GRADIENT_ANCHOR,'owner':SELF,'original_sha256':hashlib.sha256(old).hexdigest(),'current_sha256':ref(REPO/SELF)['sha256'],'only_additive_diagnostic_dispatch_and_exact_bridge_normalization':True,'old_numeric_and_recovery_functions_unchanged':True}
+
+def direction_gradient_gate(binding,admitted=False):
+ return {'status':'ADMITTED_EXACT_V3_DIRECTION_GRADIENT'if admitted else'PREPARED_CLOSED_NOT_ADMITTED','plan':binding,'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':False,'test_authorized':False}
+
+def direction_gradient_require_gate(value,binding,admitted=False):
+ expected=direction_gradient_gate(binding,admitted)
+ need(type(value)is dict and all(type(value.get(k))is bool for k in('execution_authorized','relaunch_allowed','training_authorized','test_authorized'))and type(value.get('remaining_invocations'))is int and all(value.get(k)==v for k,v in expected.items()),'DIRECTION_GRADIENT_EXACT_GATE')
+ return value
+
+def direction_gradient_admission_snapshot(binding,policy_ref):
+ sr=ref(DIRECTION_GRADIENT_POLICY_SNAPSHOT);p=read(sr);need(policy_ref=={'path':str(POLICY),'sha256':sr['sha256']}and all(p.get(k)is False for k in DEV_FLAGS),'DIRECTION_GRADIENT_SNAPSHOT_FLAGS_SHA')
+ direction_gradient_require_gate(p.get(DIRECTION_GRADIENT_STAGE,{}),binding,True)
+ need(p[DIRECTION_GRADIENT_STAGE].get('design')==DIRECTION_GRADIENT_DESIGN,'DIRECTION_GRADIENT_SNAPSHOT_DESIGN');return sr
+
+def direction_gradient_final_metadata():
+ original,c1,trajectory,lineage,identity=recovery_original_metadata();design=read(DIRECTION_GRADIENT_DESIGN);closed=recovery_closed('recovery');producer=read(closed['plan']);report=closed['value']['report'];fr=report['final_checkpoint_receipt'];receipt=read(fr)
+ need(design['final_checkpoint_receipt']==fr and design['recovery_result']==closed['result']and design['fixed_panels']==[0,107,214]and design['maximum_model_forwards']==3 and design['maximum_autograd_calls']==30 and design['optimizer_updates']==design['checkpoint_writes']==design['normalization_fits']==design['prior_fits']==0,'DIRECTION_GRADIENT_BOUND_DESIGN')
+ need(fr['path']==str(DEV_RECOVERY_ROOTS['recovery']/'FINAL.json')and receipt['original_plan']==DEV_RECOVERY_ORIGINAL and receipt['execution_plan']==closed['plan']and receipt['producer_lane']=='recovery'and type(receipt['logical_cursor'])is int and receipt['logical_cursor']==receipt['optimizer_updates']==original['schedule']['logical_batches']==432 and receipt['checkpoint']['path']==str(DEV_RECOVERY_ROOTS['recovery']/'FINAL.pt'),'DIRECTION_GRADIENT_AUTHENTIC_FINAL')
+ core.future_cuda_runtime_matches(producer['metadata']['runtime'],receipt['producer_runtime'])
+ need(producer['metadata']['original']==original and producer['metadata']['trajectory']==trajectory and report['ending_cursor']==report['logical_original_optimizer_updates']==432 and report['new_optimizer_updates']==431 and report['scores']['INITIAL']==lineage['original_INITIAL_score'],'DIRECTION_GRADIENT_FINAL_PRODUCER')
+ proof=train.require_recovery_checkpoint_proof(receipt['proof']);need(proof['trajectory']==core.state_sha(trajectory)and proof['position']==core.state_sha(train.position(original['schedule'],432))and proof['scores']==core.state_sha(report['scores'])and proof['training']==core.state_sha(True)and proof['scheduler_state']==core.state_sha(None),'DIRECTION_GRADIENT_FINAL_SEMANTICS')
+ panels=train.diagnostic_panels(original['schedule']);need(panels['candidate_batch_indices']==design['fixed_panels']and panels['supported_panels']==3 and not panels['skipped_empty_batch_indices'],'DIRECTION_GRADIENT_FIXED_PANELS')
+ refs={**lineage,'design':DIRECTION_GRADIENT_DESIGN,'final_execution_plan':closed['plan'],'final_result':closed['result'],'final_terminal':closed['terminal'],'final_claim':closed['claim'],'final_admitted_policy':closed['admitted_policy_snapshot'],'final_checkpoint_receipt':fr,'final_checkpoint':receipt['checkpoint'],'final_acceptance':design['recovery_acceptance'],'final_backup':design['final_backup']}
+ refs.update({'original_'+label+'_score':binding for label,binding in report['scores'].items()})
+ for binding in refs.values():
+  if Path(binding['path']).suffix not in('.pt','.npz','.npy'):read(binding)
+ return original,receipt,trajectory,producer,report['scores'],refs,identity
+
+def build_v3_direction_gradient_plan(runtime,source_commit=None):
+ from gx1.contracts.gx1_capped_execution_v1 import native_v3_direction_gradient_source_bridge
+ original,receipt,trajectory,producer,scores,refs,identity=direction_gradient_final_metadata();head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip();need(source_commit in(None,head)and runtime['source_commit']==head,'DIRECTION_GRADIENT_SOURCE_RUNTIME');core.future_cuda_require_runtime(runtime);train.runtime_compatible(trajectory['runtime_compatibility'],runtime)
+ owners=dict(producer['source_owners']);owners.update({n:ref(REPO/n)['sha256']for n in(*GUARDS,SELF,DEV_TEST,DEV_GUARD_TEST)})
+ for n,d in owners.items():need(ref(REPO/n)['sha256']==d,'DIRECTION_GRADIENT_SOURCE:'+n)
+ inputs={**copy.deepcopy(original['inputs']),**refs};metadata_roles={k for k,v in inputs.items()if Path(v['path']).suffix not in('.pt','.npz','.npy')and not k.startswith('provider_raw_response_')};payload=set(inputs)-metadata_roles
+ limits=dict.fromkeys(development_limits('fit'),0);limits.update(model_constructions=1,optimizer_constructions=1,feature_cache_payload_loads=1,target_archive_loads=1,checkpoint_loads=1,model_restores=1,model_forwards=3,backbone_forwards=3,readout_forwards=3,autograd_calls=30)
+ old={n:hashlib.sha256(subprocess.check_output(['git','show',DIRECTION_GRADIENT_ANCHOR+':'+n],cwd=REPO)).hexdigest()for n in GUARDS}
+ return {'schema_version':'gx1_native_v3_direction_gradient_plan_v1','stage':DIRECTION_GRADIENT_STAGE,'source_commit':head,'output_root':str(DIRECTION_GRADIENT_ROOT),'source_owners':owners,'guard_source_bridge':native_v3_direction_gradient_source_bridge(old,producer_commit=DIRECTION_GRADIENT_ANCHOR),'owner_source_bridge':direction_gradient_source_bridge(),'design':DIRECTION_GRADIENT_DESIGN,'original_plan':DEV_RECOVERY_ORIGINAL,'checkpoint_receipt':refs['final_checkpoint_receipt'],'metadata':{'original':original,'receipt':receipt,'trajectory':trajectory,'producer':producer,'scores':scores,'runtime':copy.deepcopy(runtime)},'inputs':inputs,'metadata_input_roles':sorted(metadata_roles),'payload_stat':{k:{'size':Path(inputs[k]['path']).stat().st_size,'mtime_ns':Path(inputs[k]['path']).stat().st_mtime_ns}for k in sorted(payload)},'physical_input_identity':identity,'model_contract':original['model_contract'],'recipe':original['recipe'],'panel_indices':[0,107,214],'limits':limits,'execution':development_execution('warm',original),'scope':read(DIRECTION_GRADIENT_DESIGN)['scientific_limits']}
+
+def inspect_v3_direction_gradient(sha,admitted=False):
+ binding={'path':str(DIRECTION_GRADIENT_PLAN),'sha256':sha};plan=read(binding);need(plan==build_v3_direction_gradient_plan(plan['metadata']['runtime'],plan['source_commit']),'DIRECTION_GRADIENT_EXACT_PLAN');recovery_check_inputs(plan)
+ pref=ref(POLICY);policy=read(pref);need(all(policy.get(k)is False for k in DEV_FLAGS),'DIRECTION_GRADIENT_ALL6_FLAGS_CLOSED');parent=policy.get(DIRECTION_GRADIENT_STAGE,{})
+ direction_gradient_require_gate(parent,binding,admitted);need(parent.get('design')==DIRECTION_GRADIENT_DESIGN,'DIRECTION_GRADIENT_PARENT_DESIGN')
+ if admitted:direction_gradient_admission_snapshot(binding,pref)
+ need(not DIRECTION_GRADIENT_ROOT.exists()and not DIRECTION_GRADIENT_ROOT.is_symlink(),'DIRECTION_GRADIENT_FRESH_ROOT');live=core.collect_future_cuda_runtime_metadata();core.future_cuda_runtime_matches(plan['metadata']['runtime'],live)
+ return plan,binding,pref,live
+
+def direction_gradient_parameter_groups(named):
+ from gx1.features.entry_specialist_feature_groups_v1 import MODEL_NATIVE_TRAINING_SPECIALISTS
+ groups={name:[]for name in(*MODEL_NATIVE_TRAINING_SPECIALISTS,'unassigned_shared_mix')};groups['all_backbone']=[];readout={}
+ expected={f'readout.{task}_heads.{tf}.{part}'for task in('activity','side')for tf in train.TF for part in('bias','weight')}
+ for index,(name,p)in enumerate(named):
+  if name.startswith('backbone.'):
+   matches=[f for f in MODEL_NATIVE_TRAINING_SPECIALISTS if f in name];groups[matches[0]if len(matches)==1 else'unassigned_shared_mix'].append(index);groups['all_backbone'].append(index)
+  else:need(name in expected,'DIRECTION_GRADIENT_PARAMETER_OWNER');readout[name]=index
+ need(set(readout)==expected and groups['all_backbone'],'DIRECTION_GRADIENT_EXACT_READOUT_GROUPS')
+ return groups,readout
+
+def direction_gradient_pair_measures(left,right,left_task,right_task):
+ raw=core.shared_gradient_measures(left,right)
+ return {'left_task':left_task,'right_task':right_task,'scope':'pair_only_left_plus_right_not_all_ten_tasks','left_l2':raw['g5_l2'],'right_l2':raw['gaux_l2'],'cross_dot':raw['cross_dot'],'cosine':raw['cosine'],'left_dot_pair_sum':raw['g5_dot_joint'],'raw_pair_sum_opposes_left':raw['raw_joint_opposes_M5'],'unused_left_parameter_tensors':raw['unused_M5_parameter_tensors'],'unused_right_parameter_tensors':raw['unused_aux_parameter_tensors']}
+
+def direction_gradient_probe(model,optimizer,packet,original,counts):
+ import torch
+ from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
+ named=tuple((n,p)for n,p in model.named_parameters()if p.requires_grad);parameters=tuple(p for _,p in named);groups,readout=direction_gradient_parameter_groups(named)
+ need(all(p.grad is None for p in model.parameters()),'DIRECTION_GRADIENT_INITIAL_GRAD_NONE')
+ before={'model':core.state_sha(model.state_dict()),'optimizer':core.state_sha(optimizer.state_dict()),'rng':core.state_sha(core.training_rng())};rng=core.training_rng();mode=model.training;model.eval()
+ try:
+  output,_,_=core.future_cuda_forward(model,packet['features']);loss=native_future_state_loss(model_output=output,truth=packet['truth'],fold_upper_ns=train.UPPER,target_contract=original['metadata']['target_contract']);n=loss['count'];need(n>0,'DIRECTION_GRADIENT_ACTIVITY_SUPPORT')
+  tasks=[(task,tf,j)for task in('activity','side')for j,tf in enumerate(train.TF)];derivatives=[];task_reports={}
+  for i,(task,tf,j)in enumerate(tasks):
+   term=loss['loss_sums'][task][j]/n;g=torch.autograd.grad(term,parameters,retain_graph=i<len(tasks)-1,allow_unused=True);cpu=tuple(None if x is None else x.detach().to('cpu',copy=True)for x in g);del g;counts['autograd_calls']+=1;support=int(loss['counts'][task][j]);need(support>0 or all(x is None or not bool(torch.count_nonzero(x))for x in cpu),'DIRECTION_GRADIENT_UNKNOWN_TASK_ZERO')
+   derivatives.append(cpu);norms={key:core.shared_gradient_measures(tuple(cpu[k]for k in indices),(None,)*len(indices))['g5_l2']for key,indices in groups.items()};head={}
+   for name,index in readout.items():
+    value=cpu[index];head[name]={'gradient_l2':0. if value is None else float(value.double().square().sum().sqrt()),'unused':value is None}
+    if name.endswith('.bias')and value is not None:need(value.numel()==1,'DIRECTION_GRADIENT_SCALAR_BIAS');head[name]['signed_gradient']=float(value.item())
+   task_reports[task+'.'+tf]={'support':support,'status':'SUPPORTED'if support else'UNKNOWN_NO_OBSERVED_TASK_SUPPORT','loss_sum':float(loss['loss_sums'][task][j].detach()),'original_denominator':n,'shared_group_l2':norms,'readout':head}
+  pairwise={}
+  for group,indices in groups.items():
+   cells={}
+   for i,(ta,tfa,_)in enumerate(tasks):
+    left=ta+'.'+tfa
+    for j in range(i+1,len(tasks)):
+     tb,tfb,_=tasks[j];right=tb+'.'+tfb
+     cells[left+'__'+right]={'status':'UNKNOWN_TASK_SUPPORT'}if not task_reports[left]['support']or not task_reports[right]['support']else{'status':'SUPPORTED','raw_data_gradients':direction_gradient_pair_measures(tuple(derivatives[i][k]for k in indices),tuple(derivatives[j][k]for k in indices),left,right)}
+   pairwise[group]=cells
+  observed={'model':core.state_sha(model.state_dict())==before['model'],'optimizer':core.state_sha(optimizer.state_dict())==before['optimizer'],'rng_before_cleanup':core.state_sha(core.training_rng())==before['rng'],'grad_none':all(p.grad is None for p in model.parameters())};need(all(observed.values()),'DIRECTION_GRADIENT_OBSERVED_STATE_MUTATION')
+  return {'denominator_known_activity_cells':n,'support':{k:v.detach().cpu().tolist()for k,v in loss['counts'].items()},'per_task':task_reports,'shared_group_pairwise':pairwise,'parameter_names_sha256':core.state_sha([name for name,_ in named]),'group_parameter_tensor_counts':{k:len(v)for k,v in groups.items()},'observed_before_cleanup':observed,'temporary_eval_mode':True,'original_training_mode':mode,'scope':'Local unclipped data gradients; not AdamW updates, featureutility or optimaltaskweights. D1/macro parameters belong session_regime_encoder.'}
+ finally:
+  model.train(mode);core.restore_training_rng(rng)
+  need(core.state_sha(model.state_dict())==before['model']and core.state_sha(optimizer.state_dict())==before['optimizer']and core.state_sha(core.training_rng())==before['rng']and model.training is mode and all(p.grad is None for p in model.parameters()),'DIRECTION_GRADIENT_CLEANUP_STATE')
+
+def direction_gradient_physical(plan,binding,root,live):
+ import torch
+ from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_future_state_model
+ original=plan['metadata']['original'];receipt=plan['metadata']['receipt'];trajectory=plan['metadata']['trajectory'];counts=dict.fromkeys(plan['limits'],0);context=development_nn_context(original);counts['feature_cache_payload_loads']=counts['target_archive_loads']=1;core.future_cuda_seed_and_runtime({'recipe':original['recipe'],'metadata':{'runtime':live}})
+ model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=context['input_binding'],architecture=original['metadata']['architecture'],device=torch.device('cuda'),train_prior=context['prior'],target_contract=context['target_contract'],backbone_gradient_policy=None);counts['model_constructions']=1
+ need(model.research_objective==original['model_contract']and core.state_sha(model.state_dict())==original['initial_reference']['model_state_sha256']and core.state_sha(core.training_rng())==original['initial_reference']['rng_sha256'],'DIRECTION_GRADIENT_FRESH_FACTORY')
+ optimizer=torch.optim.AdamW(model.parameters(),**original['recipe']['optimizer']);counts['optimizer_constructions']=1;need(not optimizer.state,'DIRECTION_GRADIENT_FRESH_ADAMW');need(ref(receipt['checkpoint']['path'])==receipt['checkpoint'],'DIRECTION_GRADIENT_FINAL_SHA_BEFORE_LOAD');cp=torch.load(receipt['checkpoint']['path'],map_location='cpu',weights_only=True);counts['checkpoint_loads']=1
+ need(cp['producer']=={'original_plan':DEV_RECOVERY_ORIGINAL,'lane':'recovery','runtime':receipt['producer_runtime']}and cp['scores']==plan['metadata']['scores'],'DIRECTION_GRADIENT_ACTUAL_FINAL_PRODUCER_SCORES')
+ restored=train.strict_restore(model,optimizer,cp,trajectory=trajectory,original_plan_ref=DEV_RECOVERY_ORIGINAL,expected_cursor=432,current_runtime=live,expected_state_proof=receipt['proof']);counts['model_restores']=1;steps=copy.deepcopy(cp['steps']);scores=copy.deepcopy(cp['scores']);del cp;need(restored==train.position(original['schedule'],432),'DIRECTION_GRADIENT_FINAL_CURSOR')
+ def proof():
+  return train.checkpoint_proof(train.make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=DEV_RECOVERY_ORIGINAL,lane='diagnostic',cursor=432,steps=steps,scores=scores,producer_runtime=live))
+ need(proof()==receipt['proof']and all(p.grad is None for p in model.parameters()),'DIRECTION_GRADIENT_ALL10_BEFORE_PROBES')
+ def counter(key):
+  def hook(*args):counts[key]+=1;need(counts[key]<=plan['limits'][key],'DIRECTION_GRADIENT_FORWARD_BOUND')
+  return hook
+ hooks=[model.register_forward_pre_hook(counter('model_forwards')),model.backbone.register_forward_pre_hook(counter('backbone_forwards')),model.readout.register_forward_pre_hook(counter('readout_forwards'))];reports=[]
+ try:
+  for index in plan['panel_indices']:
+   packet=adapter.packet(context,context['batches'][index]);report=direction_gradient_probe(model,optimizer,packet,original,counts);need(proof()==receipt['proof'],'DIRECTION_GRADIENT_ALL10_AFTER_PANEL');reports.append({'batch_index':index,'report':report})
+  need(proof()==receipt['proof']and counts==plan['limits']and torch.cuda.max_memory_reserved()<=plan['execution']['cuda_peak_reserved_bytes_max'],'DIRECTION_GRADIENT_FINAL_COUNTS_STATE_VRAM')
+  return {'counts':counts,'original_plan':DEV_RECOVERY_ORIGINAL,'final_checkpoint_receipt':plan['checkpoint_receipt'],'final_state_proof':receipt['proof'],'all10_semantic_proofs_unchanged':True,'panels':reports,'optimizer_updates':0,'new_checkpoint_writes':0,'later_generalization':'NOT_MEASURED','economic_edge':'UNKNOWN','scientific_limits':plan['scope']}
+ finally:
+  for hook in hooks:hook.remove()
+
+def direction_gradient_bookends(plan,binding,pref,boot):
+ checks={};tests={'plan':lambda:ref(DIRECTION_GRADIENT_PLAN)==binding,'sources':lambda:all(ref(REPO/n)['sha256']==d for n,d in plan['source_owners'].items()),'inputs':lambda:all(ref(v['path'])==v for v in plan['inputs'].values())and direction_gradient_admission_snapshot(binding,pref)['sha256']==pref['sha256'],'policy':lambda:ref(POLICY)==pref,'boots':lambda:{'physical_windows_boot_id':core.physical_windows_boot_id(),'wsl_boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip()}==boot,'HEAD':lambda:subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()==plan['source_commit']}
+ for name,fn in tests.items():
+  try:checks[name]=bool(fn())
+  except BaseException:checks[name]=False
+ return checks
+
+def run_v3_direction_gradient(sha):
+ from gx1.contracts.gx1_capped_execution_v1 import require_native_v3_direction_gradient_execution
+ execution=require_native_v3_direction_gradient_execution(plan_sha256=sha);plan,binding,pref,live=inspect_v3_direction_gradient(sha,True);root=DIRECTION_GRADIENT_ROOT;root.mkdir(exist_ok=False);boot={k:live[k]for k in('physical_windows_boot_id','wsl_boot_id')};started=time.monotonic();claim=development_publish(root,'CLAIM.json',{'plan':binding,'policy_at_claim':pref,'admitted_policy_snapshot':direction_gradient_admission_snapshot(binding,pref),'execution':execution,'boots':boot,'process_identity':core.future_cpu_process_identity(),'remaining_invocations':0,'relaunch_allowed':False});report=None;error=None
+ def stop(*_):raise TimeoutError('DIRECTION_GRADIENT_INTERNAL_WALL_OR_SIGNAL')
+ handlers={sig:signal.getsignal(sig)for sig in(signal.SIGALRM,signal.SIGTERM,signal.SIGINT)}
+ for sig in handlers:signal.signal(sig,stop)
+ signal.setitimer(signal.ITIMER_REAL,plan['execution']['internal_seconds'])
+ try:
+  allowed={str(Path(v['path']).resolve())for v in plan['inputs'].values()if Path(v['path']).suffix in('.npz','.npy','.pt','.pth','.parquet','.safetensors','.pkl','.pickle','.joblib')};sys.addaudithook(lambda e,a:development_io_audit(allowed,e,a));recovery_check_inputs(plan,physical=True);report=direction_gradient_physical(plan,binding,root,live);need(core.common.firewall_state()['denied_attempts']==0,'DIRECTION_GRADIENT_ZERO_FIREWALL_DENIALS')
+ except BaseException as exc:error=type(exc).__name__+':'+str(exc)[:2400]
+ finally:
+  signal.setitimer(signal.ITIMER_REAL,0);book=direction_gradient_bookends(plan,binding,pref,boot);error=error or(None if all(book.values())else'DIRECTION_GRADIENT_BOOKEND_FAILED')
+  result=development_publish(root,'RESULT.json',{'status':'COMPLETE_V3_DIRECTION_GRADIENT'if error is None else'FAILED_CONSUMED','plan':binding,'claim':claim,'report':report,'error':error,'bookends':book,'elapsed_seconds':time.monotonic()-started,'optimizer_updates':0,'test_data_used':False,'later_generalization':'NOT_MEASURED','economic_edge':'UNKNOWN'});terminal=development_publish(root,'TERMINAL.json',{'status':'COMPLETE'if error is None else'FAILED_CONSUMED','exit_code':0 if error is None else 1,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False})
+  for sig,handler in handlers.items():signal.signal(sig,handler)
+ if error:raise RuntimeError(error)
+ return {'result':result,'terminal':terminal}
+
+def main_v3_direction_gradient():
+ from gx1.contracts.gx1_capped_execution_v1 import require_native_v3_direction_gradient_execution
+ parser=argparse.ArgumentParser();parser.add_argument('--v3-direction-gradient-plan-sha256',required=True);parser.add_argument('--preflight',action='store_true');a=parser.parse_args();need(sys.argv[1:]==['--v3-direction-gradient-plan-sha256',a.v3_direction_gradient_plan_sha256]+(['--preflight']if a.preflight else[]),'DIRECTION_GRADIENT_EXACT_CLI')
+ if a.preflight:
+  require_native_v3_direction_gradient_execution(plan_sha256=a.v3_direction_gradient_plan_sha256);plan,binding,pref,live=inspect_v3_direction_gradient(a.v3_direction_gradient_plan_sha256,False);print(json.dumps({'status':'PREFLIGHT_V3_DIRECTION_GRADIENT_METADATA_ONLY','plan':binding,'policy':pref,'physical_input_identity':plan['physical_input_identity'],'final_checkpoint_receipt':plan['checkpoint_receipt'],'models':0,'payloads_decoded':0,'CUDA_initialized':False,'CLAIM_created':False}))
+ else:print(json.dumps(run_v3_direction_gradient(a.v3_direction_gradient_plan_sha256),sort_keys=True))
+# END GX1 V3 DIRECTION GRADIENT 20261128
 # END GX1 V3 EXACT RECOVERY 20261128
 # END GX1 V3 BOUNDED DEVELOPMENT 20261127
 if __name__=='__main__':main()

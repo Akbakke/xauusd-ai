@@ -310,3 +310,131 @@ def test_own_admission_snapshot_is_part_of_six_bookend_inputs(monkeypatch,tmp_pa
     checks=owner.recovery_bookends(plan,binding,pref,boot)
     assert set(checks)=={'plan','sources','inputs','policy','boots','HEAD'}
     assert checks['inputs']is(not changed)and all(v for k,v in checks.items()if k!='inputs')
+
+def test_direction_gradient_addition_preserves_prior_leaf_bridges():
+    assert owner.direction_gradient_source_bridge()['old_numeric_and_recovery_functions_unchanged']
+    assert owner.recovery_source_bridge()['original_development_nn_and_numeric_paths_unchanged']
+    assert owner.development_source_bridge()['baseline74_numeric_functions_changed']==0
+
+
+@pytest.mark.parametrize('admitted',(False,True))
+@pytest.mark.parametrize('wrong',('remaining_invocations','execution_authorized','training_authorized'))
+def test_direction_gradient_gate_types_and_zero_training_authority(admitted,wrong):
+    ref={'path':'/s/plan.json','sha256':'1'*64};gate=owner.direction_gradient_gate(ref,admitted)
+    owner.direction_gradient_require_gate(gate,ref,admitted)
+    assert gate['training_authorized']is False
+    gate[wrong]=bool(gate[wrong])if wrong=='remaining_invocations'else int(gate[wrong])
+    with pytest.raises(ValueError):owner.direction_gradient_require_gate(gate,ref,admitted)
+
+
+def tiny_direction_probe(monkeypatch,*,unknown=False,consume_rng=False,mutate_model=False):
+    """Actual CPU autograd on explicit synthetic scalar signals; no native model/CUDA/data."""
+    import torch
+    from gx1.contracts import market_state_ta_integrated_objective_v1 as objective
+    from gx1.features.entry_specialist_feature_groups_v1 import MODEL_NATIVE_TRAINING_SPECIALISTS
+    class Tiny(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.backbone=torch.nn.ModuleDict({name:torch.nn.Linear(1,1,bias=False)for name in MODEL_NATIVE_TRAINING_SPECIALISTS})
+            self.readout=torch.nn.Module()
+            self.readout.activity_heads=torch.nn.ModuleDict({tf:torch.nn.Linear(1,1)for tf in owner.train.TF})
+            self.readout.side_heads=torch.nn.ModuleDict({tf:torch.nn.Linear(1,1)for tf in owner.train.TF})
+            with torch.no_grad():
+                for p in self.parameters():p.fill_(0.125)
+                for heads in (self.readout.activity_heads,self.readout.side_heads):
+                    for head in heads.values():head.bias.zero_()
+        def forward(self,signal):
+            if consume_rng:torch.rand(1)
+            if mutate_model:
+                with torch.no_grad():self.readout.activity_heads['M5'].bias.add_(0.1)
+            hidden=sum(layer(signal)for layer in self.backbone.values())
+            return {task+'_logits':torch.cat([head(hidden)for head in heads.values()],dim=1)for task,heads in [('activity',self.readout.activity_heads),('side',self.readout.side_heads)]}
+    model=Tiny();optimizer=torch.optim.AdamW(model.parameters(),lr=0.0001)
+    def forbidden(*a,**k):raise AssertionError('No optimizer mutation allowed')
+    monkeypatch.setattr(optimizer,'step',forbidden);monkeypatch.setattr(optimizer,'zero_grad',forbidden)
+    monkeypatch.setattr(owner.core,'training_rng',lambda:{'torch_cpu':torch.get_rng_state().clone()})
+    monkeypatch.setattr(owner.core,'restore_training_rng',lambda value:torch.set_rng_state(value['torch_cpu']))
+    monkeypatch.setattr(owner.core,'future_cuda_forward',lambda m,features:(m(**features),None,{}))
+    labels={'activity':torch.ones(2,5),'side':torch.tensor([[0.]*5,[1.]*5])};masks={key:torch.ones(2,5,dtype=torch.bool)for key in labels}
+    if unknown:masks['side'][:,0]=False
+    def loss(*,model_output,**kwargs):
+        sums={};counts={}
+        for task in labels:
+            raw=torch.nn.functional.binary_cross_entropy_with_logits(model_output[task+'_logits'],labels[task],reduction='none')
+            sums[task]=torch.where(masks[task],raw,torch.zeros_like(raw)).sum(0);counts[task]=masks[task].sum(0)
+        return {'loss_sums':sums,'counts':counts,'count':int(counts['activity'].sum())}
+    monkeypatch.setattr(objective,'native_future_state_loss',loss)
+    return torch,model,optimizer,{'features':{'signal':torch.tensor([[-1.],[1.]])},'truth':{}},{'metadata':{'target_contract':{}}}
+
+
+@pytest.mark.parametrize('unknown',(False,True))
+def test_direction_gradient_exact_terms_denominator_and_unchanged_state(monkeypatch,unknown):
+    torch,m,opt,packet,original=tiny_direction_probe(monkeypatch,unknown=unknown)
+    before={'model':owner.core.state_sha(m.state_dict()),'optimizer':owner.core.state_sha(opt.state_dict()),'rng':owner.core.state_sha(owner.core.training_rng())}
+    counts={'autograd_calls':0}
+    for _ in range(3):
+        report=owner.direction_gradient_probe(m,opt,packet,original,counts)
+        assert report['denominator_known_activity_cells']==10
+        assert set(report['per_task'])=={task+'.'+tf for task in ('activity','side')for tf in owner.train.TF}
+        assert report['temporary_eval_mode']and report['original_training_mode']is True
+        assert all(report['observed_before_cleanup'].values())
+        bias=report['per_task']['activity.M5']['readout']['readout.activity_heads.M5.bias']['signed_gradient']
+        assert bias==pytest.approx(-0.1,abs=1e-7)
+        assert len(report['shared_group_pairwise']['all_backbone'])==45
+        if unknown:
+            assert report['per_task']['side.M5']['status']=='UNKNOWN_NO_OBSERVED_TASK_SUPPORT'
+            assert all(value==0. for value in report['per_task']['side.M5']['shared_group_l2'].values())
+            assert report['shared_group_pairwise']['all_backbone']['activity.M5__side.M5']=={'status':'UNKNOWN_TASK_SUPPORT'}
+    assert counts['autograd_calls']==30
+    assert m.training is True and all(p.grad is None for p in m.parameters())
+    assert before=={'model':owner.core.state_sha(m.state_dict()),'optimizer':owner.core.state_sha(opt.state_dict()),'rng':owner.core.state_sha(owner.core.training_rng())}
+
+
+def test_direction_gradient_rng_consumption_is_detected_before_cleanup(monkeypatch):
+    _,m,opt,packet,original=tiny_direction_probe(monkeypatch,consume_rng=True)
+    before=owner.core.state_sha(owner.core.training_rng())
+    with pytest.raises(ValueError,match='OBSERVED_STATE_MUTATION'):owner.direction_gradient_probe(m,opt,packet,original,{'autograd_calls':0})
+    assert owner.core.state_sha(owner.core.training_rng())==before
+    assert m.training is True
+
+
+def test_direction_gradient_model_mutation_fails_without_hiding_it(monkeypatch):
+    _,m,opt,packet,original=tiny_direction_probe(monkeypatch,mutate_model=True)
+    with pytest.raises(ValueError):owner.direction_gradient_probe(m,opt,packet,original,{'autograd_calls':0})
+
+
+def test_direction_gradient_refuses_existing_gradients(monkeypatch):
+    torch,m,opt,packet,original=tiny_direction_probe(monkeypatch)
+    first=next(m.parameters());first.grad=torch.ones_like(first)
+    with pytest.raises(ValueError,match='INITIAL_GRAD_NONE'):owner.direction_gradient_probe(m,opt,packet,original,{'autograd_calls':0})
+
+
+def test_direction_gradient_unknown_parameter_owner_fails(monkeypatch):
+    torch,m,_,_,_=tiny_direction_probe(monkeypatch);m.extra=torch.nn.Parameter(torch.ones(1))
+    with pytest.raises(ValueError,match='PARAMETER_OWNER'):owner.direction_gradient_parameter_groups(tuple(m.named_parameters()))
+
+
+@pytest.mark.parametrize('bad',(None,'flags','sha','training','counter','design'))
+def test_direction_gradient_immutable_snapshot_with_all_training_flags_closed(monkeypatch,bad):
+    binding={'path':'/s/plan.json','sha256':'1'*64};snapshot_ref={'path':str(owner.DIRECTION_GRADIENT_POLICY_SNAPSHOT),'sha256':'2'*64};pref={'path':str(owner.POLICY),'sha256':'2'*64}
+    policy={k:False for k in owner.DEV_FLAGS};policy[owner.DIRECTION_GRADIENT_STAGE]={**owner.direction_gradient_gate(binding,True),'design':owner.DIRECTION_GRADIENT_DESIGN}
+    if bad=='flags':policy['training_enabled']=True
+    if bad=='sha':pref['sha256']='3'*64
+    if bad=='training':policy[owner.DIRECTION_GRADIENT_STAGE]['training_authorized']=True
+    if bad=='counter':policy[owner.DIRECTION_GRADIENT_STAGE]['remaining_invocations']=True
+    if bad=='design':policy[owner.DIRECTION_GRADIENT_STAGE]['design']={}
+    monkeypatch.setattr(owner,'ref',lambda p:snapshot_ref);monkeypatch.setattr(owner,'read',lambda r:policy)
+    if bad is None:assert owner.direction_gradient_admission_snapshot(binding,pref)==snapshot_ref
+    else:
+        with pytest.raises(ValueError):owner.direction_gradient_admission_snapshot(binding,pref)
+
+
+
+def test_direction_gradient_pair_roles_preserve_math_without_false_M5_scope():
+    import torch
+    value=owner.direction_gradient_pair_measures((torch.tensor([1.]),),(torch.tensor([-2.]),),'activity.M15','side.H4')
+    assert value['left_task']=='activity.M15'and value['right_task']=='side.H4'
+    assert value['scope']=='pair_only_left_plus_right_not_all_ten_tasks'
+    assert value['left_l2']==1. and value['right_l2']==2. and value['cross_dot']==-2. and value['cosine']==-1.
+    assert value['left_dot_pair_sum']==-1. and value['raw_pair_sum_opposes_left']is True
+    assert not any('M5'in k or 'g5'in k or 'gaux'in k or 'joint'in k for k in value)

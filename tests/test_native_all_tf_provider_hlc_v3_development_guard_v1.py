@@ -477,3 +477,171 @@ def test_recovery002_rejects_consumed001_output_namespace(monkeypatch,tmp_path,l
     with pytest.raises(RuntimeError,match='RECOVERY_PLAN_IDENTITY'):
         g.require_native_all_tf_provider_hlc_v3_development_recovery_execution(plan_sha256=digest,lane=lane)
     assert not f['called']and old_claim.read_bytes()==before
+
+
+DIRECTION_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_GRADIENT_20261128_001'
+
+
+def direction_gradient_fixture(monkeypatch,tmp_path,preflight=False,bad=None):
+    f=recovery_fixture(monkeypatch,tmp_path,'reference',preflight=True)
+    repo,runs=f['repo'],f['runs'];original=f['plan']['metadata']['original']
+    original_ref=f['plan']['original_plan']
+    final_root=runs/'NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_002_recovery'
+    receipt=dict(logical_cursor=432,optimizer_updates=432,producer_lane='recovery',original_plan=original_ref,
+        checkpoint={'path':str(final_root/'FINAL.pt'),'sha256':'c'*64})
+    receipt_ref=dict(path=str(final_root/'FINAL.json'),sha256='a5ac56d7297a75a8157daf507717c51aeffa6e4c61999f9d26711933811a364f')
+    design_ref=dict(path=str(runs/'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'/'V3_DIRECTION_GRADIENT_DESIGN_20261128_001.json'),
+        sha256='86c1b9675b29ad2f058fb9424afbd07f79ed796ab45a78fb360b9eb670f56e75')
+    bridge=dict(producer_commit=g._V3_DIRECTION_GRADIENT_PARENT,
+        owners={n:dict(original_sha256='f'*64,current_sha256=f['plan']['source_owners'][n])for n in OWNERS})
+    limits={k:0 for k in original['limits']}
+    limits.update(model_constructions=1,optimizer_constructions=1,feature_cache_payload_loads=1,
+        target_archive_loads=1,checkpoint_loads=1,model_restores=1,model_forwards=3,
+        backbone_forwards=3,readout_forwards=3,autograd_calls=30)
+    output=runs/DIRECTION_NAME
+    plan=dict(schema_version='gx1_native_v3_direction_gradient_plan_v1',stage=DIRECTION_NAME.lower(),
+        source_commit='a'*40,output_root=str(output),execution=g._native_v3_development_execution('warm'),
+        original_plan=original_ref,checkpoint_receipt=receipt_ref,design=design_ref,
+        metadata={'original':original,'receipt':receipt},model_contract=original['model_contract'],
+        inputs={'final_checkpoint_receipt':receipt_ref,'final_checkpoint':receipt['checkpoint']},
+        limits=limits,panel_indices=[0,107,214],source_owners=f['plan']['source_owners'],guard_source_bridge=bridge)
+    if bad=='schema':plan['schema_version']='old'
+    if bad=='root':plan['output_root']=str(output).lower()
+    if bad=='execution':plan['execution']['GPU_draw_stop_W']=251
+    if bad=='design':plan['design']={**design_ref,'sha256':'0'*64}
+    if bad=='c1':plan['checkpoint_receipt']=f['plan']['checkpoint_receipt']
+    if bad=='model':plan['model_contract']={}
+    if bad=='metadata':plan['metadata']['receipt']={}
+    if bad=='checkpoint':plan['inputs']['final_checkpoint']={}
+    if bad=='owner':plan['source_owners']={**plan['source_owners'],OWNERS[0]:'0'*64}
+    if bad=='bridge':plan['guard_source_bridge']={**bridge,'extra':True}
+    if bad in ('optimizer_steps','backward_calls','checkpoint_writes','normalization_fits','prior_fits'):
+        limits[bad]=1
+    if bad in ('model_forwards','autograd_calls'):limits[bad]+=1
+    if bad=='bool_budget':limits['model_constructions']=True
+    if bad=='panels':plan['panel_indices']=[0,107,215]
+    path=repo/'configs/research'/(DIRECTION_NAME+'.json')
+    path.write_text(json.dumps(plan));digest=hashlib.sha256(path.read_bytes()).hexdigest()
+    policy_path=repo/'NEXT_RUN_POLICY.json';policy=json.loads(policy_path.read_text())
+    parent=dict(status='SOURCE_PREPARATION_ONLY'if preflight else'ADMITTED_EXACT_V3_DIRECTION_GRADIENT',
+        plan=dict(path=str(path),sha256=digest),design=design_ref,execution_authorized=not preflight,
+        remaining_invocations=0 if preflight else 1,relaunch_allowed=False,training_authorized=False,
+        test_authorized=False,spending_authorized=False)
+    policy[DIRECTION_NAME.lower()]=parent
+    policy['native_v3_fit004_exact_recovery_20261128_001']={'execution_authorized':False,'lane_gates':{}}
+    if bad=='bool_gate':parent['remaining_invocations']=not preflight
+    if bad=='spent':parent['remaining_invocations']=0
+    if bad=='training':policy['training_enabled']=True
+    if bad=='parent_training':parent['training_authorized']=True
+    if bad=='old_route':policy['native_v3_fit004_exact_recovery_20261128_002']['execution_authorized']=True
+    if bad=='parent_plan':parent['plan']={}
+    policy_path.write_text(json.dumps(policy))
+    if bad=='existing':output.mkdir()
+    if bad=='symlink':
+        old=path.with_suffix('.original');path.rename(old);path.symlink_to(old)
+    read=g._native_v3_development_read
+    def fixture_read(path,digest=None):
+        if str(path)==receipt_ref['path']:
+            assert digest==receipt_ref['sha256'];return receipt
+        if str(path)==design_ref['path']:
+            assert digest==design_ref['sha256'];return {}
+        return read(path,digest)
+    monkeypatch.setattr(g,'_native_v3_development_read',fixture_read)
+    monkeypatch.setattr(g,'native_v3_direction_gradient_source_bridge',lambda*a,**k:bridge)
+    argv=[str(repo/'gx1/audit/native_provider_hlc_learning_v1.py'),'--v3-direction-gradient-plan-sha256',digest]
+    if preflight:argv+=['--preflight']
+    if bad=='argv':argv+=['--lane','reference']
+    monkeypatch.setattr(sys,'argv',argv)
+    for k in list(os.environ):
+        if k.startswith('GX1_NATIVE_'):monkeypatch.delenv(k)
+    env=dict(GX1_NATIVE_V3_DIRECTION_GRADIENT='true',GX1_NATIVE_V3_DIRECTION_GRADIENT_PLAN_SHA256=digest)
+    if bad=='hardware_env':env['GX1_TRAINER_GPU_MAX_POWER_DRAW_W']='251'
+    if bad=='unknown_env':env['GX1_NATIVE_V3_DIRECTION_GRADIENT_TRAINING']='false'
+    if bad=='legacy_env':env['GX1_NATIVE_V3_RECOVERY']='true'
+    for k,v in env.items():monkeypatch.setenv(k,v)
+    return dict(f,path=path,digest=digest,plan=plan,output=output,
+        call=lambda:g.require_native_v3_direction_gradient_execution(plan_sha256=digest))
+
+
+@pytest.mark.parametrize('preflight',(False,True))
+def test_direction_gradient_final_only_without_training_authority(monkeypatch,tmp_path,preflight):
+    f=direction_gradient_fixture(monkeypatch,tmp_path,preflight);proof=f['call']()
+    assert proof['preflight']is preflight and proof['kind']=='provider_hlc_v3_direction_gradient'
+    assert proof['training_authority_granted']is proof['optimizer_authority_granted']is False
+    assert f['called']==['cuda']and not f['output'].exists()
+
+
+@pytest.mark.parametrize('bad',('schema','root','execution','design','c1','model','metadata','checkpoint',
+    'owner','bridge','optimizer_steps','backward_calls','checkpoint_writes','normalization_fits','prior_fits',
+    'model_forwards','autograd_calls','bool_budget','panels','bool_gate','spent','training','parent_training',
+    'old_route','parent_plan','existing','symlink','argv','hardware_env','unknown_env','legacy_env'))
+def test_direction_gradient_rejects_update_or_mismatched_authority(monkeypatch,tmp_path,bad):
+    f=direction_gradient_fixture(monkeypatch,tmp_path,bad=bad)
+    with pytest.raises(RuntimeError):f['call']()
+    assert not f['called']and not(f['output']/'CLAIM.json').exists()
+
+
+def test_direction_gradient_shell_exact_cli_and_unchanged_profile(monkeypatch,tmp_path):
+    f=direction_gradient_fixture(monkeypatch,tmp_path)
+    variables,functions,dispatch,_=[v[2]for v in g._V3_DIRECTION_GRADIENT_SHELL_ADDITIONS]
+    functions=functions.replace('/home/andre2/GX1_RUNS',str(f['runs']))
+    state=dict(REPO_ROOT=str(f['repo']),CANONICAL_TRAINER_PYTHON=str(f['repo']/'.venv/bin/python'),
+        JOB_CLASS='trainer',MEM='20G',SWAP='512M',ATTENDED_SMOKE='false',CUDA_PRODUCER_GUARD='false',
+        POWER_BENCHMARK_SCOPE_JSON='',POWER_BENCHMARK_SCOPE_SHA256='')
+    script='set -eu\n'+''.join(k+'='+shlex.quote(v)+'\n'for k,v in state.items())+variables+functions
+    script+='validate_target_command() {\n'+dispatch+'return 88\n}\n'
+    argv=[state['CANONICAL_TRAINER_PYTHON'],'-m','gx1.audit.native_provider_hlc_learning_v1',
+        '--v3-direction-gradient-plan-sha256',f['digest']]
+    for extra in ([],['--preflight'],['--lane','reference']):
+        tail='validate_target_command '+' '.join(map(shlex.quote,argv+extra))
+        tail+='\nprintf "%s,%s,%s,%s\n" "$NATIVE_V3_DIRECTION_GRADIENT" "$TRAINER_MAX_WALL_SECONDS" "$TRAINER_MODEL_MAX_WALL_SECONDS" "$TRAINER_OUT_BUNDLE_DIR"\n'
+        result=subprocess.run(['bash','-c',script+tail],cwd=f['repo'],capture_output=True,text=True)
+        assert result.returncode==(75 if extra==['--lane','reference']else 0),result.stderr
+        if result.returncode==0:assert result.stdout.strip()=='true,1800,1770,'+str(f['output'])
+
+
+def test_direction_gradient_requests_only_actual_wrapper_exports(monkeypatch,tmp_path):
+    f=direction_gradient_fixture(monkeypatch,tmp_path,preflight=True)
+    wrapper=(Path(__file__).resolve().parents[1]/'scripts/gx1_capped_run.sh').read_text()
+    exported=set(re.findall(r'--setenv=([A-Z0-9_]+)=',wrapper));requested=set()
+    class ActualWrapperEnvironment(dict):
+        def get(self,key,default=None):
+            requested.add(key);return super().get(key,default)
+    actual={k:v for k,v in os.environ.items()if not k.startswith('GX1_')or k in exported}
+    monkeypatch.setattr(os,'environ',ActualWrapperEnvironment(actual));f['call']()
+    assert requested<=exported and f['called']==['cuda']
+
+
+def _actual_direction_gradient_owners():
+    repo=Path(g.__file__).resolve().parents[2]
+    return {n:hashlib.sha256(subprocess.check_output(['git','show',g._V3_DIRECTION_GRADIENT_PARENT+':'+n],cwd=repo)).hexdigest()for n in OWNERS}
+
+
+def test_direction_gradient_bridge_preserves_all_previous_bytes():
+    proof=g.native_v3_direction_gradient_source_bridge(_actual_direction_gradient_owners())
+    assert proof['old_guard_routes_preserved']and proof['old_numeric_resource_environment_function_unchanged']
+    assert proof['new_diagnostic_controlflow_requires_scoped_review']is True
+
+
+@pytest.mark.parametrize('bad',('legacy_resource','new_shell_limit','producer_hash'))
+def test_direction_gradient_bridge_rejects_unreviewed_delta(monkeypatch,bad):
+    owners=_actual_direction_gradient_owners()
+    if bad=='producer_hash':owners[OWNERS[0]]='0'*64
+    else:
+        original=Path.read_text;repo=Path(g.__file__).resolve().parents[2]
+        def changed(path,*a,**kw):
+            text=original(path,*a,**kw)
+            if path==repo/OWNERS[0]and bad=='legacy_resource':
+                text=text.replace('_MAX_MEMORY_BYTES = 20 * 1024**3','_MAX_MEMORY_BYTES = 21 * 1024**3',1)
+            if path==repo/OWNERS[1]and bad=='new_shell_limit':
+                fragment=g._V3_DIRECTION_GRADIENT_SHELL_ADDITIONS[1][2]
+                text=text.replace(fragment,fragment.replace('TRAINER_GPU_MAX_POWER_DRAW_W=250','TRAINER_GPU_MAX_POWER_DRAW_W=251'),1)
+            return text
+        monkeypatch.setattr(Path,'read_text',changed)
+    with pytest.raises(RuntimeError):g.native_v3_direction_gradient_source_bridge(owners)
+
+
+def test_direction_gradient_preflight_rejects_false_boolean_count(monkeypatch,tmp_path):
+    f=direction_gradient_fixture(monkeypatch,tmp_path,preflight=True,bad='bool_gate')
+    with pytest.raises(RuntimeError,match='DIRECTION_GRADIENT_DIAGNOSTIC_SCOPE'):f['call']()
+    assert not f['called']
