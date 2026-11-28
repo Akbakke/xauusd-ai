@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T08:56:06.523416+00:00",
+  "observed_utc": "2026-11-28T09:28:14.829906+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FROZEN_FINAL864_MODE_GAP_SOURCE_QUALIFIED_PLAN_PENDING",
+  "status": "FROZEN_FINAL864_MODE_GAP_COMPLETE",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Commit qualified frozen864 diagnostic owner, then fresh plan/preflight/SOURCE backup before exact zero-update execution admission; no fit.",
+  "next_action": "Qualify one fixed216-step data-bound execution owner for exact864to1080 study, reusing all numeric owners/tests and preserving consumed roles; no fit until fresh source/host/backup/exact admission.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -46798,7 +46798,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_OBSERVED_TRAIN_CONTINUATION_002",
+  "training_enabled_scope": "CLOSED_FROZEN_FINAL864_MODE_GAP",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -110958,7 +110958,7 @@
     }
   },
   "native_v3_frozen_final864_mode_gap_20261128_001": {
-    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
+    "status": "CLOSED_CONSUMED_COMPLETE",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_FINAL864_MODE_GAP_DESIGN_20261128_001.json",
       "sha256": "3b49a1de3bb2bc257e157d9fd8de137b57121d94fe30b76c75edac0b7519c097"
@@ -110968,10 +110968,61 @@
     "training_authorized": false,
     "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "next_action": "Qualifyminimalzero-updateFINAL864modegapowner reusingqualifiedfivepassloop/summary; noNNuntilfreshsource/backup/host/exactexecutionadmission. No newfit.",
+    "next_action": "Frozen mode measurement complete; no mode/bias patch justified. Next exact864to1080 design remains source-only and closed.",
     "source_qualification": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_FINAL864_MODE_GAP_SOURCE_QUALIFICATION_20261128_001.json",
       "sha256": "470012881194e991ffb5e4c165d34a3a769d2503def934e2b2d011ce66c8d08a"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_V3_FROZEN_FINAL864_MODE_GAP_20261128_001.json",
+      "sha256": "0739ca250b1629a5dac9400aff0a4ce1ee16626a23e1a6ccd4863e1ebd9cd388"
+    },
+    "test_authorized": false,
+    "spending_authorized": false,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_FINAL864_MODE_GAP_PREFLIGHT_20261128_001.json",
+      "sha256": "3ac9a8be4575b30c8de4e4a4b018cb9b82ddbf8eabdfb3da21eaf66bba20cc7d"
+    },
+    "source_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_FINAL864_MODE_GAP_SOURCE_BACKUP_20261128_001.json",
+      "sha256": "1687869b5b1eaf6fba8ce92759aca2c0ef6877bee8d57f0c71238b4e9f7c8231"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_FROZEN_FINAL864_MODE_GAP_20261128_001/RESULT.json",
+      "sha256": "b25875908acf96d41b11aed3dc763a1499d5b1f1d23b034e8d0e4090cd740ca7"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_FROZEN_FINAL864_MODE_GAP_20261128_001/TERMINAL.json",
+      "sha256": "4d191fade3fd6d07a2af872efa9cc14cf198175967db0fb8f2eabc82f2933c2e"
+    },
+    "acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_FINAL864_MODE_GAP_ACCEPTANCE_20261128_001.json",
+      "sha256": "a8bc109ce53767d289c0dd1b9c7973ad4a89cf3508b8d0b5fc5d125d42214c60"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_FINAL864_MODE_GAP_ACTUAL_REVIEW_20261128_001.json",
+      "sha256": "a367dec9c6c043ab4404f46e63af4aa4214f557648ad0be194d4c2922ba8872a"
+    },
+    "assessment": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_FINAL864_MODE_GAP_ASSESSMENT_20261128_001.json",
+      "sha256": "77e69b366ec5fab0381fef407b4510382e2cdaabfb3de051c2d8568ec626b2a7"
+    },
+    "final_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_FINAL864_MODE_GAP_FINAL_BACKUP_20261128_001.json",
+      "sha256": "53760aabcf318effdeac930c8a8b8d6e8047a7a10e3ba29f2162745c70865fda"
     }
+  },
+  "native_v3_observed_train_continuation_20261128_003": {
+    "status": "DESIGNED_SOURCE_PREPARATION_ONLY_CLOSED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_003.json",
+      "sha256": "6d68837c399baa06732f281cd7b7ad20aaed069cafa842cf1413538eb74dd70b"
+    },
+    "source_preparation_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "next_action": "Qualify one fixed216-step data-bound execution owner for exact864to1080 study, reusing all numeric owners/tests and preserving consumed roles; no fit until fresh source/host/backup/exact admission."
   }
 }
