@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T09:28:14.829906+00:00",
+  "observed_utc": "2026-11-28T10:10:36.566911+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FIXED_CONTINUATION_SOURCE_QUALIFIED_PLAN_PENDING",
+  "status": "FIXED_CONTINUATION_FAILED_CONSUMED",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Freeze qualified fixed continuation owner, fresh selected plan/preflight/SOURCE backup before exact oneuse admission; no automatic series.",
+  "next_action": "Preserve consumed003 and mechanical865. Allow Windows maintenance to finish naturally; require a fresh signed inactive host reading and separately declared exact plan/qualification/backup/snapshot-first admission before any future NN. Do not relaunch003 or use mechanical865 as candidate/initializer.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -46798,7 +46798,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_FROZEN_FINAL864_MODE_GAP",
+  "training_enabled_scope": "CLOSED_NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_003",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -111013,7 +111013,7 @@
     }
   },
   "native_v3_observed_train_continuation_20261128_003": {
-    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
+    "status": "CLOSED_CONSUMED_FAILED_CONSUMED",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_003.json",
       "sha256": "6d68837c399baa06732f281cd7b7ad20aaed069cafa842cf1413538eb74dd70b"
@@ -111023,10 +111023,48 @@
     "training_authorized": false,
     "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "next_action": "Qualify one fixed216-step data-bound execution owner for exact864to1080 study, reusing all numeric owners/tests and preserving consumed roles; no fit until fresh source/host/backup/exact admission.",
+    "next_action": "Preserve consumed003 and mechanical865. Allow Windows maintenance to finish naturally; require a fresh signed inactive host reading and separately declared exact plan/qualification/backup/snapshot-first admission before any future NN. Do not relaunch003 or use mechanical865 as candidate/initializer.",
     "source_qualification": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_SOURCE_QUALIFICATION_20261128_003.json",
       "sha256": "e6955596805ca8c1104760bafe1b71ae75433db2a79dc0609eba1bf0b7438de5"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_003.json",
+      "sha256": "998f9063ea47ac2636bf1b389098d660486d5716f4f15facb2fe2ed3be72d332"
+    },
+    "test_authorized": false,
+    "spending_authorized": false,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_PREFLIGHT_20261128_003.json",
+      "sha256": "b35c74269fcde0de1509059136151bec436b07664b2b07eee640cecbb882a508"
+    },
+    "source_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_SOURCE_BACKUP_20261128_003.json",
+      "sha256": "d0b40489cb9bc20be95a8eebbc3a0d99eb575424e064c017fa7392c64ada0b88"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_003/RESULT.json",
+      "sha256": "140648f54a9cba51f568b71a25ca3c682412a387973cd07dd94836ae8588cfbc"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_003/TERMINAL.json",
+      "sha256": "50b75a76966f0c2ce213d08d1d24cee2092bbffc90cbf54fb5d1dbac016e14e5"
+    },
+    "acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_ACCEPTANCE_20261128_003.json",
+      "sha256": "6cbe59a034de652561f3f9f15aef52fdfd7e9249bb94cf938417e2d1ce9300ea"
+    },
+    "failure_assessment": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_FAILURE_ASSESSMENT_20261128_003.json",
+      "sha256": "5d5d2a094e862f558de69574f46e656ef7d2e9fdf2cdf77952490e5e9454bf6b"
+    },
+    "host_maintenance_evidence": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_HOST_MAINTENANCE_20261128_003.json",
+      "sha256": "9aa34ba712be2eaccb16fa2dbfa0dfcc6e06c4fc630e54489eacbca7b167da01"
+    },
+    "final_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_FINAL_BACKUP_20261128_003.json",
+      "sha256": "3bc57d6b2fe663d3048dc8534c87a31e283fd3d8bd3495c7d43f233e3fea33d6"
     }
   }
 }

@@ -15,140 +15,70 @@
 
 ## Gjeldende status og neste steg
 
-NEXT_RUN_POLICY.json er eneste arbeidsstatus. Gjeldende felt
-native_v3_observed_train_continuation_20261128_003 er SOURCE_QUALIFIED_PLAN_PENDING,
-execution=false/training=false/remaining0/relaunch=false. Ingen ny NN er startet
-eller innrømmet; alle seks globale flagg er false. Edge-målet er aktivt/uoppfylt.
-Forrige frozen864-moduskontroll er faktisk COMPLETE/stengt/forbrukt0, indre/ytre
-exit0 og prosess borte. Ingen ny fit/predictor/senereVAL/Control/TEST/ordre/paper/
-live er kjørt i kildeklargjøringen.
+NEXT_RUN_POLICY.json er eneste arbeidsstatus. Gjeldende felt er
+native_v3_observed_train_continuation_20261128_003:
+CLOSED_CONSUMED_FAILED_CONSUMED, execution=false/training=false/remaining0/
+relaunch=false. Alle seks globale flagg er false; faktisk prosess er borte.
+Edge-målet er aktivt/uoppfylt. Ingen ny kjøring er innrømmet.
 
-Fryst kilde8d0b80e2d, plan-SHA
-0739ca250b1629a5dac9400aff0a4ce1ee16626a23e1a6ccd4863e1ebd9cd388.
-Gjenopptok bare ekte FINAL864 (produsent002/be53..., egen864-trajektorie/
-full10/modell/AdamW/fullRNG) og gjenbrukte uendret train_eval_gap_passes/
-saved_outputs/score/summary. Hele20727 TRAIN-rader/1377kildedøgn2021–25,
-alle5TF/8familier+D1makro/None-policy og alle masker/priors/norm bevart.
+003 brukte fryst kilde4bf27cce5 og plan-SHA
+998f9063ea47ac2636bf1b389098d660486d5716f4f15facb2fe2ed3be72d332.
+Eksakt oppgave var ekteFINAL864→låstFINAL1080:216uendrede oppdateringer,
+originaltakes216..431 én gang, hele20727TRAIN/1377kildedøgn2021–25,
+alle5TF/8familier+D1makro/None. Bare mekaniskC865 og sluttkandidat1080 var
+forhåndsdeklarert; ingen mellomliggende utvelging eller automatisk nestejobb.
 
-Faktisk370.78s:405forwards=1EVAL+4sekvensielleTRAIN/no_grad à81B256-batcher.
-0optimizersteps/backward/autograd/observer/checkpointwrites/prior-/norm-fits.
-1model/optimizer/cache/target/checkpointload/restore,5logitwrites/readbacks og
-1lagretEVAL-logitload. EVALs komplette F32-outputs OG numeriske review er eksakt
-lik opprinnelig lagret FINAL864. EVALRNG var uendret; deretter4forhåndslåste
-sekvensielleRNG-avanser uten reset mellom draws. Ingen beste draw/TF/batch valgt.
-Alle8ikke-modus/ikke-RNG semantiske bevis, tomme gradienter og modulregister
-var uendret før cleanup etter hver passering. Bare named-modi/fullRNG ble
-restaurert ETTERalle4draws; alle10sluttbevis er eksakt ekte FINAL864. Ingen
-vekter/buffere/optimizer ble lastet om for å skjule mutasjon. Original CP urørt.
+Faktisk avbrudd etter152.84s: ytre vakt exit75, indre terminal exit1/
+FAILED_CONSUMED, report=null. Guardens10:06:39Z-stop skyldes
+host_maintenance_active. Eksakt samme-snapshot journal viser MoUsoCoreWorker
+PID7004 startet10:06:38Z; CBS/WU-reboot=false og setup/OOBE=0. Én separat
+signert måling10:08:04Z viste fortsatt maintenance=true med sammeMoUso og
+TiWorkerPID9976. Ingen videre polling eller service-/vaktendring.
+Den indre generiske signal-/timeoutfeilen betyr ikke at1770s-grensen ble nådd.
 
-Actualreview-SHA
-a367dec9c6c043ab4404f46e63af4aa4214f557648ad0be194d4c2922ba8872a.
-Alle741sammendragsfelt er kontrollert mot4scoreJSONer og gjennomsnitt/SD/SE;
-0UNKNOWNsammendragsmetrikker, men målbar-AUC er fortsatt NOT_IMPLEMENTED.
-Støtte/fasit/utvalg/priors/spec/UNKNOWN-masker er identiske, aldri nye labels.
+Bare CLAIM/ORIGINAL_STREAM_BINDING/CURSOR865.pt+json/RESULT/TERMINAL er
+produsert. C865s kvittering registrerer865totale oppdateringer og alle10bevis;
+det er mekanisk, aldri kandidat/initializer. Antall utførte oppdateringer
+etter865 er UNKNOWN fordi sluttrapport/observasjoner mangler. IngenFINAL1080,
+sluttscore eller ny prediktor finnes. Ingen lærings- eller edgekonklusjon fra003.
+Alle6bookends bestod; ekteFINAL864 er fysisk rehashet/uendret etter avbruddet.
+ProsessPID1442418/start49536030 er borte, sammeWSLboot/Windowsboot4.
 
-| TF | Middelfeil pp, EVAL → TRAIN-snitt, rad | EVAL → TRAIN-snitt, målbar | TRAIN-snitt minus EVAL NLL, rad | Brier, rad |
-|---|---:|---:|---:|---:|
-| M5 |-3.04744 →-2.99825|-3.04744 →-2.99825|-0.000027180|-0.000013499|
-| M15 |-0.61993 →-0.57144|-0.49831 →-0.44870|+0.000073154|+0.000036425|
-| H1 |-1.99734 →-1.96334|-1.95010 →-1.91587|+0.000059102|+0.000029227|
-| H4 |+0.48946 →+0.48293|+0.87750 →+0.87410|+0.000126340|+0.000061657|
-| D1 |+4.37500 →+4.65885|+4.44462 →+4.73175|+0.006046328|+0.002726255|
+Eksisterende hardwarekapper/vakter er uendret. Loggede topper GPU57C/
+minne62C/187.03W/9772MiB, CPU39C/32.55W; fysiskGPUgrense200W.
+Eneste loggede brudd var maintenance. Ingen datarydding eller ny trening.
+Før003 bestod68fokuserte tester (16adapter/52guard), syntaks/shell/stale-path/
+diffkontroll og precommit-gater.95kildeeiere/fersk modell-/inputidentitet og
+metadata-nullNN ble kvalifisert; faktisk eksaktCLI- og hardware-preflightPASS.
+SOURCEbackup138filer er fysisk F_FULLFSYNC/allemedlemmer-verifisert på Mac.
+Kildebackup-SHA0f392b1b0eaed6b2199d535164bd8b20d1fb980278acc6c7805361b86e6594f1.
+FINALbackup161filer/93087453arkivbytes er fysisk F_FULLFSYNC/allemedlemmer-
+verifisert på separat Macdisk; originalC865/terminaler/vakt-/vedlikeholdsbevis
+er bevart. Arkiv-SHA
+b2a5a3de6de0f01bf218667693fce7184351a33681fdcb88c1110febb8e93497.
+Kvittering/manifest i policy; avsluttende overlevering/binding bevares i Git.
 
-M5s samlede modusforskjell flytter pUP bare+0.04920pp (drawspenn+0.04562 til
-+0.05181pp); omtrent-2.99825pp gjenstår. D1s middelfeil og proper-score blir
-verre i TRAIN. Alle5TFs gjennomsnittlige rad-AUC faller. Aktivitets-NLL/Brier
-under begge vektinger og aktivitets-AUC forverres i ALLE4draws på ALLE5TF.
-Alle4draws beholder pooled M5properFAIL/øvrige4PASS, samletproper/stabilitetFAIL.
-EVALår22/25PASS under begge vektinger; draw01 har21/25 (M5s2025flipperFAIL),
-øvrige3draws22/25. PersistenteFAIL er M5s2021/2023/2024. M5 underpredikerer
-UP i alle5år også i TRAIN. Komplette draw/TF/år/vekting-resultater er bevart.
+Neste steg: bevar forbrukt003 og alle delartefakter. La Windows-vedlikeholdet
+fullføre naturlig. Før eventuell ny NN kreves fersk signert inaktiv host,
+separat eksakt avgrenset plan/kvalifisering/backup/snapshot-først admisjon.
+003 relanseres aldri; en gammel godkjenning åpner ingen ny plan. Ingen vakt,
+vedlikeholdspredikat, tapsfunksjon eller numerisk eier skal svekkes.
 
-Dette er beskrivende B256/no_grad TOTAL modusforskjell, inkl. dropout og
-EVAL-only TFmerge. Målingen isolerer ingen komponent eller historisk B96-
-optimaliseringsårsak. Ingen score av gjennomsnittsprediksjon, ensemble,
-konfidens/signifikans/presisjon eller ny kandidat. Frossen EVAL864s TRAINKVAL
-forblir FAIL og senere generalisering/økonomisk edge er umålt. Assessment-SHA
-77e69b366ec5fab0381fef407b4510382e2cdaabfb3de051c2d8568ec626b2a7:
-modusmålingen fjerner ikke M5feilen og begrunner ingen dropout-/bias-/tapspatch.
+Gjenbrukbar native_future_state_fixed_continuation_v1 er kvalifisert for
+ett autentisert runID/design/policy/plan. Den binder bare lineage/cursor/fase/
+output og gjenbruker uendrede numeriske eiere. Ingen epokesøk/adaptivsløyfe/
+automatisk nestejobb; hver ny kjøring krever egen eksakt adgang. Optimizer-
+forelder er produsent002/be53/ekte864, kildeidentitet fra0739/92gamleeiere;
+3nye gir95totalt. Ingen ny adapterkopi per uendret passering er nødvendig.
 
-Ytre signerte vakt:240målinger/child_status0, ingen stop/fatal/maintenance;
-peakGPU60C/minne70C/189.33W/1978MiB, CPU41C/30.49W. Hostledig minst54.22GB,
-commitmargin56.87GB; fysisk GPUgrense200W i alle målinger. Boot4/sammeWSL som
-CLAIM og ingen spørrefeil; PID1425432/start49281816 er faktisk borte. Alle6
-bookends og alle10tilstandsbevis PASS. Ingen vakt/kappe/timeout er endret.
-
-Før NN:77fokuserte kontroller PASS (14adapter/63guard),92eiere/fersk modell- og
-inputidentitet med0metadata-modell/optimizer/PT/NPZ/CUDA-forsøk; faktisk eksakt
-CLI-binding og kanonisk hardware-preflight bestod. SOURCEbackup127filer er
-fysisk fsync/F_FULLFSYNC/allemedlemmer-verifisert på separat Macdisk. Ekte864-
-backup er rehashet/identisk og alle9foreldrebindinger validert uten ny vektkopi.
-FINAL-backup er fysisk fsync/F_FULLFSYNC/allemedlemmer-verifisert på Mac:
-161filer/35724222bytes, arkiv-SHA
-53dbe83d451218956403febb60e49f3fd4bd913f8738e581a116482fb84e8811.
-Dette dekker kilder/alle5score-/logitsett/råbevis/neste003design. Kvittering og
-manifest ligger i policy; avsluttende overlevering/binding bevares i Git.
-EkteFINAL864-vekter gjenbrukes fra verifisert eldre backup, uten ny CPwrite eller
-vektkopi. Alle gamle backuper/checkpoints/feil beholdes.
-
-Felt native_v3_observed_train_continuation_20261128_003 er bare kvalifisert
-kildeklargjøring, execution=false/training=false/remaining0/relaunch=false.
-Design-SHA
-6d68837c399baa06732f281cd7b7ad20aaed069cafa842cf1413538eb74dd70b.
-Én separat forhåndslåst uendret fortsettelse foreslås: ekte FINAL864→FINAL1080,
-216originaltakes216..431 én gang/hele20727TRAIN/alle5TF/8familier+makro/None,
-297forwards=216TRAIN+81fullFINAL-EVAL,216eksterne observasjoner, mekaniskC865/
-kunFINAL1080kandidat. Bruk egen864lineage/full10/RNG/AdamW, behold864prefix,
-lag ny1080trajektorie. Gjenbruk BASELINE864/factoryINITIAL/COHORTprior og samme
-PASS2-numeriskeier under eksplisitt faktisk BASELINE864→FINAL1080-alias.
-Rapportér alleTF/år/vektinger/proper/rank/kalibrering/støtte/stabilitet, også
-forverring/UNKNOWN. Ingen baselineNN/inputbuild/ny prior/norm/ekstraautograd.
-
-Eksisterende adaptere hardkoder forbrukte endepunkter. Ny minimal eier
-native_future_state_fixed_continuation_v1 binder nå kun lineage/cursor/fase/
-output til autentisert enkelt-runID/design/policy/plan. Samme faste216steg og
-beståtte numeriske eiere gjenbrukes uten ny adapterkopi per passering. Kanonisk config/root/
-stage må avledes og matche eksakt runID. Ingen vilkårlige stier, epokevalg,
-adaptivsløyfe eller automatisk nestejobb. Bare gjeldende003scope er definert;
-hver kjøring trenger sin egen forhåndsdeklarasjon/kvalifisering/plan/backup/
-ferske snapshot-først engangsadmisjon. Gamle adaptere og alle numeriske eiere
-er byte-uendret. Forbrukte gamle roller blir aldri gjenåpnet. Kun gammelNN002-
-forelder eller kvalifisert fixed-forelder aksepteres med eksplisitt schema/
-status/full10-bevis, ingen stille fallback. Optimizer-/trajektorieforelder er
-be53/ekte864, mens source_reference_plan0739 autentiserer alle92gamle kildeeiere.
-Nye3gir95eiere totalt; alle gamle ikke-guard-eiere er byte-kontrollert mot180ef.
-68fokuserte kontroller PASS (16adapter/52guard),95eiere/fersk modell- og input-
-identitet;0metadata-modell/optimizer/PT/NPZ/CUDA-forsøk. Egen864-prefix og ny1080-
-schedule er verifisert, SHA
-9d29254dda89056e0c2cbca1fd10c109af250ae779eb56077029a4df22320194.
-Sourcequalification-SHA
-e6955596805ca8c1104760bafe1b71ae75433db2a79dc0609eba1bf0b7438de5.
-Alle9foreldrebindinger dekkes av rehashet identisk separatMac864-backup, ingen
-ny vektkopi. Uavhengig kontroll fant én konkret ny lifecycle-feil: policy-
-reauthentisering utenfor bookend-catch kunne hindre RESULT/TERMINAL ved drift.
-Minste rettelse + egen regresjon bevarer nå terminalbevis og registrerer false/
-feilårsak. Ingen numerisk funksjon ble endret. Neste er fryst kildecommit,
-fersk valgt plan/runtime/faktiskCLI-binding, kanonisk hardware-preflight og
-fysisk SOURCEbackup før egen snapshot-først engangsadmisjon. All6false før
-admission, bare training_enabled/native_training_enabled true i valgt fit;
-øvrige4false, og all6false igjen etter lukking. Ingen ny fitadmisjon er gitt.
-Samme20G/512M1770/1800/8tråder/CPU0..18/pids128/12GiBVRAM og alle vakter.
-Ingen TEST/laterVAL/Control/M1/GC/Entry/Exit/broker/ordre/spending/promotion.
-
-### Bevarte forutsetninger
-
-FactoryINITIAL/hele-TRAIN-prior og COHORT-scoring-prior er ulike frosne eiere og
-bevares; ingen nye fits/baselineforwards. Original issue-miks432 ligger i sin
-gamle fit-root; egne648-/864lineager/kvitteringer må aldri erstattes med432.
-Tekniske C433/C434/C649 er aldri kandidat eller initializer. Original COLD er
-FAILED_CONSUMED/0; egen observer-recovery er COMPLETE/0. Alle bevis ligger i
-policy/originalkvitteringer/Git, uten ny historikkmappe.
-
-Observatørens fire detach-/skalarkopipunkter endrer ingen numerisk operasjon.
-Endpoint-/batch-/gradientkontroller har ikke begrunnet bias-, dropout- eller
-tapsnormaliseringspatch. Målingen ved432 fant bare+0.037710pp M5-modusgap; den separate fullførte864-
-målingen ovenfor fant+0.049198pp. Begge er vektspesifikke totalmodusmålinger. Gjenbruk
-beståtte uendrede kontroller, og rapporter ærlige bevisgrenser.
+Siste fullførte læringsresultat er fortsatt ekteFINAL864: samletTRAIN-kvalFAIL.
+648→864 ga pooled NLL/Brier/rad-AUC-fremgang på alle5TF, men M5 slår fortsatt
+ikke COHORT-prior, M5-år2021/2023/2024FAIL og absolutt middelfeil ble verre på
+alle5TF under begge vektinger. Ingen senere generalisering eller økonomi.
+Fullført frozen864-modusdiagnose405forwards/0updates endret M5s pUP bare
++0.04920pp; omtrent-2.99825pp feil gjenstod iTRAIN. D1s proper-score ble verre,
+alle5TFs snitt-rad-AUC falt, og pooledproper/stabilitet forbleFAIL. Den målingen
+begrunner ingen dropout-/bias-/tapspatch. Komplette TF/år/vektinger i policy.
 
 ## Kvalifisert datagrunnlag og funksjon
 
@@ -225,8 +155,10 @@ Policy binder eksakte SHA, originale kvitteringer og egne snapshots.
   77kontroller/92eiere/nullmetadataNN/egen864tilstand/alle6globale flagg stengt.
 - V3_FROZEN_FINAL864_MODE_GAP_SOURCE/FINAL_BACKUP_20261128_001.json:
   separate fysiske Mac-backuper; aktuell status og manifeste i policy.
-- V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_003.json: gjeldende stengte
-  kildeomfang, kun ekte864→låst1080 og minimal gjenbrukbar engangseksekvering.
+- V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_003.json: forbrukt avbrutt
+  ekte864→låst1080-scope; ingen relansering.
+- V3_FIXED_CONTINUATION_FAILURE_ASSESSMENT/HOST_MAINTENANCE_20261128_003.json:
+  faktisk avbrudd/eksakt vedlikeholdsårsak/bevarte artefakter/UNKNOWN-grenser.
 - V3_FIXED_CONTINUATION_SOURCE_QUALIFICATION_20261128_003.json:
   68kontroller/95eiere/nullmetadataNN/egen864lineage/eksakt1080-schedule.
 - V3_OBSERVED_TRAIN_CONTINUATION_ACTUAL_REVIEW/ENDPOINT_ASSESSMENT_20261128_002:
@@ -239,5 +171,5 @@ Policy binder eksakte SHA, originale kvitteringer og egne snapshots.
 Aktuelle roots:
 /home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_002 er COMPLETE.
 /home/andre2/GX1_RUNS/NATIVE_V3_FROZEN_FINAL864_MODE_GAP_20261128_001 er COMPLETE.
-Foreslått NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_003-root skal ikke finnes
-før egen faktisk CLAIM. Originalkvitteringer/prosessobservasjon overstyrer prosa.
+/home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_003 er FAILED_CONSUMED.
+Originalkvitteringer/prosessobservasjon overstyrer prosa.
