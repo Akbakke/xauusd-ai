@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FROZEN_FINAL864_MODE_GAP_COMPLETE",
+  "status": "FIXED_CONTINUATION_SOURCE_QUALIFIED_PLAN_PENDING",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Qualify one fixed216-step data-bound execution owner for exact864to1080 study, reusing all numeric owners/tests and preserving consumed roles; no fit until fresh source/host/backup/exact admission.",
+  "next_action": "Freeze qualified fixed continuation owner, fresh selected plan/preflight/SOURCE backup before exact oneuse admission; no automatic series.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -111013,7 +111013,7 @@
     }
   },
   "native_v3_observed_train_continuation_20261128_003": {
-    "status": "DESIGNED_SOURCE_PREPARATION_ONLY_CLOSED",
+    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_003.json",
       "sha256": "6d68837c399baa06732f281cd7b7ad20aaed069cafa842cf1413538eb74dd70b"
@@ -111023,6 +111023,10 @@
     "training_authorized": false,
     "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "next_action": "Qualify one fixed216-step data-bound execution owner for exact864to1080 study, reusing all numeric owners/tests and preserving consumed roles; no fit until fresh source/host/backup/exact admission."
+    "next_action": "Qualify one fixed216-step data-bound execution owner for exact864to1080 study, reusing all numeric owners/tests and preserving consumed roles; no fit until fresh source/host/backup/exact admission.",
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_SOURCE_QUALIFICATION_20261128_003.json",
+      "sha256": "e6955596805ca8c1104760bafe1b71ae75433db2a79dc0609eba1bf0b7438de5"
+    }
   }
 }

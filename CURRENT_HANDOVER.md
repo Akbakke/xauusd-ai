@@ -15,12 +15,13 @@
 
 ## Gjeldende status og neste steg
 
-NEXT_RUN_POLICY.json er eneste arbeidsstatus. Gjeldende fullførte felt
-native_v3_frozen_final864_mode_gap_20261128_001 er faktisk COMPLETE/stengt/
-forbrukt0/relaunch=false. Indre/ytre exit0; prosess borte. Alle seks globale
-flagg var false ved admission/CLAIM/hele kjøringen og er fortsatt false.
-Edge-målet er aktivt/uoppfylt. Ingen ny fit eller predictor er laget; ingen
-senere VAL/Control/TEST/ordre/paper/live er kjørt.
+NEXT_RUN_POLICY.json er eneste arbeidsstatus. Gjeldende felt
+native_v3_observed_train_continuation_20261128_003 er SOURCE_QUALIFIED_PLAN_PENDING,
+execution=false/training=false/remaining0/relaunch=false. Ingen ny NN er startet
+eller innrømmet; alle seks globale flagg er false. Edge-målet er aktivt/uoppfylt.
+Forrige frozen864-moduskontroll er faktisk COMPLETE/stengt/forbrukt0, indre/ytre
+exit0 og prosess borte. Ingen ny fit/predictor/senereVAL/Control/TEST/ordre/paper/
+live er kjørt i kildeklargjøringen.
 
 Fryst kilde8d0b80e2d, plan-SHA
 0739ca250b1629a5dac9400aff0a4ce1ee16626a23e1a6ccd4863e1ebd9cd388.
@@ -90,9 +91,9 @@ manifest ligger i policy; avsluttende overlevering/binding bevares i Git.
 EkteFINAL864-vekter gjenbrukes fra verifisert eldre backup, uten ny CPwrite eller
 vektkopi. Alle gamle backuper/checkpoints/feil beholdes.
 
-Neste felt native_v3_observed_train_continuation_20261128_003 er kun
-DESIGNED_SOURCE_PREPARATION_ONLY_CLOSED, execution=false/training=false/
-remaining0/relaunch=false. Design-SHA
+Felt native_v3_observed_train_continuation_20261128_003 er bare kvalifisert
+kildeklargjøring, execution=false/training=false/remaining0/relaunch=false.
+Design-SHA
 6d68837c399baa06732f281cd7b7ad20aaed069cafa842cf1413538eb74dd70b.
 Én separat forhåndslåst uendret fortsettelse foreslås: ekte FINAL864→FINAL1080,
 216originaltakes216..431 én gang/hele20727TRAIN/alle5TF/8familier+makro/None,
@@ -104,14 +105,33 @@ Rapportér alleTF/år/vektinger/proper/rank/kalibrering/støtte/stabilitet, ogs�
 forverring/UNKNOWN. Ingen baselineNN/inputbuild/ny prior/norm/ekstraautograd.
 
 Eksisterende adaptere hardkoder forbrukte endepunkter. Ny minimal eier
-native_future_state_fixed_continuation_v1 skal binde kun lineage/cursor/fase/
-output til autentisert enkelt-runID/design/policy/plan, slik at samme faste
-216steg kan gjenbrukes uten ny adapterkopi per passering. Kanonisk config/root/
+native_future_state_fixed_continuation_v1 binder nå kun lineage/cursor/fase/
+output til autentisert enkelt-runID/design/policy/plan. Samme faste216steg og
+beståtte numeriske eiere gjenbrukes uten ny adapterkopi per passering. Kanonisk config/root/
 stage må avledes og matche eksakt runID. Ingen vilkårlige stier, epokevalg,
 adaptivsløyfe eller automatisk nestejobb. Bare gjeldende003scope er definert;
 hver kjøring trenger sin egen forhåndsdeklarasjon/kvalifisering/plan/backup/
 ferske snapshot-først engangsadmisjon. Gamle adaptere og alle numeriske eiere
-skal forbli byte-uendret. Dette er bare kildeklargjøring, ingen ny fitadmisjon.
+er byte-uendret. Forbrukte gamle roller blir aldri gjenåpnet. Kun gammelNN002-
+forelder eller kvalifisert fixed-forelder aksepteres med eksplisitt schema/
+status/full10-bevis, ingen stille fallback. Optimizer-/trajektorieforelder er
+be53/ekte864, mens source_reference_plan0739 autentiserer alle92gamle kildeeiere.
+Nye3gir95eiere totalt; alle gamle ikke-guard-eiere er byte-kontrollert mot180ef.
+68fokuserte kontroller PASS (16adapter/52guard),95eiere/fersk modell- og input-
+identitet;0metadata-modell/optimizer/PT/NPZ/CUDA-forsøk. Egen864-prefix og ny1080-
+schedule er verifisert, SHA
+9d29254dda89056e0c2cbca1fd10c109af250ae779eb56077029a4df22320194.
+Sourcequalification-SHA
+e6955596805ca8c1104760bafe1b71ae75433db2a79dc0609eba1bf0b7438de5.
+Alle9foreldrebindinger dekkes av rehashet identisk separatMac864-backup, ingen
+ny vektkopi. Uavhengig kontroll fant én konkret ny lifecycle-feil: policy-
+reauthentisering utenfor bookend-catch kunne hindre RESULT/TERMINAL ved drift.
+Minste rettelse + egen regresjon bevarer nå terminalbevis og registrerer false/
+feilårsak. Ingen numerisk funksjon ble endret. Neste er fryst kildecommit,
+fersk valgt plan/runtime/faktiskCLI-binding, kanonisk hardware-preflight og
+fysisk SOURCEbackup før egen snapshot-først engangsadmisjon. All6false før
+admission, bare training_enabled/native_training_enabled true i valgt fit;
+øvrige4false, og all6false igjen etter lukking. Ingen ny fitadmisjon er gitt.
 Samme20G/512M1770/1800/8tråder/CPU0..18/pids128/12GiBVRAM og alle vakter.
 Ingen TEST/laterVAL/Control/M1/GC/Entry/Exit/broker/ordre/spending/promotion.
 
@@ -205,8 +225,10 @@ Policy binder eksakte SHA, originale kvitteringer og egne snapshots.
   77kontroller/92eiere/nullmetadataNN/egen864tilstand/alle6globale flagg stengt.
 - V3_FROZEN_FINAL864_MODE_GAP_SOURCE/FINAL_BACKUP_20261128_001.json:
   separate fysiske Mac-backuper; aktuell status og manifeste i policy.
-- V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_003.json: neste stengte
+- V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_003.json: gjeldende stengte
   kildeomfang, kun ekte864→låst1080 og minimal gjenbrukbar engangseksekvering.
+- V3_FIXED_CONTINUATION_SOURCE_QUALIFICATION_20261128_003.json:
+  68kontroller/95eiere/nullmetadataNN/egen864lineage/eksakt1080-schedule.
 - V3_OBSERVED_TRAIN_CONTINUATION_ACTUAL_REVIEW/ENDPOINT_ASSESSMENT_20261128_002:
   faktisk648→864, all5pooledfremgang men større middelfeil og samletFAIL.
 - V3_OBSERVED_TRAIN_CONTINUATION_FINAL_BACKUP_20261128_002.json: verifisert
