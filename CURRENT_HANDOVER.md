@@ -15,130 +15,79 @@
 
 ## Gjeldende status og neste steg
 
-Les disse policyfeltene for deres respektive scope:
+NEXT_RUN_POLICY.json er eneste arbeidsstatus. Aktuelt felt er
+native_v3_fit004_exact_recovery_20261128_002. Appmålet mot dokumenterbar
+retningsedge er aktivt og uoppfylt. Bruker ba om videre arbeid med alle genuine
+indikatorer og deres samspill; ingen generell profittpåstand følger av testen.
 
-| Felt | Siste avsluttede tilstand |
-|---|---|
-| `native_v3_fit004_exact_recovery_20261128_001` | Kilde kvalifisert; REFERENCE/COLD må bevise fysisk paritet før recovery. |
-| `native_host_maintenance_logging_20261127_001` | Logging utrullet og verifisert; delmålet fullført. |
-| `native_v3_bounded_development_test_20261127_001` | FIT_001/002/003/004 er forbrukt; FIT004-stoppets MoUso-komponent er identifisert. |
-| `prelearning_validity_remediation_20261125_001` | OANDA-/historisk scopereview ferdig; ingen ny fit-admission. |
-| `native_twenty_step_qualification_20261123_001` | Fagstatus 13 PASS / 3 FAIL / 4 UNKNOWN; samlet ikke kvalifisert. |
+Den låste V3 PASS2 ved global432 er nå fullført på samme opprinnelige
+FIT004-trajektorie. RECOVERY002 tok 805,35 s: 431 nye optimizeroppdateringer,
+596 forwards, ingen skip eller refit. Original C1 ble gjenopprettet på nytt;
+tekniske kontrollvekter var aldri initializer. Original INITIAL-referanse
+er bevart. Alle seks bookends består. Resultat og FINAL.pt/.json er varige.
+Originalt fysisk arbeid før FIT004-stoppet forblir UNKNOWN innen1..216;
+det logiske sluttpunktet432 omskriver ikke dette.
 
-Eldre «neste steg» i underliggende prelearning-/20-stegsfelt er historikk,
-ikke launchautoritet over nyeste top-level status og de to nyeste scopefeltene.
-Kriterier: `docs/NATIVE_QUALIFICATION_20_STEPS.json`.
+REFERENCE002: fersk C1 matcher ekte original-C1 på alle ti semantiske bevis.
+COLD002: separat kald original-C1→C2 matcher referanse-C2 på alle ti.
+Alle tre 002-planer og alle tidligere planer er lukket/forbrukt med null
+gjenstående invokasjoner. Alle seks trenings-/evalueringsflagg er false.
+Ingen modelljobb kjører. Kjøringens fryste kilde var da04fbe4a.
 
-Bruker27.11 ber om nytt mål og videre arbeid mot retningsedge med alle
-indikatorer og samspillet mellom dem. Nytt appmål er registrert aktivt.
-Root kvalifiserer én ny FIT_003 som neste avgrensede læringsmilepæl under
-stående integratoradgang16.11; gammel FIT_001/FIT_002 relanseres aldri.
-Autorisasjon og presis tolkning er bundet i
-`fit003_continuation_authorization` i utviklingstestfeltet.
+### Faktisk læringsutfall
 
-FIT_003 namespaceendring er kvalifisert:74 fokuserte tester, begge kildebroer,
-72 uendrede baselineeiere og uavhengig diff-review PASS. Ingen modelljobb.
-FIT_003 feilet før runroot/CLAIM/NN fordi den opprinnelige SSH/WSL-økten
-ble avsluttet etter en frakoblet start. En identisk BootId-probe reproduserte
-feilen. FIT_004 holdt økten åpen, og denne oppstartsrettelsen fungerte.
+Bare forhåndslåste PASS2 er kandidat. INITIAL/PASS1 velges aldri i etterkant.
+PASS2 samlet TRAIN-verdict er FAIL; learning_qualified=false.
+Aktivitet slår prior på alle fem TF, men dette er ikke retningslæring.
+Betinget side slår COHORT-priorens NLL og Brier under begge vektinger kun
+på M5/M15. H1/H4/D1 feiler. Side-AUC:
 
-FIT_004 stoppet 27.11 kl. 23:12:57 UTC på `host_maintenance_active`,
-167,38 s etter claim. Alle seks bookends består. Original RESULT/TERMINAL er
-`FAILED_CONSUMED`. INITIAL-score og logit-SHA er identiske med factory-
-kontrollen fra FIT002. CURSOR001.json/.pt er hash-/readbackbekreftet og
-beviser én varig oppdatering. Totalt utført er UNKNOWN innen 1..216.
-PASS1/PASS2/FINAL mangler; ingen kandidat eller endelig læringsdom foreligger.
+| TF | AUC | Side Brier minus prior, radvektet | Primær sidekontroll |
+|---|---:|---:|---|
+| M5 | 0,521052 | -0,000265981 | PASS |
+| M15 | 0,537790 | -0,000406239 | PASS |
+| H1 | 0,522139 | +0,000358074 | FAIL |
+| H4 | 0,500753 | +0,002628812 | FAIL |
+| D1 | 0,516545 | +0,001826896 | FAIL |
 
-Journalens snapshot kl. 23:12:57.2028323 UTC, monotonic 462425811, viser kun
-MoUsoCoreWorker.exe PID 9752, parent 5764, opprettet kl. 23:12:56.4419880 UTC.
-Setup/OOBE/CBS/WU/reboot-in-progress var false/0. Dette beviser tilstedeværelse
-av prosessen; aktiv installasjon eller tomgang er UNKNOWN. Guardloggen har
-UTC/reason, men ikke nonce/monotonic. Direkte noncebinding mellom filene
-påstås derfor ikke. Kl. 23:27 UTC var prosessen borte og signert vedlikehold/
-CBS/WU false. Ingen prosessinngrep, hostendring, omstart eller svekket vakt.
+H1/H4/D1 har gjennomsnittlig UP-feil +2,60/+5,02/+4,49 prosentpoeng.
+M15/H1/H4/D1 gir fortsatt bare UP ved binær argmax. M5 har begge sider,
+men dette er ikke alene bevist selektivitet. H4/D1 feiler proper-score-
+årskontrollen2021–2024 og består2025; M5 feiler2021.
+Lagret Brier-dekomponering skiller gjennomsnittlig sannsynlighetsfeil fra
+sentrert rest uten nye forwards eller fittet kalibrator. H1/D1 har et
+vesentlig nivåbidrag; H4 har dessuten nær-null rangering og høyere
+sentrert Brier enn prior. Dette identifiserer ingen treningsårsak.
 
-Alle gamle FIT_001/002/003/004-admissioner er lukket, og planene bevares.
-Aktuelle recoveryflagg og engangsgates leses i den nye scopet i policy. Appmålet er aktivt og uoppfylt. Neste konkrete arbeid er å
-undersøke det tilbakevendende MoUso-stoppet og en tillatt kjøreperiode før
-eventuell ny eksakt plan. Ingen automatisk fitserie. Nåværende klarering
-beviser ikke at vedlikehold uteblir den neste timen. En snever taskkontroll
-viser ingen tidsstyrt kjøring de neste 90 minuttene, men queued-/hendelses-
-triggere består; et uavbrutt vindu er derfor UNKNOWN. Årsakstilknytning til
-Schedule Scan er ikke påvist. De målte pendingflaggene
-begrunner ikke alene en omstart. Alle åtte familier og fem TF er teknisk
-koblet til felles læring. Nyttige enkeltindikatorer, V3-læring, senere
-kronologisk generalisering og økonomisk edge er fortsatt ubevist.
+Alle åtte familier har ikke-null datagradient i de tre allerede låste
+sluttpanelene. Ett panel har samlet rågradient som motarbeider M5; andre
+gjør ikke det. Dette beviser kontakt, ikke nytten av hvert enkelt felt eller
+at gradientkonflikt er årsaken til hele treningsutfallet.
 
-Neste milepæl er eksakt recovery fra ekte FIT004-C1 for samme låste
-432-stegsforløp. Kildekontrollen viser gjenbruk av eksisterende strict_restore,
-training_step, checkpoint_proof og scoring. Ingen modell-, mål-, taps-,
-indikator- eller vaktendring trengs. Faktisk kvalifisering gjenstår:
+### Neste konkrete arbeid
 
-1. Fersk teknisk referanse må matche original C1 på ti semantiske bevis før C2.
-2. En separat kald prosess må gjenopprette ekte C1 og matche referansens C2.
-3. En ny engangsrecovery må laste original C1 på nytt, aldri tekniske vekter.
-   Avledet rest er 431 nye updates og 596 forwards, samme PASS2 ved global432.
+Kvalifiser én oppdateringsfri FINAL-kontroll på de samme faste panelene
+[0,107,214]. Skill aktivitet og betinget side på hver av alle fem TF, og
+skill readout-bias fra vekter/delte familieblokker. Bevar originale masker,
+tapsnevnere, indikatorer og TF. Manglende sidestøtte blir UNKNOWN.
+Dagens aggregat M5-mot-aux skiller ikke aux-aktivitet fra aux-retning;
+det er det konkrete målehullet før eventuell endret ruting/tap vurderes.
 
-Opprinnelig fil-/produsentidentitet valideres separat. Referansekjøringens
-produsentmetadata skal være ekte; full checkpoint-SHA forventes forskjellig
-mellom utførelser. Første C1 kan legitimt ha null backbone-momenter.
-Kun semantiske bevis sammenlignes på tvers av tekniske utførelser.
-Designkvittering: policyfeltet `fit004_exact_recovery_design`.
-Recoverykode er implementert i eksisterende eiere. 102 guardtester og 62
-ulike syntetiske leaf-tester består; opprinnelige feilkvitteringer er bevart.
-Ekte input-/normaliserings-/modellkontrakt er validert uten tensor-dekoding.
-Kildebroer og uavhengig review består. REFERENCE001 har siden fullført på ekte data: fersk C1 matcher originalen
-på alle ti bevis. COLD001 stoppet på ny MoUso kl. 00:12:57 UTC etter 13,39 s,
-med alle seks bookends PASS. Kald C2-paritet er fortsatt ubevist.
-001 er lukket og forbrukt. Aktiv klargjøringsscope er
-`native_v3_fit004_exact_recovery_20261128_002`. Alle seks flagg
-åpnes bare per eksakt lane etter egen preflight. Fysisk C1/C2-paritet gjenstår.
+Dette krever minste observerutvidelse, fokuserte kontroller og en ny eksakt
+engangsplan med aktuell guardadmisjon. Ingen ny fit, epokeserie, kalibrator,
+terskel-, loss-, modell-, prior- eller normaliseringsendring er innrømmet.
+FINAL-lokale gradienter kan ikke bevise årsaken gjennom432oppdateringer,
+senere generalisering eller økonomisk edge.
 
-## Vedlikeholdslogging — ferdig
+## Bevarte tekniske grenser
 
-Kjørende SYSTEM-task `GX1HostTelemetryBridge` bruker servicekode SHA256
-`94cb46fc591aa20eef5d81811cb5e155bcc312c4213939303a41db9c6a0231a9`.
-Journalen er append-only; gamle poster roteres, trunkeres eller slettes
-ikke automatisk. Fil:
-
-`C:\ProgramData\GX1\HostTelemetryBridgeV4\GX1-HostTelemetryBridgeMaintenance.jsonl`
-
-Vitnet bruker samme snapshot som det signerte flagget: prosessnavn/PID/parent,
-kjent starttid, setup/OOBE/reboot/CBS/WU, UTC, nonce og monotonic.
-Første sample, tilstandsendringer og alle aktive forespørsler lagres;
-uendret idle dedupliseres. Fsync/strict readback skjer før 200; feil gir 503.
-Vedlikeholdspredikat, signert 14-feltsrespons, sertifikat, runner, config,
-taskdefinisjon og alle sikkerhetsgrenser er bevart. Ingen helinstaller kjørt.
-
-18 unike fokuserte tester, faktisk PowerShell-syntetikk, uavhengig review,
-utrulling og faktisk signert sensorkontroll består. Originalkode/logg og
-rollback er bevart. Første kalde forespørsel timeoutet på uendret 2 s;
-etter readonly kontroll bestod neste forespørsel. Faktisk idle-vitne og
-deduplisering er lest tilbake. FIT004 ga senere et faktisk aktivt MoUso-vitne i journalen; eksakt snapshot
-og korrelasjonsgrenser er bundet i `fit004_maintenance_diagnosis`.
-
-Flagget betyr tilstedeværelse av TiWorker/MoUsoCoreWorker/SetupHost/SetupPrep/
-WindowsUpdateBox/wuauclt, også en idle worker, eller setup/OOBE/reboot-in-progress.
-Det beviser ikke aktiv installasjon. Eksakte utløsere ved de gamle stoppene
-forblir UNKNOWN; historikken omskrives ikke.
-
-## Siste V3-utviklingstest — FIT004 avbrutt
-
-Kohorten har 20 727 TRAIN-rader fra 1 377 kildeklokkebøtter, valgt før
-målinnsyn. Alle fem TF og genuine familier beholdes uten etikettkvoter/topup.
-Whole-TRAIN factoryprior/normalisering beholdes; COHORT-prior brukes bare
-ved scoring. COHORT/WARM/COLD er COMPLETE med alle ti kalde bevis bitidentiske.
-Tekniske vekter brukes aldri som fit-initializer. Funksjonen er uendret:
-fullt koblet None, B96/E256, seed 20260911, to faste pass, maks 432 updates
-og bare PASS2 som kandidat.
-
-Forbrukt plan er referanse, aldri launchordre:
-`configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001_FIT_004.json`.
-Originale delresultater ligger i tilsvarende `_fit_004`-root under GX1_RUNS.
-Stopp-, journal- og backupbindinger finnes i policyfeltene med `fit004_`.
-FINAL-backup er verifisert på separat Mac-disk med full fsync og uavhengig
-readback av alle 138 filer, inklusive originalt delcheckpoint.
-PASS1/PASS2/FINAL mangler. Ingen endelig læringsdom, generalisering eller edge.
+Original FIT004 og COLD001 stoppet på MoUso-tilstedeværelse. Originale
+kvitteringer/journal/backuper beholdes; ingen prosesskill, reboot,
+vedlikeholdssperre eller svekket vakt ble brukt. 002 fullførte under samme
+grenser. Journal og diagnosebindinger finnes i policy.
+Recoverykode:102 guardtester og62 ulike syntetiske leaf-kontroller;
+namespace002:17 berørte guardtester og9 snapshot-kontroller PASS.
+Uendrede numeriske kontroller og genuine inputs gjenbrukes.
 
 ## Kvalifisert datagrunnlag og funksjon
 
@@ -207,35 +156,20 @@ generalisering må måles som utfall, ikke antas bevist før første fit.
 
 ## Bevis som åpnes ved konkret behov
 
-`E` nedenfor betyr:
-`/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001`.
-Eksakte SHA-bindinger og øvrige originalreferanser ligger i policy.
-Metodegrenser: `docs/NATIVE_PRELEARNING_CALENDAR_EVIDENCE_20261125_001.json`,
-`docs/NATIVE_PRELEARNING_MACRO_EVIDENCE_20261125_001.json` og
-`docs/NATIVE_PRELEARNING_SOURCE_CLOCK_BOUNDARY_20261125_001.json`.
+E betyr /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001.
+Aktuell policy binder eksakte SHA for alle planer, originalkvitteringer,
+kildekvalifisering, admissionsnapshots, resultater og backuper.
 
-| Under E | Beviser |
-|---|---|
-| `HOST_MAINTENANCE_LOGGING_ACCEPTANCE_20261127_001.json` | Utrulling, faktisk signert sensorrespons og idle-vitne. |
-| `HOST_MAINTENANCE_LOGGING_FINAL_BACKUP_20261127_001.json` | Separat Mac-disk/readback for original, ny kode og logger. |
-| `V3_DEVELOPMENT_FIT002_STOP_ACCEPTANCE_20261127_001.json` | Avbrutt fit og bevarte delresultater/oppdateringsgrenser. |
-| `V3_DEVELOPMENT_FIT002_FINAL_BACKUP_20261127_001.json` | Separat sikring av delcheckpoint og originalkvitteringer. |
-| `ALL_TF_PROVIDER_HLC_TARGET_ACCEPTANCE_20261125_001.json` | Gjeldende V3-fasit/prior/dekning. |
-| `ALL_TF_V3_INITIAL_ACCEPTANCE_20261125_001.json` | Full fersk factoryINITIAL. |
-| `ALL_TF_V3_REPLAY_ACCEPTANCE_20261125_001.json` | Egen C2-replay på opprinnelig V3-funksjon. |
-| `ALL_TF_OBSERVED_BAR_REPAIR_ACCEPTANCE_20261125_001.json` | Separat reparert observasjonsreferanse, ikke nye inputs. |
-| `OANDA_PROVIDER_DATA_AND_TEST_SCOPE_REVIEW_20261126_001.json` | Kilde-/kalender-/makrogrenser og teknisk testscope. |
+- V3_FIT004_EXACT_RECOVERY_TRAIN_REVIEW_20261128_002.json:
+  låst PASS2, alle fem TF, år/blokker, Brier-dekomponering og neste målehull.
+- V3_FIT004_EXACT_RECOVERY_RECOVERY_ACCEPTANCE_20261128_002.json:
+  original restore, sluttkursør/tellinger, seks bookends og finalcheckpoint.
+- REFERENCE/COLD_ACCEPTANCE med samme suffiks:
+  fysisk original-C1 og kald-C2-paritet på alle ti bevis.
+- SOURCE/QUALIFIED/FINAL_BACKUP med samme suffiks:
+  separat Mac-disk, fsync og uavhengig medlemsreadback; FINAL bare når kvittert.
 
-Gjeldende delresultater og selected-cohort-replay ligger i
-`/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DEVELOPMENT_20261127_001_`
-med suffiks `cohort`, `warm`, `cold`, `fit` og `fit_002`.
-Loggingens originale/utrullede kode og kvitteringer ligger i
-`/home/andre2/GX1_RUNS/HOST_MAINTENANCE_LOGGING_20261127_001`.
-
-Namespace002 er kildekvalifisert med eksakt byte-reversering til eba01b157,
-17 berørte guardtester og 9 snapshot-tester PASS. Øvrige beståtte numeriske
-kontroller gjenbrukes. Namespace002 endrer bare kjøreidentitet etter ekstern stopp. Den opprinnelige
-432-stegsbanen, modell, indikatorer, mål, tap og alle vakter bevares. Begge
-observerte MoUso-starter var nær minutt 12:56 med ca. én time mellom; dette
-gir ingen garanti for neste time. Prosessen er observert avsluttet uten inngrep.
-Ingen reboot, prosesskill eller vedlikeholdssperre er utført.
+002-runroots under /home/andre2/GX1_RUNS har prefiks
+NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_002_ og suffiks
+reference/cold/recovery. Original FIT004 ligger i sin egen uendrede root.
+Nyeste originalkvitteringer overstyrer denne prosaen.
