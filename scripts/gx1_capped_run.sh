@@ -1371,7 +1371,7 @@ matches_bound_native_v3_recovery() {
     && "$6" == --lane ]] || return 1
   case "$7" in reference|cold|recovery) ;; *) return 1 ;; esac
   local plan_suffix="${7^^}"
-  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_001_${plan_suffix}.json"
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_002_${plan_suffix}.json"
   [[ -f "$expected_plan" && ! -L "$expected_plan" \
     && "$(readlink -f "$expected_plan")" == "$expected_plan" \
     && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]
@@ -1382,7 +1382,7 @@ configure_native_v3_recovery() {
     && "$SWAP" == 512M && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {
     echo 'FATAL: V3 development forbids alternate resource modes' >&2; exit 75;
   }
-  local output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_001_$7"
+  local output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_002_$7"
   [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \
     && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {
     echo 'FATAL: V3 development output must be fresh and canonical' >&2; exit 75;

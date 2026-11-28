@@ -19,6 +19,7 @@ Les disse policyfeltene for deres respektive scope:
 
 | Felt | Siste avsluttede tilstand |
 |---|---|
+| `native_v3_fit004_exact_recovery_20261128_001` | Kilde kvalifisert; REFERENCE/COLD må bevise fysisk paritet før recovery. |
 | `native_host_maintenance_logging_20261127_001` | Logging utrullet og verifisert; delmålet fullført. |
 | `native_v3_bounded_development_test_20261127_001` | FIT_001/002/003/004 er forbrukt; FIT004-stoppets MoUso-komponent er identifisert. |
 | `prelearning_validity_remediation_20261125_001` | OANDA-/historisk scopereview ferdig; ingen ny fit-admission. |
@@ -56,8 +57,8 @@ UTC/reason, men ikke nonce/monotonic. Direkte noncebinding mellom filene
 påstås derfor ikke. Kl. 23:27 UTC var prosessen borte og signert vedlikehold/
 CBS/WU false. Ingen prosessinngrep, hostendring, omstart eller svekket vakt.
 
-Alle seks flagg og alle admissioner er false. FIT_001/002/003/004 er forbrukt
-og bevares. Appmålet er aktivt og uoppfylt. Neste konkrete arbeid er å
+Alle gamle FIT_001/002/003/004-admissioner er lukket, og planene bevares.
+Aktuelle recoveryflagg og engangsgates leses i den nye scopet i policy. Appmålet er aktivt og uoppfylt. Neste konkrete arbeid er å
 undersøke det tilbakevendende MoUso-stoppet og en tillatt kjøreperiode før
 eventuell ny eksakt plan. Ingen automatisk fitserie. Nåværende klarering
 beviser ikke at vedlikehold uteblir den neste timen. En snever taskkontroll
@@ -86,9 +87,12 @@ Designkvittering: policyfeltet `fit004_exact_recovery_design`.
 Recoverykode er implementert i eksisterende eiere. 102 guardtester og 62
 ulike syntetiske leaf-tester består; opprinnelige feilkvitteringer er bevart.
 Ekte input-/normaliserings-/modellkontrakt er validert uten tensor-dekoding.
-Kildebroer og uavhengig review består. Faktisk C1/C2-paritet er fortsatt ubevist.
-Aktiv scope er `native_v3_fit004_exact_recovery_20261128_001`. Alle seks flagg
-er fortsatt false; fysisk paritet og ny admission gjenstår.
+Kildebroer og uavhengig review består. REFERENCE001 har siden fullført på ekte data: fersk C1 matcher originalen
+på alle ti bevis. COLD001 stoppet på ny MoUso kl. 00:12:57 UTC etter 13,39 s,
+med alle seks bookends PASS. Kald C2-paritet er fortsatt ubevist.
+001 er lukket og forbrukt. Aktiv klargjøringsscope er
+`native_v3_fit004_exact_recovery_20261128_002`. Alle seks flagg
+åpnes bare per eksakt lane etter egen preflight. Fysisk C1/C2-paritet gjenstår.
 
 ## Vedlikeholdslogging — ferdig
 
@@ -227,3 +231,11 @@ Gjeldende delresultater og selected-cohort-replay ligger i
 med suffiks `cohort`, `warm`, `cold`, `fit` og `fit_002`.
 Loggingens originale/utrullede kode og kvitteringer ligger i
 `/home/andre2/GX1_RUNS/HOST_MAINTENANCE_LOGGING_20261127_001`.
+
+Namespace002 er kildekvalifisert med eksakt byte-reversering til eba01b157,
+17 berørte guardtester og 9 snapshot-tester PASS. Øvrige beståtte numeriske
+kontroller gjenbrukes. Namespace002 endrer bare kjøreidentitet etter ekstern stopp. Den opprinnelige
+432-stegsbanen, modell, indikatorer, mål, tap og alle vakter bevares. Begge
+observerte MoUso-starter var nær minutt 12:56 med ca. én time mellom; dette
+gir ingen garanti for neste time. Prosessen er observert avsluttet uten inngrep.
+Ingen reboot, prosesskill eller vedlikeholdssperre er utført.

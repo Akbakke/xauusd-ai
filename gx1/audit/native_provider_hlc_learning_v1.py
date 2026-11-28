@@ -1335,12 +1335,12 @@ def main_v3_development():
  else:print(json.dumps(run_v3_development(sha,args.phase),sort_keys=True))
 
 # BEGIN GX1 V3 EXACT RECOVERY 20261128
-DEV_RECOVERY_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_001'
-DEV_RECOVERY_STAGE='native_v3_fit004_exact_recovery_20261128_001'
+DEV_RECOVERY_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_002'
+DEV_RECOVERY_STAGE='native_v3_fit004_exact_recovery_20261128_002'
 DEV_RECOVERY_LANES=('reference','cold','recovery')
 DEV_RECOVERY_PLANS={x:REPO/'configs/research'/(DEV_RECOVERY_NAME+'_'+x.upper()+'.json')for x in DEV_RECOVERY_LANES}
 DEV_RECOVERY_ROOTS={x:Path('/home/andre2/GX1_RUNS')/(DEV_RECOVERY_NAME+'_'+x)for x in DEV_RECOVERY_LANES}
-DEV_RECOVERY_PROTOCOL=REPO/'configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_PROTOCOL_20261128_001.json'
+DEV_RECOVERY_PROTOCOL=REPO/'configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_PROTOCOL_20261128_002.json'
 DEV_RECOVERY_ANCHOR='0330fe6c8bb0af4d1f107a3f86ed72ed98692518'
 DEV_RECOVERY_ORIGINAL={'path':str(DEV_PLANS['fit']),'sha256':'ebf7222c9fb403cf0adc26738cc682c088035dc2b2dc2fc5aff603a741660437'}
 DEV_RECOVERY_RECEIPT={'path':str(DEV_ROOTS['fit']/'CURSOR001.json'),'sha256':'adcc8717242aa5bac0505332fbe360dc3578315bb49f5e6230ebefe15e871529'}
@@ -1365,7 +1365,7 @@ def recovery_require_gate(value,binding,lane,admitted=False):
  need(value==expected,'RECOVERY_EXACT_GATE');return value
 
 def recovery_admission_snapshot(lane,binding,protocol,policy_ref):
- snapshot_ref=ref(E/('V3_FIT004_EXACT_RECOVERY_'+lane.upper()+'_ADMITTED_POLICY_20261128_001.json'));snapshot=read(snapshot_ref)
+ snapshot_ref=ref(E/('V3_FIT004_EXACT_RECOVERY_'+lane.upper()+'_ADMITTED_POLICY_20261128_002.json'));snapshot=read(snapshot_ref)
  need(policy_ref=={'path':str(POLICY),'sha256':snapshot_ref['sha256']},'RECOVERY_ADMISSION_SNAPSHOT_SHA');development_validate_flags(snapshot,'fit',True);parent=snapshot.get(DEV_RECOVERY_STAGE,{})
  recovery_require_gate(parent.get('lane_gates',{}).get(lane),binding,lane,True)
  need(parent.get('protocol')==protocol and parent.get('original_plan')==DEV_RECOVERY_ORIGINAL and parent.get('checkpoint_receipt')==DEV_RECOVERY_RECEIPT and parent.get('execution_authorized')is True and parent.get('active_lane')==lane and all(parent.get(k)is False for k in('main_fit_authorized','test_authorized','spending_authorized')),'RECOVERY_ADMITTED_SCOPE')

@@ -289,7 +289,7 @@ def test_recovery_immutable_admission_snapshot_is_exact(monkeypatch,bad):
     monkeypatch.setattr(owner,'read',lambda r:value)
     if bad is None:
         assert owner.recovery_admission_snapshot('reference',binding,protocol,policy_ref)==snapshot_ref
-        assert seen==[str(owner.E/'V3_FIT004_EXACT_RECOVERY_REFERENCE_ADMITTED_POLICY_20261128_001.json')]
+        assert seen==[str(owner.E/'V3_FIT004_EXACT_RECOVERY_REFERENCE_ADMITTED_POLICY_20261128_002.json')]
     else:
         with pytest.raises(ValueError):owner.recovery_admission_snapshot('reference',binding,protocol,policy_ref)
 

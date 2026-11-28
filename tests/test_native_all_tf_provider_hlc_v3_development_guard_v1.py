@@ -244,7 +244,7 @@ def test_bridge_rejects_unproven_source_delta(monkeypatch,bad):
     with pytest.raises(RuntimeError):g.native_provider_hlc_v3_development_source_bridge(owners)
 
 
-RECOVERY_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_001'
+RECOVERY_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_002'
 RECOVERY_LANES=('reference','cold','recovery')
 
 
@@ -264,7 +264,7 @@ def recovery_fixture(monkeypatch,tmp_path,lane='recovery',preflight=False,bad=No
         original_trajectory=trajectory)
     if bad=='protocol':protocol['original_protocol']={}
     if bad=='trajectory':protocol['original_trajectory']={}
-    proto=repo/'configs/research'/(RECOVERY_NAME.replace('_20261128_001','_PROTOCOL_20261128_001')+'.json')
+    proto=repo/'configs/research'/(RECOVERY_NAME.replace('_20261128_002','_PROTOCOL_20261128_002')+'.json')
     proto.write_text(json.dumps(protocol));proto_ref=dict(path=str(proto),sha256=hashlib.sha256(proto.read_bytes()).hexdigest())
     bridge=dict(producer_commit=g._V3_RECOVERY_PARENT,
         owners={n:dict(original_sha256='f'*64,current_sha256=old['source_owners'][n])for n in OWNERS})
@@ -299,7 +299,7 @@ def recovery_fixture(monkeypatch,tmp_path,lane='recovery',preflight=False,bad=No
     policy=json.loads((repo/'NEXT_RUN_POLICY.json').read_text())
     old_parent=policy['native_v3_bounded_development_test_20261127_001']
     old_parent.update(execution_authorized=False,active_phase=None,phase_gates={'fit':{'execution_authorized':False,'remaining_invocations':0}})
-    policy['native_v3_fit004_exact_recovery_20261128_001']=parent
+    policy['native_v3_fit004_exact_recovery_20261128_002']=parent
     if bad=='old_live':old_parent['execution_authorized']=True
     if bad=='spent':gate['remaining_invocations']=0
     if bad=='second_lane':parent['lane_gates']['reference'if lane!='reference'else'cold']=gate
@@ -435,7 +435,7 @@ def test_recovery_kernel_guard_requests_only_exported_environment(monkeypatch,tm
 def test_recovery_rejects_boolean_invocation_counts(monkeypatch,tmp_path,location):
     f=recovery_fixture(monkeypatch,tmp_path,preflight=location=='preflight')
     policy_path=f['repo']/'NEXT_RUN_POLICY.json';policy=json.loads(policy_path.read_text())
-    parent=policy['native_v3_fit004_exact_recovery_20261128_001']
+    parent=policy['native_v3_fit004_exact_recovery_20261128_002']
     if location=='active':parent['lane_gates'][f['lane']]['remaining_invocations']=True
     elif location=='inactive':parent['lane_gates']['reference']={'execution_authorized':False,'remaining_invocations':False}
     elif location=='preflight':parent['lane_gates'][f['lane']]={'execution_authorized':False,'remaining_invocations':False}
@@ -443,3 +443,37 @@ def test_recovery_rejects_boolean_invocation_counts(monkeypatch,tmp_path,locatio
     policy_path.write_text(json.dumps(policy))
     with pytest.raises(RuntimeError):f['call']()
     assert not f['called']
+
+
+@pytest.mark.parametrize('lane',RECOVERY_LANES)
+def test_recovery002_rejects_consumed001_plan_namespace(monkeypatch,tmp_path,lane):
+    f=recovery_fixture(monkeypatch,tmp_path,lane,preflight=True)
+    old=f['path'].with_name(f['path'].name.replace('_20261128_002_','_20261128_001_'))
+    f['path'].rename(old)
+    before=old.read_bytes()
+    with pytest.raises(RuntimeError,match='CANONICAL_JSON'):f['call']()
+    assert not f['called']and old.read_bytes()==before
+    variables,functions,_,_=[v[2]for v in g._V3_RECOVERY_SHELL_ADDITIONS]
+    functions=functions.replace('/home/andre2/GX1_RUNS',str(f['runs']))
+    state=dict(REPO_ROOT=str(f['repo']),CANONICAL_TRAINER_PYTHON=str(f['repo']/'.venv/bin/python'))
+    script='set -eu\n'+''.join(k+'='+shlex.quote(v)+'\n'for k,v in state.items())+variables+functions
+    argv=[state['CANONICAL_TRAINER_PYTHON'],'-m','gx1.audit.native_provider_hlc_learning_v1',
+        '--v3-development-recovery-plan-sha256',f['digest'],'--lane',lane,'--preflight']
+    result=subprocess.run(['bash','-c',script+'matches_bound_native_v3_recovery '+' '.join(map(shlex.quote,argv))],
+        cwd=f['repo'],capture_output=True,text=True)
+    assert result.returncode==1 and old.read_bytes()==before
+
+
+@pytest.mark.parametrize('lane',RECOVERY_LANES)
+def test_recovery002_rejects_consumed001_output_namespace(monkeypatch,tmp_path,lane):
+    f=recovery_fixture(monkeypatch,tmp_path,lane,preflight=True)
+    old_output=f['output'].with_name(f['output'].name.replace('_20261128_002_','_20261128_001_'))
+    old_output.mkdir();old_claim=old_output/'CLAIM.json';old_claim.write_text('{"status":"CONSUMED_001"}\n')
+    before=old_claim.read_bytes()
+    f['plan']['output_root']=str(old_output);f['path'].write_text(json.dumps(f['plan']))
+    digest=hashlib.sha256(f['path'].read_bytes()).hexdigest()
+    argv=list(sys.argv);argv[2]=digest;monkeypatch.setattr(sys,'argv',argv)
+    monkeypatch.setenv('GX1_NATIVE_V3_RECOVERY_PLAN_SHA256',digest)
+    with pytest.raises(RuntimeError,match='RECOVERY_PLAN_IDENTITY'):
+        g.require_native_all_tf_provider_hlc_v3_development_recovery_execution(plan_sha256=digest,lane=lane)
+    assert not f['called']and old_claim.read_bytes()==before
