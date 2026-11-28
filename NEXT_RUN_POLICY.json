@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T07:36:24.689480+00:00",
+  "observed_utc": "2026-11-28T07:45:50.218984+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "OBSERVER_COLD_RECOVERY_SOURCE_QUALIFIED_PLAN_PENDING",
+  "status": "ACTUAL_STEP_OBSERVER_COLD_RECOVERY_COMPLETE",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Commitqualifiedrecoveryroute thenfreshplan/preflight/SOURCEbackup before1technicalupdateadmission; nofit.",
+  "next_action": "Prepareminimumfixed216updateobserverenabledTRAINcontinuation fromauthFINAL432 tolocked648, all5TF/fullcohort/prior/yearscore; nofitadmitteduntilnewqualification/admission.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -46798,7 +46798,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_V3_ACTUAL_STEP_OBSERVER_QUALIFICATION",
+  "training_enabled_scope": "CLOSED_ACTUAL_STEP_OBSERVER_COLD_RECOVERY",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -110783,7 +110783,7 @@
     }
   },
   "native_v3_actual_step_observer_cold_recovery_20261128_001": {
-    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
+    "status": "CLOSED_CONSUMED_COMPLETE",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_DESIGN_20261128_001.json",
       "sha256": "a4e157293c9339b2afbc4ef2bbf34718c832d932bead198398fc0a636b32b173"
@@ -110793,14 +110793,14 @@
     "training_authorized": false,
     "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "next_action": "Prepareonlyminimumdistinctone-stepCOLDrecovery aftercurrenthostqualification; reuseREFERENCE/sourceproofs, oldCOLDneverrelaunch. No modelmathchange or fit.",
+    "next_action": "Observermechanicsqualified. Continueonlythroughclosed sourcepreparation native_v3_observed_train_continuation_20261128_001.",
     "source_qualification": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SOURCE_QUALIFICATION_20261128_002.json",
       "sha256": "055c30cd00e086a712f578f408580f8b908159ccd425e67d08ed1769af635ddc"
     },
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_20261128_001.json",
-      "sha256": "f7f1c0aa33bb0135989fdfc292cc0ca2e6487f20b618bceb9e33d9084527a092"
+      "sha256": "06b4c70f42275de764a18f0850f5e8fa43d447b1ee99405ea2974ddb5e1f2ca8"
     },
     "test_authorized": false,
     "spending_authorized": false,
@@ -110817,6 +110817,47 @@
         "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_UNCLAIMED_PREFLIGHT_FAILURE_20261128_001.json",
         "sha256": "583262dd269c14529350402d42a00dd19ada33bb0b958c23586979dda61c39e2"
       }
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_PREFLIGHT_20261128_001.json",
+      "sha256": "97b23caa82176e64488b783cbc88d0da7c26254e35a76cd9f77af93c018174c4"
+    },
+    "source_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SOURCE_BACKUP_20261128_001.json",
+      "sha256": "595c80eb6cdb15379966e729514ea4c949b295e2a34daa01a8cc71d8db8e644b"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_20261128_001/RESULT.json",
+      "sha256": "ac65dd3f6fdfabcca160be8b4a3e8ecb144643a752592a3ca854a2a261b42fa5"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_20261128_001/TERMINAL.json",
+      "sha256": "4855af7b6c73efafa0d54617014a7aaf410c8acfd1f90f1d54a99a6bbb0ae251"
+    },
+    "acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_ACCEPTANCE_20261128_001.json",
+      "sha256": "585b45df21d53025c69e2d6e068405661de070524ba33d15b351b6dfb2247a47"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_ACTUAL_REVIEW_20261128_001.json",
+      "sha256": "24dc1a1ad09fc3c43c17f456d8123123eed4ecb6649f99b08cd7cebbef6884c4"
+    },
+    "final_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_FINAL_BACKUP_20261128_001.json",
+      "sha256": "b5d9c00563fd69a9b9117a8c69d976855362296f7c3032f8571ddd35d2fd81bc"
     }
+  },
+  "native_v3_observed_train_continuation_20261128_001": {
+    "status": "DESIGNED_SOURCE_PREPARATION_ONLY_CLOSED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_001.json",
+      "sha256": "5b04f35e2765c45c2cf331cada40f0d96497b1561e69183add7a38be6a5eb269"
+    },
+    "source_preparation_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "next_action": "Prepareminimumfixed216updateobserverenabledTRAINcontinuation fromauthFINAL432 tolocked648, all5TF/fullcohort/prior/yearscore; nofitadmitteduntilnewqualification/admission."
   }
 }

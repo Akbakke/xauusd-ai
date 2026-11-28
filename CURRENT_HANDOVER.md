@@ -15,174 +15,101 @@
 
 ## Gjeldende status og neste steg
 
-NEXT_RUN_POLICY.json er eneste arbeidsstatus. Aktuelt felt
-native_v3_actual_step_observer_cold_recovery_20261128_001 er kildekvalifisert,
-men ingen ny NN-/update-/fitplan er innrømmet. Alle seks globale flagg er false.
-Ny rute gjenbruker ekte REFERENCE-C433/C434 og uendret q.physical; bare én ny
-teknisk oppdatering på globalindex433 er planlagt etter egen eksakt admission.
-Original COLD beholder FAILED_CONSUMED/forbrukt0, aldri relanser/omskriv.
-REFERENCE er COMPLETE/forbrukt0. Edge-målet er aktivt/uoppfylt; låst issue-miks
-PASS2 feiler fortsatt M5/samlet TRAIN-kvalitet. Ingen ny læringskandidat/epoch.
+NEXT_RUN_POLICY.json er eneste arbeidsstatus. Sist fullført felt er
+native_v3_actual_step_observer_cold_recovery_20261128_001: faktisk COMPLETE,
+indre/ytre exit0, alle6bookends og alle10C434-bevis PASS. Rollen er stengt/
+forbrukt0/relaunch=false og faktisk prosess avsluttet. Alle seks globale flagg er
+false. Original COLD beholder FAILED_CONSUMED/forbrukt0, aldri relanser/omskriv;
+REFERENCE er COMPLETE/forbrukt0 og ble ikke kjørt om. Edge-målet er aktivt/
+uoppfylt; låst issue-miks PASS2 feiler fortsatt M5/samlet TRAIN-kvalitet.
 
-Ny separat adapter/CLI/plan/root og flat engangsport er lagt til; gammel teknisk
-trajektorie/steps/scores/input/recipe/23budsjettfelt bevares. Core/observatør/
-modell/tap/treningskode/forrige adapter er byte-uendret. Eksakt additiv reversering
-av guard-/shelltillegg matcher23b166541; gamle vakter/kaps er bevart.
-Boot-bookend bruker samme likhetspredikat og20sforespørsel, men lagrer faktiske
-IDer eller spørrefeil. Ukjent/mismatch er fortsatt FAIL; ingen retry/timeoutrelaksasjon.
+Neste felt native_v3_observed_train_continuation_20261128_001 er kun stengt
+kildeklargjøring, execution=false/training=false/remaining=0. Designet
+V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_001.json binder én forhåndslåst
+216updatepassering av hele20727TRAIN-utvalget fra ekte opprinnelig FINAL432
+mot terminal648, med samme andrepass-takes216..431, recipe/inputs/prior/norm/
+Nonepolicy/alle5TF/8familier+D1makro. Tekniske C433/C434 skal ALDRI initializer.
+Observatøren skal følge alle216steg uten ekstra NN; kun full sluttmåling81EVAL-
+forwards. Baseline432/factoryINITIAL/COHORTprior gjenbrukes. Ingen adaptiv
+forlengelse/besteendepunkt eller automatisk nyfit. Ingen NN/fit er ennå innrømmet.
 
-66opprinnelige kontroller består (13adapter/53guard). Faktisk metadata-preflight
-fanget en rolle-kollisjon før CLAIM/NN: nytt recovery_design overskrev gammel
-FIT004-referanse. Nytt felt heter observer_cold_recovery_design; en streng merge
-avviser alle endrede opprinnelige bindinger.8berørte regresjoner består, inkludert
-3nye kollisjonskontroller. Ubrukt planf7f1c0aa og opprinnelige feillogger er bevart
-immutable i E; ny kilde og ny plan-SHA kreves, ingen gammel admission finnes.
-Klargjøring skal også kjøre faktisk metadata-bound-plan med eksakt CLI før
-hardware-preflight. Gamle7/70-suiter er gjenbrukt,
-ikke kjørt om.83kildeeiere og fersk faktisk modellkontrakt/inputidentitet er
-kontrollert, med runtime-forbud mot modell/optimizer/checkpoint/NPZ/CUDA under
-metadataarbeidet. Referansebackupens C433/C434-dekning er validert. Før admission
-skal SOURCE-manifest dekke gjeldende plan/design/kildekvalifisering/alle kildeeiere.
-Både indre terminal og den faktiske ytre maskinvarevaktens exit må godkjenne ny rolle.
+Aktuell gammel skåreier tillater bare fase INITIAL/PASS1/PASS2. Ny studie må
+binde en eksplisitt alias: faktisk kandidat FINAL648, uendret numerisk eierfase
+PASS2/gammel spec. Ytre rapport/navnerom skal vise faktisk cursor/ny studie;
+ingen gammel PASS2-kvittering omskrives, ingen metrikker/terskler endres.
+Alle5TF/år/rad- og målbarvekting/proper/rank/kalibrering/støtte/stabilitet skal
+rapporteres, også forverring/UNKNOWN. TRAIN er ikke senere generalisering/edge.
 
-Én hostobservasjon07:24:55–58UTC viste BootID4/sammeWSL, maintenance/rebootpending
-false og ingen tung prosjektlås. Dette er ikke ny NN-admisjon. Neste konkrete
-steg er commit fryst kvalifisert kilde, fersk plan/preflight/verifisert SOURCE-
-backup og egen én-stegs teknisk admission. Samtlige gamle feil/checkpoints beholdes.
-Ingen hovedfit/ekstraepoch, senere VAL/Control, TEST, ordre/broker/spending/promotion.
+### Fullført separat kald gjenopptakelse
 
-### Faktisk observatørkvalifisering og bevarte funn
+Fryst eksekveringskilde9454baadf; nye plan-SHA06b4c70f42275de764a18f0850f5e8fa43d447b1ee99405ea2974ddb5e1f2ca8.
+Ny rute gjenbrukte q.physical, ekte REFERENCE-C433/C434 og helt uendret gammel
+teknisk trajektorie/steps/scores/23budsjettfelt. Core/observatør/modell/tap/
+treningskode/forrige adapter var byte-uendret; bare egen eksekveringsgenerasjon.
+Eksakt additiv reversering av guard-/shelltillegg matcher23b166541 og gamle
+vakter/kaps er bevart. Ingen deadline/predikat/boot-/vedlikeholdsregel er endret.
 
-Fryst kilde gjennom begge roller:011ab4ad26fec29e1c365c6c3f2dbf52158f8b20.
-Core endres bare med optionalobserver/fire callbackpunkter. Eksakt reversering
-matcher hele gamle core byte-/AST-messig; standardbanen og alle gamle vakter/
-kaps er bevart. Observatøren gjør kun detach/skalar-kopier ved eksisterende
-forward-loss/backward/clip/step, uten ekstra NN/backward/update/zero_grad,
-modus-/RNG-operasjon eller endret taps-/optimizer-matematikk. Rapportene er
-utenfor checkpoint steps/scores. Native F32-reduksjonsgrense brukes på faktiske
-TRAIN-output, ikke F64-endepunktstoleranse eller lagrede EVAL-sannsynligheter.
+Første metadata-preflight fanget en konkret rolle-kollisjon før CLAIM/NN:
+nytt recovery_design overskrev gammel FIT004-inputreferanse. Feltet ble kalt
+observer_cold_recovery_design; streng merge avviser alle endrede opprinnelige
+bindinger. Ubrukt planf7f1c0aa og feillogger er bevart immutable i E. Ny kilde/
+plan-SHA fikk egen metadata-kontroll med eksakt CLI før hardware-preflight og
+egen admission. Ingen gammel godkjenning ble gjenbrukt.66opprinnelige kontroller
+bestod, deretter8berørte regresjoner inkludert3nye; gamle7/70-suiter gjenbrukt.
+83eiere/fersk modellkontrakt/inputidentitet er faktisk kontrollert med runtime-
+forbud mot metadata-modell/optimizer/checkpoint/NPZ/CUDA. Referansebackupdekning
+og SOURCE-manifestets gjeldende plan/design/kvalifisering/83eiere er validert.
 
-77forskjellige fokuserte kontroller består (7leaf/70guard); bare én berørt test
-ble kjørt om etter en tegnsettingsadvarsel. Obligatoriske native kontrakttester
-bestod ved commit.81kildeeiere/fersk fysisk modellkontrakt og inputidentitet er
-faktisk kontrollert; ingen modell/CUDA/cache-/checkpointdekoding i metadata-
-kvalifiseringen. Tidlig M1-firewall gjelder ny adapter. Ny434stegs teknisk
-trajektorie bevarer nøyaktig original432prefix +takes0/1 på indices432/433;
-alle take-/størrelses-/hash-/updatevektorer og oppdateringsantall er434.
+Faktisk jobb fullførte på52,17s:1forward/backward/update/observasjon,1C433load/
+restore og1C434write/prepublikasjon/readback.0ekstra autograd/scoreforwards/
+normaliserings-/priorfits/skips. Alle10C434-bevis matcher originalREFERENCE-C434;
+observasjons-JSON er byte-identisk med opprinnelig mislykket COLD (SHAe1f5b607...).
+WindowsBootID4 og sammeWSL-ID er faktisk observert/matcher CLAIM; ingen spørre-
+eller sjekkfeil. Alle6bookends PASS. Ytre signert vakt avsluttet child_status0,
+38målinger, ingen stop/fatal/maintenance; peakGPU46C/minne46C/175,43W/9772MiB,
+CPU37C/31,60W, hostledig minst55,11GB og commitmargin49,67GB. Fysisk GPUgrense200W.
 
-REFERENCE lastet autentisk original FINAL432 med fullRNG/AdamW, gjorde2steg
-uten observatør og publiserte ekte egne C433/C434.56,87s,2forwards/2updates,
-0observerrapporter/ekstra autograd og alle seks bookends PASS. Egen SOURCE- og
-REFERENCE-backup er fysisk fsync/F_FULLFSYNC/alle-medlems-readback-verifisert.
+Observatørens ikke-inngripende mekanikk er nå operasjonelt kvalifisert for det
+avgrensede tekniske steget. Dette gjør IKKE originalfeilen til PASS, beviser ikke
+historisk årsak/læring/generalisering/økonomi og gir ingen kandidat/fitadmisjon.
+Alle tekniske vekter er aldri initializer. Gamle feil/checkpoints er bevart.
+SOURCE-backup:145filer/7 265 596bytes, fsync/F_FULLFSYNC/allemedlemmer-verifisert.
+FINAL-backup er fysisk fsync/F_FULLFSYNC/alle-medlemmer-verifisert:
+170filer/96 181 111bytes, arkiv-SHA
+e9c59c0c175fb7bb2c77a7916919e5af016925f4915816a0af0eaf170bed0315.
+Begge manifeste/kvitteringer ligger i policy; avsluttende overlevering/binding
+bevares i Git. Originalreferanse- og FINAL-vekter gjenbruker verifiserte backuper.
+Ingen rådata/vekter i Git.
 
-Separat COLD lastet bare egen REFERENCE-C433, gjorde ett steg med observatør
-og publiserte C434+énrapport; alle10bevis matchet referansens C434 nøyaktig,
-inkludert modell/AdamW/fullRNG/steps/scores/trajektorie/cursor. Faktiske budsjetter
-matcher én NN/backward/update/checkpointload/restore/write;0ekstra autograd/
-scoreforwards/normaliserings-/priorfits. Alle3tekniske vekter er aldri kandidat
-eller initializer. All8familier+D1/makro, alle5TF og ekte kausale vinduer beholdes.
+### Bevarte forutsetninger og læringsbaseline
 
-COLD beholdes FAILED_CONSUMED:49,75s,5/6bookends PASS, boots=false;
-observatør/PÅ-AV-paritet er observert, men samlet operasjonell kvalifisering
-feiler. Boot-bookend fanger unntak som false, så den opprinnelige kvitteringen
-skiller ikke endret boot fra mislykket identitetsforespørsel. Ytre vakt logget
-maintenance_active=false ved start og true07:12:56Z før stop/fatal.37målinger:
-peakGPU47C/minne48C/151,2W/9772MiB, CPU39C/31,93W; ingen annen målt grensebrist.
-Ingen tidsgrense/predikat/vakt er endret. Begge faktiske prosesser er avsluttet.
+Original REFERENCE/COLD-kvalifisering brukte011ab4ad2: REFERENCE gjorde2tekniske
+steg fra FINAL432 til C433/C434 og bestod; original COLD gjorde1steg/all10paritet,
+men beholdes FAILED_CONSUMED på boots/host_maintenance_active. Etterfølgende
+boot-/hostobservasjon reparerer ikke den gamle feilen. Egen ny recovery ovenfor
+bestod senere. Alle tekniske vekter er aldri kandidat eller initializer.
 
-Én etterfølgende CPU-observasjon07:16:26UTC viste fysisk BootID4 og samme
-WSL-ID som CLAIM, signert maintenance_active=false og begge rebootpendingfalse.
-Dette er en senere observasjon, ikke reparasjon/retroaktiv PASS eller ny NN-admisjon.
+Observatørens fire detach-/skalarkopipunkter gjør ingen ekstra forward/backward/
+update/zero_grad/RNG-/modusoperasjon. Standardbanen projiseres eksakt til gammel
+core. Rapporter ligger utenfor legacy steps/scores. I det bevarte tekniske steget
+var globalnorm0,726546<clip1, alle5native biasgradienter innen F32-grensene og
+pre-/postklipp like. M5g=-0,005005045 reduserte positivt AdamW-m1 fra0,001463901
+til0,000817007; bias sank0,0000105165. Dette er konsistent med momentum i dette
+steget, ikke historisk årsak, læringskvalitet eller universelt fravær av feil.
 
-I det ene bevarte steget er A_b=480 og global gradientnorm0,726546<clip1.
-Alle5native F32-biasgradienter matcher analytisk beregning innen deklarert
-F32-grense; pre-/postklipp er like. Dette viser ingen klippeeffekt i dette steget.
-
-| TF | Faktisk biasgradient | AdamW-m1 før→etter | Faktisk biasendring |
-|---|---:|---:|---:|
-| M5 |-0.005005045|+0.001463901→+0.000817007|-0.0000105165|
-| M15 |+0.014887785|+0.002275258→+0.003536510|-0.0000443757|
-| H1 |-0.004835799|-0.000725070→-0.001136143|+0.0000143498|
-| H4 |-0.010804160|+0.000090685→-0.000998799|+0.0000128448|
-| D1 |+0.013537055|+0.000203346→+0.001536717|-0.0000186563|
-
-M5s negative någradient reduserte positivt arvet moment uten å snu fortegnet;
-biasnedgang er konsistent med AdamW-momentum, ikke målt fortegnsfeil.
-Maksimal analytisk/native differanse1,0555e-9 er under M5s F32-grense2,3062e-7.
-Dette ene tekniske steget forklarer ikke historiske432steg eller kvalifiserer
-læring, prediksjon, senere generalisering eller økonomisk edge. Ingen patch i
-modell/tap/optimizer/læringsrate/ruting/epoker følger av det.
-
-SOURCE-backup:122filer/3 372 844bytes; REFERENCE-backup:150filer/180 621 598bytes.
-FINAL-backup er fysisk verifisert:176filer/269 547 851bytes, arkiv-SHA
-ecd7c8ab393da05eb8503116204d731c154777121d73af026718bdabe09908e8.
-Den binder også mislykket COLD med C434/observasjon, originalkvitteringer,
-etterfølgende CPU-observasjon og neste stengte recoverydesign. Eksakte manifeste/
-kvitteringer ligger i policy; avsluttende kvitteringsbinding/overlevering bevares i Git. Originale FINAL-vekter gjenbruker allerede verifisert
-backup. Ingen rådata eller vekter skal i Git. Ingen ny sletteautorisasjon.
-
-### Ny faktisk CPU-måling av batchvekting
-
-Design002 retter bare en målt indeksblokkering i001. Forløperen stoppet etter
-én logit- og én målarkivlesing fordi en metadataavledet sammenhengende
-radakse ikke matchet originalens SHA. Differansen95 mellom to populasjons-
-størrelser var ikke en kilderadoffset. Ingen residualanalyse fra001 godkjennes;
-originale helper-/testfiler, CLAIM/RESULT/TERMINAL og feilkvittering er bevart.
-
-002 leste faktisk bar_start_ns fra allerede bundet FEATURE_INPUTS.npz:
-1215513int64/9 724 104bytes. Eksisterende provider eier issue_ns=bar_start_ns+
-BAR_NS og source_row=arange(len(issue_ns)). Eksakt tidskobling til hele TRAIN
-matchet original normaliseringsakse, utvalgte source/positions og alle432
-STREAM_BINDING-koblinger til source_rows, issue_ns og maskert fasit.
-Ingen gjettet offset eller numerisk featurematrise ble brukt.
-
-Faktisk jobb fullførte på6,44s med alle åtte bookends og tre uavhengig
-observerte NPZ-åpninger, én per deklarert arkiv: logits, targets og klokkefelt.
-17felt/61 005 110ndarraybytes ble dekodet. Én åpning av featurearkivets klokke
-rapporteres eksplisitt;0numeriske featurematrisefelt/fulle providerlastinger.
-0modeller/optimizer/checkpoint/autograd/CUDA/NN/updates/nye prediksjoner/priorfits.
-Originale mål/masker/sertifikat, COHORT-populasjoner og F32-priorlogit med
-Laplace1 beholdes; factoryprioren er en separat whole-TRAIN-referanse.
-
-Faktisk tap er(sum activityBCE+sum kjent sideBCE)/A_b, der A_b er alle fem TFs
-kjente aktivitetsceller. Ingen ekstra TF-vekt, aktivitetssannsynlighet eller
-1/5-faktor. Rå lokal side-biasderivert er sum(side_mask*(p-y))/A_b før klipping
-og AdamW. Alle432takes og fem TF er med,216batcher per pass. Hvert pass har
-eksakt103610aktivitetsceller og gjenskaper hele utvalgets residual/derivert
-innen forhåndsdeklarert FP64-reduksjonsgrense; alle heltallsstøtter er eksakte.
-
-| TF | Effektiv UP-andel minus radandel, pp pass1 | pp pass2 |
-|---|---:|---:|
-| M5 |-0.000118834|-0.004852117|
-| M15 |-0.000918503|-0.001857099|
-| H1 |-0.003318605|+0.005071017|
-| H4 |-0.005430882|-0.002752352|
-| D1 |-0.002845232|+0.000399319|
-
-M5s rad-UP-andel er50,883115%; frossent sannsynlighetsmiddel48,456008%.
-Den maksimale målte endringen i effektiv UP-andel er bare0,004853pp, mot
-middelfeil−2,427107pp. Rå hele-utvalgsderivert−0,0029841630993707384
-gjenskapes i begge pass. Batchens prediksjonsavvik og fasitsammensetning er
-separat dekomponert rundt COHORT-prioren; liten Laplace-rest er ikke kalt bias.
-Batch-/nevnervektingen lukker ikke M5-mangelen. Ingen tapsnormaliseringspatch.
-
-Dette er lagrede B256 EVAL-outputs gruppert i de originale B96-takes, ikke
-skiftende TRAIN/dropout-gradienter, full Jacobian, klipping eller rekonstruerte
-AdamW-momenter. Et endepunkts fortegn er ikke en historisk optimizerforklaring.
-Numerisk residual-/dekoder-/tapsformel er AST-identisk med001;22 beståtte
-kontroller gjenbrukes. Kun12 berørte klokke-/koblings-/dekoderkontroller ble
-kjørt for002, alle PASS. Ingen uendret fullsuite eller fit ble gjentatt.
-
-### Bevarte læringsresultater og øvrige avgrensninger
+To endpointforklaringer er allerede kvantifisert: frossen TRAIN/EVAL-modus flyttet
+M5s pUP-middel bare+0,037710pp; batch-/nevnervekting flyttet effektiv UP-andel
+høyst0,004853pp, mot M5-middelfeil−2,427107pp. Direkte native bias stod for0,584%
+av whole-batch→issue-miks logitendring;99,416% er samlet representasjons-/
+projeksjonsrest og F32-avrunding, uten isolert årsak. Ingen bias-/dropout-/
+tapsnormaliseringspatch er begrunnet. Bevisene og gamle feil er bundet i policy/Git.
 
 Siste læringskandidat er låst issue-miks PASS2, fryst kilde7471ddf48:
-20727TRAIN-issues/1377kildeklokkedøgn2021–2025, B96/E256, seed20260911 og
-2pass à216updates. Alle åtte familier+D1/makro og M5/M15/H1/H4/D1 beholdes
-med fullt koblet None-policy. Hvert issue beholder egne genuine kausale vinduer;
-input/prior/normalisering/fasit/masker/tap/optimizer og vakter er uendret.
-REFERENCE/COLD fullførte2+1tekniske updates/fullproof10, ikke kandidater.
-Fersk FIT fullførte432updates/597forwards/812,48s,0checkpointloads/restores/skips
-og seks bookends. OriginalINITIAL/factory/full RNG/fasit er gjenbrukt eksakt.
+20727TRAIN-issues/1377kildeklokkedøgn2021–2025, B96/E256, seed20260911,
+2pass à216updates. Alle8familier+D1/makro og M5/M15/H1/H4/D1, fullt koblet
+None-policy og egne kausale vinduer beholdes. Fersk FIT fullførte432updates/
+597forwards/812,48s,0checkpointloads/restores/skips og seks bookends. Opprinnelig
+factory/fullRNG/INITIAL/fasit er kvalifisert og gjenbrukt, aldri tekniske vekter.
 
 | TF | Låst PASS2 side-AUC | Brier minus COHORT-prior, rad | År-PASS rad/målbar |
 |---|---:|---:|---:|
@@ -192,34 +119,14 @@ og seks bookends. OriginalINITIAL/factory/full RNG/fasit er gjenbrukt eksakt.
 | H4 |0.524267|-0.000416408|5/5 · 4/5|
 | D1 |0.614417|-0.008619807|5/5 · 5/5|
 
-Proper-score består4/5TF under begge vektinger; M5 feiler. Samlet proper-score/
-tidsblokkstabilitet er FAIL, learning_qualified=false; år18/25rad og17/25målbar.
-Aktivitet/rankguard består alle fem, uten kvalifisert læring/generalisering.
-D1s13968kjente rader er875forskjellige målbarer. M5DOWN-argmax12721/12739 er
-betinget side, ikke full treklassehandling eller dokumentert handelsvalg.
+Proper-score består4/5TF under begge vektinger; M5 feiler. Samlet proper/stabilitet
+FAIL, learning_qualified=false; år18/25rad og17/25målbar. Aktivitet/rank består
+alle fem uten bevist læring/generalisering. D1s13968rader er875målbarer. M5DOWN-
+argmax12721/12739 er betinget side, ikke full treklassehandling/handelsvalg.
 PASS1→PASS2: M5-AUC.509672→.519403 mens Brier forverres0,000156777 og
-UP-middelfeil−1,758→−2,427pp; D1-AUC.561885→.614417 samtidig. Dette beviser
-ikke at flere epoker gir samlet fremgang eller at en bestemt ruting er feil.
-
-Tidligere autentisert readout-attribusjon: M5s middel-logit whole-batch→issue-
-miks−0,130168, native bias0,584% og samlet logit-minus-bias-rest99,416%.
-Resten omfatter representasjon/projeksjon og F32-avrunding uten isolert årsak.
-Direkte bias med uendret rest kan flytte p høyst0,019pp mot observert−3,252pp.
-Modus-NN fullførte405forwards/alle fem skår og tilstandsbevis; feilet først ved
-NumPy-float64-JSON. Én native float-cast er rettet/testet; separat CPU-plan
-sammenstilte eksisterende skår med0nye NN. Originalfeilen bevares.
-EVAL-logits matcher PASS2 byte-eksakt. Fire sekvensielle B256/no_grad TRAIN-
-draws flytter M5s UP-middel bare+0,037710pp; feil−2,389396pp består i alle fire.
-Samlet frossen modusforskjell inkluderer dropout og eval-only TF-gruppering;
-dette isolerer ikke dropout eller den historiske B96/backward-banen.
-
-Originale FINAL-vekter og tidligere kilde-/målebølger har separate verifiserte
-Mac-backuper. Denne CPU-bølgens FINAL-arkiv er fysisk fsync/F_FULLFSYNC/
-alle-medlems-readback-verifisert:144filer/5 944 375bytes, arkiv-SHA
-624c7dea44f860b9ec1e6b415ea14ac91891863b5a555e23d5e504f3bf989afb.
-Manifest/kvittering er bundet i begge CPU-policyfelter. Mislykket001, fullført002,
-begge frosne kilder/tester, rapporter og neste stengte observatørdesign beholdes.
-Avsluttende kvitteringsbinding/overlevering bevares i Git. Ingen rådata/vekter i Git.
+UP-middelfeil−1,758→−2,427pp; D1-AUC.561885→.614417. Flere oppdateringer må
+måles som utfall, ikke antas å gi fremgang. All TRAIN-statistikk er gjenbrukt,
+ikke kronologisk OOF eller uavhengig senere evaluering. Målbar-AUC er NOT_IMPLEMENTED.
 
 ## Kvalifisert datagrunnlag og funksjon
 
@@ -290,7 +197,11 @@ generalisering må måles som utfall, ikke antas bevist før første fit.
 E betyr /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001.
 Policy binder eksakte SHA, originale kvitteringer og egne snapshots.
 
-- V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SOURCE_QUALIFICATION_20261128_001.json:
+- V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_001.json: neste stengte216steg,
+  ekte FINAL432→låst648, alle5TF og eksplisitt numerisk fasealias.
+- V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_ACTUAL_REVIEW_20261128_001.json:
+  ny faktisk COMPLETE/all6/all10/ytreexit0, originalfeil fortsatt bevart.
+- V3_ACTUAL_STEP_OBSERVER_COLD_RECOVERY_SOURCE_QUALIFICATION_20261128_002.json:
   66fokuserte kontroller,83eiere, fersk inputidentitet og uendret numerisk funksjon.
 - V3_ACTUAL_STEP_OBSERVER_ACTUAL_REVIEW_20261128_001.json: faktiske2+1roller,
   all10paritet og alle5TF-observasjoner under original COLD-fail.
