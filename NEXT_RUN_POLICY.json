@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T10:17:48.451189+00:00",
+  "observed_utc": "2026-11-28T10:39:39.009728+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FIXED_CONTINUATION_RECOVERY_SOURCE_QUALIFIED_CLOSED",
+  "status": "FIXED1080_ASSESSED_TRAIN_FAIL_FROZEN_BLOCK_SOURCE_ONLY",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Source unchanged and exact68tests reused; freeze metadata, prepare new004 plan and require fresh inactive host/exactCLIpreflight/new physical SOURCEbackup before snapshot-first one-use admission.003 remains consumed; no fit yet.",
+  "next_action": "Genuine1080 physicalbackup now verified (all186members inclbothnewCPs/fullproofs/nextdesign). Inspect/reuse existing attribution/EVAL owners; qualify minimum declared4arm frozen block diagnostic and fresh own plan/host/CLI/SOURCEbackup/snapshot-first execution gate. No NN or training admitted.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -46798,7 +46798,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_003",
+  "training_enabled_scope": "CLOSED_NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_004",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -111068,7 +111068,7 @@
     }
   },
   "native_v3_observed_train_continuation_20261128_004": {
-    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
+    "status": "CLOSED_CONSUMED_COMPLETE",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_004.json",
       "sha256": "0993908d19db4432f14e6168c020b626216ecf2b90a352d43a7bd638a96ed459"
@@ -111080,10 +111080,82 @@
     "relaunch_allowed": false,
     "test_authorized": false,
     "spending_authorized": false,
-    "next_action": "Source unchanged and exact68tests reused; freeze metadata, prepare new004 plan and require fresh inactive host/exactCLIpreflight/new physical SOURCEbackup before snapshot-first one-use admission.003 remains consumed; no fit yet.",
+    "next_action": "Fixed1080 comparison FAIL assessed and rawbacked; only separately declared frozen2x2block sourcepreparation remains. No unchanged nextfit, relaunch, or patch admitted.",
     "source_qualification": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_SOURCE_QUALIFICATION_20261128_004.json",
       "sha256": "47295b08a05309d2bdd0f4fcc31fac5a21db3282ce25497f8b7abac4b353e5a2"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_004.json",
+      "sha256": "20ce68f848c0e48a5c81d3e1684ee2ab4dadd7c13c439ef904615c83d5085734"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_PREFLIGHT_20261128_004.json",
+      "sha256": "7b778019e2ffc72b6f21e9a1f4e55df00c15467c7a4ddf5abca503b473591d9c"
+    },
+    "source_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_SOURCE_BACKUP_20261128_004.json",
+      "sha256": "dbc896c86c988d6c108bfcdcbeb15543bf52798a59aa5c4c8903fef4e7b949fc"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_004/RESULT.json",
+      "sha256": "b6bd1a9257b99cf95f28a9c2436e35890ee6bc7a3a11e58ab93aaadb2bcf986c"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_004/TERMINAL.json",
+      "sha256": "4cedb21503bf40d553bb5f79696a3e934789d80314ff13ce30508b7bf8179ba4"
+    },
+    "acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_ACCEPTANCE_20261128_004.json",
+      "sha256": "02fcd57cfdbee26bbbf383806070c636ff8beb11996ed6bedef329a41f6a4ca4"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_ACTUAL_REVIEW_20261128_004.json",
+      "sha256": "bdf5f73a875711eaac7d2a67e736c02ea2ca5efdc69526378868f84e2945826f"
+    },
+    "endpoint_assessment": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_ENDPOINT_ASSESSMENT_20261128_004.json",
+      "sha256": "fbc19a29988b1f51577eb370f0e863f65ebfb47db128d1f2d63875a09c25e85c"
+    },
+    "saved_score_moments": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_SAVED_SCORE_MOMENTS_20261128_004.json",
+      "sha256": "49fafb6b6512fd232b0a5556833a7e93eef38ee8a44bf3f33a8a8ccefcc8d965"
+    },
+    "next_closed_design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_DESIGN_20261128_001.json",
+      "sha256": "9578cee76b7d0676529bf78a48f90c9d8a6f68bd5e13a914ce9c08c47578d2dd"
+    },
+    "final_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_FINAL_BACKUP_20261128_004.json",
+      "sha256": "189ae0ddd004ee18bd0da92e83ccdefea3d5900eb2d4f107f62a89f40f4e01d2"
+    }
+  },
+  "native_v3_frozen_864_1080_block_attribution_20261128_001": {
+    "status": "SOURCE_PREPARATION_ONLY_CLOSED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_DESIGN_20261128_001.json",
+      "sha256": "9578cee76b7d0676529bf78a48f90c9d8a6f68bd5e13a914ce9c08c47578d2dd"
+    },
+    "source_preparation_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "test_authorized": false,
+    "spending_authorized": false,
+    "implementation_requires_verified_FINAL1080_backup": true,
+    "next_action": "Genuine1080 physicalbackup now verified (all186members inclbothnewCPs/fullproofs/nextdesign). Inspect/reuse existing attribution/EVAL owners; qualify minimum declared4arm frozen block diagnostic and fresh own plan/host/CLI/SOURCEbackup/snapshot-first execution gate. No NN or training admitted.",
+    "verified_FINAL1080_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_FINAL_BACKUP_20261128_004.json",
+      "sha256": "189ae0ddd004ee18bd0da92e83ccdefea3d5900eb2d4f107f62a89f40f4e01d2"
+    },
+    "verified_FINAL864_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_FINAL_BACKUP_20261128_002.json",
+      "sha256": "87258dec3afb00eaea036145c46c2334a60b1398ce9f51997c65cb52bb7a60ce"
+    },
+    "fresh_parent_and_failed_backup_recheck": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_PARENT_BACKUP_RECHECK_20261128_004.json",
+      "sha256": "10c2fa47b31e80cf0de85020943069b19f61a456542041d6c19e7a347aeda725"
     }
   }
 }
