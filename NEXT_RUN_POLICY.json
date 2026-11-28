@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T10:56:44.051610+00:00",
+  "observed_utc": "2026-11-28T11:26:41.919294+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FROZEN_BLOCK_SOURCE_QUALIFIED_CLOSED",
+  "status": "FROZEN_BLOCK_ASSESSED_M5_SHARED_OBJECTIVE_DESIGN_ONLY",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Freeze qualified98sources/106focusedchecks; fresh exactplan/runtime/CLIhardwarepreflight and verifiedSOURCEbackup before ownexecution-onlysnapshot-firstadmission. All6trainingflagsfalse, noNNyet.",
+  "next_action": "Inspect existing qualified ten-task gradient method and timing/support; lock minimum exact current1080 coverage/mode/budget before source qualification and any fresh observation admission. M5 primary/contextual TF preserved; no NN/patch/fit yet.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -111131,7 +111131,7 @@
     }
   },
   "native_v3_frozen_864_1080_block_attribution_20261128_001": {
-    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
+    "status": "CLOSED_CONSUMED_COMPLETE",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_DESIGN_20261128_001.json",
       "sha256": "9578cee76b7d0676529bf78a48f90c9d8a6f68bd5e13a914ce9c08c47578d2dd"
@@ -111144,7 +111144,7 @@
     "test_authorized": false,
     "spending_authorized": false,
     "implementation_requires_verified_FINAL1080_backup": true,
-    "next_action": "Freeze qualified98sources/106focusedchecks; fresh exactplan/runtime/CLIhardwarepreflight and verifiedSOURCEbackup before ownexecution-onlysnapshot-firstadmission. All6trainingflagsfalse, noNNyet.",
+    "next_action": "Frozen2x2 measured M5 backbone-related proper degradation with interaction; preserve outputs then prepare bounded current1080 shared-objective gradient method. No next fit/patch/NN.",
     "verified_FINAL1080_backup": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_FINAL_BACKUP_20261128_004.json",
       "sha256": "189ae0ddd004ee18bd0da92e83ccdefea3d5900eb2d4f107f62a89f40f4e01d2"
@@ -111160,6 +111160,69 @@
     "source_qualification": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_BLOCK_ATTRIBUTION_SOURCE_QUALIFICATION_20261128_001.json",
       "sha256": "82212f66840ea006b0cf8c290c83a8f8f64ef3f7355a1b76e3f9179c5dd88eb9"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_20261128_001.json",
+      "sha256": "177189f40629861e4555981a77ff42809564e44fba4aab913d6cb4779fe0a8f0"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_BLOCK_ATTRIBUTION_PREFLIGHT_20261128_001.json",
+      "sha256": "6a7a03141684def74f83754ab5b2c1a0340f30dd7572f04ebc13e473bbb820f0"
+    },
+    "source_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_BLOCK_ATTRIBUTION_SOURCE_BACKUP_20261128_001.json",
+      "sha256": "e6cfd30ab9089247369975cee3c980305bf6377b4d89bf913ffc7eee0d118844"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_20261128_001/RESULT.json",
+      "sha256": "2c1c5a8c66140203bbedf06146708b0d3cc337e378f02888c781a6029bbab509"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_20261128_001/TERMINAL.json",
+      "sha256": "1026f291718c12071ed14b9df2b1415333b3e2f321fc722c4e1753062f5f34d8"
+    },
+    "acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_BLOCK_ATTRIBUTION_ACCEPTANCE_20261128_001.json",
+      "sha256": "034042a5aa16af7d83e58dbed66051687e854b25edd2e3a06f0a928b9b9ad519"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_BLOCK_ATTRIBUTION_ACTUAL_REVIEW_20261128_001.json",
+      "sha256": "e6f9d9504c5807832261f789186bade8e271657dfdb9c84cb5e3ce58f6be91be"
+    },
+    "assessment": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_BLOCK_ATTRIBUTION_ASSESSMENT_20261128_001.json",
+      "sha256": "6980cb4871d91d480d345a3a7e20c29b67fb4291f54724a02cfafc2964b5e120"
+    },
+    "next_closed_design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_M5_SHARED_OBJECTIVE_GRADIENT_DESIGN_PREPARATION_20261128_001.json",
+      "sha256": "98e5fa2c22b50a9e334b6e02498be1aafdc925942152111366e16427fd71bb19"
+    },
+    "final_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_BLOCK_ATTRIBUTION_FINAL_BACKUP_20261128_001.json",
+      "sha256": "9e26244562a3ffedb6368d282341ad9ddaabc8632a3f18eaee3fa029e82942bd"
+    }
+  },
+  "native_v3_m5_shared_objective_gradient_design_20261128_001": {
+    "status": "DESIGN_PREPARATION_ONLY_CLOSED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_M5_SHARED_OBJECTIVE_GRADIENT_DESIGN_PREPARATION_20261128_001.json",
+      "sha256": "98e5fa2c22b50a9e334b6e02498be1aafdc925942152111366e16427fd71bb19"
+    },
+    "source_preparation_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "test_authorized": false,
+    "spending_authorized": false,
+    "next_action": "Inspect existing qualified ten-task gradient method and timing/support; lock minimum exact current1080 coverage/mode/budget before source qualification and any fresh observation admission. M5 primary/contextual TF preserved; no NN/patch/fit yet.",
+    "completed_block_diagnostic_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_BLOCK_ATTRIBUTION_FINAL_BACKUP_20261128_001.json",
+      "sha256": "9e26244562a3ffedb6368d282341ad9ddaabc8632a3f18eaee3fa029e82942bd"
+    },
+    "authentic_FINAL1080_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_FINAL_BACKUP_20261128_004.json",
+      "sha256": "189ae0ddd004ee18bd0da92e83ccdefea3d5900eb2d4f107f62a89f40f4e01d2"
     }
   }
 }

@@ -15,97 +15,99 @@
 
 ## Gjeldende status og neste steg
 
-NEXT_RUN_POLICY.json er eneste arbeidsstatus. Siste faktiske NN er separat004,
-CLOSED_CONSUMED_COMPLETE/remaining0/relaunchfalse, execution/trainingfalse;
-alle6globale flagg er false og prosess er borte. Edge-målet er aktivt/uoppfylt.
-Gjeldende neste felt er native_v3_frozen_864_1080_block_attribution_20261128_001,
-SOURCE_QUALIFIED_PLAN_PENDING/executionfalse/trainingfalse/remaining0.
-Ingen ny NN eller treningsforlengelse er innrømmet.
+NEXT_RUN_POLICY.json er eneste arbeidsstatus. Siste faktiske jobb er frozen864/
+1080block001, CLOSED_CONSUMED_COMPLETE/remaining0/relaunchfalse, execution/
+trainingfalse. Alle6globale flagg varfalse ved admission/CLAIM/lukking.
+Edge-målet er aktivt/uoppfylt; ingen ny NN, trening eller patch er innrømmet.
+Neste felt native_v3_m5_shared_objective_gradient_design_20261128_001 er bare
+DESIGN_PREPARATION_ONLY_CLOSED/executionfalse/trainingfalse/remaining0.
 
-Ny frossen2x2eier er kvalifisert:98eiere,106fokuserte kontroller PASS (23eier/
-83guard), fersk fysisk input-/modellidentitet/egne864+1080lineager og
-0metadata-modell/optimizer/PT/NPZ/CUDA-forsøk, også ved prosjektimport. Begge
-originalarkiver er fysisk rehashet/identiske og alle9endepunktbindinger dekket
-hver. Alle95gamle ikke-guard-eiere er byte-uendret; nye guard/shell-tillegg
-reverseres eksakt til0c06e9b8a. Ingen numerisk eier/modell/input er endret.
-Før første test ble én konkret rapporteringsfeil rettet: STATEPASS må også
-kreve vellykket siste modus-/nonpersistentbuffer-/grad-/full10-gate. Egennegativ
-test bevarer FAILED ved ellersgenuinfull10 og eksakttellere. Ingen faktiskNN
-er kjørt. Neste: fryst commit, eksakt ny plan/faktiskCLIhardware-preflight og
-verifisertSOURCEbackup før egen snapshot-først engangsadmisjon. Alle6globale
-flagg forblir false også ved eventuellfrossen kjøring; bare executiongate kanåpnes.
+Bruker presiserte at M5 skal bruke øvrigeTF som hjelp. Verifisert faktiskforward:
+familie-/TF-attention, kryss-TF-blanding og felles/global D1makro-kontekst inngår
+FØR M5head. Det er én felles MTFmodell med egne outputheads, ikke uavhengige
+TFmodeller. Dagens native tap summerer kjent aktivitet+sertifisert side på alle
+5TF og deler på samlet kjent aktivitetsantall; M5 har ingen særskilt prioritet.
+CurrentNone betyr felles backbonegradienter. Kobling er ikke dokumentertM5nytte;
+andreTFs resultatforbedring skal aldri brukes som bevis for M5edge.
 
-004 brukte fryst kildeac0796e24, plan-SHA
-20ce68f848c0e48a5c81d3e1684ee2ab4dadd7c13c439ef904615c83d5085734.
-Faktisk438.91s/indre-ytreexit0:297forwards=216TRAIN+81fullFINAL-EVAL,
-216optimizerupdates og216eksterne observasjoner. Alle23tellerverdier eksakt;
-originaltakes216..431 ble brukt én gang/hele20727TRAIN/1377kildedøgn2021–25,
-alle5TF/8familier+D1makro/None. Ekte864/egen864lineage/full10/RNG/AdamW ble
-validert før copy, deretter egen1080trajektorie. MekaniskC865 og bareFINAL1080
-ble skrevet/fysisk reåpnet. Alle6bookends/full10start/full10slutt PASS.
-OBSERVATIONS har eksakt864..1079; alle1080nativeF32grad-/klippegrenser PASS,
-42klippede steg, ingen signflip/ikke-endelig verdi eller målt numerisk feil.
-Maksavrundingsavvik2.794e-9, verst1.424% av egenF32grense. Ingen kodepatch.
+Frossen2x2 brukte kilde66793b162, plan-SHA
+177189f40629861e4555981a77ff42809564e44fba4aab913d6cb4779fe0a8f0.
+Faktisk408.28s/indre-ytreexit0:4EVAL/no_grad×81=324forwards,0updates/backward/
+autograd/checkpointwrites/fits. Alle26tellere eksakt:2CPloads+full10prechecks
+FØRcopy,3strikte restoreringer,2kompositter,4logitwrites/readbacks,2savedloads;
+1model/optimizer/cache/target. Hele20727TRAIN/1377døgn2021–25, alle5TF/
+8familier+D1makro/None bevart. SELF864/SELF1080 kompletteF32archiveSHA, råreview
+OG81batchhashes er eksakt lagredeoriginaler FØRbeggekryss. Ingen kandidat valgt.
 
-Faste row-resultater864→1080 (komplette beggevektinger/år/kalibrering i policy):
+Statepartisjon er794disjunkte persistente keys:769backbone/24readout/1identisk
+future_state_model_sha256.60nonpersistentbackbonebuffere er separat bundet til
+konstruktørhash. Alle4før/etter-proof==forventetfull10;625navngitte modi,
+optimizer/fullRNG/gradNone/nonpersistenthash uendret før nestecopy. Kryss endrer
+bare model_state; øvrige9bevis er ekte1080. STATEPASS og final_restore_all_checks_pass
+true; sistefull10 er eksakt ekte1080. Ingen restore skjuler feilet passering.
+UavhengigJSONkontroll gjenoppbygger ikkeCP/kompositt-tensorer; siste modus-/NP-/
+gradtest er kollektiv boolsk attest, mens perpass-snapshots/full10 er eksplisitte.
 
-| TF | Rad-AUC før→etter | ΔNLL | ΔBrier | Brier minus COHORTprior | Middelfeil etter, pp |
-|---|---:|---:|---:|---:|---:|
-| M5 |0.538210→0.544450|+0.000196017|+0.000097746|+0.000302648|-3.63100|
-| M15|0.533312→0.538425|-0.000208778|-0.000103936|-0.000896964|-1.43089|
-| H1 |0.549848→0.558974|-0.001118144|-0.000554519|-0.001723437|-2.20068|
-| H4 |0.552826→0.569917|-0.003385598|-0.001646370|-0.003826939|+0.31994|
-| D1 |0.775208→0.936813|-0.246532900|-0.098276359|-0.149822408|-4.03796|
+Kontrollerte row-ΔBrier (før→etter:backbone864→1080 med R864/R1080;
+readout864→1080 med B864/B1080). Komplette beggevektinger/år/aktiviteter i policy.
 
-Alle5pooled og alle25år-radAUC forbedres, men M5properFAIL under beggevektinger;
-samletproper/stabilitet/fiksertTRAIN-sammenligningFAIL. År-PASS faller22→21/25:
-M5 bare2022PASS;2021/23/24/25FAIL,2025forverres. Alle4andreTF har5/5PASS, men
-M15s NLL/Brier blir verre i2024/25. M5NLL/Brier blir verre i2021/23/24/25.
-M5s pUP faller0.47835671→0.47252115 mot observert0.50883115. Større meanbias²
-(+0.000389724799) overstiger bedre Var(p)-2Cov(p,y)(-0.000291978507), slik at
-ΔBrier=+0.000097746292. Dette er beskrivende eksakt momentidentitet fra lagrede
-skalartall, ikke full kalibreringsdekomponering/årsaksbevis eller ny modell.
+| TF | Backbone, R864 / R1080 | Readout, B864 / B1080 | Interaksjon |
+|---|---:|---:|---:|
+| M5 |+0.000190703 / +0.000253402|-0.000155656 / -0.000092957|+0.000062699|
+| M15|-0.000087314 / -0.000021320|-0.000082615 / -0.000016622|+0.000065994|
+| H1 |-0.000186463 / -0.000250927|-0.000303592 / -0.000368056|-0.000064464|
+| H4 |-0.001316397 / -0.001686410|+0.000040040 / -0.000329974|-0.000370014|
+| D1 |-0.086266362 / -0.099431535|+0.001155176 / -0.012009996|-0.013165172|
 
-M5s observerte additive headbias øker+0.000108655542. Med alle andre ledd frosset
-kan denne isolert bare øke sigmoidp med høyst0.00271639pp (reell aritmetikk,
-ikke målt kontrafaktisk/F32feilgrense). Hele modellens pUP faller0.583556pp;
-readoutvekter og backboneegenskaper gjenstår som mulige bidrag, ikke bevist feil.
-COHORTprior/factoryINITIAL/actual864 er ulike referanser. Numeriskeierens
-learning_qualified=false er hardkodet; faktiskeM5prior-/properFAIL er separat.
-D1s13968rader har875unike mål og er avhengige. Dette er gjenbruktTRAIN, ingen
-senere generalisering, enkeltfamilie-nytte, handelsbeslutning eller økonomisk edge.
+M5backboneeffekt senker pUP-mean0.467560pp/0.632428pp ved beggefrosnereadouts,
+og økerNLL0.000383089/0.000508086. Readouteffekt forbedrerM5NLL/Brier ved begge
+backbones, men pUP-mean skifter fortegn:+0.048872pp/-0.115996pp. Interaksjon
+pUP=-0.164868pp/NLL=+0.000124997/Brier=+0.000062699/AUC=+0.001872201.
+M5pUP faller i ALLE5år ved beggebackbonekontraster. M5proper blir verre2021–24
+medR864 ogalle5år medR1080. Readout bedreralleM5år medB864, men forverrer24/25
+medB1080. Alle4armer harpooledM5FAIL/andre4TFPASS. Andre4TF haralleårPASS,
+selv om betingede proper-regresjoner finnes. M5s2021/23/24FAIL består;2025FAIL
+finnesbareSELF1080. M5aktivitet bedres ved beggebackboneskift (ΔBrier
+-0.000694889/-0.000916743), samtidig med verre M5side. Dette avgrenser neste
+spørsmål om dagens felles læringsmål; det beviser ingen optimizerhistorisk årsak.
 
-283signerte vaktmålinger, exit0/ingenstop/fatal/maintenance; peakGPU61C/minne68C/
-188.27W/9772MiB, CPU44C/34.389W. Hostledig minst54.355GB/commitmargin49.049GB;
-fysisk200W og alle20G/512M/CPU-/VRAM-/tidsvakter uendret. Boot4/sammeWSL,
-ingen spørrefeil; PID1451748/start49633928 er borte.003 forblir FAILED_CONSUMED0:
-MoUso/TiWorker-vedlikeholdsavbrudd er bevart; mekanisk865 ble aldri initializer.
+Alle2400betingede skalardeltaer/600interaksjonsblader er kontrollert;540kjente/
+60UNKNOWN interaksjoner. De60 er manglende redundant equal-target modelmean-
+error; separat sidekalibreringsmean er kjent. NLL/Brier er kjente; målbarAUC er
+NOT_IMPLEMENTED. Truth/support/utvalg/priors/spec identiske. Kryss måler
+funksjonsavhengighet av samtilpassede blokker, ikke enkeltindikatornytte,
+optimalvekter eller ny prediktor. EkteFINAL1080 forblir TRAINFAIL; ingen senere
+generalisering eller økonomisk edge er målt. Originale masker/UNKNOWN beholdes.
 
-004kvalifisering gjenbrukte68beståtte16+52XML/log-bevis ved eksaktidentiske95kilder;
-fersk modell/input/egen864/schedule og0metadataNN/PT/NPZ/CUDA-forsøk PASS.
-Faktisk eksaktCLI/hardware-preflightPASS; SOURCEbackup153filer er fysisk
-F_FULLFSYNC/allemedlemmer-verifisert på separatMacdisk. Begge eldre864/avbrutt003-
-arkiver er rehashet/identiske. Én variabelkollisjon i midlertidig pakkehjelper
-ble målt/rettet førNN; feilarkivet/loggen beholdes, korrektSOURCE er verifisert.
-Ingen numerisk/prosjektkilde endret. FINALbackup186filer/182726262arkivbytes er
-fysisk F_FULLFSYNC/allemedlemmer-verifisert på separatMacdisk, inkl. begge nye
-checkpoints/fullbevis/alleoutputs/neste stengte design. Arkiv-SHA
-5a385f016a97eed0bfa7a42603ca2a1b1cf2d58d642b36dc8457567410236e0d.
-Kvittering/manifest er i004 og neste policyfelt. Overlevering/sluttbinding i Git.
+Alle6bookends PASS;265signerte vaktmålinger/ingenstop/fatal/maintenance;
+peakGPU60C/minne66C/182.24W/2012MiB, CPU43C/34.692W. Hostledig minst54.259GB/
+commitmargin56.906GB/fysisk200W, alle20G/512M/CPU/VRAM/tidsvakter uendret.
+Boot4/sammeWSL/ingenqueryfeil; PID1471978/start49897120 er borte.
+98eiere/106fokuserte tester(23+83) og obligatoriskEntry-kontrakt PASS. Gamle95
+ikke-guard-kilder er byte-uendret; guard/shell-tillegg reverseres eksakt til0c06.
+Freshmetadata/egne2lineager/identitet/0modeller/optimizer/PT/NPZ/CUDAinit PASS,
+inkl.prosjektimport. Begge9foreldrebindinger dekket av fysisk rehashedeidentiske
+Macarkiver. Første isolerte hostrequest traff2s førCLAIM; ny samme2småling og
+faktiskCLI/hardware-preflight bestod uten vaktendring. SOURCEbackup149filer er
+fysiskF_FULLFSYNC/allemedlemmer-verifisert på separatMac. FINALbackup187filer/
+10685300arkivbytes er fysisk F_FULLFSYNC/allemedlemmer-verifisert, inkl. alle4
+logit-/score-sett, tilstandsbevis, metodeforberedelse og kilder. Arkiv-SHA
+6f590bc594b3b9dcc965fcf6f80763d75da09c52873c6bd67ffce1a41312e8d9.
+Kvittering/manifest i dette og neste policyfelt; sluttbinding/overlevering i Git.
+Ingen nyevekter bleprodusert; begge originaleCPbackuper gjenbrukes. Alle gamle
+feil/CP/backuper bevares.
 
-Neste stengte design spør om M5s målte mean-skift avhenger av backbone,
-readoutvekter eller samspillet: SELF864,SELF1080 og begge krysskombinasjoner,
-4låsteEVAL/no_grad×81=324forwards/0updates. Begge SELF må først matche lagrede
-F32outputs OG numeriske reviews eksakt. Behold alle input/TF/familier/masker/
-priors, fullstendig eksplisitt state-partisjon og mutation-/full10-vakter.
-Rapportér begge betingede blokkeffekter og2x2interaksjon på alleTF/år/vektinger;
-kryss er diagnostiske blokk-kombinasjoner, ikke nye kandidater eller grunnlag
-for patch/feature-årsak/optimizerhistorie. Latente baser kan være samtilpasset.
-Bare kildeklargjøring er autorisert etter verifisert1080backup: gjenbruk eksisterende
-EVAL/scoring/state/attribution-eiere, minste nye binding og fokuserte kontroller.
-Egen kilde/plan/host/preflight/SOURCEbackup/snapshot-først engangsadmisjon kreves;
-alle6globale treningsflagg skal være false også i eventuellfrossendiagnostikk.
-Ingen mer trening/laterVAL/Control/TEST/M1/GC/Entry/Exit/broker/ordre/promotion.
+Neste: bare metode-/designklargjøring for current1080 frosne gradienter. Gjenbruk
+native_provider_hlc_learning_v1.direction_gradient_* og kvalifiserte timing- /
+støttekvitteringer. Skill M5side/M5aktivitet/8øvrigeTFtasks og mål ALL-TENjoint
+mot M5side, ikke bareparvise summer. Lås eksakte paneler/dekning/mode/RNG/
+forward-autogradbudsjett og minne/runtime FØR ny NN. Eksisterendeprobe er lokal
+EVAL-gradient; det er ikke automatisk faktiskeTRAIN/dropout/AdamWoppdateringer.
+Behold alleinput/familier/TF/None, alle statevakter/UNKNOWN. Ingen kortprobe blir
+en generelldom. Ingen loss-/bias-/backbonepatch, nyfit eller relansering av gammel
+gradientplan er autorisert. Egenkvalifisering/plan/host/preflight/SOURCEbackup/
+snapshotførst-admisjon kreves; alle6globale flagg skalfalse ved eventuellprobe.
+Endretadoptertfunksjon kreveregenfreshINITIAL og lærings-/generaliseringstest.
 
 ## Kvalifisert datagrunnlag og funksjon
 
@@ -182,8 +184,14 @@ Policy binder eksakte SHA, originale kvitteringer og egne snapshots.
   beskrivende all5TF row-Brieridentitet; ingen ekstraNN/fit eller kausalpåstand.
 - V3_FIXED_CONTINUATION_SOURCE/FINAL_BACKUP_20261128_004.json:
  153/186fysiskverifiserte medlemmer; ekte1080 råvektbackup er utenforGit.
+- V3_FROZEN_BLOCK_ATTRIBUTION_ACTUAL_REVIEW/ASSESSMENT_20261128_001.json:
+  faktisk324fw/0updates/beggeSELFpariteter/all26/all6/all10 og allebetingedeeffekter.
+- V3_FROZEN_BLOCK_ATTRIBUTION_SOURCE/FINAL_BACKUP_20261128_001.json:
+  149/187fysiskverifiserte filer, alle4outputs/tilstand/metodeforberedelse.
+- V3_M5_SHARED_OBJECTIVE_GRADIENT_DESIGN_PREPARATION_20261128_001.json:
+  bare neste metode-/designklargjøring; ingen nyNN/gradientobservasjon innrømmet.
 - V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_DESIGN_20261128_001.json:
-  bare neste stengte kildeomfang; firelåsteEVAL-armer/324fw/0updates.
+  nå COMPLETE/consumed0; original forhåndsdeklarert4armdesign beholdes.
 
 - V3_FROZEN_FINAL864_MODE_GAP_ACTUAL_REVIEW/ASSESSMENT_20261128_001.json:
   faktisk405forwards/0updates, all6/all10, alle5TF/år/4draws og ærlige grenser.
@@ -209,5 +217,6 @@ Aktuelle roots:
 /home/andre2/GX1_RUNS/NATIVE_V3_FROZEN_FINAL864_MODE_GAP_20261128_001 er COMPLETE.
 /home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_003 er FAILED_CONSUMED.
 /home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_004 er COMPLETE.
-Foreslått frozen864/1080block-root finnes ikke; ingen CLAIM/admisjon.
+/home/andre2/GX1_RUNS/NATIVE_V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_20261128_001 er COMPLETE.
+Neste gradientdesign har ingen NN-root/CLAIM/admisjon.
 Originalkvitteringer/prosessobservasjon overstyrer prosa.
