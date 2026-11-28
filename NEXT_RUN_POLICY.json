@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T06:44:48.457276+00:00",
+  "observed_utc": "2026-11-28T06:52:51.146082+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FROZEN_BATCH_RESIDUAL_COMPLETE_EDGE_UNQUALIFIED",
+  "status": "ACTUAL_STEP_OBSERVER_SOURCE_QUALIFIED_PLAN_PENDING",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Implement only minimal same-step observer and focused unchanged-operation/F32gradient tests. No NN/update/fit admitted before new exact qualification plans.",
+  "next_action": "Commit qualifiedsource; build freshREFERENCEplan/preflight/sourcebackup before exact2technicalupdate admission, then separateCOLD1step parity. No fit.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -110671,7 +110671,7 @@
     }
   },
   "native_v3_actual_step_observer_20261128_001": {
-    "status": "DESIGNED_SOURCE_PREPARATION_ONLY_CLOSED",
+    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_DESIGN_20261128_001.json",
       "sha256": "faf07246d9fd7fdf92811a10668dc0431772efe90f086b2f967ecd2db23a3297"
@@ -110681,6 +110681,28 @@
     "training_authorized": false,
     "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "next_action": "Implement only minimal same-step observer and focused unchanged-operation/F32gradient tests. No NN/update/fit admitted before new exact qualification plans."
+    "next_action": "Implement only minimal same-step observer and focused unchanged-operation/F32gradient tests. No NN/update/fit admitted before new exact qualification plans.",
+    "protocol": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_QUALIFICATION_PROTOCOL_20261128_001.json",
+      "sha256": "c225d94342af1bf4b787373f1f3cdc5a5a4a08a09464e5c53ed06571492aae40"
+    },
+    "producer_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_FIT.json",
+      "sha256": "25ca4cc9d780f5d16376a765ec58f6d84c58a1f16f55d48033d11168fda2d4a8"
+    },
+    "authentic_final_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_fit/FINAL.json",
+      "sha256": "1b67d9e51e211480c168b0eae05e5c1677e804e4e4d58e7b9bb1fb619271884d"
+    },
+    "authentic_final_checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_fit/FINAL.pt",
+      "sha256": "577b5b37f5c4cfa98744cfeefb06e8156231488a7adc038f33cdfd685df86632"
+    },
+    "active_lane": null,
+    "lane_gates": {},
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ACTUAL_STEP_OBSERVER_SOURCE_QUALIFICATION_20261128_002.json",
+      "sha256": "33c15e30c9ac5b701a9e0e0eb9d0156ba1e40cbea128a5c3f98ceb094e74dcbb"
+    }
   }
 }

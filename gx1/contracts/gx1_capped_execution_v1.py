@@ -3654,6 +3654,7 @@ _V3_TRAIN_EVAL_GAP_SHELL_ADDITIONS = (('NATIVE_V3_ISSUE_MIX=false\n', 'before', 
 
 
 def _native_v3_train_eval_gap_without_additions(current):
+    current=_native_v3_actual_step_observer_without_additions(current)
     require=_native_v3_development_require;names=('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')
     current=dict(current);begin='# BEGIN GX1 V3 TRAIN EVAL GAP GUARDS 20261128 001\n';end='# END GX1 V3 TRAIN EVAL GAP GUARDS 20261128 001\n\n'
     text=current[names[0]];require(text.count(begin)==text.count(end)==1,'ONE_TRAIN_EVAL_GAP_BLOCK')
@@ -3807,6 +3808,269 @@ def require_native_v3_train_eval_gap_execution(*,plan_sha256):
         'training_authority_granted':False,'optimizer_authority_granted':False}
 
 # END GX1 V3 TRAIN EVAL GAP GUARDS 20261128 001
+
+# BEGIN GX1 V3 ACTUAL STEP OBSERVER GUARDS 20261128 001
+_V3_ACTUAL_STEP_OBSERVER_PARENT = '25cab1bf29f241275b2624110d736e85fcd3bc0e'
+_V3_ACTUAL_STEP_OBSERVER_NAME = 'NATIVE_V3_ACTUAL_STEP_OBSERVER_QUALIFICATION_20261128_001'
+_V3_ACTUAL_STEP_OBSERVER_STAGE = 'native_v3_actual_step_observer_20261128_001'
+_V3_ACTUAL_STEP_OBSERVER_PROFILE = 'gx1_native_actual_step_observer_qualification_trainer20g_v1'
+_V3_ACTUAL_STEP_OBSERVER_SHELL_ADDITIONS = (('NATIVE_V3_TRAIN_EVAL_GAP=false\n', 'before', 'NATIVE_V3_ACTUAL_STEP_OBSERVER=false\nNATIVE_V3_ACTUAL_STEP_OBSERVER_PLAN_SHA256=\nNATIVE_V3_ACTUAL_STEP_OBSERVER_LANE=\n'), ('# BEGIN GX1 V3 TRAIN EVAL GAP ROUTE 20261128 001\n', 'before', '# BEGIN GX1 V3 ACTUAL STEP OBSERVER ROUTE 20261128 001\nmatches_bound_native_v3_actual_step_observer() {\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" \\\n    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == gx1.audit.native_future_state_step_observer_qualify_v1 \\\n    && "$4" == --v3-actual-step-observer-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  local lane expected_plan matches=0 matched_lane=\n  for lane in reference cold; do\n    expected_plan="$REPO_ROOT/configs/research/NATIVE_V3_ACTUAL_STEP_OBSERVER_QUALIFICATION_20261128_001_${lane^^}.json"\n    if [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n      && "$(readlink -f "$expected_plan")" == "$expected_plan" \\\n      && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]; then\n      matches=$((matches+1)); matched_lane="$lane"\n    fi\n  done\n  [[ "$matches" == 1 ]] || return 1\n  NATIVE_V3_ACTUAL_STEP_OBSERVER_LANE="$matched_lane"\n}\nconfigure_native_v3_actual_step_observer() {\n  matches_bound_native_v3_actual_step_observer "$@" || { echo \'FATAL: exact V3 actual-step observer qualification CLI/plan required\' >&2; exit 75; }\n  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G && "$SWAP" == 512M \\\n    && "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo \'FATAL: V3 actual-step observer qualification requires canonical trainer containment\' >&2; exit 75;\n  }\n  local output="/home/andre2/GX1_RUNS/NATIVE_V3_ACTUAL_STEP_OBSERVER_QUALIFICATION_20261128_001_$NATIVE_V3_ACTUAL_STEP_OBSERVER_LANE"\n  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \\\n    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {\n    echo \'FATAL: V3 actual-step observer qualification output must be fresh and canonical\' >&2; exit 75;\n  }\n  NATIVE_V3_ACTUAL_STEP_OBSERVER=true\n  NATIVE_V3_ACTUAL_STEP_OBSERVER_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$output"\n  TRAINER_MAX_WALL_SECONDS=1800\n  TRAINER_MODEL_MAX_WALL_SECONDS=1770\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 V3 ACTUAL STEP OBSERVER ROUTE 20261128 001\n\n'), ('# BEGIN GX1 V3 TRAIN EVAL GAP DISPATCH 20261128 001\n', 'before', '# BEGIN GX1 V3 ACTUAL STEP OBSERVER DISPATCH 20261128 001\n  local actual_step_observer_arg\n  for actual_step_observer_arg in "$@"; do\n    case "$actual_step_observer_arg" in\n      --v3-actual-step-observer-plan-sha256|--v3-actual-step-observer-plan-sha256=*) configure_native_v3_actual_step_observer "$@"; return ;;\n    esac\n  done\n# END GX1 V3 ACTUAL STEP OBSERVER DISPATCH 20261128 001\n'), ('  --setenv=GX1_NATIVE_V3_TRAIN_EVAL_GAP="$NATIVE_V3_TRAIN_EVAL_GAP" \\\n', 'before', '  --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER="$NATIVE_V3_ACTUAL_STEP_OBSERVER" \\\n  --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_PLAN_SHA256="$NATIVE_V3_ACTUAL_STEP_OBSERVER_PLAN_SHA256" \\\n  --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_LANE="$NATIVE_V3_ACTUAL_STEP_OBSERVER_LANE" \\\n'))
+_V3_ACTUAL_STEP_OBSERVER_CORE = 'gx1/audit/qualify_native_m5_full_gc_direction_v1.py'
+_V3_ACTUAL_STEP_OBSERVER_CORE_SHA256 = 'c80fe2bec2febfa8e990adfc5f7f57213a42b1f58fb3a6de4c7fda5a7ada713d'
+_V3_ACTUAL_STEP_OBSERVER_CORE_SIGNATURE = ('def future_cuda_step(model,optimizer,packet,plan,counts,index):\n',
+    'def future_cuda_step(model,optimizer,packet,plan,counts,index,*,observer=None):\n')
+_V3_ACTUAL_STEP_OBSERVER_CORE_ADDITIONS = (
+    ("    need(not loss['skip_update']and bool(torch.isfinite(loss['loss'])),'FUTURE_CUDA_TRAIN_SUPPORT')\n",
+     'FORWARD_LOSS', "    if observer is not None:observer('forward_loss',model=model,optimizer=optimizer,output=output,truth=packet['truth'],loss=loss,plan=plan,index=index)\n"),
+    ("    loss['loss'].backward();counts['backward_calls']+=1\n",
+     'BACKWARD', "    if observer is not None:observer('backward',model=model,optimizer=optimizer,index=index)\n"),
+    ("    clipped=torch.nn.utils.clip_grad_norm_(gradients,plan['recipe']['gradient_clip_norm'],error_if_nonfinite=True)\n",
+     'CLIP', "    if observer is not None:observer('clip',model=model,optimizer=optimizer,global_norm=clipped,index=index)\n"),
+    ("    optimizer.step();counts['optimizer_steps']+=1\n",
+     'STEP', "    if observer is not None:observer('step',model=model,optimizer=optimizer,index=index)\n"))
+
+
+def _native_v3_actual_step_observer_core_projection(current):
+    require = _native_v3_development_require
+    old_signature, new_signature = _V3_ACTUAL_STEP_OBSERVER_CORE_SIGNATURE
+    require(type(current) is str and current.count(new_signature) == 1
+            and current.count(old_signature) == 0, 'ACTUAL_STEP_OBSERVER_EXACT_OPTIONAL_SIGNATURE')
+    projected = current.replace(new_signature, old_signature, 1)
+    for anchor, label, call in _V3_ACTUAL_STEP_OBSERVER_CORE_ADDITIONS:
+        fragment = '    # BEGIN GX1 V3 ACTUAL STEP OBSERVER ' + label + ' 20261128\n' + call + \
+            '    # END GX1 V3 ACTUAL STEP OBSERVER ' + label + ' 20261128\n'
+        require(projected.count(fragment) == 1 and projected.count(anchor + fragment) == 1,
+                'ACTUAL_STEP_OBSERVER_EXACT_ADDITIVE_PHASE_' + label)
+        projected = projected.replace(anchor + fragment, anchor, 1)
+    return projected
+
+
+def _native_v3_actual_step_observer_without_additions(current):
+    require = _native_v3_development_require; current = dict(current)
+    name = 'gx1/contracts/gx1_capped_execution_v1.py'
+    begin = '# BEGIN GX1 V3 ACTUAL STEP OBSERVER GUARDS 20261128 001\n'
+    end = '# END GX1 V3 ACTUAL STEP OBSERVER GUARDS 20261128 001\n\n'
+    text = current[name]
+    require(text.count(begin) == text.count(end) == 1, 'ONE_ACTUAL_STEP_OBSERVER_GUARD_BLOCK')
+    first, tail = text.split(begin); _, last = tail.split(end); text = first + last
+    hook = '    current=_native_v3_actual_step_observer_without_additions(current)\n'
+    require(text.count(hook) == 1, 'ONE_ACTUAL_STEP_OBSERVER_GUARD_BRIDGE_HOOK')
+    current[name] = text.replace(hook, '', 1)
+    shell = current['scripts/gx1_capped_run.sh']
+    for anchor, position, fragment in _V3_ACTUAL_STEP_OBSERVER_SHELL_ADDITIONS:
+        require(position == 'before' and shell.count(anchor) == shell.count(fragment)
+                == shell.count(fragment + anchor) == 1, 'EXACT_ACTUAL_STEP_OBSERVER_SHELL_ADDITION')
+        shell = shell.replace(fragment + anchor, anchor, 1)
+    current['scripts/gx1_capped_run.sh'] = shell
+    return current
+
+
+def native_v3_actual_step_observer_source_bridge(producer_hashes, *, producer_commit=_V3_ACTUAL_STEP_OBSERVER_PARENT):
+    """Prove exactly four additive observations and the observer-off core projection."""
+    import ast, hashlib, subprocess
+    require = _native_v3_development_require; repo = Path(__file__).resolve().parents[2]
+    require(producer_commit == _V3_ACTUAL_STEP_OBSERVER_PARENT, 'ACTUAL_STEP_OBSERVER_BRIDGE_PARENT')
+    name = _V3_ACTUAL_STEP_OBSERVER_CORE
+    original = subprocess.check_output(['git', 'show', producer_commit + ':' + name], cwd=repo)
+    digest = hashlib.sha256(original).hexdigest()
+    require(digest == _V3_ACTUAL_STEP_OBSERVER_CORE_SHA256 and producer_hashes == {name: digest},
+            'ACTUAL_STEP_OBSERVER_AUTHENTIC_CORE_HASH')
+    path = repo / name
+    require(path.is_file() and not path.is_symlink() and path.resolve() == path, 'ACTUAL_STEP_OBSERVER_CANONICAL_CORE')
+    current = path.read_bytes(); projected = _native_v3_actual_step_observer_core_projection(current.decode())
+    require(projected.encode() == original, 'ACTUAL_STEP_OBSERVER_UNCHANGED_CORE_BYTES')
+    require(ast.dump(ast.parse(projected), include_attributes=False) == ast.dump(ast.parse(original), include_attributes=False),
+            'ACTUAL_STEP_OBSERVER_UNCHANGED_CORE_AST')
+    return {'producer_commit': producer_commit, 'owner': name, 'original_sha256': digest,
+            'current_sha256': hashlib.sha256(current).hexdigest(), 'additive_observer_phases': 4,
+            'observer_off_projection_byte_exact': True, 'observer_off_projection_AST_exact': True,
+            'old_numeric_step_unchanged': True, 'new_observer_requires_separate_qualification': True,
+            'training_authority_granted': False, 'execution_authority_granted': False}
+
+
+def native_v3_actual_step_observer_guard_source_bridge(producer_hashes, *, producer_commit=_V3_ACTUAL_STEP_OBSERVER_PARENT):
+    import hashlib, subprocess
+    require = _native_v3_development_require; repo = Path(__file__).resolve().parents[2]
+    require(producer_commit == _V3_ACTUAL_STEP_OBSERVER_PARENT, 'ACTUAL_STEP_OBSERVER_GUARD_PARENT')
+    names = ('gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh')
+    before = {n: subprocess.check_output(['git', 'show', producer_commit + ':' + n], cwd=repo).decode() for n in names}
+    original = {n: hashlib.sha256(v.encode()).hexdigest() for n, v in before.items()}
+    require(producer_hashes == original, 'ACTUAL_STEP_OBSERVER_GUARD_PRODUCER_HASHES')
+    current = {n: (repo / n).read_text() for n in names}
+    require(_native_v3_actual_step_observer_without_additions(current) == before, 'ACTUAL_STEP_OBSERVER_UNCHANGED_PREDECESSOR_GUARDS')
+    return {'producer_commit': producer_commit, 'checked_guard_owners': 2, 'old_guard_routes_preserved': True,
+            'old_numeric_resource_environment_function_unchanged': True, 'new_observer_controlflow_requires_scoped_review': True,
+            'owners': {n: {'original_sha256': original[n], 'current_sha256': hashlib.sha256(current[n].encode()).hexdigest()} for n in names}}
+
+
+def _native_v3_actual_step_observer_bound_plan(plan_sha256):
+    import hashlib, subprocess
+    require = _native_v3_development_require; repo = Path(__file__).resolve().parents[2]
+    require(type(plan_sha256) is str and re.fullmatch('[0-9a-f]{64}', plan_sha256) is not None, 'ACTUAL_STEP_OBSERVER_PLAN_SHA')
+    args = ['--v3-actual-step-observer-plan-sha256', plan_sha256]; preflight = sys.argv[-1:] == ['--preflight']
+    if preflight: args += ['--preflight']
+    require(Path.cwd().resolve() == repo and Path(sys.argv[0]).resolve() == repo / 'gx1/audit/native_future_state_step_observer_qualify_v1.py'
+            and Path(sys.executable).absolute() == repo / '.venv/bin/python' and sys.argv[1:] == args, 'ACTUAL_STEP_OBSERVER_EXACT_ARGV')
+    candidates = [(lane, repo / 'configs/research' / (_V3_ACTUAL_STEP_OBSERVER_NAME + '_' + lane.upper() + '.json'))
+                  for lane in ('reference', 'cold')]
+    matches = [(lane, path) for lane, path in candidates if path.is_file() and not path.is_symlink()
+               and path.resolve() == path and hashlib.sha256(path.read_bytes()).hexdigest() == plan_sha256]
+    require(len(matches) == 1, 'ACTUAL_STEP_OBSERVER_ONE_CANONICAL_ROLE_PLAN')
+    lane, path = matches[0]; plan = _native_v3_development_read(path, plan_sha256)
+    output = Path('/home/andre2/GX1_RUNS') / (_V3_ACTUAL_STEP_OBSERVER_NAME + '_' + lane)
+    require(plan.get('schema_version') == 'gx1_native_v3_actual_step_observer_qualification_plan_v1'
+            and plan.get('stage') == _V3_ACTUAL_STEP_OBSERVER_STAGE and plan.get('lane') == lane
+            and plan.get('output_root') == str(output), 'ACTUAL_STEP_OBSERVER_PLAN_IDENTITY')
+    require(not output.exists() and not output.is_symlink() and output.parent.is_dir()
+            and not output.parent.is_symlink() and output.parent.resolve() == output.parent, 'ACTUAL_STEP_OBSERVER_FRESH_OUTPUT')
+    require(plan.get('source_commit') == subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(),
+            'ACTUAL_STEP_OBSERVER_SOURCE_COMMIT')
+    require(plan.get('execution') == _native_v3_development_execution('warm')
+            and plan.get('execution_profile') == _V3_ACTUAL_STEP_OBSERVER_PROFILE, 'ACTUAL_STEP_OBSERVER_EXACT_EXECUTION')
+    evidence = Path('/home/andre2/GX1_RUNS') / 'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'
+    design_ref = {'path': str(evidence / 'V3_ACTUAL_STEP_OBSERVER_DESIGN_20261128_001.json'),
+                  'sha256': 'faf07246d9fd7fdf92811a10668dc0431772efe90f086b2f967ecd2db23a3297'}
+    producer_ref = {'path': str(repo / 'configs/research' / (_V3_ISSUE_MIX_NAME + '_FIT.json')),
+                    'sha256': '25ca4cc9d780f5d16376a765ec58f6d84c58a1f16f55d48033d11168fda2d4a8'}
+    final_root = Path('/home/andre2/GX1_RUNS') / (_V3_ISSUE_MIX_NAME + '_fit')
+    receipt_ref = {'path': str(final_root / 'FINAL.json'), 'sha256': '1b67d9e51e211480c168b0eae05e5c1677e804e4e4d58e7b9bb1fb619271884d'}
+    checkpoint_ref = {'path': str(final_root / 'FINAL.pt'), 'sha256': '577b5b37f5c4cfa98744cfeefb06e8156231488a7adc038f33cdfd685df86632'}
+    require(plan.get('design') == design_ref and plan.get('producer_plan') == producer_ref
+            and plan.get('authentic_final_receipt') == receipt_ref
+            and plan.get('authentic_final_checkpoint') == checkpoint_ref, 'ACTUAL_STEP_OBSERVER_AUTHENTIC_FINAL_REFS')
+    _native_v3_development_read(design_ref['path'], design_ref['sha256'])
+    producer = _native_v3_development_read(producer_ref['path'], producer_ref['sha256'])
+    receipt = _native_v3_development_read(receipt_ref['path'], receipt_ref['sha256'])
+    require(type(receipt.get('logical_cursor')) is int and type(receipt.get('optimizer_updates')) is int
+            and receipt['logical_cursor'] == receipt['optimizer_updates'] == 432 and receipt.get('producer_lane') == 'fit'
+            and receipt.get('original_plan') == receipt.get('execution_plan') == producer_ref and receipt.get('checkpoint') == checkpoint_ref
+            and plan.get('metadata', {}).get('producer') == producer
+            and plan.get('metadata', {}).get('original') == producer.get('metadata', {}).get('original')
+            and plan.get('model_contract') == producer.get('model_contract') and plan.get('recipe') == producer.get('recipe'),
+            'ACTUAL_STEP_OBSERVER_FINAL432_IDENTITY')
+    require(type(plan.get('starting_cursor')) is int and type(plan.get('ending_cursor')) is int
+            and plan['starting_cursor'] == (432 if lane == 'reference' else 433) and plan['ending_cursor'] == 434
+            and plan.get('checkpoint_cursors') == ([433, 434] if lane == 'reference' else [434])
+            and all(type(v) is int for v in plan['checkpoint_cursors'])
+            and plan.get('observer_enabled') is (lane == 'cold')
+            and plan.get('technical_weights_never_initializer') is True, 'ACTUAL_STEP_OBSERVER_BOUNDED_TECHNICAL_ROLE')
+    count = 2 if lane == 'reference' else 1
+    limits = dict.fromkeys(producer['limits'], 0)
+    limits.update(model_constructions=1, optimizer_constructions=1, feature_cache_payload_loads=1,
+        target_archive_loads=1, checkpoint_loads=1, model_restores=1, model_forwards=count,
+        backbone_forwards=count, readout_forwards=count, backward_calls=count, optimizer_steps=count,
+        checkpoint_writes=count, checkpoint_readbacks=count, checkpoint_prepublication_loads=count,
+        checkpoint_receipt_writes=count, observer_records=0 if lane == 'reference' else 1)
+    require(type(plan.get('limits')) is dict and all(type(v) is int for v in plan['limits'].values())
+            and plan['limits'] == limits, 'ACTUAL_STEP_OBSERVER_EXACT_TECHNICAL_BUDGET')
+    owners = plan.get('source_owners')
+    require(type(owners) is dict and set(producer['source_owners']) <= set(owners)
+            and {'gx1/audit/native_future_state_step_observer_qualify_v1.py', 'gx1/audit/native_future_state_step_observer_v1.py'} <= set(owners),
+            'ACTUAL_STEP_OBSERVER_SOURCE_INVENTORY')
+    for owner, digest in owners.items():
+        p = repo / owner
+        require(type(owner) is str and not Path(owner).is_absolute() and '..' not in Path(owner).parts
+                and p.is_file() and not p.is_symlink() and p.resolve() == p
+                and hashlib.sha256(p.read_bytes()).hexdigest() == digest, 'ACTUAL_STEP_OBSERVER_SOURCE_SHA')
+    core_bridge = plan.get('core_source_bridge')
+    require(core_bridge == native_v3_actual_step_observer_source_bridge(
+        {_V3_ACTUAL_STEP_OBSERVER_CORE: producer['source_owners'][_V3_ACTUAL_STEP_OBSERVER_CORE]}), 'ACTUAL_STEP_OBSERVER_CORE_SOURCE_BRIDGE')
+    bridge = plan.get('guard_source_bridge', {}); old = {n: v['original_sha256'] for n, v in bridge.get('owners', {}).items()}
+    require(bridge == native_v3_actual_step_observer_guard_source_bridge(old, producer_commit=bridge.get('producer_commit')),
+            'ACTUAL_STEP_OBSERVER_GUARD_SOURCE_BRIDGE')
+    parents = plan.get('parents', {}); expected_roles = () if lane == 'reference' else ('reference',)
+    require(type(parents) is dict and set(parents) == set(expected_roles), 'ACTUAL_STEP_OBSERVER_EXACT_PARENT_ROLES')
+    for role, parent in parents.items():
+        previous_ref = parent.get('plan', {})
+        require(type(previous_ref) is dict and set(previous_ref) == {'path', 'sha256'}
+                and previous_ref['path'] == str(repo / 'configs/research' / (_V3_ACTUAL_STEP_OBSERVER_NAME + '_REFERENCE.json')),
+                'ACTUAL_STEP_OBSERVER_REFERENCE_PARENT_PLAN')
+        previous = _native_v3_development_read(previous_ref['path'], previous_ref['sha256'])
+        require(previous.get('lane') == 'reference' and previous.get('source_commit') == plan['source_commit']
+                and previous.get('source_owners') == owners and previous.get('protocol') == plan.get('protocol')
+                and previous.get('metadata', {}).get('trajectory') == plan.get('metadata', {}).get('trajectory'),
+                'ACTUAL_STEP_OBSERVER_SAME_FROZEN_QUALIFICATION_GENERATION')
+    policy_path = repo / 'NEXT_RUN_POLICY.json'; policy = _native_v3_development_read(policy_path)
+    flags = ('training_enabled', 'native_training_enabled', 'native_launch_authorized',
+             'full_epoch_training_allowed', 'full_val_allowed', 'exit_training_and_evaluation_this_wave')
+    require(all(policy.get(k) is (not preflight and k in flags[:2]) for k in flags), 'ACTUAL_STEP_OBSERVER_EXACT_FLAGS')
+    for scope in ('native_v3_bounded_development_test_20261127_001', 'native_v3_fit004_exact_recovery_20261128_001',
+                  'native_v3_fit004_exact_recovery_20261128_002', _V3_BLOCK_ORDER_RECOVERY_NAME.lower(), _V3_ISSUE_MIX_NAME.lower()):
+        prior = policy.get(scope, {}); gates = prior.get('lane_gates', prior.get('phase_gates', {}))
+        require(prior.get('execution_authorized') is False and prior.get('active_phase') in (None, '')
+                and prior.get('active_lane') in (None, '') and type(gates) is dict
+                and all(type(v) is dict and v.get('execution_authorized') is False
+                    and type(v.get('remaining_invocations')) is int and v['remaining_invocations'] == 0
+                    and all(v.get(k) is False for k in ('training_authorized', 'test_authorized', 'relaunch_allowed'))
+                    for v in gates.values()), 'ACTUAL_STEP_OBSERVER_CONSUMED_ROUTES_CLOSED')
+    old_scopes = [policy.get(k, {}) for k in (_V3_DIRECTION_GRADIENT_NAME.lower(), _V3_DIRECTION_BLOCK_ORDER_NAME.lower(),
+        _V3_TRAIN_EVAL_GAP_NAME.lower(), 'native_v3_frozen_batch_residual_audit_20261128_001', 'native_v3_frozen_batch_residual_audit_20261128_002')]
+    old_scopes.append(policy.get(_V3_TRAIN_EVAL_GAP_NAME.lower(), {}).get('aggregation_completion', {}))
+    require(all(v.get('execution_authorized') is False and type(v.get('remaining_invocations')) is int
+                and v['remaining_invocations'] == 0 and v.get('training_authorized') is False
+                and v.get('relaunch_allowed') is False for v in old_scopes), 'ACTUAL_STEP_OBSERVER_CONSUMED_FLAT_ROUTES_CLOSED')
+    parent = policy.get(_V3_ACTUAL_STEP_OBSERVER_STAGE, {})
+    protocol_ref = {'path': str(evidence / 'V3_ACTUAL_STEP_OBSERVER_QUALIFICATION_PROTOCOL_20261128_001.json'),
+                    'sha256': 'c225d94342af1bf4b787373f1f3cdc5a5a4a08a09464e5c53ed06571492aae40'}
+    require(parent.get('source_preparation_authorized') is True and parent.get('design') == design_ref
+            and plan.get('protocol') == protocol_ref and parent.get('protocol') == protocol_ref
+            and parent.get('producer_plan') == producer_ref and parent.get('authentic_final_receipt') == receipt_ref
+            and parent.get('authentic_final_checkpoint') == checkpoint_ref, 'ACTUAL_STEP_OBSERVER_POLICY_SCOPE_PROTOCOL')
+    protocol = _native_v3_development_read(protocol_ref['path'], protocol_ref['sha256'])
+    require(protocol.get('schema_version') == 'gx1_v3_actual_step_observer_qualification_protocol_v1',
+            'ACTUAL_STEP_OBSERVER_PROTOCOL_SCHEMA')
+    lanes = parent.get('lane_gates', {})
+    require(type(lanes) is dict and set(lanes) <= {'reference', 'cold'}
+            and all(type(v) is dict and type(v.get('remaining_invocations')) is int
+                and all(type(v.get(k)) is bool for k in ('execution_authorized', 'relaunch_allowed', 'training_authorized', 'test_authorized'))
+                for v in lanes.values()), 'ACTUAL_STEP_OBSERVER_TYPED_LANES')
+    closed = lambda v: v['execution_authorized'] is False and v['remaining_invocations'] == 0 and all(
+        v[k] is False for k in ('training_authorized', 'test_authorized', 'relaunch_allowed'))
+    status = 'PREPARED_CLOSED_NOT_ADMITTED' if preflight else 'ADMITTED_EXACT_V3_ACTUAL_STEP_OBSERVER_' + lane.upper()
+    gate = {'status': status, 'plan': {'path': str(path), 'sha256': plan_sha256}, 'execution_authorized': not preflight,
+            'remaining_invocations': int(not preflight), 'relaunch_allowed': False,
+            'training_authorized': not preflight, 'test_authorized': False}
+    require(lanes.get(lane) == gate and all(closed(v) for k, v in lanes.items() if k != lane)
+            and all(lanes.get(role, {}).get('plan') == parents[role]['plan'] for role in expected_roles),
+            'ACTUAL_STEP_OBSERVER_ONE_USE_ROLE_GATE')
+    if preflight:
+        require(parent.get('execution_authorized') is False and parent.get('active_lane') in (None, '')
+                and all(closed(v) for v in lanes.values()), 'ACTUAL_STEP_OBSERVER_PREFLIGHT_CLOSED')
+    else:
+        require(parent.get('status') == status and parent.get('execution_authorized') is True
+                and parent.get('active_lane') == lane, 'ACTUAL_STEP_OBSERVER_ONLY_ACTIVE_ROLE')
+        snapshot = evidence / ('V3_ACTUAL_STEP_OBSERVER_' + lane.upper() + '_ADMITTED_POLICY_20261128_001.json')
+        require(_native_v3_development_read(snapshot, hashlib.sha256(policy_path.read_bytes()).hexdigest()) == policy,
+                'ACTUAL_STEP_OBSERVER_EXACT_ROLE_POLICY_SNAPSHOT')
+    return {'plan': {'path': str(path), 'sha256': plan_sha256}, 'output_root': str(output),
+            'preflight': preflight, 'execution': plan['execution'], 'lane': lane}
+
+
+def _native_v3_actual_step_observer_environment(plan_sha256, lane):
+    require = _native_v3_development_require; prefix = 'GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER'
+    execution = _native_v3_development_execution('warm')
+    expected = {prefix: 'true', prefix + '_PLAN_SHA256': plan_sha256, prefix + '_LANE': lane,
+                'GX1_POWER_BENCHMARK_SCOPE_JSON': '', 'GX1_POWER_BENCHMARK_SCOPE_SHA256': ''}
+    require(all(not k.startswith(prefix) or k in expected for k in os.environ), 'UNKNOWN_ACTUAL_STEP_OBSERVER_ENV')
+    require(all(v in ('false', '') for k, v in os.environ.items() if k.startswith('GX1_NATIVE_') and not k.startswith(prefix)),
+            'ACTUAL_STEP_OBSERVER_MIXED_LEGACY_ENV')
+    fields = {'MAX_WALL_SECONDS': execution['outer_seconds'], 'MODEL_MAX_WALL_SECONDS': execution['internal_seconds'],
+        'ATTENDED_STAGE_REQUIRED': 'false', 'GPU_INDEX': 0, 'GPU_MAX_POWER_LIMIT_W': 250, 'GPU_MAX_POWER_DRAW_W': 250,
+        'GPU_MAX_CORE_TEMP_C': 75, 'GPU_MAX_MEMORY_TEMP_C': 80, 'GPU_MAX_MEMORY_USED_MIB': 12288,
+        'GPU_MONITOR_INTERVAL_SECONDS': 1, 'CPU_MAX_TEMP_C': 80, 'CPU_MAX_PACKAGE_POWER_W': 125,
+        'HOST_MIN_AVAILABLE_MEMORY_BYTES': 8589934592, 'HOST_MIN_COMMIT_HEADROOM_BYTES': 8589934592}
+    expected.update({'GX1_TRAINER_' + k: str(v) for k, v in fields.items()})
+    require(all(os.environ.get(k) == v for k, v in expected.items()), 'ACTUAL_STEP_OBSERVER_EXACT_RESOURCE_ENV')
+    return require_guarded_cuda_trainer_execution()
+
+
+def require_native_v3_actual_step_observer_execution(*, plan_sha256):
+    bound = _native_v3_actual_step_observer_bound_plan(plan_sha256)
+    proof = _native_v3_actual_step_observer_environment(plan_sha256, bound['lane'])
+    return {**proof, **bound, 'kind': 'provider_hlc_v3_actual_step_observer_qualification', 'resource_proof_only': True,
+            'training_authority_granted': False, 'optimizer_authority_granted': False}
+
+# END GX1 V3 ACTUAL STEP OBSERVER GUARDS 20261128 001
 
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")

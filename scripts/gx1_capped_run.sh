@@ -148,6 +148,9 @@ NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE=
 # END GX1 PROVIDER HLC ALL TF ROUTES 20261124 001 STATE
 # BEGIN GX1 PROVIDER HLC INITIAL ROUTE 20261123 001 STATE
 NATIVE_PROVIDER_HLC_INITIAL_MODULE=gx1.audit.native_future_state_provider_hlc_initial_v1
+NATIVE_V3_ACTUAL_STEP_OBSERVER=false
+NATIVE_V3_ACTUAL_STEP_OBSERVER_PLAN_SHA256=
+NATIVE_V3_ACTUAL_STEP_OBSERVER_LANE=
 NATIVE_V3_TRAIN_EVAL_GAP=false
 NATIVE_V3_TRAIN_EVAL_GAP_PLAN_SHA256=
 NATIVE_V3_ISSUE_MIX=false
@@ -1370,6 +1373,61 @@ configure_native_provider_hlc_learning_resume() {
 }
 # END GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 MATCHERS
 
+# BEGIN GX1 V3 ACTUAL STEP OBSERVER ROUTE 20261128 001
+matches_bound_native_v3_actual_step_observer() {
+  if [[ $# -eq 6 ]]; then
+    [[ "$6" == --preflight ]] || return 1
+    set -- "${@:1:5}"
+  fi
+  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" \
+    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == gx1.audit.native_future_state_step_observer_qualify_v1 \
+    && "$4" == --v3-actual-step-observer-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1
+  local lane expected_plan matches=0 matched_lane=
+  for lane in reference cold; do
+    expected_plan="$REPO_ROOT/configs/research/NATIVE_V3_ACTUAL_STEP_OBSERVER_QUALIFICATION_20261128_001_${lane^^}.json"
+    if [[ -f "$expected_plan" && ! -L "$expected_plan" \
+      && "$(readlink -f "$expected_plan")" == "$expected_plan" \
+      && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]; then
+      matches=$((matches+1)); matched_lane="$lane"
+    fi
+  done
+  [[ "$matches" == 1 ]] || return 1
+  NATIVE_V3_ACTUAL_STEP_OBSERVER_LANE="$matched_lane"
+}
+configure_native_v3_actual_step_observer() {
+  matches_bound_native_v3_actual_step_observer "$@" || { echo 'FATAL: exact V3 actual-step observer qualification CLI/plan required' >&2; exit 75; }
+  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G && "$SWAP" == 512M \
+    && "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \
+    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {
+    echo 'FATAL: V3 actual-step observer qualification requires canonical trainer containment' >&2; exit 75;
+  }
+  local output="/home/andre2/GX1_RUNS/NATIVE_V3_ACTUAL_STEP_OBSERVER_QUALIFICATION_20261128_001_$NATIVE_V3_ACTUAL_STEP_OBSERVER_LANE"
+  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \
+    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {
+    echo 'FATAL: V3 actual-step observer qualification output must be fresh and canonical' >&2; exit 75;
+  }
+  NATIVE_V3_ACTUAL_STEP_OBSERVER=true
+  NATIVE_V3_ACTUAL_STEP_OBSERVER_PLAN_SHA256="$5"
+  TRAINER_DEVICE=cuda
+  TRAINER_EXECUTION_MODE=canonical
+  TRAINER_OUT_BUNDLE_DIR="$output"
+  TRAINER_MAX_WALL_SECONDS=1800
+  TRAINER_MODEL_MAX_WALL_SECONDS=1770
+  TRAINER_GPU_INDEX=0
+  TRAINER_GPU_MAX_POWER_LIMIT_W=250
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_MEMORY_TEMP_C=80
+  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+  TRAINER_CPU_MAX_TEMP_C=80
+  TRAINER_CPU_MAX_PACKAGE_POWER_W=125
+  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592
+  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592
+}
+# END GX1 V3 ACTUAL STEP OBSERVER ROUTE 20261128 001
+
 # BEGIN GX1 V3 TRAIN EVAL GAP ROUTE 20261128 001
 matches_bound_native_v3_train_eval_gap() {
   if [[ $# -eq 6 ]]; then
@@ -2485,6 +2543,14 @@ validate_target_command() {
     return
   fi
 # END GX1 PROVIDER HLC ENDPOINT CROSS ROUTE 20261124 001 DISPATCH
+# BEGIN GX1 V3 ACTUAL STEP OBSERVER DISPATCH 20261128 001
+  local actual_step_observer_arg
+  for actual_step_observer_arg in "$@"; do
+    case "$actual_step_observer_arg" in
+      --v3-actual-step-observer-plan-sha256|--v3-actual-step-observer-plan-sha256=*) configure_native_v3_actual_step_observer "$@"; return ;;
+    esac
+  done
+# END GX1 V3 ACTUAL STEP OBSERVER DISPATCH 20261128 001
 # BEGIN GX1 V3 TRAIN EVAL GAP DISPATCH 20261128 001
   local train_eval_gap_arg
   for train_eval_gap_arg in "$@"; do
@@ -4504,6 +4570,9 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_NATIVE_PROVIDER_HLC_GRADIENT_PROFILE_PLAN_SHA256="$NATIVE_PROVIDER_HLC_GRADIENT_PROFILE_PLAN_SHA256" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS="$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256="$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER="$NATIVE_V3_ACTUAL_STEP_OBSERVER" \
+  --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_PLAN_SHA256="$NATIVE_V3_ACTUAL_STEP_OBSERVER_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_LANE="$NATIVE_V3_ACTUAL_STEP_OBSERVER_LANE" \
   --setenv=GX1_NATIVE_V3_TRAIN_EVAL_GAP="$NATIVE_V3_TRAIN_EVAL_GAP" \
   --setenv=GX1_NATIVE_V3_TRAIN_EVAL_GAP_PLAN_SHA256="$NATIVE_V3_TRAIN_EVAL_GAP_PLAN_SHA256" \
   --setenv=GX1_NATIVE_V3_ISSUE_MIX="$NATIVE_V3_ISSUE_MIX" \

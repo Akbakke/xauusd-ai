@@ -15,28 +15,38 @@
 
 ## Gjeldende status og neste steg
 
-NEXT_RUN_POLICY.json er eneste arbeidsstatus. Siste fullførte felt er
-native_v3_frozen_batch_residual_audit_20261128_002: faktisk COMPLETE, exit0,
-stengt/forbrukt med remaining=0 og relaunch=false. Forløper001 er faktisk
-FAILED_CONSUMED og stengt0; aldri relanser den. Original read-only modus-NN
-beholder også FAILED_CONSUMED, og egen CPU-skårsammenstilling er COMPLETE.
-Alle seks globale trenings-/evalueringsflagg er false, active_lane=null.
-Ingen ny fit, NN eller servingendring er innrømmet. Edge-målet er aktivt/uoppfylt.
-Neste felt native_v3_actual_step_observer_20261128_001 er kun stengt kilde-
-klargjøring, execution=false/training=false/remaining=0.
+NEXT_RUN_POLICY.json er eneste arbeidsstatus. Aktuelt felt er
+native_v3_actual_step_observer_20261128_001: kildekvalifisert, men ingen NN-/
+update-/fitplan er innrømmet. Alle seks globale trenings-/evalueringsflagg er
+false og active_lane=null. Forrige CPU002 er COMPLETE/stengt0; CPU001 og
+original read-only modus-NN beholder FAILED_CONSUMED/stengt0. Edge-målet er
+aktivt/uoppfylt; låst issue-miks PASS2 feiler fortsatt M5/samlet TRAIN-kvalitet.
 
-Kildekontrollen bekrefter at eksisterende steg bare lagrer samlet tap/
-gradientnorm/support/outputSHA; faktiske per-TF-middel, biasgradient etter
-backward/klipping og AdamW-overgang mangler. Neste konkrete steg er den minste
-samme-steg-observatøren fra V3_ACTUAL_STEP_OBSERVER_DESIGN_20261128_001.json.
-Den skal bruke eksisterende forward/backward/clip/step, uten ekstra NN, RNG-/
-modusendring eller endret matematikk. F32-gradientkontroll og fersk avgrenset
-observatør-av/på-/kald paritet må kvalifiseres før egne nye NN-planer. Ingen
-ny epoch/fit følger av dette designet. Frosne sluttmål gir ikke historiske TRAIN-gradienter. Ingen
-endring i tapsnormalisering, dropout, læringsrate, ruting, modell, epoker,
-terskel eller kalibrator er begrunnet av de nye CPU-resultatene alene.
-Gjenbruk alle inputs/outputs og beståtte kontroller. Ny kjøring krever ny eksakt
-plan og aktuell kilde-/input-/hostadmisjon; gamle engangsplaner er forbrukt.
+Den konkrete mangelen er faktiske per-TF TRAIN-middel, biasgradient etter
+backward/klipping og AdamW-overgang. Ny observatør registrerer disse ved fire
+allerede eksisterende steggrenser, med detach/skalar-kopier og native F32-
+reduksjonsgrense. Den gjør ingen ekstra forward/backward/update/zero_grad,
+modus-/RNG-operasjon eller endring i tap/modell/optimizer/klipping. Returverdier,
+checkpoint steps/scores og gammel standardbane er uendret; rapportene er eksterne.
+Core endres bare med optionalobserver og fire callbackpunkter. Eksakt reversering
+matcher hele gamle core-filen byte-/AST-messig; alle eldre vakter/kaps er bevart.
+
+77forskjellige fokuserte kontroller består (7leaf/70guard); kun én berørt test
+ble kjørt om etter en tegnsettingsadvarsel. Fersk modelkontrakt/inputidentitet er
+faktisk rekalkulert og matcher originalen,81kildeeiere er bundet. Ingen modell,
+CUDA eller cache-/checkpointdekoding ble kjørt i kildekvalifiseringen.
+Ny teknisk adapter har egen tidlig M1-firewall og en konsekvent ny434stegs-
+trajektorie: eksakt original432prefix +originale takes0/1 på globale indices432/433.
+Den arver ikke foreldede432oppdaterings-/permutasjonspåstander for nye steg.
+
+Neste steg: commit fryst kvalifisert kilde, bygg fersk eksakt REFERENCE-plan,
+metadata-preflight og verifisert SOURCE-backup før egen2stegs teknisk admission.
+REFERENCE gjenoppretter autentisk original FINAL432 med fullRNG/AdamW og
+observatørAV, skriver ekte egne C1=433/C2=434. Separat COLD skal bare laste egen
+REFERENCE-C1 og gjøre ett steg med observatørPÅ; alle10tilstandsbevis skal matche
+REFERENCE-C2. Alle3oppdateringer er tekniske og aldri kandidat/initializer.
+Planer/rolleporter/snapshots er egne engangsplaner; original432plan relanseres ikke.
+Ingen ny epoch/fit, senere VAL/Control, TEST eller servingendring følger av dette.
 
 ### Ny faktisk CPU-måling av batchvekting
 
@@ -207,8 +217,10 @@ generalisering må måles som utfall, ikke antas bevist før første fit.
 E betyr /home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001.
 Policy binder eksakte SHA, originale kvitteringer og egne snapshots.
 
-- V3_ACTUAL_STEP_OBSERVER_DESIGN_20261128_001.json: neste stengte kildeomfang,
-  manglende faktisk stegtelemetri, ingen NN-/fitadmisjon.
+- V3_ACTUAL_STEP_OBSERVER_SOURCE_QUALIFICATION_20261128_002.json og
+  QUALIFICATION_PROTOCOL_20261128_001.json:77fokuserte kontroller, kildebroer,
+  fersk inputidentitet og neste stengte2+1tekniske kvalifisering.
+- V3_ACTUAL_STEP_OBSERVER_DESIGN_20261128_001.json: observeromfang; ingen fitadmisjon.
 - V3_FROZEN_BATCH_RESIDUAL_REVIEW_20261128_002.json: ny faktisk måling, alle
   fem TF/to pass, ærlige grenser og nøyaktige input-/output-/terminalbindinger.
 - V3_FROZEN_BATCH_RESIDUAL_PLAN/DESIGN_20261128_002.json: eget clock-only-scope;

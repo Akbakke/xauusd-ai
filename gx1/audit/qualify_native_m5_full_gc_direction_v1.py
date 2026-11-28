@@ -5370,14 +5370,20 @@ def future_cuda_gradient_probe(model,packet,plan,counts):
         need(state_sha(training_rng())==state_sha(rng),'FUTURE_CUDA_PROBE_ALL_RNG')
 
 
-def future_cuda_step(model,optimizer,packet,plan,counts,index):
+def future_cuda_step(model,optimizer,packet,plan,counts,index,*,observer=None):
     import torch
     from gx1.contracts.market_state_ta_integrated_objective_v1 import native_future_state_loss
     optimizer.zero_grad(set_to_none=True);model.train();output,_,_=future_cuda_forward(model,packet['features'])
     loss=native_future_state_loss(model_output=output,truth=packet['truth'],fold_upper_ns=FUTURE_CPU_TRAIN_UPPER,
         target_contract=plan['metadata']['target_contract'])
     need(not loss['skip_update']and bool(torch.isfinite(loss['loss'])),'FUTURE_CUDA_TRAIN_SUPPORT')
+    # BEGIN GX1 V3 ACTUAL STEP OBSERVER FORWARD_LOSS 20261128
+    if observer is not None:observer('forward_loss',model=model,optimizer=optimizer,output=output,truth=packet['truth'],loss=loss,plan=plan,index=index)
+    # END GX1 V3 ACTUAL STEP OBSERVER FORWARD_LOSS 20261128
     loss['loss'].backward();counts['backward_calls']+=1
+    # BEGIN GX1 V3 ACTUAL STEP OBSERVER BACKWARD 20261128
+    if observer is not None:observer('backward',model=model,optimizer=optimizer,index=index)
+    # END GX1 V3 ACTUAL STEP OBSERVER BACKWARD 20261128
     gradients=[p for p in model.parameters()if p.grad is not None]
     need(gradients and finite_all_per_device(p.grad for p in gradients),'FUTURE_CUDA_FINITE_DATA_GRADIENT')
     device=next(model.parameters()).device
@@ -5387,7 +5393,13 @@ def future_cuda_step(model,optimizer,packet,plan,counts,index):
     before=[p.detach().cpu().clone()for p in model.backbone.parameters()]if index==0 else None
     if index==0:need(data['backbone_data_gradient_l2']==0 and data['readout_data_gradient_l2']>0,'FUTURE_CUDA_ZERO_HEAD_INITIAL_GRADIENT')
     clipped=torch.nn.utils.clip_grad_norm_(gradients,plan['recipe']['gradient_clip_norm'],error_if_nonfinite=True)
+    # BEGIN GX1 V3 ACTUAL STEP OBSERVER CLIP 20261128
+    if observer is not None:observer('clip',model=model,optimizer=optimizer,global_norm=clipped,index=index)
+    # END GX1 V3 ACTUAL STEP OBSERVER CLIP 20261128
     optimizer.step();counts['optimizer_steps']+=1
+    # BEGIN GX1 V3 ACTUAL STEP OBSERVER STEP 20261128
+    if observer is not None:observer('step',model=model,optimizer=optimizer,index=index)
+    # END GX1 V3 ACTUAL STEP OBSERVER STEP 20261128
     need(finite_all_per_device(model.parameters()),'FUTURE_CUDA_UPDATED_PARAMETERS_FINITE')
     if before is not None:
         data.update(backbone_actual_parameter_delta_l2=norm(p.detach().double()-old.to(p.device).double()for p,old in zip(model.backbone.parameters(),before)),

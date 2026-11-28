@@ -1539,3 +1539,274 @@ def test_train_eval_gap_bridge_rejects_unreviewed_delta(monkeypatch, bad):
             return text
         monkeypatch.setattr(Path, 'read_text', changed)
     with pytest.raises(RuntimeError): g.native_v3_train_eval_gap_source_bridge(owners)
+
+
+def _actual_step_observer_original_core():
+    repo = Path(g.__file__).resolve().parents[2]
+    return subprocess.check_output(['git', 'show', g._V3_ACTUAL_STEP_OBSERVER_PARENT + ':' + g._V3_ACTUAL_STEP_OBSERVER_CORE], cwd=repo)
+
+
+def _actual_step_observer_additions(original):
+    text = original.decode()
+    old, new = g._V3_ACTUAL_STEP_OBSERVER_CORE_SIGNATURE
+    assert text.count(old) == 1
+    text = text.replace(old, new, 1)
+    for anchor, label, call in g._V3_ACTUAL_STEP_OBSERVER_CORE_ADDITIONS:
+        fragment = '    # BEGIN GX1 V3 ACTUAL STEP OBSERVER ' + label + ' 20261128\n' + call + \
+            '    # END GX1 V3 ACTUAL STEP OBSERVER ' + label + ' 20261128\n'
+        # The core may contain other backward/step calls; bind this exact step owner.
+        start = text.index(new); first, tail = text[:start], text[start:]
+        assert anchor in tail
+        text = first + tail.replace(anchor, anchor + fragment, 1)
+    return text
+
+
+def test_actual_step_observer_source_projection_recovers_authentic_core_bytes_and_AST():
+    original = _actual_step_observer_original_core()
+    observed = _actual_step_observer_additions(original)
+    assert g._native_v3_actual_step_observer_core_projection(observed).encode() == original
+
+
+def test_actual_step_observer_source_bridge_preserves_original_numerical_step():
+    original = _actual_step_observer_original_core()
+    proof = g.native_v3_actual_step_observer_source_bridge({g._V3_ACTUAL_STEP_OBSERVER_CORE: hashlib.sha256(original).hexdigest()})
+    assert proof['observer_off_projection_byte_exact'] and proof['observer_off_projection_AST_exact']
+    assert proof['old_numeric_step_unchanged'] and proof['additive_observer_phases'] == 4
+    assert proof['training_authority_granted'] is proof['execution_authority_granted'] is False
+
+
+@pytest.mark.parametrize('bad', ('phase_call', 'inside_operation', 'outside_operation', 'outside_comment',
+    'signature_default', 'positional_observer', 'duplicate_marker', 'misplaced_phase', 'missing_phase',
+    'producer_hash', 'producer_commit'))
+def test_actual_step_observer_source_bridge_rejects_every_unreviewed_delta(monkeypatch, bad):
+    original = _actual_step_observer_original_core(); observed = _actual_step_observer_additions(original)
+    hashes = {g._V3_ACTUAL_STEP_OBSERVER_CORE: hashlib.sha256(original).hexdigest()}
+    commit = g._V3_ACTUAL_STEP_OBSERVER_PARENT
+    if bad == 'producer_hash': hashes[g._V3_ACTUAL_STEP_OBSERVER_CORE] = '0' * 64
+    if bad == 'producer_commit': commit = '0' * 40
+    if bad == 'phase_call': observed = observed.replace("observer('backward',", "observer('step',", 1)
+    if bad == 'inside_operation': observed = observed.replace("observer('backward',", "optimizer.step();observer('backward',", 1)
+    if bad == 'outside_operation': observed = observed.replace("    optimizer.step();counts['optimizer_steps']+=1\n", "    optimizer.step();optimizer.step();counts['optimizer_steps']+=1\n", 1)
+    if bad == 'outside_comment': observed += '\n# Unreviewed extra source delta\n'
+    if bad == 'signature_default': observed = observed.replace('*,observer=None):', '*,observer=True):', 1)
+    if bad == 'positional_observer': observed = observed.replace('*,observer=None):', 'observer=None):', 1)
+    if bad == 'duplicate_marker': observed += '    # BEGIN GX1 V3 ACTUAL STEP OBSERVER BACKWARD 20261128\n'
+    anchor, label, call = g._V3_ACTUAL_STEP_OBSERVER_CORE_ADDITIONS[1]
+    fragment = '    # BEGIN GX1 V3 ACTUAL STEP OBSERVER ' + label + ' 20261128\n' + call + \
+        '    # END GX1 V3 ACTUAL STEP OBSERVER ' + label + ' 20261128\n'
+    if bad == 'misplaced_phase': observed = observed.replace(anchor + fragment, fragment + anchor, 1)
+    if bad == 'missing_phase': observed = observed.replace(fragment, '', 1)
+    original_read = Path.read_bytes; core_path = Path(g.__file__).resolve().parents[2] / g._V3_ACTUAL_STEP_OBSERVER_CORE
+    def changed(path, *args, **kwargs):
+        return observed.encode() if path == core_path else original_read(path, *args, **kwargs)
+    monkeypatch.setattr(Path, 'read_bytes', changed)
+    with pytest.raises(RuntimeError):
+        g.native_v3_actual_step_observer_source_bridge(hashes, producer_commit=commit)
+
+
+def actual_step_observer_fixture(monkeypatch, tmp_path, lane='reference', preflight=False, bad=None):
+    f = train_eval_gap_fixture(monkeypatch, tmp_path, preflight=True)
+    repo, runs = f['repo'], f['runs']; producer = copy.deepcopy(f['plan']['metadata']['producer'])
+    names = ('gx1/audit/native_future_state_step_observer_qualify_v1.py',
+        'gx1/audit/native_future_state_step_observer_v1.py', g._V3_ACTUAL_STEP_OBSERVER_CORE)
+    owners = dict(producer['source_owners'])
+    for name in names:
+        path = repo / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_text('# source-only observer fixture\n')
+        owners[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+    producer['source_owners'][g._V3_ACTUAL_STEP_OBSERVER_CORE] = owners[g._V3_ACTUAL_STEP_OBSERVER_CORE]
+    producer_ref = f['plan']['original_plan']; receipt_ref = f['plan']['checkpoint_receipt']
+    receipt = f['plan']['metadata']['receipt']; checkpoint_ref = receipt['checkpoint']
+    evidence = runs / 'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'
+    design_ref = dict(path=str(evidence / 'V3_ACTUAL_STEP_OBSERVER_DESIGN_20261128_001.json'),
+        sha256='faf07246d9fd7fdf92811a10668dc0431772efe90f086b2f967ecd2db23a3297')
+    protocol_ref = dict(path=str(evidence / 'V3_ACTUAL_STEP_OBSERVER_QUALIFICATION_PROTOCOL_20261128_001.json'),
+        sha256='c225d94342af1bf4b787373f1f3cdc5a5a4a08a09464e5c53ed06571492aae40')
+    count = 2 if lane == 'reference' else 1; limits = dict.fromkeys(producer['limits'], 0)
+    limits.update(model_constructions=1, optimizer_constructions=1, feature_cache_payload_loads=1,
+        target_archive_loads=1, checkpoint_loads=1, model_restores=1, model_forwards=count,
+        backbone_forwards=count, readout_forwards=count, backward_calls=count, optimizer_steps=count,
+        checkpoint_writes=count, checkpoint_readbacks=count, checkpoint_prepublication_loads=count,
+        checkpoint_receipt_writes=count, observer_records=0 if lane == 'reference' else 1)
+    bridge = dict(producer_commit=g._V3_ACTUAL_STEP_OBSERVER_PARENT,
+        owners={n: dict(original_sha256='f' * 64, current_sha256=owners[n]) for n in OWNERS})
+    core_bridge = {'exact': 'core projection'}; trajectory = {'logical_batches': 434, 'technical_takes': [0, 1]}
+    parents = {}
+    if lane == 'cold':
+        previous = dict(lane='reference', source_commit='a' * 40, source_owners=owners,
+            protocol=protocol_ref, metadata={'trajectory': trajectory})
+        previous_path = repo / 'configs/research' / (g._V3_ACTUAL_STEP_OBSERVER_NAME + '_REFERENCE.json')
+        previous_path.write_text(json.dumps(previous)); parents['reference'] = {'plan': dict(path=str(previous_path), sha256=hashlib.sha256(previous_path.read_bytes()).hexdigest())}
+    output = runs / (g._V3_ACTUAL_STEP_OBSERVER_NAME + '_' + lane)
+    plan = dict(schema_version='gx1_native_v3_actual_step_observer_qualification_plan_v1',
+        stage=g._V3_ACTUAL_STEP_OBSERVER_STAGE, lane=lane, source_commit='a' * 40, output_root=str(output),
+        execution=g._native_v3_development_execution('warm'), execution_profile=g._V3_ACTUAL_STEP_OBSERVER_PROFILE,
+        design=design_ref, protocol=protocol_ref, producer_plan=producer_ref, authentic_final_receipt=receipt_ref,
+        authentic_final_checkpoint=checkpoint_ref, metadata=dict(original=producer['metadata']['original'],
+            producer=producer, trajectory=trajectory), model_contract=producer['model_contract'], recipe=producer['recipe'],
+        starting_cursor=432 if lane == 'reference' else 433, ending_cursor=434,
+        checkpoint_cursors=[433, 434] if lane == 'reference' else [434], observer_enabled=lane == 'cold',
+        technical_weights_never_initializer=True, limits=limits, source_owners=owners,
+        core_source_bridge=core_bridge, guard_source_bridge=bridge, parents=parents)
+    if bad == 'schema': plan['schema_version'] = 'old'
+    if bad == 'profile': plan['execution_profile'] = 'generic'
+    if bad == 'execution': plan['execution']['GPU_draw_stop_W'] = 251
+    if bad == 'final': plan['authentic_final_checkpoint'] = {}
+    if bad == 'producer': plan['producer_plan'] = {}
+    if bad == 'metadata': plan['metadata']['producer'] = {}
+    if bad == 'model': plan['model_contract'] = {}
+    if bad == 'cursor': plan['starting_cursor'] = 0
+    if bad == 'boolean_cursor': plan['starting_cursor'] = True
+    if bad == 'observer': plan['observer_enabled'] = lane != 'cold'
+    if bad == 'initializer': plan['technical_weights_never_initializer'] = False
+    if bad == 'checkpoint_cursors': plan['checkpoint_cursors'] = [434, 435]
+    if bad == 'updates': limits['optimizer_steps'] += 1
+    if bad == 'autograd': limits['autograd_calls'] = 1
+    if bad == 'records': limits['observer_records'] += 1
+    if bad == 'bool_budget': limits['model_constructions'] = True
+    if bad == 'core_bridge': plan['core_source_bridge'] = {}
+    if bad == 'guard_bridge': plan['guard_source_bridge'] = {**bridge, 'extra': True}
+    if bad == 'owner': plan['source_owners'] = {**owners, names[0]: '0' * 64}
+    if bad == 'parents': plan['parents'] = {'extra': {}}
+    path = repo / 'configs/research' / (g._V3_ACTUAL_STEP_OBSERVER_NAME + '_' + lane.upper() + '.json')
+    path.write_text(json.dumps(plan)); digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    policy_path = repo / 'NEXT_RUN_POLICY.json'; policy = json.loads(policy_path.read_text())
+    for flag in ('training_enabled', 'native_training_enabled'): policy[flag] = not preflight
+    closed = dict(execution_authorized=False, remaining_invocations=0, relaunch_allowed=False, training_authorized=False)
+    for scope in ('native_v3_frozen_batch_residual_audit_20261128_001', 'native_v3_frozen_batch_residual_audit_20261128_002'):
+        policy[scope] = dict(closed)
+    policy[TRAIN_EVAL_GAP_NAME.lower()]['aggregation_completion'] = dict(closed)
+    status = 'PREPARED_CLOSED_NOT_ADMITTED' if preflight else 'ADMITTED_EXACT_V3_ACTUAL_STEP_OBSERVER_' + lane.upper()
+    gate = dict(status=status, plan=dict(path=str(path), sha256=digest), execution_authorized=not preflight,
+        remaining_invocations=int(not preflight), relaunch_allowed=False, training_authorized=not preflight, test_authorized=False)
+    lanes = {role: dict(closed, test_authorized=False, status='CLOSED_CONSUMED_COMPLETE', plan=value['plan']) for role, value in parents.items()}
+    lanes[lane] = gate
+    parent = dict(source_preparation_authorized=True, design=design_ref, protocol=protocol_ref,
+        producer_plan=producer_ref, authentic_final_receipt=receipt_ref, authentic_final_checkpoint=checkpoint_ref,
+        execution_authorized=not preflight, status='SOURCE_PREPARATION_ONLY' if preflight else status,
+        active_lane=None if preflight else lane, lane_gates=lanes)
+    policy[g._V3_ACTUAL_STEP_OBSERVER_STAGE] = parent
+    if bad == 'bool_gate': gate['remaining_invocations'] = not preflight
+    if bad == 'spent': gate['remaining_invocations'] = 0
+    if bad == 'flags': policy['native_launch_authorized'] = True
+    if bad == 'old_route': policy[TRAIN_EVAL_GAP_NAME.lower()]['execution_authorized'] = True
+    if bad == 'old_cpu_route': policy['native_v3_frozen_batch_residual_audit_20261128_001']['remaining_invocations'] = 1
+    if bad == 'parent_lane': parent['active_lane'] = 'other'
+    if bad == 'parent_protocol': parent['protocol'] = {}
+    policy_path.write_text(json.dumps(policy))
+    if not preflight:
+        snapshot = evidence / ('V3_ACTUAL_STEP_OBSERVER_' + lane.upper() + '_ADMITTED_POLICY_20261128_001.json')
+        snapshot.write_bytes(b'{}' if bad == 'snapshot' else policy_path.read_bytes())
+    if bad == 'existing': output.mkdir()
+    if bad == 'symlink':
+        other = path.with_suffix('.original'); path.rename(other); path.symlink_to(other)
+    read = g._native_v3_development_read
+    def fixture_read(candidate, candidate_digest=None):
+        for binding, value in ((producer_ref, producer), (receipt_ref, receipt), (design_ref, {}),
+                (protocol_ref, {'schema_version': 'gx1_v3_actual_step_observer_qualification_protocol_v1'})):
+            if str(candidate) == binding['path']:
+                assert candidate_digest == binding['sha256']; return value
+        return read(candidate, candidate_digest)
+    monkeypatch.setattr(g, '_native_v3_development_read', fixture_read)
+    monkeypatch.setattr(g, 'native_v3_actual_step_observer_source_bridge', lambda *a, **k: core_bridge)
+    monkeypatch.setattr(g, 'native_v3_actual_step_observer_guard_source_bridge', lambda *a, **k: bridge)
+    argv = [str(repo / names[0]), '--v3-actual-step-observer-plan-sha256', digest] + (['--preflight'] if preflight else [])
+    if bad == 'argv': argv += ['--lane', lane]
+    monkeypatch.setattr(sys, 'argv', argv)
+    if bad == 'python': monkeypatch.setattr(sys, 'executable', '/usr/bin/python3')
+    for key in list(os.environ):
+        if key.startswith('GX1_NATIVE_'): monkeypatch.delenv(key)
+    env = dict(GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER='true', GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_PLAN_SHA256=digest,
+        GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_LANE=lane)
+    if bad == 'hardware_env': env['GX1_TRAINER_GPU_MAX_POWER_DRAW_W'] = '251'
+    if bad == 'unknown_env': env['GX1_NATIVE_V3_ACTUAL_STEP_OBSERVER_EXTRA'] = 'false'
+    if bad == 'legacy_env': env['GX1_NATIVE_V3_ISSUE_MIX'] = 'true'
+    for key, value in env.items(): monkeypatch.setenv(key, value)
+    return dict(f, path=path, digest=digest, plan=plan, output=output, lane=lane,
+        call=lambda: g.require_native_v3_actual_step_observer_execution(plan_sha256=digest))
+
+
+@pytest.mark.parametrize('lane', ('reference', 'cold'))
+@pytest.mark.parametrize('preflight', (False, True))
+def test_actual_step_observer_exact_role_guard_has_resource_authority_only(monkeypatch, tmp_path, lane, preflight):
+    f = actual_step_observer_fixture(monkeypatch, tmp_path, lane, preflight); proof = f['call']()
+    assert proof['lane'] == lane and proof['preflight'] is preflight
+    assert proof['training_authority_granted'] is proof['optimizer_authority_granted'] is False
+    assert f['called'] == ['cuda'] and not f['output'].exists()
+
+
+@pytest.mark.parametrize('bad', ('schema', 'profile', 'execution', 'final', 'producer', 'metadata', 'model',
+    'cursor', 'boolean_cursor', 'observer', 'initializer', 'checkpoint_cursors', 'updates', 'autograd',
+    'records', 'bool_budget', 'core_bridge', 'guard_bridge', 'owner', 'parents', 'bool_gate', 'spent',
+    'flags', 'old_route', 'old_cpu_route', 'parent_lane', 'parent_protocol', 'snapshot', 'existing',
+    'symlink', 'argv', 'python', 'hardware_env', 'unknown_env', 'legacy_env'))
+def test_actual_step_observer_guard_rejects_unqualified_or_mixed_execution(monkeypatch, tmp_path, bad):
+    f = actual_step_observer_fixture(monkeypatch, tmp_path, bad=bad)
+    with pytest.raises(RuntimeError): f['call']()
+    assert not f['called'] and not (f['output'] / 'CLAIM.json').exists()
+
+
+def test_actual_step_observer_preflight_rejects_boolean_zero_gate(monkeypatch, tmp_path):
+    f = actual_step_observer_fixture(monkeypatch, tmp_path, preflight=True, bad='bool_gate')
+    with pytest.raises(RuntimeError, match='ACTUAL_STEP_OBSERVER_TYPED_LANES'): f['call']()
+    assert not f['called']
+
+
+@pytest.mark.parametrize('lane', ('reference', 'cold'))
+def test_actual_step_observer_guard_requests_only_actual_wrapper_exports(monkeypatch, tmp_path, lane):
+    f = actual_step_observer_fixture(monkeypatch, tmp_path, lane, preflight=True)
+    wrapper = (Path(__file__).resolve().parents[1] / 'scripts/gx1_capped_run.sh').read_text()
+    exported = set(re.findall(r'--setenv=([A-Z0-9_]+)=', wrapper)); requested = set()
+    class ActualWrapperEnvironment(dict):
+        def get(self, key, default=None):
+            requested.add(key); return super().get(key, default)
+    actual = {k: v for k, v in os.environ.items() if not k.startswith('GX1_') or k in exported}
+    monkeypatch.setattr(os, 'environ', ActualWrapperEnvironment(actual)); f['call']()
+    assert requested <= exported and f['called'] == ['cuda']
+
+
+@pytest.mark.parametrize('lane', ('reference', 'cold'))
+def test_actual_step_observer_shell_binds_exact_two_role_plans_and_existing_caps(monkeypatch, tmp_path, lane):
+    f = actual_step_observer_fixture(monkeypatch, tmp_path, lane)
+    variables, functions, dispatch, _ = [v[2] for v in g._V3_ACTUAL_STEP_OBSERVER_SHELL_ADDITIONS]
+    functions = functions.replace('/home/andre2/GX1_RUNS', str(f['runs']))
+    state = dict(REPO_ROOT=str(f['repo']), CANONICAL_TRAINER_PYTHON=str(f['repo'] / '.venv/bin/python'),
+        JOB_CLASS='trainer', MEM='20G', SWAP='512M', ATTENDED_SMOKE='false', CUDA_PRODUCER_GUARD='false',
+        POWER_BENCHMARK_SCOPE_JSON='', POWER_BENCHMARK_SCOPE_SHA256='')
+    script = 'set -eu\n' + ''.join(k + '=' + shlex.quote(v) + '\n' for k, v in state.items()) + variables + functions
+    script += 'validate_target_command() {\n' + dispatch + 'return 88\n}\n'
+    argv = [state['CANONICAL_TRAINER_PYTHON'], '-m', 'gx1.audit.native_future_state_step_observer_qualify_v1',
+        '--v3-actual-step-observer-plan-sha256', f['digest']]
+    for extra in ([], ['--preflight'], ['--lane', lane]):
+        tail = 'validate_target_command ' + ' '.join(map(shlex.quote, argv + extra))
+        tail += '\nprintf "%s,%s,%s,%s,%s\\n" "$NATIVE_V3_ACTUAL_STEP_OBSERVER" "$NATIVE_V3_ACTUAL_STEP_OBSERVER_LANE" "$TRAINER_MAX_WALL_SECONDS" "$TRAINER_MODEL_MAX_WALL_SECONDS" "$TRAINER_OUT_BUNDLE_DIR"\n'
+        result = subprocess.run(['bash', '-c', script + tail], cwd=f['repo'], capture_output=True, text=True)
+        assert result.returncode == (75 if extra == ['--lane', lane] else 0), result.stderr
+        if result.returncode == 0: assert result.stdout.strip() == 'true,' + lane + ',1800,1770,' + str(f['output'])
+
+
+def _actual_step_observer_guard_owners():
+    repo = Path(g.__file__).resolve().parents[2]
+    return {n: hashlib.sha256(subprocess.check_output(['git', 'show', g._V3_ACTUAL_STEP_OBSERVER_PARENT + ':' + n], cwd=repo)).hexdigest() for n in OWNERS}
+
+
+def test_actual_step_observer_guard_bridge_preserves_all_original_guard_and_shell_bytes():
+    proof = g.native_v3_actual_step_observer_guard_source_bridge(_actual_step_observer_guard_owners())
+    assert proof['old_guard_routes_preserved'] and proof['old_numeric_resource_environment_function_unchanged']
+
+
+@pytest.mark.parametrize('bad', ('legacy_resource', 'new_shell_limit', 'producer_hash'))
+def test_actual_step_observer_guard_bridge_rejects_unreviewed_delta(monkeypatch, bad):
+    owners = _actual_step_observer_guard_owners()
+    if bad == 'producer_hash': owners[OWNERS[0]] = '0' * 64
+    else:
+        original = Path.read_text; repo = Path(g.__file__).resolve().parents[2]
+        def changed(path, *a, **kw):
+            text = original(path, *a, **kw)
+            if path == repo / OWNERS[0] and bad == 'legacy_resource':
+                text = text.replace('_MAX_MEMORY_BYTES = 20 * 1024**3', '_MAX_MEMORY_BYTES = 21 * 1024**3', 1)
+            if path == repo / OWNERS[1] and bad == 'new_shell_limit':
+                fragment = g._V3_ACTUAL_STEP_OBSERVER_SHELL_ADDITIONS[1][2]
+                text = text.replace(fragment, fragment.replace('TRAINER_GPU_MAX_POWER_DRAW_W=250', 'TRAINER_GPU_MAX_POWER_DRAW_W=251'), 1)
+            return text
+        monkeypatch.setattr(Path, 'read_text', changed)
+    with pytest.raises(RuntimeError): g.native_v3_actual_step_observer_guard_source_bridge(owners)
