@@ -645,3 +645,196 @@ def test_direction_gradient_preflight_rejects_false_boolean_count(monkeypatch,tm
     f=direction_gradient_fixture(monkeypatch,tmp_path,preflight=True,bad='bool_gate')
     with pytest.raises(RuntimeError,match='DIRECTION_GRADIENT_DIAGNOSTIC_SCOPE'):f['call']()
     assert not f['called']
+
+
+BLOCK_ORDER_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_BLOCK_ORDER_20261128_001'
+
+
+def direction_block_order_fixture(monkeypatch,tmp_path,preflight=False,bad=None):
+    f=direction_gradient_fixture(monkeypatch,tmp_path,preflight=True)
+    repo,runs=f['repo'],f['runs'];original=f['plan']['metadata']['original']
+    original_ref=f['plan']['original_plan']
+    original['initial_reference']={'model_state_sha256':'b'*64,'optimizer_updates':0}
+    original['limits']=dict(autograd_calls=9,backbone_forwards=678,backward_calls=432,
+        checkpoint_loads=0,checkpoint_prepublication_loads=2,checkpoint_readbacks=2,
+        checkpoint_receipt_writes=2,checkpoint_writes=2,diagnostic_skips=0,
+        feature_cache_payload_loads=1,logit_archive_readbacks=3,logit_archive_writes=3,
+        model_constructions=1,model_forwards=678,model_restores=0,normalization_fits=0,
+        optimizer_constructions=1,optimizer_steps=432,prior_fits=0,readout_forwards=678,
+        skipped_batches=0,target_archive_loads=1)
+    canonical=dict(batch_source_rows_sha256=[hashlib.sha256(('source'+str(i)).encode()).hexdigest()for i in range(216)],
+        batch_issue_ns_sha256=[hashlib.sha256(('issue'+str(i)).encode()).hexdigest()for i in range(216)])
+    original['schedule']=canonical
+    # Synthetic structural permutations; the leaf owns the actual private PCG64 generator.
+    permutations=[list(reversed(range(216))),list(range(1,216))+[0]]
+    ids=[i for v in permutations for i in v]
+    schedule=dict(schema_version='gx1_native_v3_whole_batch_order_schedule_v1',canonical_schedule=canonical,
+        permutations=permutations,logical_original_batch_ids=ids,
+        ordered_batch_source_rows_sha256=[canonical['batch_source_rows_sha256'][i]for i in ids],
+        ordered_batch_issue_ns_sha256=[canonical['batch_issue_ns_sha256'][i]for i in ids],
+        rows=20727,batch_rows=96,passes=2,batches_per_pass=216,logical_batches=432,
+        optimizer_updates=432,skipped_batches=0,update_flags=[True]*432)
+    limits=dict(original['limits']);limits.update(model_forwards=597,backbone_forwards=597,readout_forwards=597,
+        logit_archive_writes=2,logit_archive_readbacks=2)
+    design_ref=dict(path=str(runs/'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'/'V3_DIRECTION_BLOCK_ORDER_DESIGN_20261128_001.json'),
+        sha256='573e747a4ebea2f91a228a5853f4f16eb5a7411280dc62832d46a3e43f250942')
+    bridge=dict(producer_commit=g._V3_DIRECTION_BLOCK_ORDER_PARENT,
+        owners={n:dict(original_sha256='f'*64,current_sha256=f['plan']['source_owners'][n])for n in OWNERS})
+    output=runs/BLOCK_ORDER_NAME
+    plan=dict(schema_version='gx1_native_v3_direction_block_order_plan_v1',stage=BLOCK_ORDER_NAME.lower(),
+        source_commit='a'*40,output_root=str(output),execution=g._native_v3_development_execution('fit'),
+        original_plan=original_ref,design=design_ref,model_contract=original['model_contract'],
+        initial_reference=original['initial_reference'],recipe=original['recipe'],schedule=schedule,
+        metadata={'original':original,'trajectory':{'schedule':schedule}},limits=limits,
+        checkpoint_cursors=[1,432],panel_indices=[0,107,214],
+        source_owners=f['plan']['source_owners'],guard_source_bridge=bridge)
+    if bad=='schema':plan['schema_version']='old'
+    if bad=='execution':plan['execution']['GPU_draw_stop_W']+=1
+    if bad=='design':plan['design']={**design_ref,'sha256':'0'*64}
+    if bad=='model':plan['model_contract']={}
+    if bad=='initializer':plan['initial_reference']={'checkpoint':'FINAL.pt'}
+    if bad=='recipe':plan['recipe']={**original['recipe'],'seed':1}
+    if bad=='canonical':schedule['canonical_schedule']={}
+    if bad=='permutation_duplicate':permutations[0][1]=permutations[0][0]
+    if bad=='permutation_length':permutations[0].pop()
+    if bad=='permutation_valid_swap':permutations[0][0],permutations[0][1]=permutations[0][1],permutations[0][0]
+    if bad=='permutation_bool':permutations[0][permutations[0].index(1)]=True
+    if bad=='logical_id_bool':ids[ids.index(1)]=True
+    if bad=='source_hash':schedule['ordered_batch_source_rows_sha256'][0]=canonical['batch_source_rows_sha256'][ids[0]^1]
+    if bad=='issue_hash':schedule['ordered_batch_issue_ns_sha256'][0]=canonical['batch_issue_ns_sha256'][ids[0]^1]
+    if bad=='update_flag':schedule['update_flags'][0]=1
+    if bad=='trajectory':plan['metadata']['trajectory']={'schedule':canonical}
+    if bad in ('optimizer_steps','model_forwards','autograd_calls','checkpoint_writes','checkpoint_loads'):
+        limits[bad]+=1
+    if bad=='budget_bool':limits['model_constructions']=True
+    if bad=='checkpoint_cursor':plan['checkpoint_cursors']=[1,431]
+    if bad=='panels':plan['panel_indices']=[0,107,215]
+    if bad=='owner':plan['source_owners']={**plan['source_owners'],OWNERS[0]:'0'*64}
+    if bad=='bridge':plan['guard_source_bridge']={**bridge,'extra':True}
+    path=repo/'configs/research'/(BLOCK_ORDER_NAME+'.json');path.write_text(json.dumps(plan))
+    digest=hashlib.sha256(path.read_bytes()).hexdigest()
+    policy_path=repo/'NEXT_RUN_POLICY.json';policy=json.loads(policy_path.read_text())
+    for k in ('training_enabled','native_training_enabled'):policy[k]=not preflight
+    parent=dict(status='SOURCE_PREPARATION_ONLY'if preflight else'ADMITTED_EXACT_V3_DIRECTION_BLOCK_ORDER',
+        plan=dict(path=str(path),sha256=digest),design=design_ref,execution_authorized=not preflight,
+        remaining_invocations=0 if preflight else 1,relaunch_allowed=False,training_authorized=not preflight,
+        test_authorized=False,spending_authorized=False)
+    policy[BLOCK_ORDER_NAME.lower()]=parent
+    if bad=='bool_gate':parent['remaining_invocations']=not preflight
+    if bad=='spent':parent['remaining_invocations']=0
+    if bad=='flags':policy['full_epoch_training_allowed']=True
+    if bad=='parent_training':parent['training_authorized']=preflight
+    if bad=='diagnostic_active':policy[DIRECTION_NAME.lower()]['execution_authorized']=True
+    if bad=='old_route':policy['native_v3_fit004_exact_recovery_20261128_002']['execution_authorized']=True
+    if bad=='parent_plan':parent['plan']={}
+    policy_path.write_text(json.dumps(policy))
+    if bad=='existing':output.mkdir()
+    if bad=='symlink':
+        old=path.with_suffix('.original');path.rename(old);path.symlink_to(old)
+    read=g._native_v3_development_read
+    def fixture_read(path,digest=None):
+        if str(path)==design_ref['path']:
+            assert digest==design_ref['sha256'];return {}
+        return read(path,digest)
+    monkeypatch.setattr(g,'_native_v3_development_read',fixture_read)
+    monkeypatch.setattr(g,'native_v3_direction_block_order_source_bridge',lambda*a,**k:bridge)
+    argv=[str(repo/'gx1/audit/native_provider_hlc_learning_v1.py'),'--v3-direction-block-order-plan-sha256',digest]
+    if preflight:argv+=['--preflight']
+    if bad=='argv':argv+=['--lane','reference']
+    monkeypatch.setattr(sys,'argv',argv)
+    for k in list(os.environ):
+        if k.startswith('GX1_NATIVE_'):monkeypatch.delenv(k)
+    env=dict(GX1_NATIVE_V3_DIRECTION_BLOCK_ORDER='true',GX1_NATIVE_V3_DIRECTION_BLOCK_ORDER_PLAN_SHA256=digest,
+        GX1_TRAINER_MAX_WALL_SECONDS='5400',GX1_TRAINER_MODEL_MAX_WALL_SECONDS='5370')
+    if bad=='hardware_env':env['GX1_TRAINER_GPU_MAX_POWER_DRAW_W']='251'
+    if bad=='unknown_env':env['GX1_NATIVE_V3_DIRECTION_BLOCK_ORDER_UNSAFE']='false'
+    if bad=='legacy_env':env['GX1_NATIVE_V3_RECOVERY']='true'
+    for k,v in env.items():monkeypatch.setenv(k,v)
+    return dict(f,path=path,digest=digest,plan=plan,output=output,
+        call=lambda:g.require_native_v3_direction_block_order_execution(plan_sha256=digest))
+
+
+@pytest.mark.parametrize('preflight',(False,True))
+def test_direction_block_order_exact_scoped_fit_guard(monkeypatch,tmp_path,preflight):
+    f=direction_block_order_fixture(monkeypatch,tmp_path,preflight);proof=f['call']()
+    assert proof['preflight']is preflight and proof['kind']=='provider_hlc_v3_direction_block_order'
+    assert proof['training_authority_granted']is proof['optimizer_authority_granted']is False
+    assert f['called']==['cuda']and not f['output'].exists()
+
+
+@pytest.mark.parametrize('bad',('schema','execution','design','model','initializer','recipe','canonical',
+    'permutation_duplicate','permutation_length','permutation_valid_swap','permutation_bool','logical_id_bool','source_hash','issue_hash',
+    'update_flag','trajectory','optimizer_steps','model_forwards','autograd_calls','checkpoint_writes',
+    'checkpoint_loads','budget_bool','checkpoint_cursor','panels','owner','bridge','bool_gate','spent','flags',
+    'parent_training','diagnostic_active','old_route','parent_plan','existing','symlink','argv',
+    'hardware_env','unknown_env','legacy_env'))
+def test_direction_block_order_rejects_wrong_order_or_admission(monkeypatch,tmp_path,bad):
+    f=direction_block_order_fixture(monkeypatch,tmp_path,bad=bad)
+    with pytest.raises(RuntimeError):f['call']()
+    assert not f['called']and not(f['output']/'CLAIM.json').exists()
+
+
+def test_direction_block_order_preflight_rejects_false_boolean_count(monkeypatch,tmp_path):
+    f=direction_block_order_fixture(monkeypatch,tmp_path,preflight=True,bad='bool_gate')
+    with pytest.raises(RuntimeError,match='DIRECTION_BLOCK_ORDER_FIT_SCOPE'):f['call']()
+    assert not f['called']
+
+
+def test_direction_block_order_shell_exact_cli_and_fullfit_profile(monkeypatch,tmp_path):
+    f=direction_block_order_fixture(monkeypatch,tmp_path)
+    variables,functions,dispatch,_=[v[2]for v in g._V3_DIRECTION_BLOCK_ORDER_SHELL_ADDITIONS]
+    functions=functions.replace('/home/andre2/GX1_RUNS',str(f['runs']))
+    state=dict(REPO_ROOT=str(f['repo']),CANONICAL_TRAINER_PYTHON=str(f['repo']/'.venv/bin/python'),
+        JOB_CLASS='trainer',MEM='20G',SWAP='512M',ATTENDED_SMOKE='false',CUDA_PRODUCER_GUARD='false',
+        POWER_BENCHMARK_SCOPE_JSON='',POWER_BENCHMARK_SCOPE_SHA256='')
+    script='set -eu\n'+''.join(k+'='+shlex.quote(v)+'\n'for k,v in state.items())+variables+functions
+    script+='validate_target_command() {\n'+dispatch+'return 88\n}\n'
+    argv=[state['CANONICAL_TRAINER_PYTHON'],'-m','gx1.audit.native_provider_hlc_learning_v1',
+        '--v3-direction-block-order-plan-sha256',f['digest']]
+    for extra in ([],['--preflight'],['--lane','reference']):
+        tail='validate_target_command '+' '.join(map(shlex.quote,argv+extra))
+        tail+='\nprintf "%s,%s,%s,%s\n" "$NATIVE_V3_DIRECTION_BLOCK_ORDER" "$TRAINER_MAX_WALL_SECONDS" "$TRAINER_MODEL_MAX_WALL_SECONDS" "$TRAINER_OUT_BUNDLE_DIR"\n'
+        result=subprocess.run(['bash','-c',script+tail],cwd=f['repo'],capture_output=True,text=True)
+        assert result.returncode==(75 if extra==['--lane','reference']else 0),result.stderr
+        if result.returncode==0:assert result.stdout.strip()=='true,5400,5370,'+str(f['output'])
+
+
+def test_direction_block_order_requests_only_wrapper_exports(monkeypatch,tmp_path):
+    f=direction_block_order_fixture(monkeypatch,tmp_path,preflight=True)
+    wrapper=(Path(__file__).resolve().parents[1]/'scripts/gx1_capped_run.sh').read_text()
+    exported=set(re.findall(r'--setenv=([A-Z0-9_]+)=',wrapper));requested=set()
+    class ActualWrapperEnvironment(dict):
+        def get(self,key,default=None):
+            requested.add(key);return super().get(key,default)
+    actual={k:v for k,v in os.environ.items()if not k.startswith('GX1_')or k in exported}
+    monkeypatch.setattr(os,'environ',ActualWrapperEnvironment(actual));f['call']()
+    assert requested<=exported and f['called']==['cuda']
+
+
+def _actual_direction_block_order_owners():
+    repo=Path(g.__file__).resolve().parents[2]
+    return {n:hashlib.sha256(subprocess.check_output(['git','show',g._V3_DIRECTION_BLOCK_ORDER_PARENT+':'+n],cwd=repo)).hexdigest()for n in OWNERS}
+
+
+def test_direction_block_order_bridge_preserves_all_previous_bytes():
+    proof=g.native_v3_direction_block_order_source_bridge(_actual_direction_block_order_owners())
+    assert proof['old_guard_routes_preserved']and proof['old_numeric_resource_environment_function_unchanged']
+    assert proof['new_order_controlflow_requires_scoped_review']is True
+
+
+@pytest.mark.parametrize('bad',('legacy_resource','new_shell_limit','producer_hash'))
+def test_direction_block_order_bridge_rejects_unreviewed_delta(monkeypatch,bad):
+    owners=_actual_direction_block_order_owners()
+    if bad=='producer_hash':owners[OWNERS[0]]='0'*64
+    else:
+        original=Path.read_text;repo=Path(g.__file__).resolve().parents[2]
+        def changed(path,*a,**kw):
+            text=original(path,*a,**kw)
+            if path==repo/OWNERS[0]and bad=='legacy_resource':
+                text=text.replace('_MAX_MEMORY_BYTES = 20 * 1024**3','_MAX_MEMORY_BYTES = 21 * 1024**3',1)
+            if path==repo/OWNERS[1]and bad=='new_shell_limit':
+                fragment=g._V3_DIRECTION_BLOCK_ORDER_SHELL_ADDITIONS[1][2]
+                text=text.replace(fragment,fragment.replace('TRAINER_GPU_MAX_POWER_DRAW_W=250','TRAINER_GPU_MAX_POWER_DRAW_W=251'),1)
+            return text
+        monkeypatch.setattr(Path,'read_text',changed)
+    with pytest.raises(RuntimeError):g.native_v3_direction_block_order_source_bridge(owners)

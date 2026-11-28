@@ -93,6 +93,13 @@ Sammenlign eneste nye låste PASS2 med opprinnelig kronologisk PASS2 og samme
 INITIAL/COHORT-prior på alle fem TF/vektinger/år/blokker. Samme absolutte
 kriterier gjelder; relativ forbedring av en FAIL er ingen ny kvalifisering.
 
+Order-only-ruten er kildekvalifisert med 64 guard-/kildebrokontroller og
+23 ulike leaf-kontroller. Faktisk INITIAL-score, logits, input-/normaliserings-
+identitet og 78 kildeeiere er validert uten payloaddekoding eller NN.
+Privat RNG, hele batcher, ny kursørbinding og avvisning før parameterkopiering
+består. Plan, aktuell runtime, metadata-preflight og separat backup gjenstår
+før noen fit-admisjon. Ny ordrespesifikk kald paritet er ikke målt eller påstått.
+
 Dette er en målrettet test av rekkefølge-/suffixhypotesen, ikke en påvist
 årsak eller lovet H4-forbedring. Ny kildekvalifisering, eksakt engangsplan,
 backup og aktuell guardadmisjon kreves før NN/fit. Ingen automatisk seed-,

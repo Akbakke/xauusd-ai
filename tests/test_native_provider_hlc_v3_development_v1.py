@@ -438,3 +438,111 @@ def test_direction_gradient_pair_roles_preserve_math_without_false_M5_scope():
     assert value['left_l2']==1. and value['right_l2']==2. and value['cross_dot']==-2. and value['cosine']==-1.
     assert value['left_dot_pair_sum']==-1. and value['raw_pair_sum_opposes_left']is True
     assert not any('M5'in k or 'g5'in k or 'gaux'in k or 'joint'in k for k in value)
+
+def test_block_order_all_prior_leaf_bridges_preserve_numeric_functions():
+    assert owner.block_order_source_bridge()['all_old_numeric_functions_unchanged']
+    assert owner.direction_gradient_source_bridge()['old_numeric_and_recovery_functions_unchanged']
+    assert owner.recovery_source_bridge()['original_development_nn_and_numeric_paths_unchanged']
+    assert owner.development_source_bridge()['baseline74_numeric_functions_changed']==0
+
+
+def test_block_order_private_rng_preserves_all_global_streams_and_whole_tail():
+    import random
+    import numpy as np
+    import torch
+    p=original_fit();before=owner.core.state_sha({'numpy':np.random.get_state(),'python':random.getstate(),'torch_cpu':torch.get_rng_state()})
+    schedule=owner.block_order_schedule(p)
+    assert owner.core.state_sha({'numpy':np.random.get_state(),'python':random.getstate(),'torch_cpu':torch.get_rng_state()})==before
+    assert schedule==owner.block_order_schedule(p)
+    for permutation in schedule['permutations']:
+        assert sorted(permutation)==list(range(216))and permutation.count(215)==1
+    assert schedule['original_batch_rows'][-1]==87 and sum(schedule['original_batch_rows'])==20727
+    assert schedule['logical_original_batch_ids']==sum(schedule['permutations'],[])
+    for j,batch in enumerate(schedule['logical_original_batch_ids']):
+        assert schedule['ordered_batch_source_rows_sha256'][j]==p['schedule']['batch_source_rows_sha256'][batch]
+        assert schedule['ordered_batch_issue_ns_sha256'][j]==p['schedule']['batch_issue_ns_sha256'][batch]
+    assert owner.block_order_cursor(schedule,432)['next_original_batch']is None
+    assert owner.block_order_cursor(schedule,1)['next_original_batch']['original_batch_id']==schedule['permutations'][0][1]
+
+
+@pytest.mark.parametrize('bad',('duplicate','bool','within_pass_swap','source_hash','logical_flatten','seed'))
+def test_block_order_rejects_mutated_or_unbound_schedules(bad):
+    p=original_fit();s=owner.block_order_schedule(p)
+    if bad=='duplicate':s['permutations'][0][0]=s['permutations'][0][1]
+    if bad=='bool':s['permutations'][0][0]=True
+    if bad=='within_pass_swap':s['permutations'][0][0],s['permutations'][0][1]=s['permutations'][0][1],s['permutations'][0][0]
+    if bad=='source_hash':s['ordered_batch_source_rows_sha256'][0]='0'*64
+    if bad=='logical_flatten':s['logical_original_batch_ids'][0]=s['logical_original_batch_ids'][1]
+    if bad=='seed':s['seed']+=1
+    with pytest.raises(ValueError):owner.block_order_validate_schedule(s,p)
+
+
+@pytest.mark.parametrize('bad',('chronological_trajectory','wrong_producer','wrong_cursor','wrong_batch','permutation'))
+def test_block_order_cross_restore_rejects_before_any_parameter_copy(monkeypatch,bad):
+    original=original_fit();schedule=owner.block_order_schedule(original);binding={'path':'/new/order.json','sha256':'1'*64};plan={'metadata':{'original':original,'trajectory':owner.block_order_trajectory(original,schedule)},'schedule':schedule}
+    cp={'trajectory':plan['metadata']['trajectory'],'producer':{'original_plan':binding},'position':owner.train.position(schedule,1),'steps':[{'logical_step':1,'skip_update':False,'order_binding':owner.block_order_step_binding(schedule,0)}]}
+    if bad=='chronological_trajectory':cp['trajectory']=owner.development_trajectory(original)
+    if bad=='wrong_producer':cp['producer']['original_plan']=owner.DEV_RECOVERY_ORIGINAL
+    if bad=='wrong_cursor':cp['position']=owner.train.position(schedule,2)
+    if bad=='wrong_batch':cp['steps'][0]['order_binding']['original_batch_id']=(cp['steps'][0]['order_binding']['original_batch_id']+1)%216
+    if bad=='permutation':schedule['permutations'][0][0]=schedule['permutations'][0][1]
+    called=[];monkeypatch.setattr(owner.train,'strict_restore',lambda *a,**k:called.append(True))
+    with pytest.raises(ValueError):owner.block_order_strict_restore(None,None,cp,plan,binding,1,{}, {})
+    assert not called
+
+
+@pytest.mark.parametrize('bad',(False,True))
+def test_block_order_INITIAL_reuse_is_named_and_factory_bound(monkeypatch,bad):
+    p=original_fit();lineage={'original_INITIAL_score':{'path':'/old/INITIAL.json','sha256':'1'*64},'original_INITIAL_logits':{'path':'/old/INITIAL.npz','sha256':'2'*64}}
+    score={'phase':'INITIAL','rows':20727,'logits':lineage['original_INITIAL_logits'],'canonical_scores':{'same':1},'constant_scores':{'factory':{'same':1}},'truth_sha256':'truth'}
+    cold={'status':'COMPLETE_V3_DEVELOPMENT_COLD','bookends':{'all':True},'report':{'cold_replay_bit_exact':True,'full_cursor3_proof':dict.fromkeys(range(10),'proof'),'technical_weights_never_fit_initializer':True}}
+    if bad:score['canonical_scores']={'different':True}
+    monkeypatch.setattr(owner,'read',lambda binding:cold if binding==p['inputs']['development_cold_result']else score)
+    if bad:
+        with pytest.raises(ValueError):owner.block_order_initial_reuse_metadata(p,lineage)
+    else:
+        proof=owner.block_order_initial_reuse_metadata(p,lineage)
+        assert proof['INITIAL_score']==lineage['original_INITIAL_score']and proof['INITIAL_logits']==lineage['original_INITIAL_logits']
+        assert proof['factory_model_sha256']==p['initial_reference']['model_state_sha256']and proof['factory_full_RNG_sha256']==p['initial_reference']['rng_sha256']
+        assert proof['new_order_cold_resume_parity']=='NOT_MEASURED'
+
+
+@pytest.mark.parametrize('truth_matches',(False,True))
+def test_block_order_full_synthetic_loop_keeps_batches_scoring_and_factory(monkeypatch,tmp_path,truth_matches):
+    import numpy as np
+    plan0,binding,runtime,events,_,_=fake_recovery(monkeypatch,'reference')
+    original=plan0['metadata']['original'];batches=owner.core.all_score_batches(np.arange(20727,dtype=np.int64),96);source=np.arange(20727,dtype=np.int64);issues=source+100
+    schedule={k:copy.deepcopy(v)for k,v in original['schedule'].items()if k!='contract_sha256'}
+    schedule['batch_source_rows_sha256']=[owner.core.digest(source[take])for take in batches]
+    schedule['batch_issue_ns_sha256']=[owner.core.digest(issues[take])for take in batches]
+    original['schedule']=owner.train.seal(schedule);order=owner.block_order_schedule(original)
+    context={'normalization':{},'input_binding':{},'prior':{},'target_contract':original['metadata']['target_contract'],'batches':batches,'source_rows':source,'truth':{'issue_ns':issues},'truth_sha256':'synthetic-truth','schedule':original['schedule']}
+    monkeypatch.setattr(owner,'development_nn_context',lambda p:context)
+    limits=owner.development_limits('fit');limits.update(model_forwards=597,backbone_forwards=597,readout_forwards=597,logit_archive_writes=2,logit_archive_readbacks=2)
+    plan={'metadata':{'original':original},'schedule':order,'limits':limits,'checkpoint_cursors':[1,432],'panel_indices':[0,107,214],'execution':original['execution'],'initial_reuse':{'INITIAL_score':plan0['inputs']['original_INITIAL_score'],'truth_sha256':'synthetic-truth'if truth_matches else'wrong-truth'}}
+    if not truth_matches:
+        with pytest.raises(ValueError,match='ACTUAL_INITIAL_TRUTH'):owner.block_order_physical(plan,binding,tmp_path,runtime)
+        assert not events['steps']and not events['checkpoints']and not events['loads']
+        return
+    report=owner.block_order_physical(plan,binding,tmp_path,runtime)
+    assert report['counts']==limits and not events['loads']
+    assert len(events['steps'])==432 and events['scores']==['PASS1','PASS2']
+    for j,(index,take)in enumerate(events['steps']):
+        assert index==j and np.array_equal(take,batches[order['logical_original_batch_ids'][j]])
+    assert [name for name,_ in events['checkpoints']]==['CURSOR001.pt','FINAL.pt']
+    assert report['checkpoint_order_cursors']['1']['next_original_batch']['original_batch_id']==order['logical_original_batch_ids'][1]
+    assert report['checkpoint_order_cursors']['432']['next_original_batch']is None
+    assert report['scores']['INITIAL']==plan0['inputs']['original_INITIAL_score']
+    initial=events['json'][0][1];assert initial['new_INITIAL_forwards']==initial['old_weight_checkpoint_loads']==0
+    assert report['new_order_cold_resume_parity']=='NOT_MEASURED'
+
+
+@pytest.mark.parametrize('admitted',(False,True))
+@pytest.mark.parametrize('field',('remaining_invocations','execution_authorized','training_authorized'))
+def test_block_order_typed_gate_and_only_exact_training_flags(admitted,field):
+    binding={'path':'/new/order.json','sha256':'1'*64};gate=owner.block_order_gate(binding,admitted);owner.block_order_require_gate(gate,binding,admitted)
+    p={k:(admitted and k in owner.DEV_FLAGS[:2])for k in owner.DEV_FLAGS};owner.block_order_flags(p,admitted)
+    p['full_epoch_training_allowed']=True
+    with pytest.raises(ValueError):owner.block_order_flags(p,admitted)
+    gate[field]=bool(gate[field])if field=='remaining_invocations'else int(gate[field])
+    with pytest.raises(ValueError):owner.block_order_require_gate(gate,binding,admitted)

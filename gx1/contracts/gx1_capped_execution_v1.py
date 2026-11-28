@@ -2990,6 +2990,7 @@ _V3_DIRECTION_GRADIENT_SHELL_ADDITIONS = (('NATIVE_V3_RECOVERY=false\n', 'before
 
 
 def _native_v3_direction_gradient_without_additions(current):
+    current=_native_v3_direction_block_order_without_additions(current)
     require=_native_v3_development_require;names=('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')
     current=dict(current);begin='# BEGIN GX1 V3 DIRECTION GRADIENT GUARDS 20261128 001\n';end='# END GX1 V3 DIRECTION GRADIENT GUARDS 20261128 001\n\n'
     text=current[names[0]];require(text.count(begin)==text.count(end)==1,'ONE_DIRECTION_GRADIENT_BLOCK')
@@ -3107,6 +3108,142 @@ def require_native_v3_direction_gradient_execution(*,plan_sha256):
         'training_authority_granted':False,'optimizer_authority_granted':False}
 
 # END GX1 V3 DIRECTION GRADIENT GUARDS 20261128 001
+
+# BEGIN GX1 V3 DIRECTION BLOCK ORDER GUARDS 20261128 001
+_V3_DIRECTION_BLOCK_ORDER_NAME = 'NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_BLOCK_ORDER_20261128_001'
+_V3_DIRECTION_BLOCK_ORDER_PARENT = '6297d53e28e7362a9561c8cc6ef26c9122f1822c'
+_V3_DIRECTION_BLOCK_ORDER_SHELL_ADDITIONS = (('NATIVE_V3_DIRECTION_GRADIENT=false\n', 'before', 'NATIVE_V3_DIRECTION_BLOCK_ORDER=false\nNATIVE_V3_DIRECTION_BLOCK_ORDER_PLAN_SHA256=\n'), ('# BEGIN GX1 V3 DIRECTION GRADIENT ROUTE 20261128 001\n', 'before', '# BEGIN GX1 V3 DIRECTION BLOCK ORDER ROUTE 20261128 001\nmatches_bound_native_v3_direction_block_order() {\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" \\\n    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == gx1.audit.native_provider_hlc_learning_v1 \\\n    && "$4" == --v3-direction-block-order-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_BLOCK_ORDER_20261128_001.json"\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" \\\n    && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\nconfigure_native_v3_direction_block_order() {\n  matches_bound_native_v3_direction_block_order "$@" || { echo \'FATAL: exact V3 block order CLI/plan required\' >&2; exit 75; }\n  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G && "$SWAP" == 512M \\\n    && "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo \'FATAL: V3 block order requires canonical trainer containment\' >&2; exit 75;\n  }\n  local output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_BLOCK_ORDER_20261128_001"\n  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \\\n    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {\n    echo \'FATAL: V3 block order output must be fresh and canonical\' >&2; exit 75;\n  }\n  NATIVE_V3_DIRECTION_BLOCK_ORDER=true\n  NATIVE_V3_DIRECTION_BLOCK_ORDER_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$output"\n  TRAINER_MAX_WALL_SECONDS=5400\n  TRAINER_MODEL_MAX_WALL_SECONDS=5370\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 V3 DIRECTION BLOCK ORDER ROUTE 20261128 001\n\n'), ('# BEGIN GX1 V3 DIRECTION GRADIENT DISPATCH 20261128 001\n', 'before', '# BEGIN GX1 V3 DIRECTION BLOCK ORDER DISPATCH 20261128 001\n  local direction_block_order_arg\n  for direction_block_order_arg in "$@"; do\n    case "$direction_block_order_arg" in\n      --v3-direction-block-order-plan-sha256|--v3-direction-block-order-plan-sha256=*) configure_native_v3_direction_block_order "$@"; return ;;\n    esac\n  done\n# END GX1 V3 DIRECTION BLOCK ORDER DISPATCH 20261128 001\n'), ('  --setenv=GX1_NATIVE_V3_DIRECTION_GRADIENT="$NATIVE_V3_DIRECTION_GRADIENT" \\\n', 'before', '  --setenv=GX1_NATIVE_V3_DIRECTION_BLOCK_ORDER="$NATIVE_V3_DIRECTION_BLOCK_ORDER" \\\n  --setenv=GX1_NATIVE_V3_DIRECTION_BLOCK_ORDER_PLAN_SHA256="$NATIVE_V3_DIRECTION_BLOCK_ORDER_PLAN_SHA256" \\\n'))
+
+def _native_v3_direction_block_order_without_additions(current):
+    require=_native_v3_development_require;names=('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')
+    current=dict(current);begin='# BEGIN GX1 V3 DIRECTION BLOCK ORDER GUARDS 20261128 001\n';end='# END GX1 V3 DIRECTION BLOCK ORDER GUARDS 20261128 001\n\n'
+    text=current[names[0]];require(text.count(begin)==text.count(end)==1,'ONE_DIRECTION_BLOCK_ORDER_BLOCK')
+    first,tail=text.split(begin);_,last=tail.split(end);text=first+last
+    hook='    current=_native_v3_direction_block_order_without_additions(current)\n'
+    require(text.count(hook)==1,'ONE_DIRECTION_BLOCK_ORDER_BRIDGE_HOOK')
+    current[names[0]]=text.replace(hook,'',1)
+    shell=current[names[1]]
+    for anchor,position,fragment in _V3_DIRECTION_BLOCK_ORDER_SHELL_ADDITIONS:
+        require(position=='before'and shell.count(anchor)==shell.count(fragment)==shell.count(fragment+anchor)==1,'EXACT_DIRECTION_BLOCK_ORDER_SHELL_ADDITION')
+        shell=shell.replace(fragment+anchor,anchor,1)
+    current[names[1]]=shell
+    return current
+
+def native_v3_direction_block_order_source_bridge(producer_hashes,*,producer_commit=_V3_DIRECTION_BLOCK_ORDER_PARENT):
+    import hashlib,subprocess
+    require=_native_v3_development_require;require(producer_commit==_V3_DIRECTION_BLOCK_ORDER_PARENT,'DIRECTION_BLOCK_ORDER_BRIDGE_PARENT')
+    repo=Path(__file__).resolve().parents[2];names=('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')
+    before={n:subprocess.check_output(['git','show',producer_commit+':'+n],cwd=repo).decode()for n in names}
+    original={n:hashlib.sha256(v.encode()).hexdigest()for n,v in before.items()};require(producer_hashes==original,'DIRECTION_BLOCK_ORDER_BRIDGE_PRODUCER_HASHES')
+    current={n:(repo/n).read_text()for n in names}
+    require(_native_v3_direction_block_order_without_additions(current)==before,'DIRECTION_BLOCK_ORDER_UNCHANGED_PREDECESSOR')
+    return {'producer_commit':producer_commit,'checked_guard_owners':2,'old_guard_routes_preserved':True,
+        'old_numeric_resource_environment_function_unchanged':True,'new_order_controlflow_requires_scoped_review':True,
+        'owners':{n:{'original_sha256':original[n],'current_sha256':hashlib.sha256(current[n].encode()).hexdigest()}for n in names}}
+
+
+def _native_v3_direction_block_order_bound_plan(plan_sha256):
+    import hashlib,subprocess
+    require=_native_v3_development_require
+    require(type(plan_sha256)is str and re.fullmatch('[0-9a-f]{64}',plan_sha256)is not None,'DIRECTION_BLOCK_ORDER_PLAN_SHA')
+    repo=Path(__file__).resolve().parents[2];name=_V3_DIRECTION_BLOCK_ORDER_NAME
+    args=['--v3-direction-block-order-plan-sha256',plan_sha256];preflight=sys.argv[-1:]==['--preflight']
+    if preflight:args+=['--preflight']
+    require(Path.cwd().resolve()==repo and Path(sys.argv[0]).resolve()==repo/'gx1/audit/native_provider_hlc_learning_v1.py'
+        and Path(sys.executable).absolute()==repo/'.venv/bin/python'and sys.argv[1:]==args,'DIRECTION_BLOCK_ORDER_EXACT_ARGV')
+    path=repo/'configs/research'/(name+'.json');plan=_native_v3_development_read(path,plan_sha256)
+    output=Path('/home/andre2/GX1_RUNS')/name
+    require(plan.get('schema_version')=='gx1_native_v3_direction_block_order_plan_v1'
+        and plan.get('stage')==name.lower()and plan.get('output_root')==str(output),'DIRECTION_BLOCK_ORDER_PLAN_IDENTITY')
+    require(not output.exists()and not output.is_symlink()and output.parent.is_dir()
+        and not output.parent.is_symlink()and output.parent.resolve()==output.parent,'DIRECTION_BLOCK_ORDER_FRESH_OUTPUT')
+    require(plan.get('source_commit')==subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),'DIRECTION_BLOCK_ORDER_SOURCE_COMMIT')
+    require(plan.get('execution')==_native_v3_development_execution('fit'),'DIRECTION_BLOCK_ORDER_EXACT_EXECUTION')
+    original_ref={'path':str(repo/'configs/research'/(_V3_DEVELOPMENT_NAME+'_FIT_004.json')),
+        'sha256':'ebf7222c9fb403cf0adc26738cc682c088035dc2b2dc2fc5aff603a741660437'}
+    design_ref={'path':str(Path('/home/andre2/GX1_RUNS')/'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'/'V3_DIRECTION_BLOCK_ORDER_DESIGN_20261128_001.json'),
+        'sha256':'573e747a4ebea2f91a228a5853f4f16eb5a7411280dc62832d46a3e43f250942'}
+    require(plan.get('original_plan')==original_ref and plan.get('design')==design_ref,'DIRECTION_BLOCK_ORDER_BOUND_REFS')
+    original=_native_v3_development_read(original_ref['path'],original_ref['sha256'])
+    _native_v3_development_read(design_ref['path'],design_ref['sha256'])
+    require(plan.get('metadata',{}).get('original')==original
+        and plan.get('model_contract')==original.get('model_contract')
+        and plan.get('initial_reference')==original.get('initial_reference')
+        and plan.get('recipe')==original.get('recipe'),'DIRECTION_BLOCK_ORDER_UNCHANGED_FUNCTION_FACTORY_RECIPE')
+    schedule=plan.get('schedule',{});canonical=original['schedule'];permutations=schedule.get('permutations')
+    require(schedule.get('schema_version')=='gx1_native_v3_whole_batch_order_schedule_v1'
+        and schedule.get('canonical_schedule')==canonical and type(permutations)is list and len(permutations)==2
+        and all(type(v)is list and len(v)==216 and all(type(i)is int for i in v)
+            and sorted(v)==list(range(216))for v in permutations),'DIRECTION_BLOCK_ORDER_EXACT_PERMUTATIONS')
+    ids=[i for permutation in permutations for i in permutation]
+    require(schedule.get('logical_original_batch_ids')==ids
+        and all(type(i)is int for i in schedule['logical_original_batch_ids'])
+        and schedule.get('ordered_batch_source_rows_sha256')==[canonical['batch_source_rows_sha256'][i]for i in ids]
+        and schedule.get('ordered_batch_issue_ns_sha256')==[canonical['batch_issue_ns_sha256'][i]for i in ids]
+        and all(type(schedule.get(k))is int and schedule[k]==v for k,v in
+            {'rows':20727,'batch_rows':96,'passes':2,'batches_per_pass':216,'logical_batches':432,'optimizer_updates':432,'skipped_batches':0}.items())
+        and schedule.get('update_flags')==[True]*432 and all(type(v)is bool for v in schedule['update_flags'])
+        and plan.get('metadata',{}).get('trajectory',{}).get('schedule')==schedule,'DIRECTION_BLOCK_ORDER_SOURCE_BOUND_CURSOR')
+    expected=dict(original['limits'])
+    expected.update(model_forwards=597,backbone_forwards=597,readout_forwards=597,
+        logit_archive_writes=2,logit_archive_readbacks=2)
+    limits=plan.get('limits')
+    require(type(limits)is dict and all(type(v)is int for v in limits.values())and limits==expected
+        and plan.get('checkpoint_cursors')==[1,432]and all(type(v)is int for v in plan['checkpoint_cursors'])
+        and plan.get('panel_indices')==[0,107,214]and all(type(v)is int for v in plan['panel_indices']),'DIRECTION_BLOCK_ORDER_EXACT_BUDGET')
+    owners=plan.get('source_owners');require(type(owners)is dict and {'gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh','gx1/audit/native_provider_hlc_learning_v1.py'}<=set(owners),'DIRECTION_BLOCK_ORDER_SOURCE_INVENTORY')
+    for owner,digest in owners.items():
+        p=repo/owner
+        require(type(owner)is str and not Path(owner).is_absolute()and '..'not in Path(owner).parts
+            and p.is_file()and not p.is_symlink()and p.resolve()==p and hashlib.sha256(p.read_bytes()).hexdigest()==digest,'DIRECTION_BLOCK_ORDER_SOURCE_SHA')
+    bridge=plan.get('guard_source_bridge',{});old={n:v['original_sha256']for n,v in bridge.get('owners',{}).items()}
+    require(bridge==native_v3_direction_block_order_source_bridge(old,producer_commit=bridge.get('producer_commit')),'DIRECTION_BLOCK_ORDER_SOURCE_BRIDGE')
+    policy=_native_v3_development_read(repo/'NEXT_RUN_POLICY.json');parent=policy.get(name.lower(),{})
+    flags=('training_enabled','native_training_enabled','native_launch_authorized','full_epoch_training_allowed','full_val_allowed','exit_training_and_evaluation_this_wave')
+    require(all(policy.get(k)is (not preflight and k in flags[:2])for k in flags),'DIRECTION_BLOCK_ORDER_EXACT_FLAGS')
+    require(parent.get('design')==design_ref and type(parent.get('remaining_invocations'))is int
+        and type(parent.get('execution_authorized'))is bool and parent.get('relaunch_allowed')is False
+        and parent.get('training_authorized')is (not preflight)and parent.get('test_authorized')is False
+        and parent.get('spending_authorized')is False,'DIRECTION_BLOCK_ORDER_FIT_SCOPE')
+    for scope in ('native_v3_bounded_development_test_20261127_001','native_v3_fit004_exact_recovery_20261128_001','native_v3_fit004_exact_recovery_20261128_002'):
+        prior=policy.get(scope,{})
+        require(prior.get('execution_authorized')is False and prior.get('active_phase')in(None,'')and prior.get('active_lane')in(None,'')
+            and all(type(v)is dict and v.get('execution_authorized')is False and type(v.get('remaining_invocations'))is int
+                and v['remaining_invocations']==0 for v in prior.get('lane_gates',prior.get('phase_gates',{})).values()),'DIRECTION_BLOCK_ORDER_CONSUMED_ROUTES_CLOSED')
+    diagnostic=policy.get(_V3_DIRECTION_GRADIENT_NAME.lower(),{})
+    require(diagnostic.get('execution_authorized')is False and diagnostic.get('remaining_invocations')==0
+        and type(diagnostic.get('remaining_invocations'))is int and diagnostic.get('training_authorized')is False,'DIRECTION_BLOCK_ORDER_DIAGNOSTIC_CLOSED')
+    if preflight:
+        require(parent['execution_authorized']is False and parent['remaining_invocations']==0,'DIRECTION_BLOCK_ORDER_PREFLIGHT_CLOSED')
+    else:
+        require(parent.get('status')=='ADMITTED_EXACT_V3_DIRECTION_BLOCK_ORDER'
+            and parent.get('plan')=={'path':str(path),'sha256':plan_sha256}
+            and parent['execution_authorized']is True and parent['remaining_invocations']==1,'DIRECTION_BLOCK_ORDER_ONE_USE_GATE')
+    return {'plan':{'path':str(path),'sha256':plan_sha256},'output_root':str(output),'preflight':preflight,'execution':plan['execution']}
+
+def _native_v3_direction_block_order_environment(plan_sha256):
+    require=_native_v3_development_require;prefix='GX1_NATIVE_V3_DIRECTION_BLOCK_ORDER';execution=_native_v3_development_execution('fit')
+    expected={prefix:'true',prefix+'_PLAN_SHA256':plan_sha256,
+        'GX1_POWER_BENCHMARK_SCOPE_JSON':'','GX1_POWER_BENCHMARK_SCOPE_SHA256':''}
+    require(all(not k.startswith(prefix)or k in expected for k in os.environ),'UNKNOWN_DIRECTION_BLOCK_ORDER_ENV')
+    require(all(v in('false','')for k,v in os.environ.items()if k.startswith('GX1_NATIVE_')and not k.startswith(prefix)),'DIRECTION_BLOCK_ORDER_MIXED_LEGACY_ENV')
+    fields={'MAX_WALL_SECONDS':execution['outer_seconds'],'MODEL_MAX_WALL_SECONDS':execution['internal_seconds'],
+        'ATTENDED_STAGE_REQUIRED':'false','GPU_INDEX':0,'GPU_MAX_POWER_LIMIT_W':250,'GPU_MAX_POWER_DRAW_W':250,
+        'GPU_MAX_CORE_TEMP_C':75,'GPU_MAX_MEMORY_TEMP_C':80,'GPU_MAX_MEMORY_USED_MIB':12288,
+        'GPU_MONITOR_INTERVAL_SECONDS':1,'CPU_MAX_TEMP_C':80,'CPU_MAX_PACKAGE_POWER_W':125,
+        'HOST_MIN_AVAILABLE_MEMORY_BYTES':8589934592,'HOST_MIN_COMMIT_HEADROOM_BYTES':8589934592}
+    expected.update({'GX1_TRAINER_'+k:str(v)for k,v in fields.items()})
+    require(all(os.environ.get(k)==v for k,v in expected.items()),'DIRECTION_BLOCK_ORDER_EXACT_RESOURCE_ENV')
+    return require_guarded_cuda_trainer_execution()
+
+def require_native_v3_direction_block_order_execution(*,plan_sha256):
+    # Resource containment only; the leaf owns exact claim and scoped fit admission.
+    bound=_native_v3_direction_block_order_bound_plan(plan_sha256)
+    proof=_native_v3_direction_block_order_environment(plan_sha256)
+    return {**proof,**bound,'kind':'provider_hlc_v3_direction_block_order','resource_proof_only':True,
+        'training_authority_granted':False,'optimizer_authority_granted':False}
+
+# END GX1 V3 DIRECTION BLOCK ORDER GUARDS 20261128 001
 
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")
