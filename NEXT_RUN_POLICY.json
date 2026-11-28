@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T04:08:37.189408+00:00",
+  "observed_utc": "2026-11-28T04:58:59.611382+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "SOURCE_QUALIFIED_REFERENCE_PLAN_PENDING",
+  "status": "V3_ISSUE_MIX_TRAIN_FAIL_TRAIN_EVAL_GAP_SOURCE_DESIGN_ONLY",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Commit qualified issue-membership source, prepare exact reference plan/current runtime, guarded metadata preflight and SOURCE backup; then one exact new reference/cold/freshfit protocol, no consumed plan relaunch.",
+  "next_action": "Qualify one frozen-FINAL full-cohort train/eval mode-gap diagnostic using unchanged all5TF/8families/known-year masks: one saved-EVAL parity pass plus four fixed sequential no_grad TRAIN draws,405forwards0updates. Source preparation only; new exact read-only NN plan/guards/admission/backup required. No dropout/LR/routing/epoch/calibration fix or new fit is admitted.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -6798,7 +6798,7 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "Current V3 all-TF None20727-row TRAIN study completed chronological and whole-batch-shuffled logical432-update trajectories with exact genuine-C1 recovery. Locked PASS2 proper-score TF counts2/5 and4/5; both overallFAIL with year stabilityFAIL. CPU stored-readout attribution/moments measured without new forecasts/updates. All genuine families/5TF preserved; no later generalization/economics. Current authority: native_all_tf_provider_hlc_v3_block_order_recovery_20261128_001.",
+    "current_evidence_scope": "Current V3 None20727-row TRAIN study completed chronological, whole-batch-shuffled and issue-mixed432-update trajectories. LockedPASS2 pooledproper2/5,4/5,4/5; alloverallFAIL/stabilityFAIL. Issue-mix newD1AUC0.614417/all5yearsproperPASS, butM5properFAIL and nearallDOWNargmax. All8families/5TF preserved; no latergeneralization/economics. Authority:native_all_tf_provider_hlc_v3_direction_issue_mix_20261128_001",
     "component_learning_measured": true,
     "component_learning_result": "V2_ACTIVITY_TRAIN_GAINS_M5_M15_H1_CONDITIONAL_DIRECTION_FAIL_ALL5",
     "primary_entry_quality_qualified": false,
@@ -7208,7 +7208,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TA_HISTORY_EXPANSION_20261120_003/LARGER_YEAR_TRAINING_READY_20261120.json",
       "sha256": "6e13807b6bfc62be1bb5669e7bc2369267b0cce0e1fd8b09d8489ba189b85862"
     },
-    "decision_scope": "Current V3 TRAIN learning measured but not qualified: locked all5/stability criterionFAIL. Technical parity,4/5TF improvement and TRAIN AUC above0.5 do not establish predictive edge or promotion.",
+    "decision_scope": "Current V3 TRAIN learning measured but not qualified under unchangedall5/year criteria. D1TRAINimprovement and technicalreplay are not predictive edge or promotion.",
     "latest_current_function_main_is_historical": true,
     "current_function_main_started": false,
     "year_scope_baseline_qualified": true,
@@ -46798,7 +46798,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_V3_ORDER_C1_RECOVERY_RECOVERY",
+  "training_enabled_scope": "CLOSED_V3_ISSUE_MIX_FIT",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -110347,19 +110347,19 @@
     }
   },
   "native_all_tf_provider_hlc_v3_direction_issue_mix_20261128_001": {
-    "status": "SOURCE_QUALIFIED_REFERENCE_PLAN_PENDING",
+    "status": "CLOSED_CONSUMED_COMPLETE_TRAIN_FAIL_CPU_REVIEW_COMPLETE",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_DESIGN_20261128_001.json",
       "sha256": "93a59021614b48f67a0b71e66c29926e3fc302d2f4bcf6187e9f8bdf7c0d75d2"
     },
-    "source_preparation_authorized": true,
+    "source_preparation_authorized": false,
     "execution_authorized": false,
     "training_authorized": false,
     "remaining_invocations": 0,
     "relaunch_allowed": false,
     "test_authorized": false,
     "spending_authorized": false,
-    "next_action": "Commit qualified issue-membership source, prepare exact reference plan/current runtime, guarded metadata preflight and SOURCE backup; then one exact new reference/cold/freshfit protocol, no consumed plan relaunch.",
+    "next_action": "Completed/consumed issue-mix study; next source-only diagnostic is owned by native_all_tf_provider_hlc_v3_train_eval_gap_20261128_001. No relaunch.",
     "source_qualification": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_SOURCE_QUALIFICATION_20261128_001.json",
       "sha256": "f24d54fec2c37f5707c07f7979954bbe9a9e1cba93e27401d5b30de721ba5154"
@@ -110374,36 +110374,159 @@
     },
     "active_lane": null,
     "main_fit_authorized": false,
-    "cold_parity_qualified": false,
-    "fit_complete": false,
+    "cold_parity_qualified": true,
+    "fit_complete": true,
     "lane_gates": {
       "reference": {
-        "status": "NOT_PREPARED_CLOSED",
-        "plan": null,
+        "status": "CLOSED_CONSUMED_COMPLETE",
+        "plan": {
+          "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_REFERENCE.json",
+          "sha256": "144d66eb761dadc500a28489b216970d83065b82efd40e12f3ce3eb1bd5f4e17"
+        },
         "execution_authorized": false,
+        "remaining_invocations": 0,
+        "relaunch_allowed": false,
         "training_authorized": false,
         "test_authorized": false,
-        "remaining_invocations": 0,
-        "relaunch_allowed": false
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_reference/RESULT.json",
+          "sha256": "14bf931da557d3bd8a9bc3df17d7b9762bc92634e89afa6f12b4e28f8e76b40d"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_reference/TERMINAL.json",
+          "sha256": "d6c5086439098738705e23019668c90d5717fbf9b9d71f47850790d0758c9b74"
+        },
+        "acceptance": {
+          "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_REFERENCE_ACCEPTANCE_20261128_001.json",
+          "sha256": "cb30bda25a6c0902d785b55b07cfd8b13a98dd7c7a94ba4f688d7acbc340a946"
+        }
       },
       "cold": {
-        "status": "NOT_PREPARED_CLOSED",
-        "plan": null,
+        "status": "CLOSED_CONSUMED_COMPLETE",
+        "plan": {
+          "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_COLD.json",
+          "sha256": "277f7a533b22b99b95a8533a45b012e49cef387bc97e8bf3e95858116e7d2bfb"
+        },
         "execution_authorized": false,
+        "remaining_invocations": 0,
+        "relaunch_allowed": false,
         "training_authorized": false,
         "test_authorized": false,
-        "remaining_invocations": 0,
-        "relaunch_allowed": false
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_cold/RESULT.json",
+          "sha256": "8ed625e5d82bd4d2600862f98243ed6f9a200a2d2bb0f12a59da8e606d1f3ccf"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_cold/TERMINAL.json",
+          "sha256": "1f15b894dc9ac894c85b8de868bac4106bd9976ee881ddb1637a51f899ea16a3"
+        },
+        "acceptance": {
+          "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_COLD_ACCEPTANCE_20261128_001.json",
+          "sha256": "4117e61d61cf463c87fe39bdd862d4926dfdfbf096757694e9bb222f9657ea80"
+        }
       },
       "fit": {
-        "status": "NOT_PREPARED_CLOSED",
-        "plan": null,
+        "status": "CLOSED_CONSUMED_COMPLETE",
+        "plan": {
+          "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_FIT.json",
+          "sha256": "25ca4cc9d780f5d16376a765ec58f6d84c58a1f16f55d48033d11168fda2d4a8"
+        },
         "execution_authorized": false,
+        "remaining_invocations": 0,
+        "relaunch_allowed": false,
         "training_authorized": false,
         "test_authorized": false,
-        "remaining_invocations": 0,
-        "relaunch_allowed": false
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_fit/RESULT.json",
+          "sha256": "2a1f8952c54a75459b7ca6fda0e0ff7af63e6a6f7f0b49cdc32d33da7e57d47c"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_fit/TERMINAL.json",
+          "sha256": "e9d5f5e95b6c78cfbf66f62bb389f635271a1f5b6f4131e1f96d7a541296ca12"
+        },
+        "acceptance": {
+          "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_FIT_ACCEPTANCE_20261128_001.json",
+          "sha256": "47b73b81eceef7ece8c93fe8f71530c2afb85caf25e82d17c1a219e902945308"
+        }
       }
+    },
+    "reference_preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_REFERENCE_PREFLIGHT_20261128_001_001.json",
+      "sha256": "9b70183eb34845c72612aa328a88668b93b82876206cb7eeea7311cf009d88df"
+    },
+    "source_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_SOURCE_BACKUP_20261128_001.json",
+      "sha256": "4eea5b8fbbe4475ac3e79b337b7071f9dbc2f0a1dc23568e5beb9e7f272ae77f"
+    },
+    "cold_preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_COLD_PREFLIGHT_20261128_001_001.json",
+      "sha256": "0321ed6fb64ed922a3b14322a154a63a5a19c2292c3360d15fcd68128883a109"
+    },
+    "reference_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_REFERENCE_BACKUP_20261128_001.json",
+      "sha256": "e38b9d5b40ca4ae281f724da7ce771d6f84b06b2d4b5066497e275443670a36c"
+    },
+    "fit_preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_FIT_PREFLIGHT_20261128_001_001.json",
+      "sha256": "a2685a8ba58a102347a628e86c23678bdad32dabc6bb71ab41d6aec399ef15ac"
+    },
+    "qualified_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_QUALIFIED_BACKUP_20261128_001.json",
+      "sha256": "143ba7a07a6b4f0facad545ff0ae81d0ea77947717b4f0b1b2a305f6ffa745c9"
+    },
+    "TRAIN_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_TRAIN_REVIEW_20261128_001.json",
+      "sha256": "f507792416058901c29b810b7cf6afff931ae4a18bd3fc2a92b124f27e1d466e"
+    },
+    "candidate_TRAIN_comparison_verdict": "FAIL",
+    "learning_qualified": false,
+    "later_generalization": "NOT_MEASURED",
+    "economic_edge": "UNKNOWN",
+    "CPU_attribution_status": "COMPLETE_NEW_ARM_ONLY_NO_NN",
+    "PASS1_PASS2_diagnostic": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ISSUE_MIX_PASS_DIAGNOSTIC_20261128_001.json",
+      "sha256": "47922982b03d55e7d563e4e67ea591dacfbcb2eb032b963ea8109fcdc5c45c3f"
+    },
+    "train_eval_source_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ISSUE_MIX_TRAIN_EVAL_SOURCE_REVIEW_20261128_001.json",
+      "sha256": "40344c8d965d403ceab8ff4d69c3d8f4c5fd78b071b532ea6969b1efa9306c81"
+    },
+    "CPU_readout_attribution": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_ISSUE_MIX_READOUT_ATTRIBUTION_20261128_001.json",
+      "sha256": "293ac009142542aca4ebb800f9959b4953b9a9e16a2a377c9ecd11c93fccf27b"
+    },
+    "CPU_findings": {
+      "M5_known_mean_logit_change_vs_whole_batch": -0.13016799440710802,
+      "M5_native_bias_change": -0.0007596611976623535,
+      "M5_native_bias_fraction_of_additive_logit_change": 0.005836006009944877,
+      "M5_remaining_residual_scope": "Representation/projection plus FP32 rounding; not separately identified or probability-additive causes.",
+      "conditional_direct_bias_probability_change_bound": 0.00018991529941558838,
+      "all10_side_parameter_slots_authenticated": true,
+      "new_NN_forwards": 0,
+      "native_bias_patch_or_optimal_update_justified": false
+    },
+    "final_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_FINAL_BACKUP_20261128_001.json",
+      "sha256": "4d5643a8ae6b04355e6347cf262125067151bcf1d8d2a9ad1e98ae17baedc248"
+    }
+  },
+  "native_all_tf_provider_hlc_v3_train_eval_gap_20261128_001": {
+    "status": "SOURCE_DESIGN_ONLY_NOT_EXECUTION_ADMITTED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_DESIGN_20261128_002.json",
+      "sha256": "78ef8219ea16005691736721c7a26cc629868011cd30d2e2d5433d4b2206403c"
+    },
+    "source_preparation_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "test_authorized": false,
+    "spending_authorized": false,
+    "next_action": "Qualify one frozen-FINAL full-cohort train/eval mode-gap diagnostic using unchanged all5TF/8families/known-year masks: one saved-EVAL parity pass plus four fixed sequential no_grad TRAIN draws,405forwards0updates. Source preparation only; new exact read-only NN plan/guards/admission/backup required. No dropout/LR/routing/epoch/calibration fix or new fit is admitted.",
+    "superseded_unexecuted_design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_DESIGN_20261128_001.json",
+      "sha256": "53a1470bbd8f882438439deca2fe179fd1888a927c24583750b103df46a027c7"
     }
   }
 }
