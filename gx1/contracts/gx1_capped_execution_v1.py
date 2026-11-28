@@ -3406,6 +3406,7 @@ def _native_v3_issue_mix_execution(lane):
 
 
 def _native_v3_issue_mix_without_additions(current):
+    current=_native_v3_train_eval_gap_without_additions(current)
     require = _native_v3_development_require
     names = ('gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh')
     current = dict(current)
@@ -3644,6 +3645,168 @@ def require_native_v3_issue_mix_execution(*, plan_sha256, lane):
             'training_authority_granted': False, 'optimizer_authority_granted': False}
 
 # END GX1 V3 ISSUE MIX GUARDS 20261128 001
+
+# BEGIN GX1 V3 TRAIN EVAL GAP GUARDS 20261128 001
+_V3_TRAIN_EVAL_GAP_NAME = 'NATIVE_ALL_TF_PROVIDER_HLC_V3_TRAIN_EVAL_GAP_20261128_001'
+_V3_TRAIN_EVAL_GAP_PARENT = '60b81b2535aea22dc7cd5ba3a08e3a9f2258a6d3'
+_V3_TRAIN_EVAL_GAP_PROFILE = 'gx1_native_provider_hlc_v3_train_eval_gap_trainer20g_v1'
+_V3_TRAIN_EVAL_GAP_SHELL_ADDITIONS = (('NATIVE_V3_ISSUE_MIX=false\n', 'before', 'NATIVE_V3_TRAIN_EVAL_GAP=false\nNATIVE_V3_TRAIN_EVAL_GAP_PLAN_SHA256=\n'), ('# BEGIN GX1 V3 ISSUE MIX ROUTE 20261128 001\n', 'before', '# BEGIN GX1 V3 TRAIN EVAL GAP ROUTE 20261128 001\nmatches_bound_native_v3_train_eval_gap() {\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" \\\n    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == gx1.audit.native_provider_hlc_learning_v1 \\\n    && "$4" == --v3-train-eval-gap-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_TRAIN_EVAL_GAP_20261128_001.json"\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" \\\n    && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\nconfigure_native_v3_train_eval_gap() {\n  matches_bound_native_v3_train_eval_gap "$@" || { echo \'FATAL: exact V3 train/eval gap diagnostic CLI/plan required\' >&2; exit 75; }\n  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G && "$SWAP" == 512M \\\n    && "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo \'FATAL: V3 train/eval gap diagnostic requires canonical trainer containment\' >&2; exit 75;\n  }\n  local output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_TRAIN_EVAL_GAP_20261128_001"\n  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \\\n    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {\n    echo \'FATAL: V3 train/eval gap diagnostic output must be fresh and canonical\' >&2; exit 75;\n  }\n  NATIVE_V3_TRAIN_EVAL_GAP=true\n  NATIVE_V3_TRAIN_EVAL_GAP_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$output"\n  TRAINER_MAX_WALL_SECONDS=1800\n  TRAINER_MODEL_MAX_WALL_SECONDS=1770\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 V3 TRAIN EVAL GAP ROUTE 20261128 001\n\n'), ('# BEGIN GX1 V3 ISSUE MIX DISPATCH 20261128 001\n', 'before', '# BEGIN GX1 V3 TRAIN EVAL GAP DISPATCH 20261128 001\n  local train_eval_gap_arg\n  for train_eval_gap_arg in "$@"; do\n    case "$train_eval_gap_arg" in\n      --v3-train-eval-gap-plan-sha256|--v3-train-eval-gap-plan-sha256=*) configure_native_v3_train_eval_gap "$@"; return ;;\n    esac\n  done\n# END GX1 V3 TRAIN EVAL GAP DISPATCH 20261128 001\n'), ('  --setenv=GX1_NATIVE_V3_ISSUE_MIX="$NATIVE_V3_ISSUE_MIX" \\\n', 'before', '  --setenv=GX1_NATIVE_V3_TRAIN_EVAL_GAP="$NATIVE_V3_TRAIN_EVAL_GAP" \\\n  --setenv=GX1_NATIVE_V3_TRAIN_EVAL_GAP_PLAN_SHA256="$NATIVE_V3_TRAIN_EVAL_GAP_PLAN_SHA256" \\\n'))
+
+
+def _native_v3_train_eval_gap_without_additions(current):
+    require=_native_v3_development_require;names=('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')
+    current=dict(current);begin='# BEGIN GX1 V3 TRAIN EVAL GAP GUARDS 20261128 001\n';end='# END GX1 V3 TRAIN EVAL GAP GUARDS 20261128 001\n\n'
+    text=current[names[0]];require(text.count(begin)==text.count(end)==1,'ONE_TRAIN_EVAL_GAP_BLOCK')
+    first,tail=text.split(begin);_,last=tail.split(end);text=first+last
+    hook='    current=_native_v3_train_eval_gap_without_additions(current)\n'
+    require(text.count(hook)==1,'ONE_TRAIN_EVAL_GAP_BRIDGE_HOOK')
+    current[names[0]]=text.replace(hook,'',1)
+    shell=current[names[1]]
+    for anchor,position,fragment in _V3_TRAIN_EVAL_GAP_SHELL_ADDITIONS:
+        require(position=='before'and shell.count(anchor)==shell.count(fragment)==shell.count(fragment+anchor)==1,'EXACT_TRAIN_EVAL_GAP_SHELL_ADDITION')
+        shell=shell.replace(fragment+anchor,anchor,1)
+    current[names[1]]=shell
+    return current
+
+def native_v3_train_eval_gap_source_bridge(producer_hashes,*,producer_commit=_V3_TRAIN_EVAL_GAP_PARENT):
+    import hashlib,subprocess
+    require=_native_v3_development_require;require(producer_commit==_V3_TRAIN_EVAL_GAP_PARENT,'TRAIN_EVAL_GAP_BRIDGE_PARENT')
+    repo=Path(__file__).resolve().parents[2];names=('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')
+    before={n:subprocess.check_output(['git','show',producer_commit+':'+n],cwd=repo).decode()for n in names}
+    original={n:hashlib.sha256(v.encode()).hexdigest()for n,v in before.items()};require(producer_hashes==original,'TRAIN_EVAL_GAP_BRIDGE_PRODUCER_HASHES')
+    current={n:(repo/n).read_text()for n in names}
+    require(_native_v3_train_eval_gap_without_additions(current)==before,'TRAIN_EVAL_GAP_UNCHANGED_PREDECESSOR')
+    return {'producer_commit':producer_commit,'checked_guard_owners':2,'old_guard_routes_preserved':True,
+        'old_numeric_resource_environment_function_unchanged':True,'new_diagnostic_controlflow_requires_scoped_review':True,
+        'owners':{n:{'original_sha256':original[n],'current_sha256':hashlib.sha256(current[n].encode()).hexdigest()}for n in names}}
+
+def _native_v3_train_eval_gap_bound_plan(plan_sha256):
+    import hashlib, subprocess
+    require = _native_v3_development_require
+    require(type(plan_sha256) is str and re.fullmatch('[0-9a-f]{64}', plan_sha256) is not None, 'TRAIN_EVAL_GAP_PLAN_SHA')
+    repo = Path(__file__).resolve().parents[2]; name = _V3_TRAIN_EVAL_GAP_NAME
+    args = ['--v3-train-eval-gap-plan-sha256', plan_sha256]; preflight = sys.argv[-1:] == ['--preflight']
+    if preflight: args += ['--preflight']
+    require(Path.cwd().resolve() == repo and Path(sys.argv[0]).resolve() == repo / 'gx1/audit/native_provider_hlc_learning_v1.py'
+            and Path(sys.executable).absolute() == repo / '.venv/bin/python' and sys.argv[1:] == args, 'TRAIN_EVAL_GAP_EXACT_ARGV')
+    path = repo / 'configs/research' / (name + '.json'); plan = _native_v3_development_read(path, plan_sha256)
+    output = Path('/home/andre2/GX1_RUNS') / name
+    require(plan.get('schema_version') == 'gx1_native_v3_train_eval_gap_plan_v1'
+            and plan.get('stage') == name.lower() and plan.get('output_root') == str(output), 'TRAIN_EVAL_GAP_PLAN_IDENTITY')
+    require(not output.exists() and not output.is_symlink() and output.parent.is_dir()
+            and not output.parent.is_symlink() and output.parent.resolve() == output.parent, 'TRAIN_EVAL_GAP_FRESH_OUTPUT')
+    require(plan.get('source_commit') == subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(), 'TRAIN_EVAL_GAP_SOURCE_COMMIT')
+    require(plan.get('execution') == _native_v3_development_execution('warm')
+            and plan.get('execution_profile') == _V3_TRAIN_EVAL_GAP_PROFILE, 'TRAIN_EVAL_GAP_EXACT_EXECUTION')
+    evidence = Path('/home/andre2/GX1_RUNS') / 'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'
+    design_ref = {'path': str(evidence / 'V3_TRAIN_EVAL_GAP_DESIGN_20261128_003.json'),
+                  'sha256': 'eb0f66e2e1454f3f0f56e10016be039d2cef56f421556a2363f5db461f34a000'}
+    original_ref = {'path': str(repo / 'configs/research' / (_V3_ISSUE_MIX_NAME + '_FIT.json')),
+                    'sha256': '25ca4cc9d780f5d16376a765ec58f6d84c58a1f16f55d48033d11168fda2d4a8'}
+    final_root = Path('/home/andre2/GX1_RUNS') / (_V3_ISSUE_MIX_NAME + '_fit')
+    receipt_ref = {'path': str(final_root / 'FINAL.json'), 'sha256': '1b67d9e51e211480c168b0eae05e5c1677e804e4e4d58e7b9bb1fb619271884d'}
+    require(plan.get('original_plan') == original_ref and plan.get('checkpoint_receipt') == receipt_ref
+            and plan.get('design') == design_ref, 'TRAIN_EVAL_GAP_BOUND_REFS')
+    design = _native_v3_development_read(design_ref['path'], design_ref['sha256'])
+    producer = _native_v3_development_read(original_ref['path'], original_ref['sha256'])
+    receipt = _native_v3_development_read(receipt_ref['path'], receipt_ref['sha256'])
+    original = producer.get('metadata', {}).get('original')
+    require(type(original) is dict and type(receipt.get('logical_cursor')) is int
+            and type(receipt.get('optimizer_updates')) is int and receipt['logical_cursor'] == receipt['optimizer_updates'] == 432
+            and receipt.get('producer_lane') == 'fit' and receipt.get('original_plan') == receipt.get('execution_plan') == original_ref
+            and receipt.get('checkpoint') == design.get('frozen_FINAL')
+            and design.get('producer_fit_plan') == original_ref and design.get('frozen_FINAL_receipt') == receipt_ref
+            and plan.get('metadata', {}).get('original') == original and plan.get('metadata', {}).get('producer') == producer
+            and plan.get('metadata', {}).get('receipt') == receipt
+            and plan.get('metadata', {}).get('trajectory') == producer.get('metadata', {}).get('trajectory')
+            and plan.get('model_contract') == producer.get('model_contract') and plan.get('recipe') == producer.get('recipe')
+            and plan.get('physical_input_identity') == producer.get('physical_input_identity'), 'TRAIN_EVAL_GAP_FINAL_ONLY')
+    inputs = plan.get('inputs', {})
+    require(all(inputs.get(k) == value for k, value in {
+        'design': design_ref, 'final_checkpoint_receipt': receipt_ref, 'final_checkpoint': receipt['checkpoint'],
+        'saved_eval_logits': design.get('saved_eval_logits'), 'saved_eval_score': design.get('saved_eval_score')}.items()), 'TRAIN_EVAL_GAP_INPUT_REFS')
+    expected = dict.fromkeys(producer['limits'], 0)
+    expected.update(model_constructions=1, optimizer_constructions=1, feature_cache_payload_loads=1,
+        target_archive_loads=1, checkpoint_loads=1, model_restores=1, model_forwards=405,
+        backbone_forwards=405, readout_forwards=405, logit_archive_writes=5, logit_archive_readbacks=5,
+        saved_eval_logit_loads=1)
+    limits = plan.get('limits')
+    require(type(limits) is dict and all(type(v) is int for v in limits.values()) and limits == expected, 'TRAIN_EVAL_GAP_NO_UPDATE_BUDGET')
+    passes = [{'label': 'EVAL_PARITY', 'training': False, 'equal_tf': True}] + [
+        {'label': 'TRAIN_DRAW_' + str(i).zfill(2), 'training': True, 'equal_tf': False} for i in range(1, 5)]
+    require(plan.get('passes') == passes and all(type(v.get(k)) is bool for v in plan['passes']
+            for k in ('training', 'equal_tf')), 'TRAIN_EVAL_GAP_FIXED_PASSES')
+    owners = plan.get('source_owners')
+    require(type(owners) is dict and {'gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh',
+            'gx1/audit/native_provider_hlc_learning_v1.py'} <= set(owners), 'TRAIN_EVAL_GAP_SOURCE_INVENTORY')
+    for owner, digest in owners.items():
+        p = repo / owner
+        require(type(owner) is str and not Path(owner).is_absolute() and '..' not in Path(owner).parts
+                and p.is_file() and not p.is_symlink() and p.resolve() == p
+                and hashlib.sha256(p.read_bytes()).hexdigest() == digest, 'TRAIN_EVAL_GAP_SOURCE_SHA')
+    bridge = plan.get('guard_source_bridge', {})
+    old = {n: v['original_sha256'] for n, v in bridge.get('owners', {}).items()}
+    require(bridge == native_v3_train_eval_gap_source_bridge(old, producer_commit=bridge.get('producer_commit')), 'TRAIN_EVAL_GAP_SOURCE_BRIDGE')
+    policy_path = repo / 'NEXT_RUN_POLICY.json'; policy = _native_v3_development_read(policy_path)
+    flags = ('training_enabled', 'native_training_enabled', 'native_launch_authorized',
+             'full_epoch_training_allowed', 'full_val_allowed', 'exit_training_and_evaluation_this_wave')
+    require(all(policy.get(k) is False for k in flags), 'TRAIN_EVAL_GAP_ALL_TRAINING_CLOSED')
+    for scope in ('native_v3_bounded_development_test_20261127_001', 'native_v3_fit004_exact_recovery_20261128_001',
+                  'native_v3_fit004_exact_recovery_20261128_002', _V3_BLOCK_ORDER_RECOVERY_NAME.lower(), _V3_ISSUE_MIX_NAME.lower()):
+        prior = policy.get(scope, {})
+        gates = prior.get('lane_gates', prior.get('phase_gates', {}))
+        require(prior.get('execution_authorized') is False and prior.get('active_phase') in (None, '')
+                and prior.get('active_lane') in (None, '') and type(gates) is dict
+                and all(type(v) is dict and v.get('execution_authorized') is False
+                    and type(v.get('remaining_invocations')) is int and v['remaining_invocations'] == 0
+                    and all(v.get(k) is False for k in ('training_authorized', 'test_authorized', 'relaunch_allowed'))
+                    for v in gates.values()), 'TRAIN_EVAL_GAP_CONSUMED_ROUTES_CLOSED')
+    for scope in (_V3_DIRECTION_GRADIENT_NAME.lower(), _V3_DIRECTION_BLOCK_ORDER_NAME.lower()):
+        prior = policy.get(scope, {})
+        require(prior.get('execution_authorized') is False and type(prior.get('remaining_invocations')) is int
+                and prior['remaining_invocations'] == 0 and prior.get('training_authorized') is False
+                and prior.get('relaunch_allowed') is False, 'TRAIN_EVAL_GAP_CONSUMED_FLAT_ROUTES_CLOSED')
+    parent = policy.get(name.lower(), {})
+    gate = {'status': 'PREPARED_CLOSED_NOT_ADMITTED' if preflight else 'ADMITTED_EXACT_V3_TRAIN_EVAL_GAP',
+            'plan': {'path': str(path), 'sha256': plan_sha256}, 'execution_authorized': not preflight,
+            'remaining_invocations': int(not preflight), 'relaunch_allowed': False,
+            'training_authorized': False, 'test_authorized': False, 'spending_authorized': False}
+    require(type(parent) is dict and type(parent.get('remaining_invocations')) is int
+            and all(type(parent.get(k)) is bool for k in ('execution_authorized', 'relaunch_allowed',
+                'training_authorized', 'test_authorized', 'spending_authorized'))
+            and all(parent.get(k) == v for k, v in gate.items()) and parent.get('design') == design_ref,
+            'TRAIN_EVAL_GAP_ONE_USE_GATE')
+    if not preflight:
+        snapshot = evidence / 'V3_TRAIN_EVAL_GAP_ADMITTED_POLICY_20261128_001.json'
+        require(_native_v3_development_read(snapshot, hashlib.sha256(policy_path.read_bytes()).hexdigest()) == policy,
+                'TRAIN_EVAL_GAP_EXACT_POLICY_SNAPSHOT')
+    return {'plan': {'path': str(path), 'sha256': plan_sha256}, 'output_root': str(output),
+            'preflight': preflight, 'execution': plan['execution']}
+
+
+def _native_v3_train_eval_gap_environment(plan_sha256):
+    require=_native_v3_development_require;prefix='GX1_NATIVE_V3_TRAIN_EVAL_GAP';execution=_native_v3_development_execution('warm')
+    expected={prefix:'true',prefix+'_PLAN_SHA256':plan_sha256,
+        'GX1_POWER_BENCHMARK_SCOPE_JSON':'','GX1_POWER_BENCHMARK_SCOPE_SHA256':''}
+    require(all(not k.startswith(prefix)or k in expected for k in os.environ),'UNKNOWN_TRAIN_EVAL_GAP_ENV')
+    require(all(v in('false','')for k,v in os.environ.items()if k.startswith('GX1_NATIVE_')and not k.startswith(prefix)),'TRAIN_EVAL_GAP_MIXED_LEGACY_ENV')
+    fields={'MAX_WALL_SECONDS':execution['outer_seconds'],'MODEL_MAX_WALL_SECONDS':execution['internal_seconds'],
+        'ATTENDED_STAGE_REQUIRED':'false','GPU_INDEX':0,'GPU_MAX_POWER_LIMIT_W':250,'GPU_MAX_POWER_DRAW_W':250,
+        'GPU_MAX_CORE_TEMP_C':75,'GPU_MAX_MEMORY_TEMP_C':80,'GPU_MAX_MEMORY_USED_MIB':12288,
+        'GPU_MONITOR_INTERVAL_SECONDS':1,'CPU_MAX_TEMP_C':80,'CPU_MAX_PACKAGE_POWER_W':125,
+        'HOST_MIN_AVAILABLE_MEMORY_BYTES':8589934592,'HOST_MIN_COMMIT_HEADROOM_BYTES':8589934592}
+    expected.update({'GX1_TRAINER_'+k:str(v)for k,v in fields.items()})
+    require(all(os.environ.get(k)==v for k,v in expected.items()),'TRAIN_EVAL_GAP_EXACT_RESOURCE_ENV')
+    return require_guarded_cuda_trainer_execution()
+
+def require_native_v3_train_eval_gap_execution(*,plan_sha256):
+    # Resource containment only; no optimizer or training authority is created.
+    bound=_native_v3_train_eval_gap_bound_plan(plan_sha256)
+    proof=_native_v3_train_eval_gap_environment(plan_sha256)
+    return {**proof,**bound,'kind':'provider_hlc_v3_train_eval_gap','resource_proof_only':True,
+        'training_authority_granted':False,'optimizer_authority_granted':False}
+
+# END GX1 V3 TRAIN EVAL GAP GUARDS 20261128 001
 
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")

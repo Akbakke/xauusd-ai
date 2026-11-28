@@ -130,6 +130,7 @@ def run(sha):
  except BaseException as error:pub(ROOT,'TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'plan':binding,'claim':claim,'error':type(error).__name__+':'+str(error)[:1800],'remaining_invocations':0,'relaunch_allowed':False});raise
  finally:signal.setitimer(signal.ITIMER_REAL,0)
 def main():
+ if sys.argv[1:2]==['--v3-train-eval-gap-plan-sha256']:return main_v3_train_eval_gap()
  if sys.argv[1:2]==['--v3-issue-mix-plan-sha256']:return main_v3_issue_mix()
  if sys.argv[1:2]==['--v3-block-order-recovery-plan-sha256']:return main_v3_block_order_recovery()
  if sys.argv[1:2]==['--v3-direction-block-order-plan-sha256']:return main_v3_direction_block_order()
@@ -2065,6 +2066,7 @@ ISSUE_MIX_ANCHOR='4cb788b15fb47f2b6b2273d34485a34753649f72'
 ISSUE_MIX_DISPATCH=b" if sys.argv[1:2]==['--v3-issue-mix-plan-sha256']:return main_v3_issue_mix()\n"
 
 def issue_mix_reverse_legacy(raw):
+ raw=train_eval_gap_reverse_legacy(raw)
  for fragment in (ISSUE_MIX_DISPATCH,b' first=issue_mix_reverse_legacy(first)\n',b' raw=issue_mix_reverse_legacy(raw)\n'):raw=raw.replace(fragment,b'')
  return raw
 
@@ -2241,6 +2243,184 @@ def main_v3_issue_mix():
  if a.preflight:
   require_native_v3_issue_mix_execution(plan_sha256=a.v3_issue_mix_plan_sha256,lane=a.lane);plan,binding,pref,live=inspect_v3_issue_mix(a.v3_issue_mix_plan_sha256,a.lane,False);print(json.dumps({'status':'PREFLIGHT_V3_ISSUE_MIX_METADATA_ONLY','plan':binding,'policy':pref,'physical_input_identity':plan['physical_input_identity'],'schedule_sha256':plan['schedule']['contract_sha256'],'models':0,'payloads_decoded':0,'CUDA_initialized':False,'CLAIM_created':False}))
  else:print(json.dumps(run_v3_issue_mix(a.v3_issue_mix_plan_sha256,a.lane),sort_keys=True))
+# BEGIN GX1 V3 TRAIN EVAL GAP 20261128
+TRAIN_EVAL_GAP_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_TRAIN_EVAL_GAP_20261128_001'
+TRAIN_EVAL_GAP_STAGE=TRAIN_EVAL_GAP_NAME.lower()
+TRAIN_EVAL_GAP_PLAN=REPO/'configs/research'/(TRAIN_EVAL_GAP_NAME+'.json')
+TRAIN_EVAL_GAP_ROOT=Path('/home/andre2/GX1_RUNS')/TRAIN_EVAL_GAP_NAME
+TRAIN_EVAL_GAP_ANCHOR='60b81b2535aea22dc7cd5ba3a08e3a9f2258a6d3'
+TRAIN_EVAL_GAP_PROFILE='gx1_native_provider_hlc_v3_train_eval_gap_trainer20g_v1'
+TRAIN_EVAL_GAP_DESIGN={'path':str(E/'V3_TRAIN_EVAL_GAP_DESIGN_20261128_003.json'),'sha256':'eb0f66e2e1454f3f0f56e10016be039d2cef56f421556a2363f5db461f34a000'}
+TRAIN_EVAL_GAP_POLICY_SNAPSHOT=E/'V3_TRAIN_EVAL_GAP_ADMITTED_POLICY_20261128_001.json'
+TRAIN_EVAL_GAP_PASSES=({'label':'EVAL_PARITY','training':False,'equal_tf':True},)+tuple({'label':'TRAIN_DRAW_'+str(i).zfill(2),'training':True,'equal_tf':False}for i in range(1,5))
+TRAIN_EVAL_GAP_DISPATCH=b" if sys.argv[1:2]==['--v3-train-eval-gap-plan-sha256']:return main_v3_train_eval_gap()\n"
+
+def train_eval_gap_reverse_legacy(raw):
+ start=b'# BEGIN GX1 V3 TRAIN EVAL GAP 20261128\n';end=b'# END GX1 V3 TRAIN EVAL GAP 20261128\n'
+ need(raw.count(start)==raw.count(end)and raw.count(start)<=1,'TRAIN_EVAL_GAP_ONE_BLOCK')
+ if start in raw:
+  first,tail=raw.split(start);_,last=tail.split(end);raw=first+last
+ for fragment in (TRAIN_EVAL_GAP_DISPATCH,b' raw=train_eval_gap_reverse_legacy(raw)\n'):raw=raw.replace(fragment,b'')
+ return raw
+
+def train_eval_gap_source_bridge():
+ raw=(REPO/SELF).read_bytes();need(raw.count(b'# BEGIN GX1 V3 TRAIN EVAL GAP 20261128\n')==1,'TRAIN_EVAL_GAP_ADDITIVE_BLOCK');old=subprocess.check_output(['git','show',TRAIN_EVAL_GAP_ANCHOR+':'+SELF],cwd=REPO);need(train_eval_gap_reverse_legacy(raw)==old,'TRAIN_EVAL_GAP_EXACT_ADDITIVE_REVERSAL')
+ return {'producer_commit':TRAIN_EVAL_GAP_ANCHOR,'owner':SELF,'original_sha256':hashlib.sha256(old).hexdigest(),'current_sha256':ref(REPO/SELF)['sha256'],'all_old_numeric_context_scoring_and_restore_owners_unchanged':True,'only_additive_train_eval_gap_dispatch_and_exact_bridge_normalization':True}
+
+def train_eval_gap_gate(binding,admitted=False):
+ return {'status':'ADMITTED_EXACT_V3_TRAIN_EVAL_GAP'if admitted else'PREPARED_CLOSED_NOT_ADMITTED','plan':binding,'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':False,'test_authorized':False,'spending_authorized':False}
+
+def train_eval_gap_require_gate(value,binding,admitted=False):
+ expected=train_eval_gap_gate(binding,admitted);need(type(value)is dict and type(value.get('remaining_invocations'))is int and all(type(value.get(k))is bool for k in('execution_authorized','relaunch_allowed','training_authorized','test_authorized','spending_authorized'))and all(value.get(k)==v for k,v in expected.items()),'TRAIN_EVAL_GAP_TYPED_ONE_USE_GATE');return value
+
+def train_eval_gap_admission_snapshot(binding,policy_ref):
+ sr=ref(TRAIN_EVAL_GAP_POLICY_SNAPSHOT);p=read(sr);need(policy_ref=={'path':str(POLICY),'sha256':sr['sha256']}and all(p.get(k)is False for k in DEV_FLAGS),'TRAIN_EVAL_GAP_SNAPSHOT_FLAGS_SHA');train_eval_gap_require_gate(p.get(TRAIN_EVAL_GAP_STAGE),binding,True);need(p[TRAIN_EVAL_GAP_STAGE].get('design')==TRAIN_EVAL_GAP_DESIGN,'TRAIN_EVAL_GAP_SNAPSHOT_DESIGN');return sr
+
+def train_eval_gap_current_input_identity(producer):
+ original,_,_,_,identity=recovery_original_metadata();need(original==producer['metadata']['original']and identity==producer['physical_input_identity'],'TRAIN_EVAL_GAP_FRESH_PHYSICAL_INPUT_CONTEXT');return identity
+
+def train_eval_gap_final_metadata():
+ design=read(TRAIN_EVAL_GAP_DESIGN);closed=issue_mix_closed('fit');producer=read(closed['plan']);original=producer['metadata']['original'];trajectory=producer['metadata']['trajectory'];report=closed['value']['report'];fr=report['final_checkpoint_receipt'];receipt=read(fr);saved=read(design['saved_eval_score'])
+ need(closed['plan']==design['producer_fit_plan']and fr==design['frozen_FINAL_receipt']and receipt['checkpoint']==design['frozen_FINAL']and report['scores']['PASS2']==design['saved_eval_score']and saved['logits']==design['saved_eval_logits'],'TRAIN_EVAL_GAP_DESIGN_PRODUCER_OUTPUT_BINDINGS')
+ need(fr['path']==str(ISSUE_MIX_ROOTS['fit']/'FINAL.json')and receipt['original_plan']==receipt['execution_plan']==closed['plan']and receipt['producer_lane']=='fit'and type(receipt['logical_cursor'])is int and receipt['logical_cursor']==receipt['optimizer_updates']==432 and receipt['trajectory_sha256']==trajectory['contract_sha256']and receipt['checkpoint']['path']==str(ISSUE_MIX_ROOTS['fit']/'FINAL.pt'),'TRAIN_EVAL_GAP_AUTHENTIC_FINAL432')
+ core.future_cuda_runtime_matches(producer['metadata']['runtime'],receipt['producer_runtime']);proof=train.require_recovery_checkpoint_proof(receipt['proof']);need(proof['trajectory']==core.state_sha(trajectory)and proof['position']==core.state_sha(train.position(trajectory['schedule'],432))and proof['scores']==core.state_sha(report['scores'])and proof['training']==core.state_sha(True)and proof['scheduler_state']==core.state_sha(None)and report['ending_cursor']==report['new_optimizer_updates']==432 and saved['rows']==20727 and saved['batches']==81,'TRAIN_EVAL_GAP_FINAL_SEMANTICS')
+ budget=design['fixed_budget'];need(design['experiment_id']==TRAIN_EVAL_GAP_NAME and design['source_preparation_authorized']is True and design['execution_authorized']is design['training_authorized']is False and budget['NN_forwards']==405 and budget['eval_passes']==1 and budget['stochastic_train_no_grad_passes']==4 and budget['batch_rows']==256 and budget['batches_per_pass']==81 and budget['optimizer_updates']==budget['backward_calls']==budget['autograd_calls']==0 and design['cohort']['timeframes']==list(train.TF)and design['cohort']['years']==[2021,2022,2023,2024,2025]and design['cohort']['genuine_families']==8 and design['cohort']['D1_macro_preserved']is True,'TRAIN_EVAL_GAP_EXACT_FIXED_DESIGN')
+ identity=train_eval_gap_current_input_identity(producer);refs={**copy.deepcopy(producer['inputs']),'design':TRAIN_EVAL_GAP_DESIGN,'final_execution_plan':closed['plan'],'final_result':closed['result'],'final_terminal':closed['terminal'],'final_claim':closed['claim'],'final_admitted_policy':closed['admitted_policy_snapshot'],'final_checkpoint_receipt':fr,'final_checkpoint':receipt['checkpoint'],'saved_eval_logits':design['saved_eval_logits'],'saved_eval_score':design['saved_eval_score'],'final_stream_binding':report['stream_binding'],**{'design_'+k:v for k,v in design['evidence'].items()}}
+ return original,receipt,trajectory,producer,report['scores'],refs,identity
+
+def build_v3_train_eval_gap_plan(runtime,source_commit=None):
+ from gx1.contracts.gx1_capped_execution_v1 import native_v3_train_eval_gap_source_bridge
+ original,receipt,trajectory,producer,scores,inputs,identity=train_eval_gap_final_metadata();head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip();need(source_commit in(None,head)and runtime['source_commit']==head,'TRAIN_EVAL_GAP_SOURCE_RUNTIME');core.future_cuda_require_runtime(runtime);train.runtime_compatible(trajectory['runtime_compatibility'],runtime)
+ owners=dict(producer['source_owners']);owners.update({n:ref(REPO/n)['sha256']for n in(*GUARDS,SELF,DEV_TEST,DEV_GUARD_TEST)})
+ for n,d in owners.items():need(ref(REPO/n)['sha256']==d,'TRAIN_EVAL_GAP_SOURCE:'+n)
+ roles={k for k,v in inputs.items()if Path(v['path']).suffix not in('.pt','.npz','.npy')and not k.startswith('provider_raw_response_')};payload=set(inputs)-roles;limits=dict.fromkeys(producer['limits'],0);limits.update(model_constructions=1,optimizer_constructions=1,feature_cache_payload_loads=1,target_archive_loads=1,checkpoint_loads=1,model_restores=1,model_forwards=405,backbone_forwards=405,readout_forwards=405,logit_archive_writes=5,logit_archive_readbacks=5,saved_eval_logit_loads=1)
+ old={n:hashlib.sha256(subprocess.check_output(['git','show',TRAIN_EVAL_GAP_ANCHOR+':'+n],cwd=REPO)).hexdigest()for n in GUARDS};design=read(TRAIN_EVAL_GAP_DESIGN)
+ return {'schema_version':'gx1_native_v3_train_eval_gap_plan_v1','stage':TRAIN_EVAL_GAP_STAGE,'source_commit':head,'output_root':str(TRAIN_EVAL_GAP_ROOT),'source_owners':owners,'guard_source_bridge':native_v3_train_eval_gap_source_bridge(old,producer_commit=TRAIN_EVAL_GAP_ANCHOR),'owner_source_bridge':train_eval_gap_source_bridge(),'design':TRAIN_EVAL_GAP_DESIGN,'original_plan':design['producer_fit_plan'],'checkpoint_receipt':inputs['final_checkpoint_receipt'],'metadata':{'original':original,'receipt':receipt,'trajectory':trajectory,'producer':producer,'scores':scores,'runtime':copy.deepcopy(runtime)},'inputs':inputs,'metadata_input_roles':sorted(roles),'payload_stat':{k:{'size':Path(inputs[k]['path']).stat().st_size,'mtime_ns':Path(inputs[k]['path']).stat().st_mtime_ns}for k in sorted(payload)},'physical_input_identity':identity,'model_contract':original['model_contract'],'recipe':original['recipe'],'passes':list(TRAIN_EVAL_GAP_PASSES),'limits':limits,'execution_profile':TRAIN_EVAL_GAP_PROFILE,'execution':development_execution('warm',original),'scope':{k:design[k]for k in('question','single_intervention','measurement_scope','aggregation_contract','scientific_reporting','metric_availability')}}
+
+def inspect_v3_train_eval_gap(sha,admitted=False):
+ binding={'path':str(TRAIN_EVAL_GAP_PLAN),'sha256':sha};plan=read(binding);need(plan==build_v3_train_eval_gap_plan(plan['metadata']['runtime'],plan['source_commit']),'TRAIN_EVAL_GAP_EXACT_PLAN');recovery_check_inputs(plan);pref=ref(POLICY);p=read(pref);need(all(p.get(k)is False for k in DEV_FLAGS),'TRAIN_EVAL_GAP_ALL6_FLAGS_CLOSED');train_eval_gap_require_gate(p.get(TRAIN_EVAL_GAP_STAGE),binding,admitted);need(p[TRAIN_EVAL_GAP_STAGE].get('design')==TRAIN_EVAL_GAP_DESIGN,'TRAIN_EVAL_GAP_POLICY_DESIGN')
+ if admitted:train_eval_gap_admission_snapshot(binding,pref)
+ need(not TRAIN_EVAL_GAP_ROOT.exists()and not TRAIN_EVAL_GAP_ROOT.is_symlink(),'TRAIN_EVAL_GAP_FRESH_ROOT');live=core.collect_future_cuda_runtime_metadata();core.future_cuda_runtime_matches(plan['metadata']['runtime'],live);return plan,binding,pref,live
+
+def train_eval_gap_saved_outputs(binding,issues,counts):
+ need(ref(binding['path'])==binding,'TRAIN_EVAL_GAP_SAVED_LOGITS_SHA')
+ with np.load(binding['path'],allow_pickle=False)as saved:
+  need(set(saved.files)=={'issue_ns','activity_logits','side_logits'}and saved['issue_ns'].dtype==issues.dtype and core.digest(saved['issue_ns'])==core.digest(issues),'TRAIN_EVAL_GAP_SAVED_ISSUE_BIJECTION');outputs={k:saved[k].copy()for k in('activity_logits','side_logits')}
+ counts['saved_eval_logit_loads']+=1;need(all(v.shape==(20727,5)and v.dtype==np.float32 and np.isfinite(v).all()for v in outputs.values()),'TRAIN_EVAL_GAP_SAVED_F32_OUTPUTS');return outputs
+
+def train_eval_gap_score(context,outputs):
+ from gx1.audit import native_all_tf_provider_hlc_review_v3 as review
+ # PASS2 selects the existing pure numeric owner; wrapper grants no candidate status.
+ return review.review_cohort_outputs(truth=context['truth'],outputs=outputs,factory_prior=context['prior'],cohort_prior=context['scoring_prior'],selected_positions=context['positions'],source_rows=context['source_rows'],selection_ref=context['selection_ref'],spec=context['review_spec'],phase='PASS2',input_binding=context['input_binding'],normalization=context['normalization'])
+
+def train_eval_gap_summary(reviews):
+ need(len(reviews)==4,'TRAIN_EVAL_GAP_FOUR_FIXED_DRAWS')
+ def metrics(review):
+  result={'proper_partial_NLL':review['proper_partial_NLL']}
+  def panel(path,value):
+   for task,cell in value.items():
+    for weight,model in (('row',cell['model']),('equal_target',(cell['equal_target_weight']or{}).get('model'))):
+     for metric in ('NLL','brier','mean_positive_probability','mean_probability_minus_truth_pp','binary_argmax_positive_fraction','binary_argmax_negative_fraction','exact_tie_fraction'):
+      if weight=='row'or metric in ('NLL','brier','mean_positive_probability'):result[path+'/'+task+'/'+weight+'/'+metric]=None if model is None else model.get(metric)
+    result[path+'/'+task+'/row/AUC']=cell['rank_and_variation']['AUC']
+    if 'calibration'in cell:
+     for weight in ('row','equal_target'):
+      calibration=cell['calibration'][weight];result[path+'/'+task+'/'+weight+'/calibration_mean_error_pp']=None if calibration is None else calibration['mean_probability_minus_truth_pp']
+  for tf,value in review['all_TF'].items():panel('all_TF/'+tf,value)
+  for tf,years in review['by_UTC_target_year'].items():
+   for year,value in years.items():panel('by_UTC_target_year/'+tf+'/'+year,value)
+  for tf,weights in review['equal_year_macro'].items():
+   for weight,cell in weights.items():
+    for metric in ('NLL','brier'):result['equal_year_macro/'+tf+'/'+weight+'/'+metric]=None if cell['model']is None else cell['model'][metric]
+  return result
+ values=[metrics(r)for r in reviews];need(all(set(v)==set(values[0])for v in values),'TRAIN_EVAL_GAP_SAME_METRIC_INVENTORY');result={}
+ for path in values[0]:
+  draws=[v[path]for v in values]
+  if any(v is None for v in draws):result[path]={'status':'UNKNOWN','draw_values':draws};continue
+  a=np.asarray(draws,np.float64);need(np.isfinite(a).all(),'TRAIN_EVAL_GAP_FINITE_SUMMARY');sd=float(a.std(ddof=1));result[path]={'status':'DESCRIPTIVE_ONLY','draw_values':draws,'mean':float(a.mean()),'sample_SD':sd,'descriptive_SE':sd/np.sqrt(len(a))}
+ return {'draws':4,'metrics':result,'interpretation':'Mean/SD/SE of per-draw metrics, never score of averaged logits/probabilities. No confidence/significance/precision claim or best draw.','support_counts':'Preserved per draw; never averaged as performance metrics.','equal_target_AUC':'NOT_IMPLEMENTED','new_predictor':False}
+
+def train_eval_gap_passes(model,optimizer,context,root,counts,steps,scores,proof,expected_proof,saved_outputs):
+ import torch
+ need(proof()==expected_proof and len(expected_proof)==10 and all(p.grad is None for p in model.parameters()),'TRAIN_EVAL_GAP_ORIGINAL_ALL10_EMPTY_GRAD')
+ modes={n:m.training for n,m in model.named_modules()};rng=core.training_rng();rng_sha=core.state_sha(rng);immutable={k:expected_proof[k]for k in expected_proof if k not in('rng_state','training')};reports=[];reviews=[]
+ def unchanged():
+  actual=proof();return {**{k:actual[k]==v for k,v in immutable.items()},'grad_none':all(p.grad is None for p in model.parameters()),'named_module_inventory':set(dict(model.named_modules()))==set(modes)}
+ try:
+  for spec in TRAIN_EVAL_GAP_PASSES:
+   model.train(spec['training']);need(all(m.training is spec['training']for _,m in model.named_modules()),'TRAIN_EVAL_GAP_ACTUAL_MODULE_MODES');before=core.state_sha(core.training_rng());pieces={};batches=core.all_score_batches(np.arange(20727,dtype=np.int64),256);need(len(batches)==81 and np.array_equal(np.concatenate(batches),np.arange(20727,dtype=np.int64)),'TRAIN_EVAL_GAP_CANONICAL_B256_BIJECTION')
+   with torch.no_grad():
+    for take in batches:
+     packet=adapter.packet(context,take);output,_,_=core.future_cuda_forward(model,packet['features'],equal_tf=spec['equal_tf']);need(set(output)=={'activity_logits','side_logits'}and all(v.dtype==torch.float32 and tuple(v.shape)==(len(take),5)and not v.requires_grad for v in output.values()),'TRAIN_EVAL_GAP_NO_GRAD_F32_FORWARD')
+     for key,value in output.items():pieces.setdefault(key,[]).append(value.detach().cpu().numpy().copy())
+   outputs={k:np.concatenate(v)for k,v in pieces.items()};need(all(np.isfinite(v).all()for v in outputs.values()),'TRAIN_EVAL_GAP_FINITE_OUTPUTS');after=core.state_sha(core.training_rng());observed=unchanged();need(all(observed.values()),'TRAIN_EVAL_GAP_PRECLEANUP_MUTATION')
+   if not spec['training']:
+    need(before==after==rng_sha and all(core.digest(outputs[k])==core.digest(saved_outputs[k])for k in outputs),'TRAIN_EVAL_GAP_EXACT_SAVED_EVAL_PARITY')
+   else:
+    need(before!=after and before==reports[-1]['RNG_after_sha256']and (len(reports)>1 or before==rng_sha),'TRAIN_EVAL_GAP_SEQUENTIAL_RNG')
+   review=train_eval_gap_score(context,outputs);need(core.state_sha(core.training_rng())==after,'TRAIN_EVAL_GAP_SCORING_RNG_UNCHANGED');logits_ref=development_logits(root,spec['label'],context['truth']['issue_ns'],outputs,counts);rr=development_publish(root,spec['label']+'_SCORE.json',{'label':spec['label'],'execution_mode':spec,'RNG_before_sha256':before,'RNG_after_sha256':after,'rows':20727,'batches':81,'truth_sha256':context['truth_sha256'],'source_rows_sha256':core.digest(context['source_rows']),'issue_ns_sha256':core.digest(context['truth']['issue_ns']),'logits':logits_ref,'review':review,'numeric_owner_phase':'PASS2','diagnostic_only':True,'no_new_trained_candidate':True,'no_draw_selection':True,'equal_target_AUC':'NOT_IMPLEMENTED','new_candidate':False,'observed_immutable_state_before_cleanup':observed});reports.append({'label':spec['label'],'score':rr,'logits':logits_ref,'RNG_before_sha256':before,'RNG_after_sha256':after})
+   if spec['training']:reviews.append(review)
+  observed=unchanged();need(all(observed.values()),'TRAIN_EVAL_GAP_PRECLEANUP_MUTATION');summary=development_publish(root,'DRAW_METRIC_SUMMARY.json',train_eval_gap_summary(reviews));return {'passes':reports,'summary':summary,'observed_immutable_state_before_cleanup':observed,'exact_saved_EVAL_F32_parity':True,'RNG_restored_only_after_all_four_draws':True,'named_module_modes_sha256':core.state_sha(modes),'new_predictor':False,'diagnostic_only':True,'no_new_trained_candidate':True,'no_draw_selection':True,'equal_target_AUC':'NOT_IMPLEMENTED'}
+ finally:
+  # Never reload weights, buffers or optimizer to conceal a mutation.
+  observed=unchanged()
+  for name,module in model.named_modules():
+   if name in modes:module.training=modes[name]
+  core.restore_training_rng(rng);final_proof=proof();final_modes={n:m.training for n,m in model.named_modules()};restored=all(observed.values())and final_modes==modes and core.state_sha(core.training_rng())==rng_sha and final_proof==expected_proof and all(p.grad is None for p in model.parameters())
+  development_publish(root,'STATE_INVARIANTS.json',{'counts':dict(counts),'observed_immutable_state_before_cleanup':observed,'all10_semantic_proofs_unchanged':final_proof==expected_proof,'final_full10_proof':final_proof,'named_module_modes_restored':final_modes==modes,'full_RNG_restored':core.state_sha(core.training_rng())==rng_sha,'only_module_modes_and_RNG_restored':True,'completed_passes':reports,'status':'PASS'if restored else'FAILED_CONSUMED'})
+  need(restored,'TRAIN_EVAL_GAP_PRECLEANUP_OR_FINAL_ALL10_MUTATION')
+
+def train_eval_gap_physical(plan,binding,root,live):
+ import torch
+ from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_future_state_model
+ original=plan['metadata']['original'];receipt=plan['metadata']['receipt'];trajectory=plan['metadata']['trajectory'];counts=dict.fromkeys(plan['limits'],0);context=development_nn_context(original);counts['feature_cache_payload_loads']=counts['target_archive_loads']=1;producer=plan['metadata']['producer'];stream=issue_mix_actual_stream(context,producer);need(read(plan['inputs']['final_stream_binding'])==stream,'TRAIN_EVAL_GAP_AUTHENTIC_SOURCE_ISSUE_ALL5_MASK_STREAM');core.future_cuda_seed_and_runtime({'recipe':original['recipe'],'metadata':{'runtime':live}})
+ model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=context['input_binding'],architecture=original['metadata']['architecture'],device=torch.device('cuda'),train_prior=context['prior'],target_contract=context['target_contract'],backbone_gradient_policy=None);counts['model_constructions']=1;need(model.research_objective==original['model_contract']and core.state_sha(model.state_dict())==original['initial_reference']['model_state_sha256']and core.state_sha(core.training_rng())==original['initial_reference']['rng_sha256'],'TRAIN_EVAL_GAP_AUTHENTIC_FACTORY');optimizer=torch.optim.AdamW(model.parameters(),**original['recipe']['optimizer']);counts['optimizer_constructions']=1;need(not optimizer.state,'TRAIN_EVAL_GAP_FRESH_ADAMW');need(ref(receipt['checkpoint']['path'])==receipt['checkpoint'],'TRAIN_EVAL_GAP_FINAL_SHA_BEFORE_LOAD');cp=torch.load(receipt['checkpoint']['path'],map_location='cpu',weights_only=True);counts['checkpoint_loads']=1
+ need(cp['producer']=={'original_plan':plan['original_plan'],'lane':'fit','runtime':receipt['producer_runtime']}and cp['scores']==plan['metadata']['scores'],'TRAIN_EVAL_GAP_ACTUAL_PRODUCER_SCORES');issue_mix_validate_checkpoint(cp,producer,plan['original_plan'],432,stream);restored=train.strict_restore(model,optimizer,cp,trajectory=trajectory,original_plan_ref=plan['original_plan'],expected_cursor=432,current_runtime=live,expected_state_proof=receipt['proof']);counts['model_restores']=1;need(restored==train.position(trajectory['schedule'],432),'TRAIN_EVAL_GAP_RESTORED_FINAL432');steps=copy.deepcopy(cp['steps']);scores=copy.deepcopy(cp['scores']);del cp
+ def proof():return train.checkpoint_proof(train.make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=plan['original_plan'],lane='diagnostic',cursor=432,steps=steps,scores=scores,producer_runtime=live))
+ saved=train_eval_gap_saved_outputs(plan['inputs']['saved_eval_logits'],context['truth']['issue_ns'],counts)
+ def counter(key):
+  def hook(*args):counts[key]+=1;need(counts[key]<=plan['limits'][key],'TRAIN_EVAL_GAP_FORWARD_BOUND')
+  return hook
+ hooks=[model.register_forward_pre_hook(counter('model_forwards')),model.backbone.register_forward_pre_hook(counter('backbone_forwards')),model.readout.register_forward_pre_hook(counter('readout_forwards'))]
+ try:
+  report=train_eval_gap_passes(model,optimizer,context,root,counts,steps,scores,proof,receipt['proof'],saved);need(counts==plan['limits']and proof()==receipt['proof']and torch.cuda.max_memory_reserved()<=plan['execution']['cuda_peak_reserved_bytes_max'],'TRAIN_EVAL_GAP_EXACT_COUNTS_ALL10_VRAM');return {**report,'counts':counts,'final_checkpoint_receipt':plan['checkpoint_receipt'],'final_state_proof':receipt['proof'],'all10_semantic_proofs_unchanged':True,'optimizer_updates':0,'new_checkpoint_writes':0,'original_FINAL_never_rewritten':True,'later_generalization':'NOT_MEASURED','economic_edge':'UNKNOWN','scientific_limits':plan['scope']}
+ finally:
+  for hook in hooks:hook.remove()
+
+def train_eval_gap_bookends(plan,binding,pref,boot):
+ checks={};tests={'plan':lambda:ref(TRAIN_EVAL_GAP_PLAN)==binding,'sources':lambda:all(ref(REPO/n)['sha256']==d for n,d in plan['source_owners'].items()),'inputs':lambda:all(ref(v['path'])==v for v in plan['inputs'].values())and train_eval_gap_admission_snapshot(binding,pref)['sha256']==pref['sha256'],'policy':lambda:ref(POLICY)==pref,'boots':lambda:{'physical_windows_boot_id':core.physical_windows_boot_id(),'wsl_boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip()}==boot,'HEAD':lambda:subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()==plan['source_commit']}
+ for name,fn in tests.items():
+  try:checks[name]=bool(fn())
+  except BaseException:checks[name]=False
+ return checks
+
+def train_eval_gap_payload_allowlist(plan,root):
+ inputs={str(Path(v['path']).resolve())for v in plan['inputs'].values()if Path(v['path']).suffix in('.npz','.npy','.pt','.pth','.parquet','.safetensors','.pkl','.pickle','.joblib')}
+ return inputs|{str((root/(spec['label']+'_LOGITS.npz')).resolve())for spec in TRAIN_EVAL_GAP_PASSES}
+
+def run_v3_train_eval_gap(sha):
+ from gx1.contracts.gx1_capped_execution_v1 import require_native_v3_train_eval_gap_execution
+ execution=require_native_v3_train_eval_gap_execution(plan_sha256=sha);plan,binding,pref,live=inspect_v3_train_eval_gap(sha,True);root=TRAIN_EVAL_GAP_ROOT;root.mkdir(exist_ok=False);boot={k:live[k]for k in('physical_windows_boot_id','wsl_boot_id')};started=time.monotonic();claim=development_publish(root,'CLAIM.json',{'plan':binding,'policy_at_claim':pref,'admitted_policy_snapshot':train_eval_gap_admission_snapshot(binding,pref),'execution':execution,'boots':boot,'process_identity':core.future_cpu_process_identity(),'remaining_invocations':0,'relaunch_allowed':False});report=None;error=None
+ def stop(*_):raise TimeoutError('TRAIN_EVAL_GAP_INTERNAL_WALL_OR_SIGNAL')
+ handlers={sig:signal.getsignal(sig)for sig in(signal.SIGALRM,signal.SIGTERM,signal.SIGINT)}
+ for sig in handlers:signal.signal(sig,stop)
+ signal.setitimer(signal.ITIMER_REAL,plan['execution']['internal_seconds'])
+ try:
+  allowed=train_eval_gap_payload_allowlist(plan,root);sys.addaudithook(lambda e,a:development_io_audit(allowed,e,a));recovery_check_inputs(plan,physical=True);report=train_eval_gap_physical(plan,binding,root,live);need(core.common.firewall_state()['denied_attempts']==0,'TRAIN_EVAL_GAP_ZERO_FIREWALL_DENIALS')
+ except BaseException as exc:error=type(exc).__name__+':'+str(exc)[:2400]
+ finally:
+  signal.setitimer(signal.ITIMER_REAL,0);book=train_eval_gap_bookends(plan,binding,pref,boot);error=error or(None if all(book.values())else'TRAIN_EVAL_GAP_BOOKEND_FAILED');preserved={p.name:ref(p)for p in sorted(root.iterdir())if p.is_file()and p.name!='CLAIM.json'};result=development_publish(root,'RESULT.json',{'status':'COMPLETE_V3_TRAIN_EVAL_GAP'if error is None else'FAILED_CONSUMED','plan':binding,'claim':claim,'report':report,'error':error,'bookends':book,'elapsed_seconds':time.monotonic()-started,'optimizer_updates':0,'new_candidates':0,'preserved_measurements':preserved,'test_data_used':False,'later_generalization':'NOT_MEASURED','economic_edge':'UNKNOWN'});terminal=development_publish(root,'TERMINAL.json',{'status':'COMPLETE'if error is None else'FAILED_CONSUMED','exit_code':0 if error is None else 1,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False})
+  for sig,handler in handlers.items():signal.signal(sig,handler)
+ if error:raise RuntimeError(error)
+ return {'result':result,'terminal':terminal}
+
+def main_v3_train_eval_gap():
+ from gx1.contracts.gx1_capped_execution_v1 import require_native_v3_train_eval_gap_execution
+ parser=argparse.ArgumentParser();parser.add_argument('--v3-train-eval-gap-plan-sha256',required=True);parser.add_argument('--preflight',action='store_true');a=parser.parse_args();sha=a.v3_train_eval_gap_plan_sha256;need(sys.argv[1:]==['--v3-train-eval-gap-plan-sha256',sha]+(['--preflight']if a.preflight else[]),'TRAIN_EVAL_GAP_EXACT_CLI')
+ if a.preflight:
+  require_native_v3_train_eval_gap_execution(plan_sha256=sha);plan,binding,pref,live=inspect_v3_train_eval_gap(sha,False);print(json.dumps({'status':'PREFLIGHT_V3_TRAIN_EVAL_GAP_METADATA_ONLY','plan':binding,'policy':pref,'physical_input_identity':plan['physical_input_identity'],'final_checkpoint_receipt':plan['checkpoint_receipt'],'models':0,'payloads_decoded':0,'CUDA_initialized':False,'CLAIM_created':False}))
+ else:print(json.dumps(run_v3_train_eval_gap(sha),sort_keys=True))
+# END GX1 V3 TRAIN EVAL GAP 20261128
 # END GX1 V3 DIRECTION ISSUE MIX 20261128
 # END GX1 V3 BLOCK ORDER RECOVERY 20261128
 # END GX1 V3 DIRECTION BLOCK ORDER 20261128

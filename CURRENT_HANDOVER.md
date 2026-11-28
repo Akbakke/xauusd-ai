@@ -110,7 +110,7 @@ En enkel biaspatch følger ikke av målingen.
 
 Neste kildeforberedelse eies av
 native_all_tf_provider_hlc_v3_train_eval_gap_20261128_001.
-V3_TRAIN_EVAL_GAP_DESIGN_20261128_002.json binder én måling på samme frosne
+V3_TRAIN_EVAL_GAP_DESIGN_20261128_003.json binder én måling på samme frosne
 FINAL: én full B256 EVAL-paritet mot lagrede logits og fire forhåndslåste,
 sekvensielle no_grad TRAIN-moduspass på alle20727issues/alle fem TF/år.
 Dette er405forwards og0updates, ikke en ny læringskandidat. Fire draws er et
@@ -120,8 +120,11 @@ logit/-sannsynlighet skåres som ny prediktor. Dette er B256/no_grad, ikke
 replay av opprinnelig B96/backward-trening. Før opprydding må alle vekter,
 buffere, optimizer, steps/scores og tomme gradienter være uendret; bare
 intensjonelt endret modulmodus/full RNG gjenopprettes før fullproof10.
-Design002 presiserer dette før kjøring og erstatter uutført001; ingen plan
-eller modelljobb er opprettet/forbrukt for den nye diagnostikken.
+Design003 presiserer faktisk tilgjengelige skår før kjøring: rad-AUC og
+rad-/målbarvektet NLL/Brier/sannsynlighetsmiddel. Målbarvektet AUC er
+NOT_IMPLEMENTED; ingen ny numerisk eier eller kvalitetsregel innføres.
+Uutførte001/002 beholdes som opprinnelige design; den nye diagnostikken
+er kildekvalifisert, uten at modelljobb er startet eller forbrukt.
 
 Faktisk arkitektur bruker dropout0,05 under train(); scoring bruker eval().
 Eval har også gruppering av like TF-lengder. Foreslått måling gjelder derfor
@@ -130,8 +133,12 @@ målt. Vekter, optimizer, modellmodus/full RNG og alle10 bevis må bevares ved
 slutt; EVAL må først matche de lagrede F32-outputene eksakt. Alle draws og
 all støtte/dispersion rapporteres; ingen beste draw, terskel eller kalibrator.
 
-Bare kildeforberedelse er åpen. Ny eksakt read-only NN-plan, fokuserte porter,
-aktuell runtime/host-admisjon, backup og fryst kilde kreves. Alle seks globale
+Kildeadapter og vakter er kvalifisert med80 guard-/kildebrokontroller og36
+forskjellige leaf-kontroller. Feil forventet unntak i én test ble rettet og
+bare berørt test kjørt om; fersk fysisk metadataidentitet har tre egne
+kontroller. Ekte output-allowlist er testet før NN. Ingen faktisk modusgap
+er målt. Ny eksakt read-only NN-plan, aktuell runtime/host-admisjon,
+backup og fryst kilde kreves fortsatt. Alle seks globale
 flagg er false. Ingen dropout-, læringsrate-, ruting-, taps-, epoke- eller
 servingendring følger av dette. En eventuell modusforskjell er ikke bevist
 historisk årsak, bedre optimalisering, generalisering eller økonomisk edge.
@@ -225,7 +232,7 @@ Policy binder eksakte SHA, originale kvitteringer og egne snapshots.
 - V3_ISSUE_MIX_PASS_DIAGNOSTIC_20261128_001.json: alle tre arms PASS1→PASS2;
   PASS1 er aldri kandidat.
 - V3_ISSUE_MIX_TRAIN_EVAL_SOURCE_REVIEW_20261128_001.json og
-  V3_TRAIN_EVAL_GAP_DESIGN_20261128_002.json: kildefakta og neste stengte
+  V3_TRAIN_EVAL_GAP_DESIGN_20261128_003.json: kildefakta og neste stengte
   kjøringsdesign; ingen målt modusgap eller ny treningsadmisjon.
 
 Aktuelle roots har prefiks

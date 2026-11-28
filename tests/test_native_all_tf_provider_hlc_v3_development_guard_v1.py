@@ -1311,3 +1311,231 @@ def test_issue_mix_shell_exact_roles_and_unchanged_profiles(monkeypatch, tmp_pat
         if result.returncode == 0:
             timing = ['5400', '5370'] if lane == 'fit' else ['1800', '1770']
             assert result.stdout.strip() == ','.join([lane, *timing, str(f['output'])])
+
+
+TRAIN_EVAL_GAP_NAME = 'NATIVE_ALL_TF_PROVIDER_HLC_V3_TRAIN_EVAL_GAP_20261128_001'
+
+
+def train_eval_gap_fixture(monkeypatch, tmp_path, preflight=False, bad=None):
+    f = issue_mix_fixture(monkeypatch, tmp_path, preflight=True)
+    repo, runs = f['repo'], f['runs']; producer = copy.deepcopy(f['plan'])
+    original_ref = dict(path=str(repo / 'configs/research' / (ISSUE_MIX_NAME + '_FIT.json')),
+        sha256='25ca4cc9d780f5d16376a765ec58f6d84c58a1f16f55d48033d11168fda2d4a8')
+    final_root = runs / (ISSUE_MIX_NAME + '_fit')
+    receipt_ref = dict(path=str(final_root / 'FINAL.json'),
+        sha256='1b67d9e51e211480c168b0eae05e5c1677e804e4e4d58e7b9bb1fb619271884d')
+    checkpoint = dict(path=str(final_root / 'FINAL.pt'),
+        sha256='577b5b37f5c4cfa98744cfeefb06e8156231488a7adc038f33cdfd685df86632')
+    evidence = runs / 'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'
+    design_ref = dict(path=str(evidence / 'V3_TRAIN_EVAL_GAP_DESIGN_20261128_003.json'),
+        sha256='eb0f66e2e1454f3f0f56e10016be039d2cef56f421556a2363f5db461f34a000')
+    logits = dict(path=str(final_root / 'PASS2_LOGITS.npz'),
+        sha256='e8dd65bc8dc21c83f6d894634a3c16f3464d3426099fb9d3cf81adaa1177048d')
+    score = dict(path=str(final_root / 'PASS2_SCORE.json'),
+        sha256='d6e7c600244bb28867dab7dc7ba39af23591bb264e91390b8e641f0712a2d21e')
+    receipt = dict(logical_cursor=432, optimizer_updates=432, producer_lane='fit',
+        original_plan=original_ref, execution_plan=original_ref, checkpoint=checkpoint)
+    design = dict(producer_fit_plan=original_ref, frozen_FINAL=checkpoint, frozen_FINAL_receipt=receipt_ref,
+        saved_eval_logits=logits, saved_eval_score=score)
+    limits = dict.fromkeys(producer['limits'], 0)
+    limits.update(model_constructions=1, optimizer_constructions=1, feature_cache_payload_loads=1,
+        target_archive_loads=1, checkpoint_loads=1, model_restores=1, model_forwards=405,
+        backbone_forwards=405, readout_forwards=405, logit_archive_writes=5, logit_archive_readbacks=5,
+        saved_eval_logit_loads=1)
+    bridge = dict(producer_commit=g._V3_TRAIN_EVAL_GAP_PARENT,
+        owners={n: dict(original_sha256='f' * 64, current_sha256=producer['source_owners'][n]) for n in OWNERS})
+    output = runs / TRAIN_EVAL_GAP_NAME
+    plan = dict(schema_version='gx1_native_v3_train_eval_gap_plan_v1', stage=TRAIN_EVAL_GAP_NAME.lower(),
+        source_commit='a' * 40, output_root=str(output), execution=g._native_v3_development_execution('warm'),
+        execution_profile=g._V3_TRAIN_EVAL_GAP_PROFILE, original_plan=original_ref,
+        checkpoint_receipt=receipt_ref, design=design_ref, metadata=dict(original=producer['metadata']['original'],
+        producer=producer, receipt=receipt, trajectory=producer['metadata']['trajectory']),
+        model_contract=producer['model_contract'], recipe=producer['recipe'],
+        physical_input_identity=producer['physical_input_identity'],
+        inputs=dict(design=design_ref, final_checkpoint_receipt=receipt_ref, final_checkpoint=checkpoint,
+            saved_eval_logits=logits, saved_eval_score=score), limits=limits, source_owners=producer['source_owners'],
+        guard_source_bridge=bridge, passes=[dict(label='EVAL_PARITY', training=False, equal_tf=True)] + [
+            dict(label='TRAIN_DRAW_' + str(i).zfill(2), training=True, equal_tf=False) for i in range(1, 5)])
+    if bad == 'schema': plan['schema_version'] = 'old'
+    if bad == 'root': plan['output_root'] = str(output).lower()
+    if bad == 'profile': plan['execution_profile'] = 'generic_trainer'
+    if bad == 'execution': plan['execution']['GPU_draw_stop_W'] = 251
+    if bad == 'design': plan['design'] = {**design_ref, 'sha256': '0' * 64}
+    if bad == 'superseded_design': plan['design'] = dict(path=str(evidence / 'V3_TRAIN_EVAL_GAP_DESIGN_20261128_002.json'), sha256='78ef8219ea16005691736721c7a26cc629868011cd30d2e2d5433d4b2206403c')
+    if bad == 'producer': plan['original_plan'] = {}
+    if bad == 'receipt': plan['checkpoint_receipt'] = {}
+    if bad == 'model': plan['model_contract'] = {}
+    if bad == 'metadata': plan['metadata']['producer'] = {}
+    if bad == 'trajectory': plan['metadata']['trajectory'] = {}
+    if bad == 'checkpoint': plan['inputs']['final_checkpoint'] = {}
+    if bad == 'saved_logits': plan['inputs']['saved_eval_logits'] = {}
+    if bad == 'saved_score': plan['inputs']['saved_eval_score'] = {}
+    if bad == 'identity': plan['physical_input_identity'] = {}
+    if bad == 'owner': plan['source_owners'] = {**producer['source_owners'], OWNERS[0]: '0' * 64}
+    if bad == 'bridge': plan['guard_source_bridge'] = {**bridge, 'extra': True}
+    if bad in ('optimizer_steps', 'backward_calls', 'autograd_calls', 'checkpoint_writes', 'normalization_fits', 'prior_fits'):
+        limits[bad] = 1
+    if bad in ('model_forwards', 'saved_eval_logit_loads'): limits[bad] += 1
+    if bad == 'bool_budget': limits['model_constructions'] = True
+    if bad == 'extra_draw': plan['passes'].append(plan['passes'][-1])
+    if bad == 'eval_train': plan['passes'][0]['training'] = True
+    if bad == 'integer_mode': plan['passes'][1]['training'] = 1
+    path = repo / 'configs/research' / (TRAIN_EVAL_GAP_NAME + '.json')
+    path.write_text(json.dumps(plan)); digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    policy_path = repo / 'NEXT_RUN_POLICY.json'; policy = json.loads(policy_path.read_text())
+    parent = dict(status='PREPARED_CLOSED_NOT_ADMITTED' if preflight else 'ADMITTED_EXACT_V3_TRAIN_EVAL_GAP',
+        plan=dict(path=str(path), sha256=digest), design=design_ref, execution_authorized=not preflight,
+        remaining_invocations=int(not preflight), relaunch_allowed=False, training_authorized=False,
+        test_authorized=False, spending_authorized=False)
+    policy[TRAIN_EVAL_GAP_NAME.lower()] = parent
+    grouped = ('native_v3_bounded_development_test_20261127_001', 'native_v3_fit004_exact_recovery_20261128_001',
+        'native_v3_fit004_exact_recovery_20261128_002', ORDER_RECOVERY_NAME.lower(), ISSUE_MIX_NAME.lower())
+    for scope in grouped:
+        policy[scope] = dict(execution_authorized=False, active_phase=None, active_lane=None,
+            lane_gates={'old': dict(execution_authorized=False, remaining_invocations=0,
+                relaunch_allowed=False, training_authorized=False, test_authorized=False)})
+    for scope in (DIRECTION_NAME.lower(), BLOCK_ORDER_NAME.lower()):
+        policy[scope] = dict(execution_authorized=False, remaining_invocations=0,
+            relaunch_allowed=False, training_authorized=False)
+    if bad == 'bool_gate': parent['remaining_invocations'] = not preflight
+    if bad == 'spent': parent['remaining_invocations'] = 0
+    if bad == 'parent_training': parent['training_authorized'] = True
+    if bad == 'parent_spending': parent['spending_authorized'] = True
+    if bad == 'parent_plan': parent['plan'] = {}
+    if bad == 'old_route': policy[grouped[-1]]['execution_authorized'] = True
+    if bad == 'old_gate': policy[grouped[-1]]['lane_gates']['old']['remaining_invocations'] = 1
+    if bad == 'old_boolean_gate': policy[grouped[-1]]['lane_gates']['old']['remaining_invocations'] = False
+    if bad == 'old_training': policy[grouped[-1]]['lane_gates']['old']['training_authorized'] = True
+    if bad == 'old_flat': policy[DIRECTION_NAME.lower()]['execution_authorized'] = True
+    policy_path.write_text(json.dumps(policy))
+    if not preflight:
+        snapshot = evidence / 'V3_TRAIN_EVAL_GAP_ADMITTED_POLICY_20261128_001.json'
+        snapshot.write_bytes(b'{}' if bad == 'snapshot' else policy_path.read_bytes())
+    if bad == 'existing': output.mkdir()
+    if bad == 'symlink':
+        other = path.with_suffix('.original'); path.rename(other); path.symlink_to(other)
+    read = g._native_v3_development_read
+    def fixture_read(candidate, candidate_digest=None):
+        for binding, value in ((original_ref, producer), (receipt_ref, receipt), (design_ref, design)):
+            if str(candidate) == binding['path']:
+                assert candidate_digest == binding['sha256']; return value
+        return read(candidate, candidate_digest)
+    monkeypatch.setattr(g, '_native_v3_development_read', fixture_read)
+    monkeypatch.setattr(g, 'native_v3_train_eval_gap_source_bridge', lambda *a, **k: bridge)
+    argv = [str(repo / 'gx1/audit/native_provider_hlc_learning_v1.py'), '--v3-train-eval-gap-plan-sha256', digest]
+    if preflight: argv += ['--preflight']
+    if bad == 'argv': argv += ['--lane', 'fit']
+    if bad == 'python': monkeypatch.setattr(sys, 'executable', '/usr/bin/python3')
+    monkeypatch.setattr(sys, 'argv', argv)
+    for key in list(os.environ):
+        if key.startswith('GX1_NATIVE_'): monkeypatch.delenv(key)
+    env = dict(GX1_NATIVE_V3_TRAIN_EVAL_GAP='true', GX1_NATIVE_V3_TRAIN_EVAL_GAP_PLAN_SHA256=digest,
+        GX1_TRAINER_MAX_WALL_SECONDS='1800', GX1_TRAINER_MODEL_MAX_WALL_SECONDS='1770')
+    if bad == 'hardware_env': env['GX1_TRAINER_GPU_MAX_POWER_DRAW_W'] = '251'
+    if bad == 'unknown_env': env['GX1_NATIVE_V3_TRAIN_EVAL_GAP_TRAINING'] = 'false'
+    if bad == 'legacy_env': env['GX1_NATIVE_V3_ISSUE_MIX'] = 'true'
+    for key, value in env.items(): monkeypatch.setenv(key, value)
+    return dict(f, path=path, digest=digest, plan=plan, output=output,
+        call=lambda: g.require_native_v3_train_eval_gap_execution(plan_sha256=digest))
+
+
+@pytest.mark.parametrize('preflight', (False, True))
+def test_train_eval_gap_frozen_final_without_training_authority(monkeypatch, tmp_path, preflight):
+    f = train_eval_gap_fixture(monkeypatch, tmp_path, preflight); proof = f['call']()
+    assert proof['preflight'] is preflight and proof['kind'] == 'provider_hlc_v3_train_eval_gap'
+    assert proof['training_authority_granted'] is proof['optimizer_authority_granted'] is False
+    assert f['called'] == ['cuda'] and not f['output'].exists()
+
+
+@pytest.mark.parametrize('bad', ('schema', 'root', 'profile', 'execution', 'design', 'superseded_design', 'producer', 'receipt', 'model',
+    'metadata', 'trajectory', 'checkpoint', 'saved_logits', 'saved_score', 'identity', 'owner', 'bridge',
+    'optimizer_steps', 'backward_calls', 'autograd_calls', 'checkpoint_writes', 'normalization_fits', 'prior_fits',
+    'model_forwards', 'saved_eval_logit_loads', 'bool_budget', 'extra_draw', 'eval_train', 'integer_mode',
+    'bool_gate', 'spent', 'parent_training', 'parent_spending', 'parent_plan', 'old_route', 'old_gate',
+    'old_boolean_gate', 'old_training', 'old_flat', 'snapshot', 'existing', 'symlink', 'argv', 'python',
+    'hardware_env', 'unknown_env', 'legacy_env'))
+def test_train_eval_gap_rejects_updates_or_mismatched_authority(monkeypatch, tmp_path, bad):
+    f = train_eval_gap_fixture(monkeypatch, tmp_path, bad=bad)
+    with pytest.raises(RuntimeError): f['call']()
+    assert not f['called'] and not (f['output'] / 'CLAIM.json').exists()
+
+
+@pytest.mark.parametrize('flag', ('training_enabled', 'native_training_enabled', 'native_launch_authorized',
+    'full_epoch_training_allowed', 'full_val_allowed', 'exit_training_and_evaluation_this_wave'))
+def test_train_eval_gap_keeps_every_global_authority_flag_false(monkeypatch, tmp_path, flag):
+    f = train_eval_gap_fixture(monkeypatch, tmp_path, preflight=True)
+    path = f['repo'] / 'NEXT_RUN_POLICY.json'; policy = json.loads(path.read_text()); policy[flag] = True
+    path.write_text(json.dumps(policy))
+    with pytest.raises(RuntimeError, match='TRAIN_EVAL_GAP_ALL_TRAINING_CLOSED'): f['call']()
+    assert not f['called']
+
+
+def test_train_eval_gap_preflight_rejects_boolean_zero_gate(monkeypatch, tmp_path):
+    f = train_eval_gap_fixture(monkeypatch, tmp_path, preflight=True, bad='bool_gate')
+    with pytest.raises(RuntimeError, match='TRAIN_EVAL_GAP_ONE_USE_GATE'): f['call']()
+    assert not f['called']
+
+
+def test_train_eval_gap_reuses_exact_existing_technical_resources():
+    assert g._V3_TRAIN_EVAL_GAP_PROFILE == 'gx1_native_provider_hlc_v3_train_eval_gap_trainer20g_v1'
+    assert g._native_v3_development_execution('warm')['outer_seconds'] == 1800
+
+
+def test_train_eval_gap_shell_exact_cli_and_unchanged_profile(monkeypatch, tmp_path):
+    f = train_eval_gap_fixture(monkeypatch, tmp_path)
+    variables, functions, dispatch, _ = [v[2] for v in g._V3_TRAIN_EVAL_GAP_SHELL_ADDITIONS]
+    functions = functions.replace('/home/andre2/GX1_RUNS', str(f['runs']))
+    state = dict(REPO_ROOT=str(f['repo']), CANONICAL_TRAINER_PYTHON=str(f['repo'] / '.venv/bin/python'),
+        JOB_CLASS='trainer', MEM='20G', SWAP='512M', ATTENDED_SMOKE='false', CUDA_PRODUCER_GUARD='false',
+        POWER_BENCHMARK_SCOPE_JSON='', POWER_BENCHMARK_SCOPE_SHA256='')
+    script = 'set -eu\n' + ''.join(k + '=' + shlex.quote(v) + '\n' for k, v in state.items()) + variables + functions
+    script += 'validate_target_command() {\n' + dispatch + 'return 88\n}\n'
+    argv = [state['CANONICAL_TRAINER_PYTHON'], '-m', 'gx1.audit.native_provider_hlc_learning_v1',
+        '--v3-train-eval-gap-plan-sha256', f['digest']]
+    for extra in ([], ['--preflight'], ['--lane', 'fit'], ['--preflight', '--preflight']):
+        tail = 'validate_target_command ' + ' '.join(map(shlex.quote, argv + extra))
+        tail += '\nprintf "%s,%s,%s,%s\\n" "$NATIVE_V3_TRAIN_EVAL_GAP" "$TRAINER_MAX_WALL_SECONDS" "$TRAINER_MODEL_MAX_WALL_SECONDS" "$TRAINER_OUT_BUNDLE_DIR"\n'
+        result = subprocess.run(['bash', '-c', script + tail], cwd=f['repo'], capture_output=True, text=True)
+        assert result.returncode == (0 if extra in ([], ['--preflight']) else 75), result.stderr
+        if result.returncode == 0: assert result.stdout.strip() == 'true,1800,1770,' + str(f['output'])
+
+
+def test_train_eval_gap_requests_only_actual_wrapper_exports(monkeypatch, tmp_path):
+    f = train_eval_gap_fixture(monkeypatch, tmp_path, preflight=True)
+    wrapper = (Path(__file__).resolve().parents[1] / 'scripts/gx1_capped_run.sh').read_text()
+    exported = set(re.findall(r'--setenv=([A-Z0-9_]+)=', wrapper)); requested = set()
+    class ActualWrapperEnvironment(dict):
+        def get(self, key, default=None):
+            requested.add(key); return super().get(key, default)
+    actual = {k: v for k, v in os.environ.items() if not k.startswith('GX1_') or k in exported}
+    monkeypatch.setattr(os, 'environ', ActualWrapperEnvironment(actual)); f['call']()
+    assert requested <= exported and f['called'] == ['cuda']
+
+
+def _actual_train_eval_gap_owners():
+    repo = Path(g.__file__).resolve().parents[2]
+    return {n: hashlib.sha256(subprocess.check_output(['git', 'show', g._V3_TRAIN_EVAL_GAP_PARENT + ':' + n], cwd=repo)).hexdigest() for n in OWNERS}
+
+
+def test_train_eval_gap_bridge_preserves_every_predecessor_guard_and_shell_byte():
+    proof = g.native_v3_train_eval_gap_source_bridge(_actual_train_eval_gap_owners())
+    assert proof['old_guard_routes_preserved'] and proof['old_numeric_resource_environment_function_unchanged']
+    assert proof['new_diagnostic_controlflow_requires_scoped_review'] is True
+
+
+@pytest.mark.parametrize('bad', ('legacy_resource', 'new_shell_limit', 'producer_hash'))
+def test_train_eval_gap_bridge_rejects_unreviewed_delta(monkeypatch, bad):
+    owners = _actual_train_eval_gap_owners()
+    if bad == 'producer_hash': owners[OWNERS[0]] = '0' * 64
+    else:
+        original = Path.read_text; repo = Path(g.__file__).resolve().parents[2]
+        def changed(path, *a, **kw):
+            text = original(path, *a, **kw)
+            if path == repo / OWNERS[0] and bad == 'legacy_resource':
+                text = text.replace('_MAX_MEMORY_BYTES = 20 * 1024**3', '_MAX_MEMORY_BYTES = 21 * 1024**3', 1)
+            if path == repo / OWNERS[1] and bad == 'new_shell_limit':
+                fragment = g._V3_TRAIN_EVAL_GAP_SHELL_ADDITIONS[1][2]
+                text = text.replace(fragment, fragment.replace('TRAINER_GPU_MAX_POWER_DRAW_W=250', 'TRAINER_GPU_MAX_POWER_DRAW_W=251'), 1)
+            return text
+        monkeypatch.setattr(Path, 'read_text', changed)
+    with pytest.raises(RuntimeError): g.native_v3_train_eval_gap_source_bridge(owners)

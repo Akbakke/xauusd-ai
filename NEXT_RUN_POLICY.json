@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "V3_ISSUE_MIX_TRAIN_FAIL_TRAIN_EVAL_GAP_SOURCE_DESIGN_ONLY",
+  "status": "SOURCE_QUALIFIED_PLAN_PENDING",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Qualify one frozen-FINAL full-cohort train/eval mode-gap diagnostic using unchanged all5TF/8families/known-year masks: one saved-EVAL parity pass plus four fixed sequential no_grad TRAIN draws,405forwards0updates. Source preparation only; new exact read-only NN plan/guards/admission/backup required. No dropout/LR/routing/epoch/calibration fix or new fit is admitted.",
+  "next_action": "Commit qualified source; build exact zero-update mode-gap plan/current runtime, guarded metadata preflight and verifiedSOURCEbackup before specificread-onlyNNadmission.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -110511,10 +110511,10 @@
     }
   },
   "native_all_tf_provider_hlc_v3_train_eval_gap_20261128_001": {
-    "status": "SOURCE_DESIGN_ONLY_NOT_EXECUTION_ADMITTED",
+    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
     "design": {
-      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_DESIGN_20261128_002.json",
-      "sha256": "78ef8219ea16005691736721c7a26cc629868011cd30d2e2d5433d4b2206403c"
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_DESIGN_20261128_003.json",
+      "sha256": "eb0f66e2e1454f3f0f56e10016be039d2cef56f421556a2363f5db461f34a000"
     },
     "source_preparation_authorized": true,
     "execution_authorized": false,
@@ -110523,10 +110523,26 @@
     "relaunch_allowed": false,
     "test_authorized": false,
     "spending_authorized": false,
-    "next_action": "Qualify one frozen-FINAL full-cohort train/eval mode-gap diagnostic using unchanged all5TF/8families/known-year masks: one saved-EVAL parity pass plus four fixed sequential no_grad TRAIN draws,405forwards0updates. Source preparation only; new exact read-only NN plan/guards/admission/backup required. No dropout/LR/routing/epoch/calibration fix or new fit is admitted.",
+    "next_action": "Commit qualified source; build exact zero-update mode-gap plan/current runtime, guarded metadata preflight and verifiedSOURCEbackup before specificread-onlyNNadmission.",
     "superseded_unexecuted_design": {
-      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_DESIGN_20261128_001.json",
-      "sha256": "53a1470bbd8f882438439deca2fe179fd1888a927c24583750b103df46a027c7"
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_DESIGN_20261128_002.json",
+      "sha256": "78ef8219ea16005691736721c7a26cc629868011cd30d2e2d5433d4b2206403c"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_SOURCE_QUALIFICATION_20261128_001.json",
+      "sha256": "dd550c5af529ed2d5b513479766eeb5e998ae19040886bb926b5e83717be5f18"
+    },
+    "original_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_FIT.json",
+      "sha256": "25ca4cc9d780f5d16376a765ec58f6d84c58a1f16f55d48033d11168fda2d4a8"
+    },
+    "checkpoint_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_DIRECTION_ISSUE_MIX_20261128_001_fit/FINAL.json",
+      "sha256": "1b67d9e51e211480c168b0eae05e5c1677e804e4e4d58e7b9bb1fb619271884d"
+    },
+    "original_FINAL_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_FINAL_BACKUP_20261128_001.json",
+      "sha256": "4d5643a8ae6b04355e6347cf262125067151bcf1d8d2a9ad1e98ae17baedc248"
     }
   }
 }

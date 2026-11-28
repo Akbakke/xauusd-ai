@@ -800,3 +800,173 @@ def test_issue_mix_snapshot_preserves_exact_role_and_strict_gate_types(monkeypat
     if bad:
         with pytest.raises(ValueError):owner.issue_mix_admission_snapshot(lane,binding,pr,pref)
     else:assert owner.issue_mix_admission_snapshot(lane,binding,pr,pref)==sr
+
+
+def test_train_eval_gap_all_prior_leaf_bridges_are_exact():
+    assert owner.train_eval_gap_source_bridge()['all_old_numeric_context_scoring_and_restore_owners_unchanged']
+    test_issue_mix_all_legacy_bridges_are_exact()
+
+
+@pytest.mark.parametrize('admitted',[False,True])
+@pytest.mark.parametrize('field',['remaining_invocations','execution_authorized','training_authorized','test_authorized','spending_authorized','relaunch_allowed'])
+def test_train_eval_gap_gate_rejects_integer_bool_aliases(admitted,field):
+    binding={'path':'/plan.json','sha256':'1'*64};gate=owner.train_eval_gap_gate(binding,admitted)
+    assert owner.train_eval_gap_require_gate(gate,binding,admitted)==gate
+    bad=copy.deepcopy(gate);bad[field]=bool(gate[field])if field=='remaining_invocations'else int(gate[field])
+    with pytest.raises(ValueError,match='TYPED_ONE_USE_GATE'):owner.train_eval_gap_require_gate(bad,binding,admitted)
+    assert gate['training_authorized']is gate['test_authorized']is gate['spending_authorized']is False
+
+
+@pytest.mark.parametrize('bad',[None,'flag','SHA','design','counter'])
+def test_train_eval_gap_snapshot_requires_all_six_flags_closed(monkeypatch,bad):
+    binding={'path':'/plan.json','sha256':'1'*64};sr={'path':str(owner.TRAIN_EVAL_GAP_POLICY_SNAPSHOT),'sha256':'2'*64};pref={'path':str(owner.POLICY),'sha256':'2'*64};policy={k:False for k in owner.DEV_FLAGS};policy[owner.TRAIN_EVAL_GAP_STAGE]={**owner.train_eval_gap_gate(binding,True),'design':owner.TRAIN_EVAL_GAP_DESIGN}
+    if bad=='flag':policy[owner.DEV_FLAGS[-1]]=True
+    if bad=='SHA':pref['sha256']='3'*64
+    if bad=='design':policy[owner.TRAIN_EVAL_GAP_STAGE]['design']={}
+    if bad=='counter':policy[owner.TRAIN_EVAL_GAP_STAGE]['remaining_invocations']=True
+    monkeypatch.setattr(owner,'ref',lambda p:sr);monkeypatch.setattr(owner,'read',lambda r:policy)
+    if bad:
+        with pytest.raises(ValueError):owner.train_eval_gap_admission_snapshot(binding,pref)
+    else:assert owner.train_eval_gap_admission_snapshot(binding,pref)==sr
+
+
+def gap_synthetic_loop(monkeypatch,*,mutate=None):
+    import numpy as np
+    import torch
+    class Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__();self.weight=torch.nn.Parameter(torch.zeros(()));self.child=torch.nn.Identity();self.register_buffer('counter',torch.zeros(()))
+        def forward(self,take):
+            assert not torch.is_grad_enabled()
+            x=torch.rand(len(take),5)if self.training else torch.zeros(len(take),5)
+            if mutate=='buffer'and self.training:self.counter.add_(1)
+            if mutate=='weight'and self.training:self.weight.add_(1)
+            if mutate=='gradient'and self.training:self.weight.grad=torch.ones_like(self.weight)
+            if mutate=='optimizer'and self.training:optimizer.param_groups[0]['lr']+=1
+            if mutate=='steps'and self.training:steps.append('forged')
+            if mutate=='scores'and self.training:scores['PASS2']='forged'
+            return {'activity_logits':x,'side_logits':x.clone()}
+    model=Model();model.child.eval();optimizer=torch.optim.AdamW(model.parameters(),lr=.001);steps=['authentic'];scores={'PASS2':'authentic'};context={'truth':{'issue_ns':np.arange(20727,dtype=np.int64)},'truth_sha256':'all5-masks','source_rows':np.arange(20727,dtype=np.int64)};calls=[];published={};counts={'logit_archive_writes':0,'logit_archive_readbacks':0}
+    def proof():
+        return {k:owner.core.state_sha(v)for k,v in {'model_state':model.state_dict(),'optimizer_state':optimizer.state_dict(),'steps':steps,'scores':scores,'rng_state':owner.core.training_rng(),'training':model.training,'trajectory':{},'position':432,'scheduler_state':None,'optimizer_parameter_names':['weight']}.items()}
+    original=proof();modes={n:m.training for n,m in model.named_modules()}
+    monkeypatch.setattr(owner.adapter,'packet',lambda c,take:{'features':take})
+    def forward(m,take,**kwargs):
+        calls.append((m.training,kwargs['equal_tf'],len(take)));return m(take),None,None
+    monkeypatch.setattr(owner.core,'future_cuda_forward',forward)
+    def score(c,outputs):
+        assert c is context
+        mean=float(outputs['side_logits'].mean());return {'all_TF':{'M5':{'side':{'model':{'NLL':mean},'equal_target_weight':None,'rank_and_variation':{'AUC':mean}}}},'by_UTC_target_year':{},'equal_year_macro':{},'proper_partial_NLL':mean}
+    monkeypatch.setattr(owner,'train_eval_gap_score',score)
+    def publish(root,name,value):published[name]=copy.deepcopy(value);return {'path':str(root/name),'sha256':owner.core.state_sha(value)}
+    monkeypatch.setattr(owner,'development_publish',publish)
+    def logits(root,label,issues,outputs,c):
+        assert np.array_equal(issues,context['truth']['issue_ns']);published[label+'_RAW']=copy.deepcopy(outputs);c['logit_archive_writes']+=1;c['logit_archive_readbacks']+=1;return {'path':str(root/(label+'_LOGITS.npz')),'sha256':owner.core.state_sha(outputs)}
+    monkeypatch.setattr(owner,'development_logits',logits)
+    saved={k:np.zeros((20727,5),np.float32)for k in('activity_logits','side_logits')}
+    return model,optimizer,context,counts,steps,scores,proof,original,modes,saved,calls,published
+
+
+def test_train_eval_gap_four_sequential_draws_exact_eval_and_full_restoration(monkeypatch,tmp_path):
+    model,opt,context,counts,steps,scores,proof,before,modes,saved,calls,published=gap_synthetic_loop(monkeypatch)
+    result=owner.train_eval_gap_passes(model,opt,context,tmp_path,counts,steps,scores,proof,before,saved)
+    assert len(calls)==405 and calls[:81]==[(False,True,256)]*80+[(False,True,247)]
+    assert all(training and not equal for training,equal,_ in calls[81:])
+    assert counts=={'logit_archive_writes':5,'logit_archive_readbacks':5}and proof()==before
+    assert {n:m.training for n,m in model.named_modules()}==modes
+    passes=result['passes'];assert len(passes)==5 and passes[0]['RNG_before_sha256']==passes[0]['RNG_after_sha256']
+    assert all(passes[i]['RNG_before_sha256']==passes[i-1]['RNG_after_sha256']and passes[i]['RNG_before_sha256']!=passes[i]['RNG_after_sha256']for i in range(1,5))
+    assert len({owner.core.digest(published[p['label']+'_RAW']['side_logits'])for p in passes[1:]})==4
+    assert result['diagnostic_only']is result['no_new_trained_candidate']is result['no_draw_selection']is True
+    assert published['STATE_INVARIANTS.json']['all10_semantic_proofs_unchanged']is True
+    summary=published['DRAW_METRIC_SUMMARY.json'];assert summary['draws']==4 and summary['new_predictor']is False
+
+
+@pytest.mark.parametrize('mutation',['buffer','weight','gradient','optimizer','steps','scores'])
+def test_train_eval_gap_unintended_mutation_is_seen_before_cleanup_and_never_reloaded(monkeypatch,tmp_path,mutation):
+    model,opt,context,counts,steps,scores,proof,before,modes,saved,calls,published=gap_synthetic_loop(monkeypatch,mutate=mutation)
+    with pytest.raises(ValueError,match='PRECLEANUP'):owner.train_eval_gap_passes(model,opt,context,tmp_path,counts,steps,scores,proof,before,saved)
+    assert len(calls)==162 and (proof()!=before or mutation=='gradient')
+    state=published['STATE_INVARIANTS.json'];assert state['status']=='FAILED_CONSUMED'and not all(state['observed_immutable_state_before_cleanup'].values())
+    assert state['named_module_modes_restored']is state['full_RNG_restored']is True
+    if mutation=='buffer':assert model.counter.item()==81
+    if mutation=='weight':assert model.weight.item()==81
+    if mutation=='gradient':assert model.weight.grad is not None
+    if mutation=='steps':assert len(steps)==82
+    if mutation=='scores':assert scores['PASS2']=='forged'
+
+
+@pytest.mark.parametrize('bad',['one_bit','signed_zero'])
+def test_train_eval_gap_eval_parity_requires_exact_float32_bits_before_train(monkeypatch,tmp_path,bad):
+    import numpy as np
+    model,opt,context,counts,steps,scores,proof,before,modes,saved,calls,published=gap_synthetic_loop(monkeypatch)
+    saved['side_logits'][0,0]=np.nextafter(np.float32(0),np.float32(1))if bad=='one_bit'else np.float32(-0.)
+    with pytest.raises(ValueError,match='EXACT_SAVED_EVAL_PARITY'):owner.train_eval_gap_passes(model,opt,context,tmp_path,counts,steps,scores,proof,before,saved)
+    assert len(calls)==81 and proof()==before and counts['logit_archive_writes']==0
+    assert published['STATE_INVARIANTS.json']['completed_passes']==[]
+
+
+def test_train_eval_gap_rejects_existing_gradients_before_forward(monkeypatch,tmp_path):
+    import torch
+    model,opt,context,counts,steps,scores,proof,before,modes,saved,calls,published=gap_synthetic_loop(monkeypatch);model.weight.grad=torch.ones_like(model.weight)
+    with pytest.raises(ValueError,match='EMPTY_GRAD'):owner.train_eval_gap_passes(model,opt,context,tmp_path,counts,steps,scores,proof,before,saved)
+    assert not calls
+
+
+def test_train_eval_gap_missing_or_reordered_issue_axis_is_rejected(monkeypatch,tmp_path):
+    import numpy as np
+    issues=np.arange(20727,dtype=np.int64);path=tmp_path/'saved.npz';np.savez(path,issue_ns=issues[::-1],activity_logits=np.zeros((20727,5),np.float32),side_logits=np.zeros((20727,5),np.float32));binding=owner.ref(path)
+    with pytest.raises(ValueError,match='SAVED_ISSUE_BIJECTION'):owner.train_eval_gap_saved_outputs(binding,issues,{'saved_eval_logit_loads':0})
+
+
+def test_train_eval_gap_summary_is_mean_of_scores_with_sample_sd_and_unknowns():
+    import math
+    reviews=[{'all_TF':{'M5':{'side':{'count':float(100+x),'verdict':'PASS','frozen_COHORT_prior':{'NLL':99.},'model':{'NLL':float(x)},'equal_target_weight':None,'rank_and_variation':{'AUC':None}}}},'by_UTC_target_year':{},'equal_year_macro':{},'proper_partial_NLL':float(x)}for x in(1,2,3,4)]
+    summary=owner.train_eval_gap_summary(reviews);cell=summary['metrics']['all_TF/M5/side/row/NLL']
+    assert cell['draw_values']==[1.,2.,3.,4.]and cell['mean']==2.5 and math.isclose(cell['sample_SD'],math.sqrt(5/3))and math.isclose(cell['descriptive_SE'],math.sqrt(5/3)/2)
+    assert summary['metrics']['all_TF/M5/side/row/AUC']['status']=='UNKNOWN'
+    assert not any(any(k in path for k in('count','verdict','prior'))for path in summary['metrics'])
+    with pytest.raises(ValueError,match='FOUR_FIXED_DRAWS'):owner.train_eval_gap_summary(reviews[:3])
+
+
+@pytest.mark.parametrize('fail',[False,True])
+def test_train_eval_gap_success_and_consumed_failure_reporting(monkeypatch,tmp_path,fail):
+    from gx1.contracts import gx1_capped_execution_v1 as guard
+    root=tmp_path/'run';binding={'path':'/plan.json','sha256':'1'*64};pref={'path':str(owner.POLICY),'sha256':'2'*64};plan={'execution':{'internal_seconds':1770},'inputs':{}};live={'physical_windows_boot_id':'boot','wsl_boot_id':'wsl'};published={}
+    monkeypatch.setattr(guard,'require_native_v3_train_eval_gap_execution',lambda **kw:{'execution':'qualified'})
+    monkeypatch.setattr(owner,'TRAIN_EVAL_GAP_ROOT',root);monkeypatch.setattr(owner,'inspect_v3_train_eval_gap',lambda *a:(plan,binding,pref,live));monkeypatch.setattr(owner,'train_eval_gap_admission_snapshot',lambda *a:{'path':'/snapshot.json','sha256':'2'*64});monkeypatch.setattr(owner.core,'future_cpu_process_identity',lambda:{});monkeypatch.setattr(owner.sys,'addaudithook',lambda *a:None);monkeypatch.setattr(owner,'recovery_check_inputs',lambda *a,**kw:None);monkeypatch.setattr(owner.core.common,'firewall_state',lambda:{'denied_attempts':0});monkeypatch.setattr(owner,'train_eval_gap_bookends',lambda *a:dict.fromkeys(('plan','sources','inputs','policy','boots','HEAD'),True))
+    def physical(*args):
+        if fail:raise ValueError('synthetic exact parity failure')
+        return {'counts':{'model_forwards':405,'optimizer_steps':0},'all10_semantic_proofs_unchanged':True}
+    monkeypatch.setattr(owner,'train_eval_gap_physical',physical)
+    def publish(root,name,value):published[name]=copy.deepcopy(value);return {'path':str(root/name),'sha256':owner.core.state_sha(value)}
+    monkeypatch.setattr(owner,'development_publish',publish)
+    if fail:
+        with pytest.raises(RuntimeError,match='synthetic exact parity failure'):owner.run_v3_train_eval_gap('1'*64)
+    else:assert set(owner.run_v3_train_eval_gap('1'*64))=={'result','terminal'}
+    assert published['RESULT.json']['status']==('FAILED_CONSUMED'if fail else'COMPLETE_V3_TRAIN_EVAL_GAP')
+    assert published['RESULT.json']['new_candidates']==published['RESULT.json']['optimizer_updates']==0
+    terminal=published['TERMINAL.json'];assert terminal['exit_code']==int(fail)and terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False
+
+
+def test_train_eval_gap_output_payload_allowlist_is_exact_and_live_audit_accepts_it(tmp_path):
+    root=tmp_path/'run';plan={'inputs':{'final_checkpoint':{'path':str(tmp_path/'FINAL.pt'),'sha256':'1'*64},'metadata':{'path':str(tmp_path/'score.json'),'sha256':'2'*64}}};allowed=owner.train_eval_gap_payload_allowlist(plan,root)
+    expected={str((tmp_path/'FINAL.pt').resolve())}|{str((root/(spec['label']+'_LOGITS.npz')).resolve())for spec in owner.TRAIN_EVAL_GAP_PASSES}
+    assert allowed==expected
+    for path in allowed:owner.development_io_audit(allowed,'open',(path,'rb',0))
+    for name in ('EXTRA_LOGITS.npz','TRAIN_DRAW_05_LOGITS.npz','INITIAL.pt'):
+        with pytest.raises(RuntimeError,match='PAYLOAD_PATH_FORBIDDEN'):owner.development_io_audit(allowed,'open',(str(root/name),'rb',0))
+
+
+@pytest.mark.parametrize('bad',[None,'context','identity'])
+def test_train_eval_gap_recomputes_current_input_identity_and_rejects_copied_provenance(monkeypatch,bad):
+    original={'model_contract':'actual-canonical-contract'};identity={'input_binding_ref':'actual-bound-input','normalization_ref':'actual-bound-normalization','actual_metadata_contract_recomputed':True,'payloads_decoded':0};producer={'metadata':{'original':copy.deepcopy(original)},'physical_input_identity':copy.deepcopy(identity)};calls=[]
+    if bad=='context':producer['metadata']['original']['model_contract']='forged-context'
+    if bad=='identity':producer['physical_input_identity']['normalization_ref']='forged-normalization'
+    def current_metadata():calls.append('actual-owner');return original,{}, {},{},identity
+    monkeypatch.setattr(owner,'recovery_original_metadata',current_metadata)
+    if bad:
+        with pytest.raises(ValueError,match='FRESH_PHYSICAL_INPUT_CONTEXT'):owner.train_eval_gap_current_input_identity(producer)
+    else:
+        actual=owner.train_eval_gap_current_input_identity(producer);assert actual==identity and actual is identity and actual is not producer['physical_input_identity']
+    assert calls==['actual-owner']
