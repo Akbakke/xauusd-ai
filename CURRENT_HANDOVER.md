@@ -16,7 +16,9 @@
 ## Gjeldende status og neste steg
 
 NEXT_RUN_POLICY.json er eneste arbeidsstatus. Aktuelt forberedelsesfelt er
-native_all_tf_provider_hlc_v3_direction_block_order_20261128_001.
+native_all_tf_provider_hlc_v3_block_order_recovery_20261128_001.
+Order-feltet native_all_tf_provider_hlc_v3_direction_block_order_20261128_001
+er lukket etter ekstern stopp; originalplanen er forbrukt.
 Siste diagnostikkfelt native_all_tf_provider_hlc_v3_direction_gradient_20261128_001
 er CLOSED_CONSUMED_COMPLETE. Appmålet mot dokumenterbar retningsedge med alle
 genuine indikatorer og deres samspill er aktivt og uoppfylt.
@@ -75,35 +77,63 @@ Lokal D1-biasfeil er -17,42/-16,11/+3,48 prosentpoeng, mens pooledTRAIN er
 Gradientene er lokale, uklippede data-gradienter; de er ikke historisk
 kausalbevis, AdamW-oppdateringer, optimale taskvekter eller indikatornytte.
 
-### Neste konkrete arbeid
+### Nyeste order-fit — avbrutt, ekte C1 bevart
 
-Én ny kontroll skal isolere batchrekkefølge før endret modell/tap/ruting:
-samme 216 hele B96-batcher, siste 87-radersbatch, 20727 TRAIN-rader, to pass og 432
-updates. Privat PCG64 med eksisterende recipe-seed 20260911 låser to
-permutasjoner uten å flytte modellens globale/dropout RNG. Ingen endring i
-rader, rekkefølge innen batch/vindu, features, mål, masker, normalisering, prior,
-fullt koblet None, optimizer, klipp eller evalrekkefølge.
+Den order-only-kilden er kvalifisert med 64 guard-/kildebrokontroller og
+23 ulike leaf-kontroller. Metadata-preflight og separat SOURCE-backup består.
+Kjøringen brukte fryst kilde e63c927316d251cf96d07b6bbc863323f8d20d89.
+Fersk modell og full RNG matchet original INITIAL, og faktisk fasit-SHA ble
+kontrollert før første oppdatering. Ingen gamle vekter ble lastet, og ingen
+nye INITIAL-forwards ble gjort.
 
-Fersk samme factory er initializer; aldri gamle C1/FINAL/tekniske vekter.
-Gjenbruk faktisk INITIAL og gamle kalde bevis bare etter eksakt identitets-/
-funksjonskontroll og navngitt kildebro; kvalifiser ny schedule/cursor-
-binding og negative restorekontroller. Endret ONLINE-funksjon krever
-fersk INITIAL og ligger utenfor denne order-only-avgrensningen.
-Sammenlign eneste nye låste PASS2 med opprinnelig kronologisk PASS2 og samme
-INITIAL/COHORT-prior på alle fem TF/vektinger/år/blokker. Samme absolutte
-kriterier gjelder; relativ forbedring av en FAIL er ingen ny kvalifisering.
+Guard stoppet kl. 02:12:57 UTC på host_maintenance_active, 239,96 s etter claim.
+RESULT/TERMINAL er FAILED_CONSUMED med alle seks bookends PASS. MoUsoCoreWorker
+PID 4676, parent 5764, ble opprettet 02:12:56.3024120 UTC; journalen viser tilstede-
+værelse 02:12:57.6730684. Setup/OOBE/CBS/WU/reboot-in-progress var false/0.
+Aktiv installasjon er UNKNOWN. Guardloggen mangler nonce/monotonic; tids-/
+reason-/flaggkorrelasjon er ikke bevist eksakt noncebinding. Én signert query
+og journalen viste idle 02:27:58 UTC; dette er observert idle, ikke eksakt exit
+eller garanti for neste kjøreperiode. Ingen host-/vaktendring.
 
-Order-only-ruten er kildekvalifisert med 64 guard-/kildebrokontroller og
-23 ulike leaf-kontroller. Faktisk INITIAL-score, logits, input-/normaliserings-
-identitet og 78 kildeeiere er validert uten payloaddekoding eller NN.
-Privat RNG, hele batcher, ny kursørbinding og avvisning før parameterkopiering
-består. Plan, aktuell runtime, metadata-preflight og separat backup gjenstår
-før noen fit-admisjon. Ny ordrespesifikk kald paritet er ikke målt eller påstått.
+CURSOR001.json/.pt og CURSOR001_ORDER.json er varige og hashbekreftet.
+C1 beviser én varig oppdatering. Totalt faktisk utført er UNKNOWN innen 1..216:
+PASS1 publiseres synkront etter update 216 og før 217, men PASS1/PASS2/FINAL
+mangler. Det finnes ingen ny order-kandidat eller læringsdom.
+Første originalbatch var 116; neste logiske indeks 1 bruker originalbatch 131,
+96 rader, samme bundne kilde-/issuehash. ScheduleSHA er
+dba16db2b9c04c1fd988a79d3fd713b9719bbfc3514b76b38174b92ccfef19de.
+C1-checkpointSHA er
+d15de306b8a231b8665f1422ba7c3f7aae211524ffe9ba0970f0ca28f1437e05.
+Eksakte øvrige original-/policy-/proofbindinger ligger i det lukkede feltet.
 
-Dette er en målrettet test av rekkefølge-/suffixhypotesen, ikke en påvist
-årsak eller lovet H4-forbedring. Ny kildekvalifisering, eksakt engangsplan,
-backup og aktuell guardadmisjon kreves før NN/fit. Ingen automatisk seed-,
-epoke-, taps- eller modellserie.
+### Neste konkrete arbeid — eksakt videreføring
+
+Design er bundet i V3_BLOCK_ORDER_EXACT_RECOVERY_DESIGN_20261128_001.json.
+Kvalifiser minste adapter i eksisterende eiere; ikke ny modell eller freshfit:
+
+1. REFERENCE: fersk samme factory/full RNG, opprinnelige batcher 116→131.
+   Alle ti C1-bevis må matche ekte order-C1 før C2 godtas. Ny produsent er ekte;
+   full fil-SHA skal ikke tvinges lik mellom ulike produsenter.
+2. COLD: ny prosess laster ekte order-C1, autentiserer faktisk full produsent/
+   runtime/scores/proof, og avviser feil ordreschedule før parameterkopiering.
+   Utfør kun batch 131; alle ti C2-bevis må matche referansen.
+3. RECOVERY: last ekte order-C1 på nytt, aldri tekniske vekter. Fortsett opprinnelig
+   globalindeks 1..431 med 431 nye updates/596 forwards til samme sluttpunkt 432.
+   Bevar ordrebindinger, original INITIAL, kanonisk PASS1/PASS2 og tre opprinnelige
+   diagnostikkpaneler. Bare global PASS2 er kandidat; ny FINAL 432 er eneste
+   gjenstående opprinnelige checkpointposisjon.
+
+Nye order-C1/C2-kalde bevis er foreløpig IKKE MÅLT. Gamle kronologiske kaldbevis
+er bare uendret numerisk mekanikk og erstatter ikke denne nye pariteten.
+C1 kan legitimt ha null backbone-momenter. Det opprinnelige ukjente fysiske
+arbeidet og tekniske replay-oppdateringer rapporteres separat fra logisk 432.
+
+Én felles fryst kilde/protokoll gjennom de tre rollene; administrativ lane-
+admisjon bare mellom faktiske terminaler. Hver rolle har ny eksakt engangsplan,
+aktuell runtime/preflight/backup og egen uforanderlig policy-snapshot. Alle
+gates er nå stengt. Ingen relaunch av order-planen, automatisk retry/fitserie,
+nye epoker, tap, ruting, features, prior, normalisering, utvalg eller vaktsvekkelse.
+Alle fem TF og genuine familier beholdes. TEST og øvrige eksklusjoner består.
 
 ## Bevarte tekniske grenser
 
@@ -111,7 +141,7 @@ Diagnostikkens 51 guard-/kildebrotester og 20 ulike leaf-kontroller består;
 faktisk FINAL-metadata og 78 kildefiler er validert. Gamle numeriske eiere og
 beståtte kontroller gjenbrukes. Første metadata-preflight stoppet på null
 telemetrisamples før child/CLAIM; aktuell signert query og andre metadata-
-inspeksjon bestod. Timeout/vakter ble ikke endret. NN-planen ble kjørt én gang.
+inspeksjon bestod. Timeout/vakter ble ikke endret. Hver NN-plan ble kjørt én gang.
 Originale MoUso-stopp, logger, checkpoints og backuper beholdes; ingen
 prosesskill, reboot, vedlikeholdssperre eller svekket vakt ble brukt.
 
@@ -189,8 +219,12 @@ Policy binder eksakte SHA og originale terminaler/snapshots.
   faktisk 3/30/0, tellinger, proof10 og seks bookends.
 - V3_DIRECTION_GRADIENT_REVIEW_20261128_001.json:
   alle tre paneler, per-TF readout-bias/vekter og Gram-avledede familiesummer.
+- V3_BLOCK_ORDER_EXACT_RECOVERY_DESIGN_20261128_001.json:
+  neste eksakte C1/C2/recovery-scope; ingen ny fit-admisjon.
+- V3_DIRECTION_BLOCK_ORDER_STOP_REVIEW_20261128_001.json og
+  MAINTENANCE_DIAGNOSIS med samme suffiks: ekstern stopp og bevart order-C1.
 - V3_DIRECTION_BLOCK_ORDER_DESIGN_20261128_001.json:
-  neste avgrensede hypotese, bevarte invariants og stengt NN/fit-admisjon.
+  opprinnelig uendret order-only-hypotese og bevarte invariants.
 - V3_DIRECTION_GRADIENT_SOURCE_QUALIFICATION_20261128_001.json:
   fokuserte tester, navngitte bytekildebroer og faktisk metadata uten NN.
 - V3_DIRECTION_GRADIENT_SOURCE/FINAL_BACKUP_20261128_001.json:
