@@ -15,80 +15,88 @@
 
 ## Gjeldende status og neste steg
 
-NEXT_RUN_POLICY.json er eneste arbeidsstatus. Gjeldende felt er
-native_v3_observed_train_continuation_20261128_001: SOURCE_QUALIFIED_PLAN_PENDING,
-execution=false/training=false/remaining=0/relaunch=false. Alle seks globale
-flagg er false. Ingen ny NN/fit er startet eller innrømmet. Edge er uoppfylt.
+NEXT_RUN_POLICY.json er eneste arbeidsstatus. Felt001
+native_v3_observed_train_continuation_20261128_001 er faktisk COMPLETE/stengt/
+forbrukt0/relaunch=false. Prosessen er faktisk avsluttet, indre/ytre exit0,
+alle6bookends PASS. Alle seks globale flagg er false. Edge-målet er aktivt og
+uoppfylt. Ingen senereVAL/Control/TEST/ordre/paper/live er kjørt.
 
-Ny additiv kjørerute binder ekte opprinnelig FINAL432 til ett låst FINAL648:
-216oppdateringer med nøyaktig opprinnelige andrepass-takes216..431, hele20727TRAIN,
-alle5TF/8familier+D1makro/None. Samme inputs/prior/norm/modell/tap/AdamW/RNG/
-klipp/precision. Tekniske C433/C434 er ALDRI initializer. Observatørens216
-rapporter ligger utenfor legacy steps/scores. Mekanisk C433 og kandidatFINAL648;
-ingen mellompunktseleksjon, adaptiv forlengelse eller automatisk neste fit.
-297forwards=216TRAIN+81fullFINAL-EVAL. Baseline432/factoryINITIAL/COHORTprior
-og alle gamle kriterier gjenbrukes. Faktisk FINAL648 har eget navnerom og ytre
-fasealias; uendret numerisk eier bruker PASS2/gammel spec uten å omskrive gamle
-PASS2-kvitteringer. Alle5TF/år/rad- og målbarvekting/proper/rank/kalibrering/
-støtte/stabilitet bevares, også forverring/UNKNOWN. TRAIN er ikke senere edge.
+Fryst kilde58504b7bb, plan-SHA
+c4e9b8ff8f760b062d773b08a585caeff88cec551ced3f6e57704da61c50f41f.
+Ekte opprinnelig FINAL432 ble full10-validert før modell/AdamW/fullRNG-copy.
+216nøyaktige andrepass-takes216..431 gikk til låst terminal648, hele20727TRAIN/
+1377kildedøgn2021–25, alle5TF/8familier+D1makro/None. Ingen teknisk C433/C434
+som initializer, ingen ny feature/target/prior/norm-fit eller hyperparameter-
+endring.297forwards=216TRAIN+81fullFINAL-EVAL,216backward/update/observasjoner,
+1checkpointload/restore,2atomiske checkpointwrites/readbacks,1logitarkiv,
+0autograddiags/skips. Fullførte på435,35s. C433 er mekanisk; bare FINAL648 er
+kandidat. Nye ekte FINAL648-referanser ligger i policy/RESULT/FINAL648.json:
+checkpoint-SHA c21159dcade8f0fe36eddd4d0d53c62d1fa07be2985a19b18b7b0d4232b8d150,
+receipt-SHA f3534bdeeb460a56f04b5c8fa7b7142a56e43341ef6075b653fd30558fc8d0b3.
 
-Kildekvalifisering e24fa2751762674b0cd7f013521e2dbf82043ac10197bf39c6c2543f0569697f:
-10nye adapterkontroller og50nye vaktkontroller PASS. Ny testimport/fixturefeil
-ble rettet før NN; originale001/002/003-feilkvitteringer er bevart. Ingen
-vaktpredikater ble svekket.86eiere/fersk modellkontrakt/inputidentitet faktisk
-kontrollert med forbud mot metadata-modell/optimizer/checkpoint/NPZ/CUDA:
-alle fem forsøkstellere0. Original432prefix+eksakt216hale og gamle inputroller
-bevart. Ny schedule-SHA4e1633777841d65b3704284004ed24f204fda64d6275b48c1842bbb22be923b2.
-Eksakt additiv guard-/shellreversering matcher4c6124d988; seks NN-eiere og egen
-hardwarevakt er byte-uendret. Uavhengig lesekontroll fant ingen kildeblokkering.
+Uendret numerisk skåreier bruker PASS2/gammel spec, eksplisitt ytre FINAL648-
+navnerom/fasealias. Ingen gammel PASS2-kvittering er omskrevet. Baseline432/
+factoryINITIAL/COHORTprior er gjenbrukt. Actualreview-SHA
+9351f5f72573d3ec5b223ff2f26f9debac91aded6477f556d35b51c50b4f6a08.
+Alle5TF fikk bedre NLL/Brier under både rad- og målbarvekting og bedre rad-AUC.
 
-Neste: fryst kildecommit, fersk eksakt plan/runtime, faktisk CLI-metadatakontroll,
-kanonisk hardware-preflight, fysisk SOURCEbackup og ny snapshot-først admission.
-Bruk eksisterende20G/512M,1770intern/1800ytre,8tråder/CPU0..18/12GiBVRAM og alle
-maskinvare-/bootvakter uendret. Ingen senereVAL/Control/TEST/M1/GC/Entry/Exit/
-broker/ordre/spending/promotion. Siste cold-recovery er COMPLETE/forbrukt0;
-original COLD beholder FAILED_CONSUMED/forbrukt0 og REFERENCE COMPLETE/forbrukt0.
+| TF | BASELINE432 → FINAL648 AUC | FINAL648 Brier minus COHORT-prior, rad | År-PASS rad/målbar |
+|---|---:|---:|---:|
+| M5 |0.519403 →0.528606|+0.000338720|1/5 ·1/5|
+| M15 |0.518758 →0.527050|-0.000523637|5/5 ·5/5|
+| H1 |0.524846 →0.541390|-0.000684374|4/5 ·4/5|
+| H4 |0.524267 →0.539902|-0.001246586|5/5 ·5/5|
+| D1 |0.614417 →0.673314|-0.022056640|5/5 ·5/5|
 
-### Fullført separat kald gjenopptakelse
+M5 feiler fortsatt prior/factory; samlet proper/stabilitet/TRAINKVAL FAIL.
+År-PASS20/25 under begge vektinger, mot18/25rad og17/25målbar ved432.
+M5s2023NLL/Brier forverres svakt (+0,0000714049/+0,0000355959); andre
+år/TF-proper forbedres. Alle5TFsAUC forbedres i hvert år. M5EVAL-
+pUP48,4560→48,1775%, fasit50,8831%; middelfeil−2,4271→−2,7057pp. M5Brier
+bedres0,0000597014 samtidig som kvadrert middelfeil øker0,0001429706;
+algebraisk rest bedres0,0002026721. Klasseseparasjon øker, sannsynlighetssenter
+faller. Dette isolerer ingen representasjonsårsak eller historisk feil.
+TRAIN er ikke senere generalisering, lønnsomhet eller bevist indikatorverdi.
+Målbar-AUC er fortsatt NOT_IMPLEMENTED; D1s13968rader er875målbarer.
 
-Fryst eksekveringskilde9454baadf; nye plan-SHA06b4c70f42275de764a18f0850f5e8fa43d447b1ee99405ea2974ddb5e1f2ca8.
-Ny rute gjenbrukte q.physical, ekte REFERENCE-C433/C434 og helt uendret gammel
-teknisk trajektorie/steps/scores/23budsjettfelt. Core/observatør/modell/tap/
-treningskode/forrige adapter var byte-uendret; bare egen eksekveringsgenerasjon.
-Eksakt additiv reversering av guard-/shelltillegg matcher23b166541 og gamle
-vakter/kaps er bevart. Ingen deadline/predikat/boot-/vedlikeholdsregel er endret.
+Alle1080nativeF32gradientkontroller PASS; maxfeil3,17e-9, høyest1,48% av
+F32-grensen. Global klipping8/216, ingen biasgradientsignflip. M5nativebias
+flyttes bare−0,00000205636, m1+.000880403→+.000575018; observerte AdamW-
+steg er konsistente, ingen sign-/bias-/tapspatch er begrunnet. Utviklende
+TRAIN-batchsnitt er ikke frosset FINAL648-modusgap. Endpointassessment-SHA
+b7a5138b2450ec2c81e4887b7771851a53ad91f2d12aeaede96dfcf36547b783.
 
-Første metadata-preflight fanget en konkret rolle-kollisjon før CLAIM/NN:
-nytt recovery_design overskrev gammel FIT004-inputreferanse. Feltet ble kalt
-observer_cold_recovery_design; streng merge avviser alle endrede opprinnelige
-bindinger. Ubrukt planf7f1c0aa og feillogger er bevart immutable i E. Ny kilde/
-plan-SHA fikk egen metadata-kontroll med eksakt CLI før hardware-preflight og
-egen admission. Ingen gammel godkjenning ble gjenbrukt.66opprinnelige kontroller
-bestod, deretter8berørte regresjoner inkludert3nye; gamle7/70-suiter gjenbrukt.
-83eiere/fersk modellkontrakt/inputidentitet er faktisk kontrollert med runtime-
-forbud mot metadata-modell/optimizer/checkpoint/NPZ/CUDA. Referansebackupdekning
-og SOURCE-manifestets gjeldende plan/design/kvalifisering/83eiere er validert.
+Ytre signert vakt:278målinger/child_status0, ingen stop/fatal/maintenance;
+peakGPU61C/minne68C/186,83W/9772MiB, CPU43C/35,55W, hostledig minst54,93GB/
+commitmargin49,62GB. Fysisk GPUgrense200W. Boot4 og sammeWSL-ID som CLAIM,
+ingen queryfeil, prosessPID1388327/start48897827 borte. Vaktene ble ikke endret.
 
-Faktisk jobb fullførte på52,17s:1forward/backward/update/observasjon,1C433load/
-restore og1C434write/prepublikasjon/readback.0ekstra autograd/scoreforwards/
-normaliserings-/priorfits/skips. Alle10C434-bevis matcher originalREFERENCE-C434;
-observasjons-JSON er byte-identisk med opprinnelig mislykket COLD (SHAe1f5b607...).
-WindowsBootID4 og sammeWSL-ID er faktisk observert/matcher CLAIM; ingen spørre-
-eller sjekkfeil. Alle6bookends PASS. Ytre signert vakt avsluttet child_status0,
-38målinger, ingen stop/fatal/maintenance; peakGPU46C/minne46C/175,43W/9772MiB,
-CPU37C/31,60W, hostledig minst55,11GB og commitmargin49,67GB. Fysisk GPUgrense200W.
+Før NN bestod60fokuserte kontroller og86-eier/fersk modell-/inputidentitet
+med0metadata-modell/optimizer/PT/NPZ/CUDA-forsøk. Feil i ny testimport/fixture
+ble rettet; original001/002/003 bevart. Første ubrukte hardware-preflight
+stoppet på0telemetrimålinger; fersk signert normal host og egen002-preflight
+bestod før admission. Backupkoblingens feltnavn ble rettet før admission;
+samme immutable arkiv/kvitteringer gjenbrukt. Ingen vakt ble svekket. SOURCE:
+146filer, fsync/F_FULLFSYNC/allemedlemmer verifisert på separat Macdisk.
+FINAL-backup er fysisk fsync/F_FULLFSYNC/allemedlemmer-verifisert på Mac:
+181filer/229070801bytes, arkiv-SHA
+eed13afe13b138db115dc3c24ef317508c5c4f334e33984153cc1112ee21427c.
+Manifest/kvittering ligger i policy; avsluttende binding/overlevering bevares i
+Git. OriginalFINAL432/tekniske referanser gjenbruker verifiserte backuper.
 
-Observatørens ikke-inngripende mekanikk er nå operasjonelt kvalifisert for det
-avgrensede tekniske steget. Dette gjør IKKE originalfeilen til PASS, beviser ikke
-historisk årsak/læring/generalisering/økonomi og gir ingen kandidat/fitadmisjon.
-Alle tekniske vekter er aldri initializer. Gamle feil/checkpoints er bevart.
-SOURCE-backup:145filer/7 265 596bytes, fsync/F_FULLFSYNC/allemedlemmer-verifisert.
-FINAL-backup er fysisk fsync/F_FULLFSYNC/alle-medlemmer-verifisert:
-170filer/96 181 111bytes, arkiv-SHA
-e9c59c0c175fb7bb2c77a7916919e5af016925f4915816a0af0eaf170bed0315.
-Begge manifeste/kvitteringer ligger i policy; avsluttende overlevering/binding
-bevares i Git. Originalreferanse- og FINAL-vekter gjenbruker verifiserte backuper.
-Ingen rådata/vekter i Git.
+Neste felt002 native_v3_observed_train_continuation_20261128_002 er kun
+DESIGNED_SOURCE_PREPARATION_ONLY_CLOSED, execution=false/training=false/
+remaining0/relaunch=false. Design-SHA
+f52d056a1715f13180b6aee375ae17fd45eb992644bf447f38a0239ebf34bf30.
+Etter faktisk all5-forbedring er én separat forhåndsdefinert fortsettelse
+foreslått: ekte FINAL648 til låst864, samme originale takes216..431 én gang,
+216updates+81fullEVAL/297fw, uendrede funksjoner/inputs/recipe/kapper. Ingen
+automatisk serie eller ny NN-admisjon. Nytt current648-checkpoint trenger
+sin egen ekte648-trajektorie/full10restore; aldri feil gammel432-lineage.
+Neste arbeid: minste nye eksekverings-/lineagebinding med gjenbrukte beståtte
+matematiske eiere/kontroller, fersk source/host/preflight/SOURCEbackup og fysisk
+FINAL648-backup før ny eksakt snapshot-først admission. TEST fortsatt forseglet.
+Original mislykket COLD/alle forbrukte tidligere roller forblir urørt/stengt0.
 
 ### Bevarte forutsetninger og læringsbaseline
 
@@ -113,7 +121,7 @@ av whole-batch→issue-miks logitendring;99,416% er samlet representasjons-/
 projeksjonsrest og F32-avrunding, uten isolert årsak. Ingen bias-/dropout-/
 tapsnormaliseringspatch er begrunnet. Bevisene og gamle feil er bundet i policy/Git.
 
-Siste læringskandidat er låst issue-miks PASS2, fryst kilde7471ddf48:
+Forrige læringsbaseline var låst issue-miks PASS2, fryst kilde7471ddf48:
 20727TRAIN-issues/1377kildeklokkedøgn2021–2025, B96/E256, seed20260911,
 2pass à216updates. Alle8familier+D1/makro og M5/M15/H1/H4/D1, fullt koblet
 None-policy og egne kausale vinduer beholdes. Fersk FIT fullførte432updates/

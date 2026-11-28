@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T07:45:50.218984+00:00",
+  "observed_utc": "2026-11-28T08:25:17.930170+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "OBSERVED_TRAIN_CONTINUATION_SOURCE_QUALIFIED_PLAN_PENDING",
+  "status": "OBSERVED_TRAIN_CONTINUATION_COMPLETE",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Commitqualifiedsource thenfreshplan/preflight/SOURCEbackup beforeexact216updateadmission; noautomaticnextfit.",
+  "next_action": "Prepareminimumnewexact216updatecontinuationfromauthFINAL648to864; reusequalifiedmath/observer/fullscore; noNNuntilnewsource/backup/host/admission.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -46798,7 +46798,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_ACTUAL_STEP_OBSERVER_COLD_RECOVERY",
+  "training_enabled_scope": "CLOSED_OBSERVED_TRAIN_CONTINUATION",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -110848,7 +110848,7 @@
     }
   },
   "native_v3_observed_train_continuation_20261128_001": {
-    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
+    "status": "CLOSED_CONSUMED_COMPLETE",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_001.json",
       "sha256": "5b04f35e2765c45c2cf331cada40f0d96497b1561e69183add7a38be6a5eb269"
@@ -110858,10 +110858,61 @@
     "training_authorized": false,
     "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "next_action": "Prepareminimumfixed216updateobserverenabledTRAINcontinuation fromauthFINAL432 tolocked648, all5TF/fullcohort/prior/yearscore; nofitadmitteduntilnewqualification/admission.",
+    "next_action": "Assessfixedall5TRAINoutcome thenpredeclareonlythenecessarynextlearningorgeneralizationstudy; noautomaticfit.",
     "source_qualification": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_SOURCE_QUALIFICATION_20261128_001.json",
       "sha256": "e24fa2751762674b0cd7f013521e2dbf82043ac10197bf39c6c2543f0569697f"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_001.json",
+      "sha256": "c4e9b8ff8f760b062d773b08a585caeff88cec551ced3f6e57704da61c50f41f"
+    },
+    "test_authorized": false,
+    "spending_authorized": false,
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_PREFLIGHT_20261128_001.json",
+      "sha256": "21b5735d2ac25839cf2e0cbc1b7e62d8dd67509e6bf31cf5cf082570483a585e"
+    },
+    "source_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_SOURCE_BACKUP_20261128_001.json",
+      "sha256": "ddc4119322b6cb7e8663bf8432f851f96b16e22b111df5ec9d76127c534c66c4"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_001/RESULT.json",
+      "sha256": "a63a6e9aa7ea9dda2014d2a3ef43cd596ae81cb5c3af9c436df637948d4bb7d0"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_001/TERMINAL.json",
+      "sha256": "3d0b61909938b47b7a0363c4eb783444dc782ed3fbb39337978f8d900b312ac9"
+    },
+    "acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_ACCEPTANCE_20261128_001.json",
+      "sha256": "47af3771b73f1a2ab973cdfcd05f093dec83ba889bc901eb239be3f5f918e810"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_ACTUAL_REVIEW_20261128_001.json",
+      "sha256": "9351f5f72573d3ec5b223ff2f26f9debac91aded6477f556d35b51c50b4f6a08"
+    },
+    "endpoint_assessment": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_ENDPOINT_ASSESSMENT_20261128_001.json",
+      "sha256": "b7a5138b2450ec2c81e4887b7771851a53ad91f2d12aeaede96dfcf36547b783"
+    },
+    "final_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_FINAL_BACKUP_20261128_001.json",
+      "sha256": "4ebf90a11a7d23fec362566cf247b7cfb54eef563d25c592b88f58e003ebc286"
     }
+  },
+  "native_v3_observed_train_continuation_20261128_002": {
+    "status": "DESIGNED_SOURCE_PREPARATION_ONLY_CLOSED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_002.json",
+      "sha256": "f52d056a1715f13180b6aee375ae17fd45eb992644bf447f38a0239ebf34bf30"
+    },
+    "source_preparation_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "next_action": "Prepareminimumnewexact216updatecontinuationfromauthFINAL648to864; reusequalifiedmath/observer/fullscore; noNNuntilnewsource/backup/host/admission."
   }
 }
