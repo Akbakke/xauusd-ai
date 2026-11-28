@@ -19,8 +19,21 @@ NEXT_RUN_POLICY.json er eneste arbeidsstatus. Siste faktiske NN er separat004,
 CLOSED_CONSUMED_COMPLETE/remaining0/relaunchfalse, execution/trainingfalse;
 alle6globale flagg er false og prosess er borte. Edge-målet er aktivt/uoppfylt.
 Gjeldende neste felt er native_v3_frozen_864_1080_block_attribution_20261128_001,
-bare SOURCE_PREPARATION_ONLY_CLOSED/executionfalse/trainingfalse/remaining0.
+SOURCE_QUALIFIED_PLAN_PENDING/executionfalse/trainingfalse/remaining0.
 Ingen ny NN eller treningsforlengelse er innrømmet.
+
+Ny frossen2x2eier er kvalifisert:98eiere,106fokuserte kontroller PASS (23eier/
+83guard), fersk fysisk input-/modellidentitet/egne864+1080lineager og
+0metadata-modell/optimizer/PT/NPZ/CUDA-forsøk, også ved prosjektimport. Begge
+originalarkiver er fysisk rehashet/identiske og alle9endepunktbindinger dekket
+hver. Alle95gamle ikke-guard-eiere er byte-uendret; nye guard/shell-tillegg
+reverseres eksakt til0c06e9b8a. Ingen numerisk eier/modell/input er endret.
+Før første test ble én konkret rapporteringsfeil rettet: STATEPASS må også
+kreve vellykket siste modus-/nonpersistentbuffer-/grad-/full10-gate. Egennegativ
+test bevarer FAILED ved ellersgenuinfull10 og eksakttellere. Ingen faktiskNN
+er kjørt. Neste: fryst commit, eksakt ny plan/faktiskCLIhardware-preflight og
+verifisertSOURCEbackup før egen snapshot-først engangsadmisjon. Alle6globale
+flagg forblir false også ved eventuellfrossen kjøring; bare executiongate kanåpnes.
 
 004 brukte fryst kildeac0796e24, plan-SHA
 20ce68f848c0e48a5c81d3e1684ee2ab4dadd7c13c439ef904615c83d5085734.

@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T10:39:39.009728+00:00",
+  "observed_utc": "2026-11-28T10:56:44.051610+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FIXED1080_ASSESSED_TRAIN_FAIL_FROZEN_BLOCK_SOURCE_ONLY",
+  "status": "FROZEN_BLOCK_SOURCE_QUALIFIED_CLOSED",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Genuine1080 physicalbackup now verified (all186members inclbothnewCPs/fullproofs/nextdesign). Inspect/reuse existing attribution/EVAL owners; qualify minimum declared4arm frozen block diagnostic and fresh own plan/host/CLI/SOURCEbackup/snapshot-first execution gate. No NN or training admitted.",
+  "next_action": "Freeze qualified98sources/106focusedchecks; fresh exactplan/runtime/CLIhardwarepreflight and verifiedSOURCEbackup before ownexecution-onlysnapshot-firstadmission. All6trainingflagsfalse, noNNyet.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -111131,7 +111131,7 @@
     }
   },
   "native_v3_frozen_864_1080_block_attribution_20261128_001": {
-    "status": "SOURCE_PREPARATION_ONLY_CLOSED",
+    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_DESIGN_20261128_001.json",
       "sha256": "9578cee76b7d0676529bf78a48f90c9d8a6f68bd5e13a914ce9c08c47578d2dd"
@@ -111144,7 +111144,7 @@
     "test_authorized": false,
     "spending_authorized": false,
     "implementation_requires_verified_FINAL1080_backup": true,
-    "next_action": "Genuine1080 physicalbackup now verified (all186members inclbothnewCPs/fullproofs/nextdesign). Inspect/reuse existing attribution/EVAL owners; qualify minimum declared4arm frozen block diagnostic and fresh own plan/host/CLI/SOURCEbackup/snapshot-first execution gate. No NN or training admitted.",
+    "next_action": "Freeze qualified98sources/106focusedchecks; fresh exactplan/runtime/CLIhardwarepreflight and verifiedSOURCEbackup before ownexecution-onlysnapshot-firstadmission. All6trainingflagsfalse, noNNyet.",
     "verified_FINAL1080_backup": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_FINAL_BACKUP_20261128_004.json",
       "sha256": "189ae0ddd004ee18bd0da92e83ccdefea3d5900eb2d4f107f62a89f40f4e01d2"
@@ -111156,6 +111156,10 @@
     "fresh_parent_and_failed_backup_recheck": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_PARENT_BACKUP_RECHECK_20261128_004.json",
       "sha256": "10c2fa47b31e80cf0de85020943069b19f61a456542041d6c19e7a347aeda725"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_BLOCK_ATTRIBUTION_SOURCE_QUALIFICATION_20261128_001.json",
+      "sha256": "82212f66840ea006b0cf8c290c83a8f8f64ef3f7355a1b76e3f9179c5dd88eb9"
     }
   }
 }

@@ -4883,6 +4883,7 @@ _V3_FIXED_CONTINUATION_SHELL_ADDITIONS = (('NATIVE_V3_FROZEN_FINAL864_MODE_GAP=f
 
 
 def _native_v3_fixed_continuation_without_additions(current):
+    current=_native_v3_frozen_block_attribution_without_additions(current)
     require = _native_v3_development_require; current = dict(current)
     name = 'gx1/contracts/gx1_capped_execution_v1.py'
     begin = '# BEGIN GX1 V3 FIXED CONTINUATION GUARDS 20261128 001\n'
@@ -5145,6 +5146,238 @@ def require_native_v3_fixed_continuation_execution(*, run_id, plan_sha256):
             'training_authority_granted': False, 'optimizer_authority_granted': False}
 
 # END GX1 V3 FIXED CONTINUATION GUARDS 20261128 001
+
+# BEGIN GX1 V3 FROZEN BLOCK ATTRIBUTION GUARDS 20261128 001
+_V3_FROZEN_BLOCK_ATTRIBUTION_PARENT = '0c06e9b8a4c2e7becff1989a43d754962933d268'
+_V3_FROZEN_BLOCK_ATTRIBUTION_NAME = 'NATIVE_V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_20261128_001'
+_V3_FROZEN_BLOCK_ATTRIBUTION_STAGE = _V3_FROZEN_BLOCK_ATTRIBUTION_NAME.lower()
+_V3_FROZEN_BLOCK_ATTRIBUTION_PROFILE = 'gx1_v3_frozen_block_attribution_trainer20g_v1'
+_V3_FROZEN_BLOCK_ATTRIBUTION_SHELL_ADDITIONS = (('NATIVE_V3_FIXED_CONTINUATION=false\n', 'before', 'NATIVE_V3_FROZEN_BLOCK_ATTRIBUTION=false\nNATIVE_V3_FROZEN_BLOCK_ATTRIBUTION_PLAN_SHA256=\n'), ('# BEGIN GX1 V3 FIXED CONTINUATION ROUTE 20261128 001\n', 'before', '# BEGIN GX1 V3 FROZEN BLOCK ATTRIBUTION ROUTE 20261128 001\nmatches_bound_native_v3_frozen_block_attribution() {\n  if [[ $# -eq 6 ]]; then\n    [[ "$6" == --preflight ]] || return 1\n    set -- "${@:1:5}"\n  fi\n  [[ $# -eq 5 && "$(pwd -P)" == "$REPO_ROOT" \\\n    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == gx1.audit.native_future_state_frozen_block_attribution_v1 \\\n    && "$4" == --v3-frozen-block-attribution-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ ]] || return 1\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_20261128_001.json"\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" \\\n    && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\nconfigure_native_v3_frozen_block_attribution() {\n  matches_bound_native_v3_frozen_block_attribution "$@" || { echo \'FATAL: exact V3 frozen block attribution CLI/plan required\' >&2; exit 75; }\n  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G && "$SWAP" == 512M \\\n    && "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \\\n    && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo \'FATAL: V3 frozen block attribution requires canonical trainer containment\' >&2; exit 75;\n  }\n  local output="/home/andre2/GX1_RUNS/NATIVE_V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_20261128_001"\n  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \\\n    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {\n    echo \'FATAL: V3 frozen block attribution output must be fresh and canonical\' >&2; exit 75;\n  }\n  NATIVE_V3_FROZEN_BLOCK_ATTRIBUTION=true\n  NATIVE_V3_FROZEN_BLOCK_ATTRIBUTION_PLAN_SHA256="$5"\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$output"\n  TRAINER_MAX_WALL_SECONDS=1800\n  TRAINER_MODEL_MAX_WALL_SECONDS=1770\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 V3 FROZEN BLOCK ATTRIBUTION ROUTE 20261128 001\n\n'), ('# BEGIN GX1 V3 FIXED CONTINUATION DISPATCH 20261128 001\n', 'before', '# BEGIN GX1 V3 FROZEN BLOCK ATTRIBUTION DISPATCH 20261128 001\n  local frozen_block_attribution_arg\n  for frozen_block_attribution_arg in "$@"; do\n    case "$frozen_block_attribution_arg" in\n      --v3-frozen-block-attribution-plan-sha256|--v3-frozen-block-attribution-plan-sha256=*) configure_native_v3_frozen_block_attribution "$@"; return ;;\n    esac\n  done\n# END GX1 V3 FROZEN BLOCK ATTRIBUTION DISPATCH 20261128 001\n'), ('  --setenv=GX1_NATIVE_V3_FIXED_CONTINUATION="$NATIVE_V3_FIXED_CONTINUATION" \\\n', 'before', '  --setenv=GX1_NATIVE_V3_FROZEN_BLOCK_ATTRIBUTION="$NATIVE_V3_FROZEN_BLOCK_ATTRIBUTION" \\\n  --setenv=GX1_NATIVE_V3_FROZEN_BLOCK_ATTRIBUTION_PLAN_SHA256="$NATIVE_V3_FROZEN_BLOCK_ATTRIBUTION_PLAN_SHA256" \\\n'))
+
+
+def _native_v3_frozen_block_attribution_without_additions(current):
+    require = _native_v3_development_require; current = dict(current)
+    name = 'gx1/contracts/gx1_capped_execution_v1.py'
+    begin = '# BEGIN GX1 V3 FROZEN BLOCK ATTRIBUTION GUARDS 20261128 001\n'
+    end = '# END GX1 V3 FROZEN BLOCK ATTRIBUTION GUARDS 20261128 001\n\n'
+    text = current[name]; require(text.count(begin) == text.count(end) == 1, 'ONE_FROZEN_BLOCK_ATTRIBUTION_BLOCK')
+    first, tail = text.split(begin); _, last = tail.split(end); text = first + last
+    hook = '    current=_native_v3_frozen_block_attribution_without_additions(current)\n'
+    require(text.count(hook) == 1, 'ONE_FROZEN_BLOCK_ATTRIBUTION_BRIDGE_HOOK')
+    current[name] = text.replace(hook, '', 1)
+    shell = current['scripts/gx1_capped_run.sh']
+    for anchor, position, fragment in _V3_FROZEN_BLOCK_ATTRIBUTION_SHELL_ADDITIONS:
+        require(position == 'before' and shell.count(anchor) == shell.count(fragment)
+                == shell.count(fragment + anchor) == 1, 'EXACT_FROZEN_BLOCK_ATTRIBUTION_SHELL_ADDITION')
+        shell = shell.replace(fragment + anchor, anchor, 1)
+    current['scripts/gx1_capped_run.sh'] = shell
+    return current
+
+
+def _native_v3_frozen_block_attribution_source_reference():
+    repo = Path(__file__).resolve().parents[2]
+    binding = {'path': str(repo / 'configs/research/NATIVE_V3_OBSERVED_TRAIN_CONTINUATION_20261128_004.json'),
+               'sha256': '20ce68f848c0e48a5c81d3e1684ee2ab4dadd7c13c439ef904615c83d5085734'}
+    return binding, _native_v3_development_read(binding['path'], binding['sha256'])
+
+
+def native_v3_frozen_block_attribution_guard_source_bridge(producer_hashes, *, producer_commit=_V3_FROZEN_BLOCK_ATTRIBUTION_PARENT):
+    import hashlib, subprocess
+    require = _native_v3_development_require; repo = Path(__file__).resolve().parents[2]
+    require(producer_commit == _V3_FROZEN_BLOCK_ATTRIBUTION_PARENT, 'FROZEN_BLOCK_ATTRIBUTION_BRIDGE_PARENT')
+    names = ('gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh')
+    before = {n: subprocess.check_output(['git', 'show', producer_commit + ':' + n], cwd=repo).decode() for n in names}
+    original = {n: hashlib.sha256(v.encode()).hexdigest() for n, v in before.items()}
+    require(producer_hashes == original, 'FROZEN_BLOCK_ATTRIBUTION_BRIDGE_PRODUCER_HASHES')
+    current = {n: (repo / n).read_text() for n in names}
+    require(_native_v3_frozen_block_attribution_without_additions(current) == before, 'FROZEN_BLOCK_ATTRIBUTION_OLD_GUARDS_BYTE_EXACT')
+    source_ref, source = _native_v3_frozen_block_attribution_source_reference(); owners = source['source_owners']; proof = {}
+    require(type(owners) is dict and len(owners) == 95 and set(names) <= set(owners), 'FROZEN_BLOCK_ATTRIBUTION_AUTHENTIC_95_SOURCE_OWNERS')
+    for name, digest in owners.items():
+        path = repo / name; old = subprocess.check_output(['git', 'show', producer_commit + ':' + name], cwd=repo)
+        require(hashlib.sha256(old).hexdigest() == digest and path.is_file() and not path.is_symlink() and path.resolve() == path,
+                'FROZEN_BLOCK_ATTRIBUTION_SOURCE_REFERENCE_IDENTITY')
+        require(name in names or path.read_bytes() == old, 'FROZEN_BLOCK_ATTRIBUTION_OLD_NON_GUARD_SOURCE_BYTE_UNCHANGED')
+        proof[name] = digest
+    return {'producer_commit': producer_commit, 'checked_guard_owners': 2, 'old_guard_routes_preserved': True,
+            'old_numeric_resource_environment_function_unchanged': True, 'source_reference_plan': source_ref,
+            'old_95_source_owners_byte_unchanged': proof, 'new_frozen_diagnostic_requires_each_exact_admission': True,
+            'owners': {n: {'original_sha256': original[n], 'current_sha256': hashlib.sha256(current[n].encode()).hexdigest()} for n in names}}
+
+
+def _native_v3_frozen_block_attribution_bound_plan(plan_sha256):
+    import hashlib, subprocess
+    require = _native_v3_development_require; repo = Path(__file__).resolve().parents[2]
+    require(type(plan_sha256) is str and re.fullmatch('[0-9a-f]{64}', plan_sha256) is not None, 'FROZEN_BLOCK_ATTRIBUTION_PLAN_SHA')
+    args = ['--v3-frozen-block-attribution-plan-sha256', plan_sha256]; preflight = sys.argv[-1:] == ['--preflight']
+    if preflight: args += ['--preflight']
+    require(Path.cwd().resolve() == repo and Path(sys.argv[0]).resolve() == repo / 'gx1/audit/native_future_state_frozen_block_attribution_v1.py'
+            and Path(sys.executable).absolute() == repo / '.venv/bin/python' and sys.argv[1:] == args, 'FROZEN_BLOCK_ATTRIBUTION_EXACT_ARGV')
+    path = repo / 'configs/research' / (_V3_FROZEN_BLOCK_ATTRIBUTION_NAME + '.json')
+    plan = _native_v3_development_read(path, plan_sha256)
+    output = Path('/home/andre2/GX1_RUNS') / _V3_FROZEN_BLOCK_ATTRIBUTION_NAME
+    require(plan.get('schema_version') == 'gx1_native_v3_frozen_block_attribution_plan_v1'
+            and plan.get('stage') == _V3_FROZEN_BLOCK_ATTRIBUTION_STAGE and plan.get('output_root') == str(output), 'FROZEN_BLOCK_ATTRIBUTION_PLAN_IDENTITY')
+    require(not output.exists() and not output.is_symlink() and output.parent.is_dir()
+            and not output.parent.is_symlink() and output.parent.resolve() == output.parent, 'FROZEN_BLOCK_ATTRIBUTION_FRESH_OUTPUT')
+    require(plan.get('source_commit') == subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=repo, text=True).strip(), 'FROZEN_BLOCK_ATTRIBUTION_SOURCE_COMMIT')
+    require(plan.get('execution') == _native_v3_development_execution('warm')
+            and plan.get('execution_profile') == _V3_FROZEN_BLOCK_ATTRIBUTION_PROFILE, 'FROZEN_BLOCK_ATTRIBUTION_EXACT_EXECUTION')
+    evidence = Path('/home/andre2/GX1_RUNS') / 'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'
+    design_ref = {'path': str(evidence / 'V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_DESIGN_20261128_001.json'),
+                  'sha256': '9578cee76b7d0676529bf78a48f90c9d8a6f68bd5e13a914ce9c08c47578d2dd'}
+    require(plan.get('design') == design_ref, 'FROZEN_BLOCK_ATTRIBUTION_EXACT_DESIGN')
+    design = _native_v3_development_read(design_ref['path'], design_ref['sha256'])
+    scope = design.get('scope', {})
+    numbers = {'rows': 20727, 'source_day_buckets': 1377, 'batch_rows': 256, 'passes': 4, 'forwards_per_pass': 81,
+        'total_model_forwards': 324, 'optimizer_steps': 0, 'backward_calls': 0, 'autograd_calls': 0,
+        'checkpoint_writes': 0, 'new_input_builds': 0, 'new_prior_or_normalization_fits': 0, 'genuine_families': 8}
+    require(design.get('schema_version') == 'gx1_native_frozen_block_attribution_source_design_v1'
+            and design.get('experiment_id') == _V3_FROZEN_BLOCK_ATTRIBUTION_NAME and design.get('stage') == _V3_FROZEN_BLOCK_ATTRIBUTION_STAGE
+            and all(type(scope.get(k)) is int and scope[k] == v for k, v in numbers.items())
+            and scope.get('timeframes') == ['M5', 'M15', 'H1', 'H4', 'D1'] and scope.get('years') == [2021, 2022, 2023, 2024, 2025]
+            and all(scope.get(k) is True for k in ('EVAL_only', 'no_grad', 'D1_macro_preserved'))
+            and scope.get('TEST') == 'SEALED' and 'backbone_gradient_policy' in scope and scope['backbone_gradient_policy'] is None
+            and plan.get('scope') == scope and all(type(plan.get('scope', {}).get(k)) is int for k in numbers)
+            and all(plan.get('scope', {}).get(k) is True for k in ('EVAL_only', 'no_grad', 'D1_macro_preserved')),
+            'FROZEN_BLOCK_ATTRIBUTION_EXACT_FROZEN_SCOPE')
+    arms = [{'name': 'SELF864', 'backbone_cursor': 864, 'readout_cursor': 864},
+        {'name': 'SELF1080', 'backbone_cursor': 1080, 'readout_cursor': 1080},
+        {'name': 'BACKBONE864_READOUT1080', 'backbone_cursor': 864, 'readout_cursor': 1080},
+        {'name': 'BACKBONE1080_READOUT864', 'backbone_cursor': 1080, 'readout_cursor': 864}]
+    require(plan.get('arms') == design.get('arms_in_fixed_order') == arms
+            and all(type(arm.get(k)) is int for arm in plan['arms'] for k in ('backbone_cursor', 'readout_cursor'))
+            and plan.get('numeric_owner_phase') == 'PASS2', 'FROZEN_BLOCK_ATTRIBUTION_EXACT_FOUR_ARMS')
+    source_ref, source = _native_v3_frozen_block_attribution_source_reference()
+    original_ref = {'path': str(repo / 'configs/research' / (_V3_ISSUE_MIX_NAME + '_FIT.json')),
+        'sha256': '25ca4cc9d780f5d16376a765ec58f6d84c58a1f16f55d48033d11168fda2d4a8'}
+    original = _native_v3_development_read(original_ref['path'], original_ref['sha256'])
+    producer_refs = {str(cursor): design['producer' + str(cursor) + '_plan'] for cursor in (864, 1080)}
+    receipt_refs = {str(cursor): design['authentic' + str(cursor) + '_receipt'] for cursor in (864, 1080)}
+    checkpoint_refs = {str(cursor): design['authentic' + str(cursor) + '_checkpoint'] for cursor in (864, 1080)}
+    require(plan.get('source_reference_plan') == design.get('source_reference_plan') == source_ref == producer_refs['1080']
+            and producer_refs['864'] == {'path': str(repo / 'configs/research' / (_V3_OBSERVED_TRAIN_CONTINUATION_002_NAME + '.json')),
+                'sha256': 'be53cb01fce7c80f8ba120c88de2f36d299112f20a573e85b85cda82d8db6875'}
+            and plan.get('producer_plans') == producer_refs and plan.get('authentic_receipts') == receipt_refs
+            and plan.get('authentic_checkpoints') == checkpoint_refs and plan.get('original_producer_plan') == original_ref
+            and plan.get('metadata', {}).get('original_plan') == original_ref, 'FROZEN_BLOCK_ATTRIBUTION_AUTHENTIC_ENDPOINT_REFS')
+    parents = {}
+    proof_keys = {'model_state', 'optimizer_parameter_names', 'optimizer_state', 'position', 'rng_state',
+        'scheduler_state', 'scores', 'steps', 'training', 'trajectory'}
+    require(type(plan.get('metadata', {}).get('endpoints')) is dict and set(plan['metadata']['endpoints']) == {'864', '1080'},
+            'FROZEN_BLOCK_ATTRIBUTION_TWO_ENDPOINT_METADATA')
+    for cursor in (864, 1080):
+        key = str(cursor); parent = _native_v3_development_read(producer_refs[key]['path'], producer_refs[key]['sha256'])
+        receipt = _native_v3_development_read(receipt_refs[key]['path'], receipt_refs[key]['sha256']); parents[key] = parent
+        endpoint = plan['metadata']['endpoints'][key]
+        require(type(receipt.get('logical_cursor')) is int and type(receipt.get('optimizer_updates')) is int
+                and receipt['logical_cursor'] == receipt['optimizer_updates'] == cursor and receipt.get('producer_lane') == 'continuation'
+                and receipt.get('original_plan') == receipt.get('execution_plan') == producer_refs[key] and receipt.get('checkpoint') == checkpoint_refs[key]
+                and receipt.get('trajectory_sha256') == parent.get('metadata', {}).get('trajectory', {}).get('contract_sha256')
+                and type(receipt.get('proof')) is dict and set(receipt['proof']) == proof_keys
+                and all(type(v) is str and re.fullmatch('[0-9a-f]{64}', v) is not None for v in receipt['proof'].values())
+                and endpoint.get('parent_plan') == producer_refs[key] and endpoint.get('receipt') == receipt
+                and parent.get('original_producer_plan') == original_ref and parent.get('recipe') == original.get('recipe') == plan.get('recipe')
+                and parent.get('model_contract') == original.get('model_contract') == plan.get('model_contract')
+                and parent.get('physical_input_identity') == plan.get('physical_input_identity')
+                and 'backbone_gradient_policy' in plan and plan['backbone_gradient_policy'] is None, 'FROZEN_BLOCK_ATTRIBUTION_OWN_ENDPOINT_FULL10')
+    expected_limits = dict.fromkeys(source['limits'], 0)
+    expected_limits.update(model_constructions=1, optimizer_constructions=1, feature_cache_payload_loads=1, target_archive_loads=1,
+        checkpoint_loads=2, model_restores=3, model_forwards=324, backbone_forwards=324, readout_forwards=324,
+        logit_archive_writes=4, logit_archive_readbacks=4, saved_eval_logit_loads=2,
+        authentic_checkpoint_prechecks=2, block_composite_copies=2)
+    require(type(plan.get('limits')) is dict and all(type(v) is int for v in plan['limits'].values())
+            and plan['limits'] == expected_limits, 'FROZEN_BLOCK_ATTRIBUTION_324_FORWARD_ZERO_UPDATE_BUDGET')
+    inputs = plan.get('inputs'); require(type(inputs) is dict
+            and all(inputs.get(k) == v for k, v in source['inputs'].items())
+            and all(k in source['inputs'] or k.startswith('frozen_block_attribution_') for k in inputs), 'FROZEN_BLOCK_ATTRIBUTION_OLD_INPUT_ROLES_PRESERVED')
+    for key, binding in design.items():
+        if type(binding) is dict and set(binding) == {'path', 'sha256'}:
+            require(inputs.get('frozen_block_attribution_' + key) == binding, 'FROZEN_BLOCK_ATTRIBUTION_DECLARED_INPUT_REFS')
+    owners = plan.get('source_owners'); new = {'gx1/audit/native_future_state_frozen_block_attribution_v1.py',
+        'tests/test_native_future_state_frozen_block_attribution_v1.py', 'tests/test_native_frozen_block_attribution_guard_v1.py'}
+    require(type(owners) is dict and set(owners) == set(source['source_owners']) | new, 'FROZEN_BLOCK_ATTRIBUTION_EXACT_SOURCE_INVENTORY')
+    guards = {'gx1/contracts/gx1_capped_execution_v1.py', 'scripts/gx1_capped_run.sh'}
+    for owner, digest in owners.items():
+        p = repo / owner
+        require(type(owner) is str and not Path(owner).is_absolute() and '..' not in Path(owner).parts
+                and p.is_file() and not p.is_symlink() and p.resolve() == p
+                and hashlib.sha256(p.read_bytes()).hexdigest() == digest, 'FROZEN_BLOCK_ATTRIBUTION_SOURCE_SHA')
+        if owner not in new | guards:
+            previous = subprocess.check_output(['git', 'show', _V3_FROZEN_BLOCK_ATTRIBUTION_PARENT + ':' + owner], cwd=repo)
+            require(hashlib.sha256(previous).hexdigest() == digest, 'FROZEN_BLOCK_ATTRIBUTION_ALL_OLD_NON_GUARD_SOURCE_UNCHANGED')
+    bridge = plan.get('guard_source_bridge', {}); hashes = {n: v['original_sha256'] for n, v in bridge.get('owners', {}).items()}
+    require(bridge == native_v3_frozen_block_attribution_guard_source_bridge(hashes, producer_commit=bridge.get('producer_commit')),
+            'FROZEN_BLOCK_ATTRIBUTION_STRICT_ADDITIVE_SOURCE_BRIDGE')
+    policy_path = repo / 'NEXT_RUN_POLICY.json'; policy = _native_v3_development_read(policy_path)
+    flags = ('training_enabled', 'native_training_enabled', 'native_launch_authorized',
+             'full_epoch_training_allowed', 'full_val_allowed', 'exit_training_and_evaluation_this_wave')
+    require(all(policy.get(k) is False for k in flags), 'FROZEN_BLOCK_ATTRIBUTION_ALL_SIX_GLOBAL_FLAGS_FALSE')
+    for name, prior in policy.items():
+        if name.startswith('native_') and name != _V3_FROZEN_BLOCK_ATTRIBUTION_STAGE and type(prior) is dict:
+            require(all(k not in prior or prior[k] is False for k in ('execution_authorized', 'training_authorized', 'relaunch_allowed'))
+                    and ('remaining_invocations' not in prior or type(prior['remaining_invocations']) is int and prior['remaining_invocations'] == 0),
+                    'FROZEN_BLOCK_ATTRIBUTION_OLD_NATIVE_ROUTES_CLOSED')
+            grouped = prior.get('lane_gates', prior.get('phase_gates', {})); require(type(grouped) is dict, 'FROZEN_BLOCK_ATTRIBUTION_TYPED_OLD_LANES')
+            for value in list(grouped.values()) + ([prior['aggregation_completion']] if 'aggregation_completion' in prior else []):
+                require(type(value) is dict and type(value.get('remaining_invocations')) is int and value['remaining_invocations'] == 0
+                        and all(value.get(k) is False for k in ('execution_authorized', 'training_authorized', 'relaunch_allowed')),
+                        'FROZEN_BLOCK_ATTRIBUTION_OLD_NATIVE_ROLE_GATES_CLOSED')
+    for cursor in (864, 1080):
+        key = str(cursor); previous = policy.get(Path(producer_refs[key]['path']).stem.lower(), {})
+        require(previous.get('status') == 'CLOSED_CONSUMED_COMPLETE' and previous.get('plan') == producer_refs[key],
+                'FROZEN_BLOCK_ATTRIBUTION_PARENT_CONSUMED_COMPLETE')
+        backup_ref = previous.get('final_backup'); require(type(backup_ref) is dict and set(backup_ref) == {'path', 'sha256'}, 'FROZEN_BLOCK_ATTRIBUTION_BACKUP_BINDING')
+        backup = _native_v3_development_read(backup_ref['path'], backup_ref['sha256'])
+        require(all(backup.get(k) is True for k in ('F_FULLFSYNC', 'separate_mac_disk', 'independent_member_readback'))
+                and backup.get('manifest', {}).get('sha256') == backup.get('manifest_sha256'), 'FROZEN_BLOCK_ATTRIBUTION_VERIFIED_PARENT_BACKUP')
+        manifest_ref = backup['manifest']; manifest = _native_v3_development_read(manifest_ref['path'], manifest_ref['sha256'])
+        members = {(v['path'], v['sha256']) for v in manifest['files']}
+        coverage = [producer_refs[key], receipt_refs[key], checkpoint_refs[key]] + [design['producer' + key + '_' + role]
+            for role in ('result', 'terminal', 'acceptance')] + [design['authentic' + key + '_' + role]
+            for role in ('score', 'numeric_owner_score', 'logits')]
+        require(all((v['path'], v['sha256']) in members for v in coverage), 'FROZEN_BLOCK_ATTRIBUTION_PARENT_BACKUP_NINE_REFS')
+    parent = policy.get(_V3_FROZEN_BLOCK_ATTRIBUTION_STAGE, {})
+    gate = {'status': 'PREPARED_CLOSED_NOT_ADMITTED' if preflight else 'ADMITTED_EXACT_V3_FROZEN_BLOCK_ATTRIBUTION',
+            'plan': {'path': str(path), 'sha256': plan_sha256}, 'execution_authorized': not preflight,
+            'remaining_invocations': int(not preflight), 'relaunch_allowed': False, 'training_authorized': False,
+            'test_authorized': False, 'spending_authorized': False}
+    require(parent.get('design') == design_ref and parent.get('source_preparation_authorized') is True
+            and type(parent.get('remaining_invocations')) is int
+            and all(type(parent.get(k)) is bool for k in ('execution_authorized', 'training_authorized', 'test_authorized',
+                'spending_authorized', 'relaunch_allowed')) and all(parent.get(k) == v for k, v in gate.items()), 'FROZEN_BLOCK_ATTRIBUTION_EXACT_EXECUTION_ONLY_GATE')
+    if not preflight:
+        snapshot = evidence / 'V3_FROZEN_864_1080_BLOCK_ATTRIBUTION_ADMITTED_POLICY_20261128_001.json'
+        require(_native_v3_development_read(snapshot, hashlib.sha256(policy_path.read_bytes()).hexdigest()) == policy,
+                'FROZEN_BLOCK_ATTRIBUTION_EXACT_ADMITTED_POLICY_SNAPSHOT')
+    return {'plan': {'path': str(path), 'sha256': plan_sha256}, 'output_root': str(output), 'preflight': preflight, 'execution': plan['execution']}
+
+
+def _native_v3_frozen_block_attribution_environment(plan_sha256):
+    require = _native_v3_development_require; prefix = 'GX1_NATIVE_V3_FROZEN_BLOCK_ATTRIBUTION'
+    execution = _native_v3_development_execution('warm')
+    expected = {prefix: 'true', prefix + '_PLAN_SHA256': plan_sha256,
+                'GX1_POWER_BENCHMARK_SCOPE_JSON': '', 'GX1_POWER_BENCHMARK_SCOPE_SHA256': ''}
+    require(all(not k.startswith(prefix) or k in expected for k in os.environ), 'UNKNOWN_FROZEN_BLOCK_ATTRIBUTION_ENV')
+    require(all(v in ('false', '') for k, v in os.environ.items() if k.startswith('GX1_NATIVE_') and not k.startswith(prefix)),
+            'FROZEN_BLOCK_ATTRIBUTION_MIXED_LEGACY_ENV')
+    fields = {'MAX_WALL_SECONDS': execution['outer_seconds'], 'MODEL_MAX_WALL_SECONDS': execution['internal_seconds'],
+        'ATTENDED_STAGE_REQUIRED': 'false', 'GPU_INDEX': 0, 'GPU_MAX_POWER_LIMIT_W': 250, 'GPU_MAX_POWER_DRAW_W': 250,
+        'GPU_MAX_CORE_TEMP_C': 75, 'GPU_MAX_MEMORY_TEMP_C': 80, 'GPU_MAX_MEMORY_USED_MIB': 12288,
+        'GPU_MONITOR_INTERVAL_SECONDS': 1, 'CPU_MAX_TEMP_C': 80, 'CPU_MAX_PACKAGE_POWER_W': 125,
+        'HOST_MIN_AVAILABLE_MEMORY_BYTES': 8589934592, 'HOST_MIN_COMMIT_HEADROOM_BYTES': 8589934592}
+    expected.update({'GX1_TRAINER_' + k: str(v) for k, v in fields.items()})
+    require(all(os.environ.get(k) == v for k, v in expected.items()), 'FROZEN_BLOCK_ATTRIBUTION_EXACT_RESOURCE_ENV')
+    return require_guarded_cuda_trainer_execution()
+
+
+def require_native_v3_frozen_block_attribution_execution(*, plan_sha256):
+    bound = _native_v3_frozen_block_attribution_bound_plan(plan_sha256)
+    proof = _native_v3_frozen_block_attribution_environment(plan_sha256)
+    return {**proof, **bound, 'kind': 'provider_hlc_v3_frozen_block_attribution', 'resource_proof_only': True,
+            'training_authority_granted': False, 'optimizer_authority_granted': False}
+
+# END GX1 V3 FROZEN BLOCK ATTRIBUTION GUARDS 20261128 001
 
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")
