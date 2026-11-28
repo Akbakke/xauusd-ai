@@ -15,7 +15,21 @@
 
 ## Gjeldende status og neste steg
 
-NEXT_RUN_POLICY.json er eneste arbeidsstatus. Gjeldende felt er
+Gjeldende kildeklargjøring er separat004: SOURCE_QUALIFIED_PLAN_PENDING,
+execution=false/training=false/remaining0/relaunch=false, alle6globale false.
+Nytt lukket design beholder ekte864→låst1080 og alle numeriske eiere;
+003s68tester gjenbrukes bare ved identiske95kilder og autentiserte råkvitteringer.
+003 er fortsatt forbrukt; C865 brukes aldri. Ingen ny NN er innrømmet.
+Fersk004metadata-kvalifiseringPASS: alle95kilder er identiske,68opprinnelige
+16+52XML/log-bevis er autentisert/gjenbrukt uten omkjøring, og0modell/optimizer/
+PT/NPZ/CUDA-forsøk. Egen864lineage/inputidentitet og identisk1080-schedule
+er verifisert. Ny designbinding gir egen1080trajektorie. Begge originale
+Macarkiver(ekte864 og avbrutt003) er fysisk rehashet/identiske uten vektkopi.
+Kvalifisering og recheck står i004policy; dette er ikke fitadmisjon.
+Fersk signert inaktiv host, ny plan/preflight/SOURCEbackup/snapshot-først
+admisjon er fortsatt påkrevd. Den siste faktiske NN-statusen følger nedenfor.
+
+NEXT_RUN_POLICY.json er eneste arbeidsstatus. Siste faktiske NN-felt er
 native_v3_observed_train_continuation_20261128_003:
 CLOSED_CONSUMED_FAILED_CONSUMED, execution=false/training=false/remaining0/
 relaunch=false. Alle seks globale flagg er false; faktisk prosess er borte.

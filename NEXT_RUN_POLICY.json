@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T10:10:36.566911+00:00",
+  "observed_utc": "2026-11-28T10:17:48.451189+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "FIXED_CONTINUATION_FAILED_CONSUMED",
+  "status": "FIXED_CONTINUATION_RECOVERY_SOURCE_QUALIFIED_CLOSED",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Preserve consumed003 and mechanical865. Allow Windows maintenance to finish naturally; require a fresh signed inactive host reading and separately declared exact plan/qualification/backup/snapshot-first admission before any future NN. Do not relaunch003 or use mechanical865 as candidate/initializer.",
+  "next_action": "Source unchanged and exact68tests reused; freeze metadata, prepare new004 plan and require fresh inactive host/exactCLIpreflight/new physical SOURCEbackup before snapshot-first one-use admission.003 remains consumed; no fit yet.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -111065,6 +111065,25 @@
     "final_backup": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_FINAL_BACKUP_20261128_003.json",
       "sha256": "3bc57d6b2fe663d3048dc8534c87a31e283fd3d8bd3495c7d43f233e3fea33d6"
+    }
+  },
+  "native_v3_observed_train_continuation_20261128_004": {
+    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_004.json",
+      "sha256": "0993908d19db4432f14e6168c020b626216ecf2b90a352d43a7bd638a96ed459"
+    },
+    "source_preparation_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "test_authorized": false,
+    "spending_authorized": false,
+    "next_action": "Source unchanged and exact68tests reused; freeze metadata, prepare new004 plan and require fresh inactive host/exactCLIpreflight/new physical SOURCEbackup before snapshot-first one-use admission.003 remains consumed; no fit yet.",
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FIXED_CONTINUATION_SOURCE_QUALIFICATION_20261128_004.json",
+      "sha256": "47295b08a05309d2bdd0f4fcc31fac5a21db3282ce25497f8b7abac4b353e5a2"
     }
   }
 }
