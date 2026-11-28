@@ -926,6 +926,7 @@ def test_train_eval_gap_summary_is_mean_of_scores_with_sample_sd_and_unknowns():
     assert cell['draw_values']==[1.,2.,3.,4.]and cell['mean']==2.5 and math.isclose(cell['sample_SD'],math.sqrt(5/3))and math.isclose(cell['descriptive_SE'],math.sqrt(5/3)/2)
     assert summary['metrics']['all_TF/M5/side/row/AUC']['status']=='UNKNOWN'
     assert not any(any(k in path for k in('count','verdict','prior'))for path in summary['metrics'])
+    assert json.loads(owner.development_json_bytes(summary))==summary
     with pytest.raises(ValueError,match='FOUR_FIXED_DRAWS'):owner.train_eval_gap_summary(reviews[:3])
 
 

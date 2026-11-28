@@ -2337,7 +2337,7 @@ def train_eval_gap_summary(reviews):
  for path in values[0]:
   draws=[v[path]for v in values]
   if any(v is None for v in draws):result[path]={'status':'UNKNOWN','draw_values':draws};continue
-  a=np.asarray(draws,np.float64);need(np.isfinite(a).all(),'TRAIN_EVAL_GAP_FINITE_SUMMARY');sd=float(a.std(ddof=1));result[path]={'status':'DESCRIPTIVE_ONLY','draw_values':draws,'mean':float(a.mean()),'sample_SD':sd,'descriptive_SE':sd/np.sqrt(len(a))}
+  a=np.asarray(draws,np.float64);need(np.isfinite(a).all(),'TRAIN_EVAL_GAP_FINITE_SUMMARY');sd=float(a.std(ddof=1));result[path]={'status':'DESCRIPTIVE_ONLY','draw_values':draws,'mean':float(a.mean()),'sample_SD':sd,'descriptive_SE':float(sd/np.sqrt(len(a)))}
  return {'draws':4,'metrics':result,'interpretation':'Mean/SD/SE of per-draw metrics, never score of averaged logits/probabilities. No confidence/significance/precision claim or best draw.','support_counts':'Preserved per draw; never averaged as performance metrics.','equal_target_AUC':'NOT_IMPLEMENTED','new_predictor':False}
 
 def train_eval_gap_passes(model,optimizer,context,root,counts,steps,scores,proof,expected_proof,saved_outputs):

@@ -2058,7 +2058,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-28T04:58:59.611382+00:00",
+  "observed_utc": "2026-11-28T06:20:59.070426+00:00",
   "market_state_fold2_selected_native_b16_gather_20261115_001": {
     "status": "COMPLETE_CONSUMED_EDGE_UNQUALIFIED",
     "decision": "PASS_FULL_GC_FOLD2_SELECTED_B16_GATHER_NO_EDGE",
@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "SOURCE_QUALIFIED_PLAN_PENDING",
+  "status": "TRAIN_EVAL_GAP_SAVED_SCORE_AGGREGATION_COMPLETE_ORIGINAL_NN_FAILED",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Commit qualified source; build exact zero-update mode-gap plan/current runtime, guarded metadata preflight and verifiedSOURCEbackup before specificread-onlyNNadmission.",
+  "next_action": "Qualify minimal CPU helper against exact loss/masks and saved outputs, then admit only a new exact CPU audit plan. No new fit/NN/serving change.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -110511,7 +110511,7 @@
     }
   },
   "native_all_tf_provider_hlc_v3_train_eval_gap_20261128_001": {
-    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
+    "status": "CLOSED_CONSUMED_FAILED_CONSUMED",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_DESIGN_20261128_003.json",
       "sha256": "eb0f66e2e1454f3f0f56e10016be039d2cef56f421556a2363f5db461f34a000"
@@ -110523,7 +110523,7 @@
     "relaunch_allowed": false,
     "test_authorized": false,
     "spending_authorized": false,
-    "next_action": "Commit qualified source; build exact zero-update mode-gap plan/current runtime, guarded metadata preflight and verifiedSOURCEbackup before specificread-onlyNNadmission.",
+    "next_action": "Mode gap reviewed. Continue only through native_v3_frozen_batch_residual_audit_20261128_001 closed source preparation.",
     "superseded_unexecuted_design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_DESIGN_20261128_002.json",
       "sha256": "78ef8219ea16005691736721c7a26cc629868011cd30d2e2d5433d4b2206403c"
@@ -110543,6 +110543,74 @@
     "original_FINAL_backup": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_DIRECTION_ISSUE_MIX_FINAL_BACKUP_20261128_001.json",
       "sha256": "4d5643a8ae6b04355e6347cf262125067151bcf1d8d2a9ad1e98ae17baedc248"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_TRAIN_EVAL_GAP_20261128_001.json",
+      "sha256": "bd3f29a59c8d6c96ea9e20a2c21edde530087d7346c5ed74f1f9cefa2cf9a325"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_PREFLIGHT_20261128_001_001.json",
+      "sha256": "5923839694da92201a07ba76e2d7134c5a7510f3a01083b77dfbfa90ffaba3a4"
+    },
+    "source_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_SOURCE_BACKUP_20261128_001.json",
+      "sha256": "b18049f0c05f9c9e917508c445f10fa54ab042dc6650c15d8771bde56cd100b8"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_TRAIN_EVAL_GAP_20261128_001/RESULT.json",
+      "sha256": "b28b4f3db1e9d39e29df1c6f6fe0f6684bb60c36c1d7f474b8e090a5c51e1009"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_TRAIN_EVAL_GAP_20261128_001/TERMINAL.json",
+      "sha256": "d1833c9213a8a79ce94b4fd10e3ab99c1b6e8175ef5b5e03d23143e6a9de382f"
+    },
+    "acceptance": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_ACCEPTANCE_20261128_001.json",
+      "sha256": "16b1a5784df89656040e366f93cc5d27d246d37ee9b6e508613b5e6b01ea806a"
+    },
+    "aggregation_completion": {
+      "status": "CLOSED_CONSUMED_COMPLETE",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_AGGREGATION_COMPLETION_PLAN_20261128_001.json",
+        "sha256": "dd36a379a624dfaeabfc7b9ebe6892c4badb0fbdb9efb3d2c7f68617e9b628a6"
+      },
+      "execution_authorized": false,
+      "remaining_invocations": 0,
+      "relaunch_allowed": false,
+      "training_authorized": false,
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_V3_TRAIN_EVAL_GAP_AGGREGATION_COMPLETION_20261128_001/RESULT.json",
+        "sha256": "781145a9ce44572a8a8c05f22fe0876e134d2bb2f1bf6c455eafe4ff34ff1a29"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_V3_TRAIN_EVAL_GAP_AGGREGATION_COMPLETION_20261128_001/TERMINAL.json",
+        "sha256": "86e2ff3705edc1759cb6d0fa5f7ac13c706cd3586d889f2c55186d02c23b400d"
+      }
+    },
+    "serialization_fix": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_SERIALIZATION_FIX_20261128_001.json",
+      "sha256": "2f285c653e724ecf47fd0005be531f2936739b246232b62624936a2e2ee300d0"
+    },
+    "measurement_review": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_MEASUREMENT_REVIEW_20261128_001.json",
+      "sha256": "51e40a0806a20625a1ccfd9989e5131897465d2e63918b2103152f59e5dd716d"
+    },
+    "final_backup": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_TRAIN_EVAL_GAP_FINAL_BACKUP_20261128_001.json",
+      "sha256": "ec012a093802dac9ccc0fded386c880b9323a104bd5c044e4a611ed5a2a00390"
     }
+  },
+  "native_v3_frozen_batch_residual_audit_20261128_001": {
+    "status": "DESIGNED_SOURCE_PREPARATION_ONLY_CLOSED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_FROZEN_BATCH_RESIDUAL_DESIGN_20261128_001.json",
+      "sha256": "59eccec5f8c591b2ddb4b9f63cab3f9f6e47e7bb91a43edb4074472bd68c9a59"
+    },
+    "source_preparation_authorized": true,
+    "execution_authorized": false,
+    "training_authorized": false,
+    "remaining_invocations": 0,
+    "relaunch_allowed": false,
+    "next_action": "Qualify minimal CPU helper against exact loss/masks and saved outputs, then admit only a new exact CPU audit plan. No new fit/NN/serving change."
   }
 }
