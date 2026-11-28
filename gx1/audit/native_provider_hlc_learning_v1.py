@@ -130,6 +130,7 @@ def run(sha):
  except BaseException as error:pub(ROOT,'TERMINAL.json',{'status':'FAILED_CONSUMED','exit_code':1,'plan':binding,'claim':claim,'error':type(error).__name__+':'+str(error)[:1800],'remaining_invocations':0,'relaunch_allowed':False});raise
  finally:signal.setitimer(signal.ITIMER_REAL,0)
 def main():
+ if sys.argv[1:2]==['--v3-development-recovery-plan-sha256']:return main_v3_development_recovery()
  if sys.argv[1:2]==['--v3-development-plan-sha256']:return main_v3_development()
  if sys.argv[1:2]==['--all-tf-learning-plan-sha256']:return main_all_tf()
  if sys.argv[1:2]==['--all-tf-learning-resume-plan-sha256']:return main_all_tf_resume()
@@ -1058,6 +1059,8 @@ def development_reverse_source(raw):
  start=b'# BEGIN GX1 V3 BOUNDED DEVELOPMENT 20261127\n';end=b'# END GX1 V3 BOUNDED DEVELOPMENT 20261127\n'
  need(raw.count(start)==raw.count(end)==1,'DEV_SINGLE_ADDITIVE_BLOCK');first,tail=raw.split(start);_,last=tail.split(end)
  dispatch=b" if sys.argv[1:2]==['--v3-development-plan-sha256']:return main_v3_development()\n"
+ if DEV_RECOVERY_DISPATCH in first:
+  need(first.count(DEV_RECOVERY_DISPATCH)==1,'DEV_RECOVERY_EXACT_DISPATCH');first=first.replace(DEV_RECOVERY_DISPATCH,b'')
  need(first.count(dispatch)==1,'DEV_EXACT_DISPATCH');return first.replace(dispatch,b'')+last
 
 def development_source_bridge():
@@ -1330,5 +1333,219 @@ def main_v3_development():
  if args.preflight:
   require_native_all_tf_provider_hlc_v3_development_execution(plan_sha256=sha,phase=args.phase);plan,binding,pref,live=inspect_v3_development(sha,args.phase,False);print(json.dumps({'status':'PREFLIGHT_V3_DEVELOPMENT_METADATA_ONLY','phase':args.phase,'plan':binding,'policy':pref,'models':0,'payloads_decoded':0,'CUDA_initialized':False,'CLAIM_created':False}))
  else:print(json.dumps(run_v3_development(sha,args.phase),sort_keys=True))
+
+# BEGIN GX1 V3 EXACT RECOVERY 20261128
+DEV_RECOVERY_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_001'
+DEV_RECOVERY_STAGE='native_v3_fit004_exact_recovery_20261128_001'
+DEV_RECOVERY_LANES=('reference','cold','recovery')
+DEV_RECOVERY_PLANS={x:REPO/'configs/research'/(DEV_RECOVERY_NAME+'_'+x.upper()+'.json')for x in DEV_RECOVERY_LANES}
+DEV_RECOVERY_ROOTS={x:Path('/home/andre2/GX1_RUNS')/(DEV_RECOVERY_NAME+'_'+x)for x in DEV_RECOVERY_LANES}
+DEV_RECOVERY_PROTOCOL=REPO/'configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_PROTOCOL_20261128_001.json'
+DEV_RECOVERY_ANCHOR='0330fe6c8bb0af4d1f107a3f86ed72ed98692518'
+DEV_RECOVERY_ORIGINAL={'path':str(DEV_PLANS['fit']),'sha256':'ebf7222c9fb403cf0adc26738cc682c088035dc2b2dc2fc5aff603a741660437'}
+DEV_RECOVERY_RECEIPT={'path':str(DEV_ROOTS['fit']/'CURSOR001.json'),'sha256':'adcc8717242aa5bac0505332fbe360dc3578315bb49f5e6230ebefe15e871529'}
+DEV_RECOVERY_DISPATCH=b" if sys.argv[1:2]==['--v3-development-recovery-plan-sha256']:return main_v3_development_recovery()\n"
+DEV_RECOVERY_REVERSE=b" if DEV_RECOVERY_DISPATCH in first:\n  need(first.count(DEV_RECOVERY_DISPATCH)==1,'DEV_RECOVERY_EXACT_DISPATCH');first=first.replace(DEV_RECOVERY_DISPATCH,b'')\n"
+
+def recovery_source_bridge():
+ raw=(REPO/SELF).read_bytes();a=b'\n# BEGIN GX1 V3 EXACT RECOVERY 20261128\n';b=b'# END GX1 V3 EXACT RECOVERY 20261128\n'
+ need(raw.count(a)==raw.count(b)==1,'RECOVERY_ONE_BLOCK');first,tail=raw.split(a);_,last=tail.split(b);raw=first+last
+ need(raw.count(DEV_RECOVERY_DISPATCH)==raw.count(DEV_RECOVERY_REVERSE)==1,'RECOVERY_EXACT_DISPATCH_REVERSE')
+ raw=raw.replace(DEV_RECOVERY_DISPATCH,b'').replace(DEV_RECOVERY_REVERSE,b'');old=subprocess.check_output(['git','show',DEV_RECOVERY_ANCHOR+':'+SELF],cwd=REPO)
+ need(raw==old,'RECOVERY_ORIGINAL_LEAF_BYTES_UNCHANGED')
+ return {'producer_commit':DEV_RECOVERY_ANCHOR,'owner':SELF,'original_sha256':hashlib.sha256(old).hexdigest(),'current_sha256':ref(REPO/SELF)['sha256'],'original_development_nn_and_numeric_paths_unchanged':True,'only_exact_recovery_block_dispatch_reversal':True}
+
+def recovery_gate(binding,lane,admitted=False):
+ need(lane in DEV_RECOVERY_LANES,'RECOVERY_LANE')
+ return {'status':'ADMITTED_EXACT_V3_RECOVERY_'+lane.upper()if admitted else'PREPARED_CLOSED_NOT_ADMITTED','plan':binding,'execution_authorized':admitted,'remaining_invocations':int(admitted),'relaunch_allowed':False,'training_authorized':admitted,'test_authorized':False}
+
+def recovery_require_gate(value,binding,lane,admitted=False):
+ expected=recovery_gate(binding,lane,admitted);booleans=('execution_authorized','relaunch_allowed','training_authorized','test_authorized')
+ need(type(value)is dict and set(value)==set(expected)and type(value['remaining_invocations'])is int and all(type(value[k])is bool for k in booleans),'RECOVERY_GATE_TYPES')
+ need(value==expected,'RECOVERY_EXACT_GATE');return value
+
+def recovery_admission_snapshot(lane,binding,protocol,policy_ref):
+ snapshot_ref=ref(E/('V3_FIT004_EXACT_RECOVERY_'+lane.upper()+'_ADMITTED_POLICY_20261128_001.json'));snapshot=read(snapshot_ref)
+ need(policy_ref=={'path':str(POLICY),'sha256':snapshot_ref['sha256']},'RECOVERY_ADMISSION_SNAPSHOT_SHA');development_validate_flags(snapshot,'fit',True);parent=snapshot.get(DEV_RECOVERY_STAGE,{})
+ recovery_require_gate(parent.get('lane_gates',{}).get(lane),binding,lane,True)
+ need(parent.get('protocol')==protocol and parent.get('original_plan')==DEV_RECOVERY_ORIGINAL and parent.get('checkpoint_receipt')==DEV_RECOVERY_RECEIPT and parent.get('execution_authorized')is True and parent.get('active_lane')==lane and all(parent.get(k)is False for k in('main_fit_authorized','test_authorized','spending_authorized')),'RECOVERY_ADMITTED_SCOPE')
+ return snapshot_ref
+
+def recovery_limits(lane,original):
+ need(lane in DEV_RECOVERY_LANES,'RECOVERY_LANE');schedule=original['schedule'];cursor=1;total=schedule['optimizer_updates'];n=schedule['batches_per_pass'];passes=original['recipe']['passes'];rows=original['selection']['rows'];e=(rows+original['recipe']['eval_batch_rows']-1)//original['recipe']['eval_batch_rows'];panels=train.diagnostic_panels(schedule)
+ need(total==schedule['logical_batches']==n*passes==432 and n==216 and rows==20727 and e==81 and panels['supported_panels']==3,'RECOVERY_DERIVED_ORIGINAL_SCOPE')
+ limits=dict.fromkeys(original['limits'],0);updates=2 if lane=='reference'else 1 if lane=='cold'else total-cursor;f=updates+(passes*e+panels['supported_panels']if lane=='recovery'else 0)
+ limits.update(model_constructions=1,optimizer_constructions=1,feature_cache_payload_loads=1,target_archive_loads=1,model_forwards=f,backbone_forwards=f,readout_forwards=f,optimizer_steps=updates,backward_calls=updates,checkpoint_writes=1,checkpoint_readbacks=1,checkpoint_receipt_writes=1,checkpoint_prepublication_loads=1)
+ if lane!='reference':limits.update(checkpoint_loads=1,model_restores=1)
+ if lane=='recovery':limits.update(autograd_calls=original['limits']['autograd_calls'],logit_archive_writes=passes,logit_archive_readbacks=passes)
+ return limits
+
+def recovery_original_metadata():
+ original=read(DEV_RECOVERY_ORIGINAL);receipt=read(DEV_RECOVERY_RECEIPT);root=DEV_ROOTS['fit'];trajectory=development_trajectory(original)
+ need(original['phase']=='fit'and original['output_root']==str(root)and original['backbone_gradient_policy']is None and original['recipe']==development_recipe(read(original['protocol']))and original['limits']==development_limits('fit'),'RECOVERY_ORIGINAL_FIXED_FIT')
+ refs={k:ref(root/n)for k,n in [('original_claim','CLAIM.json'),('original_result','RESULT.json'),('original_terminal','TERMINAL.json'),('original_INITIAL_score','INITIAL_SCORE.json'),('original_INITIAL_logits','INITIAL_LOGITS.npz')]}
+ refs.update(original_plan=DEV_RECOVERY_ORIGINAL,checkpoint_receipt=DEV_RECOVERY_RECEIPT,original_checkpoint=receipt['checkpoint'],original_admitted_policy=ref(E/'V3_DEVELOPMENT_FIT004_ADMITTED_POLICY_20261128_001.json'),original_stop_acceptance=ref(E/'V3_DEVELOPMENT_FIT004_STOP_ACCEPTANCE_20261128_001.json'),recovery_design=ref(E/'V3_DEVELOPMENT_FIT004_EXACT_RECOVERY_DESIGN_20261128_001.json'))
+ claim=read(refs['original_claim']);result=read(refs['original_result']);terminal=read(refs['original_terminal']);admission=read(refs['original_admitted_policy']);stop=read(refs['original_stop_acceptance'])
+ need(claim['plan']==result['plan']==terminal['plan']==DEV_RECOVERY_ORIGINAL and result['claim']==terminal['claim']==refs['original_claim']and terminal['result']==refs['original_result']and result['status']==terminal['status']=='FAILED_CONSUMED'and terminal['exit_code']==1 and terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False,'RECOVERY_CONSUMED_ORIGINAL_CHAIN')
+ need(set(result['bookends'])=={'plan','sources','inputs','policy','boots','HEAD'}and all(v is True for v in result['bookends'].values())and result['phase']==claim['phase']=='fit'and result['protocol']==original['protocol'],'RECOVERY_ORIGINAL_BOOKENDS')
+ need(claim['policy_at_claim']=={'path':str(POLICY),'sha256':refs['original_admitted_policy']['sha256']}and claim['remaining_invocations']==0 and claim['relaunch_allowed']is False,'RECOVERY_ORIGINAL_CLAIM_POLICY')
+ development_validate_flags(admission,'fit',True);need(admission[DEV_PARENT_STAGE]['phase_gates']['fit']==development_gate(DEV_RECOVERY_ORIGINAL,'fit',True),'RECOVERY_ORIGINAL_ADMISSION')
+ need(stop['result']==refs['original_result']and stop['terminal']==refs['original_terminal']and stop['all6_bookends_PASS']is True and stop['durable_cursor_receipt']==DEV_RECOVERY_RECEIPT and stop['durable_checkpoint']==receipt['checkpoint']and stop['initial_score']==refs['original_INITIAL_score']and stop['initial_all_scores_and_logit_SHA_equal_FIT002_factory_reference']is True,'RECOVERY_STOP_BINDINGS')
+ keys={'schema_version','checkpoint','original_plan','execution_plan','producer_lane','producer_runtime','logical_cursor','optimizer_updates','trajectory_sha256','proof'}
+ need(set(receipt)==keys and receipt['schema_version']=='gx1_native_future_state_training_checkpoint_receipt_v1'and receipt['original_plan']==receipt['execution_plan']==DEV_RECOVERY_ORIGINAL and receipt['producer_lane']=='fit'and type(receipt['logical_cursor'])is int and receipt['logical_cursor']==receipt['optimizer_updates']==1 and receipt['checkpoint']['path']==str(root/'CURSOR001.pt'),'RECOVERY_AUTHENTIC_C1_RECEIPT')
+ proof=train.require_recovery_checkpoint_proof(receipt['proof']);need(receipt['trajectory_sha256']==trajectory['contract_sha256']and proof['trajectory']==core.state_sha(trajectory)and proof['position']==core.state_sha(train.position(original['schedule'],1))and proof['scores']==core.state_sha({'INITIAL':refs['original_INITIAL_score']})and proof['scheduler_state']==core.state_sha(None)and proof['training']==core.state_sha(True),'RECOVERY_C1_SEMANTIC_IDENTITY')
+ core.future_cuda_runtime_matches(original['metadata']['runtime'],receipt['producer_runtime']);core.future_cpu_parent_stopped(claim['process_identity'])
+ need(claim['boots']=={k:receipt['producer_runtime'][k]for k in('physical_windows_boot_id','wsl_boot_id')},'RECOVERY_ORIGINAL_PRODUCER_BOOTS')
+ for n,digest in original['baseline_source_owners'].items():
+  if n not in GUARDS:need(ref(REPO/n)['sha256']==digest,'RECOVERY_BASELINE_SOURCE:'+n)
+ meta=original['metadata'];binding=read(meta['input_binding_ref']);normalization=read(meta['normalization'])
+ need(binding==meta['input_binding']and binding['input_normalization_sha256']==normalization['contract_sha256']and binding['feature_provider_contract_sha256']==normalization['feature_provider_contract_sha256'],'RECOVERY_PHYSICAL_FEATURE_NORMALIZATION')
+ from gx1.contracts.market_state_ta_integrated_model_v1 import native_future_state_model_contract
+ contract=native_future_state_model_contract(binding,architecture=meta['architecture'],train_prior=read(meta['prior']),target_contract=meta['target_contract'],backbone_gradient_policy=None)
+ need(contract==original['model_contract'],'RECOVERY_PHYSICAL_CHECKPOINT_MODEL_CONTRACT')
+ initial=read(refs['original_INITIAL_score']);need(initial['phase']=='INITIAL'and initial['logits']==refs['original_INITIAL_logits'],'RECOVERY_ORIGINAL_INITIAL_LOGITS')
+ identity={'input_binding_ref':meta['input_binding_ref'],'normalization_ref':meta['normalization'],'model_contract_sha256':contract['contract_sha256'],'target_contract_sha256':meta['target_contract']['contract_sha256'],'actual_metadata_contract_recomputed':True,'payloads_decoded':0}
+ return original,receipt,trajectory,refs,identity
+
+def build_v3_development_recovery_protocol():
+ original,receipt,trajectory,refs,identity=recovery_original_metadata()
+ return {'schema_version':'gx1_native_v3_exact_recovery_protocol_v1','experiment_id':DEV_RECOVERY_NAME,'original_plan':DEV_RECOVERY_ORIGINAL,'checkpoint_receipt':DEV_RECOVERY_RECEIPT,'original_protocol':original['protocol'],'original_trajectory':trajectory,'original_lineage':refs,'physical_input_identity':identity,'recipe':original['recipe'],'schedule':original['schedule'],'limits':{lane:recovery_limits(lane,original)for lane in DEV_RECOVERY_LANES},'scope':{'same_original_two_pass_trajectory':True,'technical_weights_never_recovery_initializer':True,'uncheckpointed_original_updates':'UNKNOWN','TEST_used':False,'later_generalization':'NOT_MEASURED','economic_edge':'UNKNOWN'}}
+
+def recovery_closed(lane):
+ root=DEV_RECOVERY_ROOTS[lane];binding=ref(DEV_RECOVERY_PLANS[lane]);tr=ref(root/'TERMINAL.json');terminal=read(tr);rr=terminal['result'];result=read(rr)
+ need(terminal['status']=='COMPLETE'and terminal['exit_code']==0 and terminal['remaining_invocations']==0 and terminal['relaunch_allowed']is False and terminal['plan']==result['plan']==binding and terminal['claim']==result['claim']and result['status']=='COMPLETE_V3_RECOVERY_'+lane.upper()and result['lane']==lane and result['error']is None and set(result['bookends'])=={'plan','sources','inputs','policy','boots','HEAD'}and all(v is True for v in result['bookends'].values()),'RECOVERY_CLOSED_'+lane.upper())
+ claim=read(result['claim']);need(ref(result['claim']['path'])==result['claim']and claim['plan']==binding and claim['lane']==lane and claim['original_plan']==DEV_RECOVERY_ORIGINAL and claim['checkpoint_receipt']==DEV_RECOVERY_RECEIPT and claim['remaining_invocations']==0 and claim['relaunch_allowed']is False,'RECOVERY_PARENT_CLAIM')
+ need(result['report']['original_plan']==DEV_RECOVERY_ORIGINAL and result['report']['original_checkpoint_receipt']==DEV_RECOVERY_RECEIPT,'RECOVERY_PARENT_LINEAGE');core.future_cpu_parent_stopped(result['process_identity'])
+ snapshot=recovery_admission_snapshot(lane,binding,read(binding)['protocol'],claim['policy_at_claim']);need(claim['admitted_policy_snapshot']==snapshot,'RECOVERY_PARENT_ADMISSION_SNAPSHOT')
+ return {'plan':binding,'result':rr,'terminal':tr,'claim':result['claim'],'admitted_policy_snapshot':snapshot,'value':result}
+
+def build_v3_development_recovery_plan(lane,runtime,source_commit=None):
+ from gx1.contracts.gx1_capped_execution_v1 import native_provider_hlc_v3_development_recovery_source_bridge
+ need(lane in DEV_RECOVERY_LANES,'RECOVERY_LANE');pr=ref(DEV_RECOVERY_PROTOCOL);protocol=read(pr);need(protocol==build_v3_development_recovery_protocol(),'RECOVERY_EXACT_COMMON_PROTOCOL')
+ original=read(DEV_RECOVERY_ORIGINAL);receipt=read(DEV_RECOVERY_RECEIPT);trajectory=protocol['original_trajectory'];head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip();need(source_commit in(None,head),'RECOVERY_SOURCE_COMMIT')
+ core.future_cuda_require_runtime(runtime);need(runtime['source_commit']==head,'RECOVERY_RUNTIME_SOURCE');train.runtime_compatible(trajectory['runtime_compatibility'],runtime)
+ inputs={**copy.deepcopy(original['inputs']),**protocol['original_lineage'],'recovery_protocol':pr};parents={}
+ for parent_lane in (()if lane=='reference'else('reference',)if lane=='cold'else('reference','cold')):
+  closed=recovery_closed(parent_lane);parent=read(closed['plan']);need(parent['metadata']['trajectory']==trajectory and parent['protocol']==pr,'RECOVERY_FROZEN_PARENT_FUNCTION')
+  parents[parent_lane]={k:closed[k]for k in('plan','result','terminal','claim','admitted_policy_snapshot')};inputs.update({parent_lane+'_'+k:closed[k]for k in('plan','result','terminal','claim','admitted_policy_snapshot')});report=closed['value']['report']
+  if parent_lane=='reference':
+   need(report['original_C1_all10_equal']is True,'RECOVERY_REFERENCE_ORIGINAL_C1');inputs['reference_cursor2_receipt']=report['cursor2_receipt'];reference=read(report['cursor2_receipt'])
+   need(reference['original_plan']==reference['execution_plan']==closed['plan']and reference['producer_lane']=='reference'and reference['logical_cursor']==reference['optimizer_updates']==2 and reference['trajectory_sha256']==trajectory['contract_sha256'],'RECOVERY_HONEST_REFERENCE_PRODUCER')
+  else:need(report['cold_replay_bit_exact']is True and report['all10_proofs_equal']is True,'RECOVERY_PHYSICAL_COLD_PROOF')
+ owners=dict(original['source_owners']);owners.update({n:ref(REPO/n)['sha256']for n in(*GUARDS,SELF,DEV_TEST,DEV_GUARD_TEST)})
+ for n,digest in owners.items():need(ref(REPO/n)['sha256']==digest,'RECOVERY_SOURCE:'+n)
+ for parent_lane in parents:
+  parent=read(parents[parent_lane]['plan']);need(parent['source_owners']==owners and parent['source_commit']==head,'RECOVERY_PARENT_SOURCES_FROZEN')
+ old={n:hashlib.sha256(subprocess.check_output(['git','show',DEV_RECOVERY_ANCHOR+':'+n],cwd=REPO)).hexdigest()for n in GUARDS};metadata_roles=set(inputs)-{'feature_archive','target_arrays','original_checkpoint','original_INITIAL_logits'}-{k for k in inputs if k.startswith('provider_raw_response_')};payload=set(inputs)-metadata_roles
+ return {'schema_version':'gx1_native_all_tf_provider_hlc_v3_development_recovery_plan_v1','lane':lane,'stage':(DEV_RECOVERY_NAME+'_'+lane).lower(),'source_commit':head,'output_root':str(DEV_RECOVERY_ROOTS[lane]),'source_owners':owners,'guard_source_bridge':native_provider_hlc_v3_development_recovery_source_bridge(old,producer_commit=DEV_RECOVERY_ANCHOR),'owner_source_bridge':recovery_source_bridge(),'protocol':pr,'original_plan':DEV_RECOVERY_ORIGINAL,'checkpoint_receipt':DEV_RECOVERY_RECEIPT,'metadata':{'original':original,'receipt':receipt,'trajectory':trajectory,'runtime':copy.deepcopy(runtime)},'inputs':inputs,'metadata_input_roles':sorted(metadata_roles),'payload_stat':{k:{'size':Path(inputs[k]['path']).stat().st_size,'mtime_ns':Path(inputs[k]['path']).stat().st_mtime_ns}for k in sorted(payload)},'parents':parents,'recipe':original['recipe'],'schedule':original['schedule'],'model_contract':original['model_contract'],'initial_reference':original['initial_reference'],'backbone_gradient_policy':None,'starting_cursor':0 if lane=='reference'else 1,'ending_cursor':original['schedule']['logical_batches']if lane=='recovery'else 2,'limits':protocol['limits'][lane],'execution':development_execution('fit'if lane=='recovery'else'warm'if lane=='reference'else'cold',original),'physical_input_identity':protocol['physical_input_identity'],'scope':protocol['scope']}
+
+def recovery_check_inputs(plan,physical=False):
+ need(Path.cwd().resolve()==REPO and subprocess.check_output(['git','branch','--show-current'],cwd=REPO,text=True).strip()=='work/gx1-current'and subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()==plan['source_commit'],'RECOVERY_FROZEN_CWD_BRANCH_HEAD')
+ for n,digest in plan['source_owners'].items():need(ref(REPO/n)['sha256']==digest,'RECOVERY_SOURCE_SHA:'+n)
+ for role,binding in plan['inputs'].items():
+  if physical or role in plan['metadata_input_roles']:need(ref(binding['path'])==binding,'RECOVERY_INPUT_SHA:'+role)
+  else:
+   s=Path(binding['path']).stat();need({'size':s.st_size,'mtime_ns':s.st_mtime_ns}==plan['payload_stat'][role],'RECOVERY_PAYLOAD_STAT:'+role)
+
+def inspect_v3_development_recovery(sha,lane,admitted=False):
+ binding={'path':str(DEV_RECOVERY_PLANS[lane]),'sha256':sha};plan=read(binding);need(plan==build_v3_development_recovery_plan(lane,plan['metadata']['runtime'],plan['source_commit']),'RECOVERY_EXACT_PLAN');recovery_check_inputs(plan)
+ pref=ref(POLICY);policy=read(pref);development_validate_flags(policy,'fit',admitted);parent=policy.get(DEV_RECOVERY_STAGE,{});recovery_require_gate(parent.get('lane_gates',{}).get(lane),binding,lane,admitted)
+ need(parent.get('protocol')==plan['protocol']and parent.get('original_plan')==DEV_RECOVERY_ORIGINAL and parent.get('checkpoint_receipt')==DEV_RECOVERY_RECEIPT and parent.get('lane_gates',{}).get(lane)==recovery_gate(binding,lane,admitted),'RECOVERY_ONE_USE_PARENT')
+ if admitted:recovery_admission_snapshot(lane,binding,plan['protocol'],pref)
+ need(not DEV_RECOVERY_ROOTS[lane].exists()and not DEV_RECOVERY_ROOTS[lane].is_symlink(),'RECOVERY_FRESH_ROOT');live=core.collect_future_cuda_runtime_metadata();core.future_cuda_runtime_matches(plan['metadata']['runtime'],live)
+ return plan,binding,pref,live
+
+def recovery_restore(model,optimizer,checkpoint,plan,live):
+ receipt=plan['metadata']['receipt'];original=plan['metadata']['original'];trajectory=plan['metadata']['trajectory']
+ need(checkpoint['producer']=={'original_plan':DEV_RECOVERY_ORIGINAL,'lane':'fit','runtime':receipt['producer_runtime']},'RECOVERY_ACTUAL_ORIGINAL_PRODUCER')
+ need(checkpoint['scores']=={'INITIAL':plan['inputs']['original_INITIAL_score']},'RECOVERY_ORIGINAL_INITIAL_REFERENCE')
+ restored=train.strict_restore(model,optimizer,checkpoint,trajectory=trajectory,original_plan_ref=DEV_RECOVERY_ORIGINAL,expected_cursor=1,current_runtime=live,expected_state_proof=receipt['proof'])
+ need(restored==train.position(original['schedule'],1),'RECOVERY_EXACT_RESTORE_POSITION');return restored
+
+def recovery_allowed_payloads(plan):
+ lane=plan['lane'];root=DEV_RECOVERY_ROOTS[lane];allowed={str(Path(plan['inputs'][r]['path']).resolve())for r in('feature_archive','target_arrays','original_checkpoint','original_INITIAL_logits')};names=['REFERENCE_CURSOR002.pt']if lane=='reference'else['REPLAYED_CURSOR002.pt']if lane=='cold'else['FINAL.pt','PASS1_LOGITS.npz','PASS2_LOGITS.npz']
+ allowed.update(str(root/n)for n in names)
+ if lane!='reference':allowed.add(str(Path(plan['inputs']['original_checkpoint']['path']).resolve()))
+ return allowed
+
+def recovery_nn(plan,binding,root,live):
+ import torch
+ from gx1.contracts.market_state_ta_integrated_model_v1 import build_native_future_state_model
+ lane=plan['lane'];original=plan['metadata']['original'];trajectory=plan['metadata']['trajectory'];context=development_nn_context(original);counts=dict.fromkeys(plan['limits'],0);counts['feature_cache_payload_loads']=counts['target_archive_loads']=1
+ core.future_cuda_seed_and_runtime({'recipe':original['recipe'],'metadata':{'runtime':live}})
+ model=build_native_future_state_model(input_normalization=context['normalization'],input_binding=context['input_binding'],architecture=original['metadata']['architecture'],device=torch.device('cuda'),train_prior=context['prior'],target_contract=context['target_contract'],backbone_gradient_policy=None);counts['model_constructions']=1;initial=original['initial_reference']
+ need(model.research_objective==original['model_contract']and core.state_sha(model.state_dict())==initial['model_state_sha256']and core.state_sha(core.training_rng())==initial['rng_sha256'],'RECOVERY_FRESH_FACTORY_STATE_RNG')
+ optimizer=torch.optim.AdamW(model.parameters(),**original['recipe']['optimizer']);counts['optimizer_constructions']=1;need(not optimizer.state,'RECOVERY_FRESH_ADAMW');steps=[];scores={'INITIAL':plan['inputs']['original_INITIAL_score']};extra={}
+ def counter(key):
+  def hook(*args):counts[key]+=1;need(counts[key]<=plan['limits'][key],'RECOVERY_FORWARD_BOUND')
+  return hook
+ hooks=[model.register_forward_pre_hook(counter('model_forwards')),model.backbone.register_forward_pre_hook(counter('backbone_forwards')),model.readout.register_forward_pre_hook(counter('readout_forwards'))]
+ def checkpoint(cursor,name):
+  cp=train.make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=binding if lane=='reference'else DEV_RECOVERY_ORIGINAL,lane=lane,cursor=cursor,steps=list(steps),scores=copy.deepcopy(scores),producer_runtime=live)
+  return cp,development_checkpoint(root,name,cp,counts,binding)
+ try:
+  if lane=='reference':
+   for j in range(2):
+    steps.append(train.training_step(model,optimizer,adapter.packet(context,context['batches'][j]),original,counts,j));need(not steps[-1]['skip_update']and counts['optimizer_steps']==j+1,'RECOVERY_REFERENCE_STEPS')
+    if j==0:
+     cp=train.make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=binding,lane='reference',cursor=1,steps=list(steps),scores=copy.deepcopy(scores),producer_runtime=live);proof=train.checkpoint_proof(cp);need(proof==plan['metadata']['receipt']['proof'],'RECOVERY_INDEPENDENT_C1_ALL10')
+     extra['cursor1_proof']=development_publish(root,'REFERENCE_CURSOR001_PROOF.json',{'proof':proof,'actual_producer':cp['producer'],'execution_plan':binding,'original_trajectory_plan':DEV_RECOVERY_ORIGINAL,'original_C1_receipt':DEV_RECOVERY_RECEIPT,'semantic_all10_equal':True});extra['original_C1_all10_equal']=True;del cp
+   cp,extra['cursor2_receipt']=checkpoint(2,'REFERENCE_CURSOR002.pt');extra['full_cursor2_proof']=train.checkpoint_proof(cp)
+  else:
+   need(ref(plan['inputs']['original_checkpoint']['path'])==plan['inputs']['original_checkpoint'],'RECOVERY_C1_SHA_BEFORE_LOAD');cp=torch.load(plan['inputs']['original_checkpoint']['path'],map_location='cpu',weights_only=True);counts['checkpoint_loads']=1
+   restored=recovery_restore(model,optimizer,cp,plan,live);counts['model_restores']=1;steps=copy.deepcopy(cp['steps']);scores=copy.deepcopy(cp['scores']);del cp
+   extra['restore_proof']=development_publish(root,'RESTORE001_PROOF.json',{'canonical_strict_restore_completed':True,'original_plan':DEV_RECOVERY_ORIGINAL,'execution_plan':binding,'checkpoint_receipt':DEV_RECOVERY_RECEIPT,'checkpoint':plan['inputs']['original_checkpoint'],'position':restored,'expected_state_proof':plan['metadata']['receipt']['proof'],'new_model_forwards':0,'actual_original_producer_enforced':True})
+   if lane=='cold':
+    steps.append(train.training_step(model,optimizer,adapter.packet(context,context['batches'][1]),original,counts,1));need(not steps[-1]['skip_update']and counts['optimizer_steps']==1,'RECOVERY_COLD_STEP')
+    cp=train.make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=DEV_RECOVERY_ORIGINAL,lane='cold',cursor=2,steps=steps,scores=scores,producer_runtime=live);proof=train.checkpoint_proof(cp);reference=read(plan['inputs']['reference_cursor2_receipt']);need(proof==reference['proof']and len(proof)==10,'RECOVERY_COLD_C2_ALL10')
+    extra.update(cold_replay_bit_exact=True,all10_proofs_equal=True,full_cursor2_proof=proof,cursor2_receipt=development_checkpoint(root,'REPLAYED_CURSOR002.pt',cp,counts,binding))
+   else:
+    total=original['schedule']['logical_batches'];n=original['schedule']['batches_per_pass']
+    for j in range(1,total):
+     steps.append(train.training_step(model,optimizer,adapter.packet(context,context['batches'][j%n]),original,counts,j));need(not steps[-1]['skip_update']and counts['optimizer_steps']+1==j+1 and len(steps)==j+1,'RECOVERY_ORIGINAL_CURSOR')
+     if(j+1)%n==0:
+      label='PASS'+str((j+1)//n);train.release_phase_allocator_cache(model,optimizer,label='DEV_TRAIN_TO_'+label);scores[label]=development_score(model,context,original,root,label,counts);train.release_phase_allocator_cache(model,optimizer,label='DEV_'+label+'_TO_NEXT_PHASE')
+    before=core.state_sha(optimizer.state_dict());panels=train.diagnostic_panels(context['schedule']);need(panels['supported_panels']==3 and not panels['skipped_empty_batch_indices'],'RECOVERY_ORIGINAL_DIAGNOSTICS');extra['gradient_diagnostics']=[]
+    for index in panels['candidate_batch_indices']:extra['gradient_diagnostics'].append({'batch_index':index,'report':core.future_cuda_gradient_probe(model,adapter.packet(context,context['batches'][index]),original,counts)})
+    need(core.state_sha(optimizer.state_dict())==before,'RECOVERY_DIAGNOSTICS_NO_OPTIMIZER_MUTATION');_,extra['final_checkpoint_receipt']=checkpoint(total,'FINAL.pt')
+  need(counts==plan['limits'],'RECOVERY_EXACT_COUNTS');need(torch.cuda.max_memory_reserved()<=plan['execution']['cuda_peak_reserved_bytes_max'],'RECOVERY_VRAM_BOUND')
+  return {'counts':counts,'trajectory':trajectory,'original_plan':DEV_RECOVERY_ORIGINAL,'execution_plan':binding,'original_checkpoint_receipt':DEV_RECOVERY_RECEIPT,'starting_cursor':plan['starting_cursor'],'ending_cursor':plan['ending_cursor'],'new_optimizer_updates':counts['optimizer_steps'],'logical_original_optimizer_updates':plan['ending_cursor'],'original_uncheckpointed_updates':'UNKNOWN','scores':scores,'later_generalization':'NOT_MEASURED','economic_edge':'UNKNOWN','technical_weights_never_recovery_initializer':True,**extra}
+ finally:
+  for hook in hooks:hook.remove()
+
+def recovery_bookends(plan,binding,pref,boot):
+ tests={'plan':lambda:ref(DEV_RECOVERY_PLANS[plan['lane']])==binding,'sources':lambda:all(ref(REPO/n)['sha256']==h for n,h in plan['source_owners'].items()),'inputs':lambda:all(ref(q['path'])==q for q in plan['inputs'].values())and recovery_admission_snapshot(plan['lane'],binding,plan['protocol'],pref)['sha256']==pref['sha256'],'policy':lambda:ref(POLICY)==pref,'boots':lambda:{'physical_windows_boot_id':core.physical_windows_boot_id(),'wsl_boot_id':Path('/proc/sys/kernel/random/boot_id').read_text().strip()}==boot,'HEAD':lambda:subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()==plan['source_commit']};checks={}
+ for name,fn in tests.items():
+  try:checks[name]=bool(fn())
+  except BaseException:checks[name]=False
+ return checks
+
+def run_v3_development_recovery(sha,lane):
+ from gx1.contracts.gx1_capped_execution_v1 import require_native_all_tf_provider_hlc_v3_development_recovery_execution
+ execution=require_native_all_tf_provider_hlc_v3_development_recovery_execution(plan_sha256=sha,lane=lane);plan,binding,pref,live=inspect_v3_development_recovery(sha,lane,True);root=DEV_RECOVERY_ROOTS[lane];boot={k:live[k]for k in('physical_windows_boot_id','wsl_boot_id')};started=time.monotonic();root.mkdir(exist_ok=False)
+ claim=development_publish(root,'CLAIM.json',{'plan':binding,'policy_at_claim':pref,'boots':boot,'lane':lane,'original_plan':DEV_RECOVERY_ORIGINAL,'checkpoint_receipt':DEV_RECOVERY_RECEIPT,'admitted_policy_snapshot':recovery_admission_snapshot(lane,binding,plan['protocol'],pref),'execution':execution,'process_identity':core.future_cpu_process_identity(),'remaining_invocations':0,'relaunch_allowed':False});report=None;error=None
+ def stop(*_):raise TimeoutError('V3_RECOVERY_INTERNAL_WALL_OR_SIGNAL')
+ handlers={sig:signal.getsignal(sig)for sig in(signal.SIGALRM,signal.SIGTERM,signal.SIGINT)}
+ for sig in handlers:signal.signal(sig,stop)
+ signal.setitimer(signal.ITIMER_REAL,plan['execution']['internal_seconds'])
+ try:
+  allowed=recovery_allowed_payloads(plan);sys.addaudithook(lambda event,args:development_io_audit(allowed,event,args));recovery_check_inputs(plan,physical=True);report=recovery_nn(plan,binding,root,live);need(core.common.firewall_state()['denied_attempts']==0,'RECOVERY_ZERO_FIREWALL_DENIALS')
+ except BaseException as exc:error=type(exc).__name__+':'+str(exc)[:2400]
+ finally:
+  signal.setitimer(signal.ITIMER_REAL,0);book=recovery_bookends(plan,binding,pref,boot);error=error or(None if all(book.values())else'RECOVERY_BOOKEND_FAILED')
+  result=development_publish(root,'RESULT.json',{'status':'COMPLETE_V3_RECOVERY_'+lane.upper()if error is None else'FAILED_CONSUMED','lane':lane,'plan':binding,'protocol':plan['protocol'],'original_plan':DEV_RECOVERY_ORIGINAL,'claim':claim,'process_identity':core.future_cpu_process_identity(),'report':report,'error':error,'bookends':book,'elapsed_seconds':time.monotonic()-started,'test_data_used':False,'later_generalization':'NOT_MEASURED','economic_edge':'UNKNOWN'})
+  terminal=development_publish(root,'TERMINAL.json',{'status':'COMPLETE'if error is None else'FAILED_CONSUMED','exit_code':0 if error is None else 1,'plan':binding,'claim':claim,'result':result,'remaining_invocations':0,'relaunch_allowed':False})
+  for sig,handler in handlers.items():signal.signal(sig,handler)
+ if error:raise RuntimeError(error)
+ return {'result':result,'terminal':terminal,'lane':lane}
+
+def main_v3_development_recovery():
+ from gx1.contracts.gx1_capped_execution_v1 import require_native_all_tf_provider_hlc_v3_development_recovery_execution
+ parser=argparse.ArgumentParser();parser.add_argument('--v3-development-recovery-plan-sha256',required=True);parser.add_argument('--lane',choices=DEV_RECOVERY_LANES,required=True);parser.add_argument('--preflight',action='store_true');args=parser.parse_args();sha=args.v3_development_recovery_plan_sha256
+ need(sys.argv[1:]==['--v3-development-recovery-plan-sha256',sha,'--lane',args.lane]+(['--preflight']if args.preflight else[]),'RECOVERY_EXACT_CLI')
+ if args.preflight:
+  require_native_all_tf_provider_hlc_v3_development_recovery_execution(plan_sha256=sha,lane=args.lane);plan,binding,pref,live=inspect_v3_development_recovery(sha,args.lane,False);print(json.dumps({'status':'PREFLIGHT_V3_EXACT_RECOVERY_METADATA_ONLY','lane':args.lane,'plan':binding,'policy':pref,'physical_input_identity':plan['physical_input_identity'],'models':0,'payloads_decoded':0,'CUDA_initialized':False,'CLAIM_created':False}))
+ else:print(json.dumps(run_v3_development_recovery(sha,args.lane),sort_keys=True))
+# END GX1 V3 EXACT RECOVERY 20261128
 # END GX1 V3 BOUNDED DEVELOPMENT 20261127
 if __name__=='__main__':main()

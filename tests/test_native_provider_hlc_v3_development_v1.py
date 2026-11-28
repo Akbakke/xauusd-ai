@@ -86,3 +86,227 @@ def test_payload_allowlist_is_phase_exact(phase):
 @pytest.mark.parametrize('event',['socket.connect','socket.getaddrinfo','urllib.Request'])
 def test_network_always_denied(event):
     with pytest.raises(RuntimeError):owner.development_io_audit(set(),event,())
+
+def original_fit():
+    return owner.read(owner.DEV_RECOVERY_ORIGINAL)
+
+
+def test_recovery_source_bridge_preserves_original_numeric_leaf():
+    proof=owner.recovery_source_bridge()
+    assert proof['original_development_nn_and_numeric_paths_unchanged']
+    assert proof['producer_commit']==owner.DEV_RECOVERY_ANCHOR
+
+
+@pytest.mark.parametrize('lane,updates,forwards',[('reference',2,2),('cold',1,1),('recovery',431,596)])
+def test_recovery_operation_limits_are_derived_from_original(lane,updates,forwards):
+    plan=original_fit();limits=owner.recovery_limits(lane,plan)
+    assert limits['optimizer_steps']==limits['backward_calls']==updates
+    assert limits['model_forwards']==limits['backbone_forwards']==limits['readout_forwards']==forwards
+    assert limits['checkpoint_writes']==limits['checkpoint_readbacks']==limits['checkpoint_prepublication_loads']==1
+    assert limits['checkpoint_loads']==limits['model_restores']==(lane!='reference')
+    plan['schedule']['optimizer_updates']+=1
+    with pytest.raises(ValueError):owner.recovery_limits(lane,plan)
+
+
+@pytest.mark.parametrize('lane',owner.DEV_RECOVERY_LANES)
+def test_recovery_payload_scope_allows_bound_hashes_and_rejects_unknown_initializer(lane):
+    plan={'lane':lane,'inputs':{'feature_archive':{'path':'/s/features.npz'},'target_arrays':{'path':'/s/truth.npz'},'original_checkpoint':{'path':'/s/genuine/CURSOR001.pt'},'original_INITIAL_logits':{'path':'/s/genuine/INITIAL_LOGITS.npz'}}}
+    allowed=owner.recovery_allowed_payloads(plan)
+    assert '/s/genuine/CURSOR001.pt'in allowed and '/s/genuine/INITIAL_LOGITS.npz'in allowed
+    for path in ['/s/technical/CURSOR002.pt','/s/unknown/INITIAL_LOGITS.npz']:
+        with pytest.raises(RuntimeError):owner.development_io_audit(allowed,'open',(path,'r',0))
+
+
+@pytest.mark.parametrize('field',('lane','runtime','original_plan','scores'))
+def test_recovery_rejects_forged_producer_before_parameter_copy(monkeypatch,field):
+    runtime={'actual':'original'};initial={'path':'/original/INITIAL_SCORE.json','sha256':'1'*64}
+    plan={'metadata':{'receipt':{'producer_runtime':runtime,'proof':{}},'original':{'schedule':{}},'trajectory':{}},'inputs':{'original_INITIAL_score':initial}}
+    cp={'producer':{'original_plan':owner.DEV_RECOVERY_ORIGINAL,'lane':'fit','runtime':runtime},'scores':{'INITIAL':initial}}
+    if field=='scores':cp['scores']={'INITIAL':{**initial,'path':'/new/INITIAL_SCORE.json'}}
+    else:cp['producer'][field]='forged'
+    called=[];monkeypatch.setattr(owner.train,'strict_restore',lambda *a,**k:called.append(True))
+    with pytest.raises(ValueError):owner.recovery_restore(None,None,cp,plan,{})
+    assert not called
+
+
+def test_semantic_proof_excludes_producer_but_binds_every_state_component():
+    keys=('trajectory','position','model_state','optimizer_state','scheduler_state','rng_state','training','optimizer_parameter_names','steps','scores')
+    a={k:'state:'+k for k in keys};a.update(producer={'actual':'reference'},schema_version='v')
+    b=copy.deepcopy(a);b['producer']={'actual':'cold'}
+    assert owner.train.checkpoint_proof(a)==owner.train.checkpoint_proof(b)
+    assert owner.core.state_sha(a)!=owner.core.state_sha(b)
+    for key in keys:
+        changed=copy.deepcopy(b);changed[key]='different'
+        assert owner.train.checkpoint_proof(a)!=owner.train.checkpoint_proof(changed)
+
+
+def fake_recovery(monkeypatch,lane):
+    """Synthetic state-machine test: no tensors, model construction, CUDA or file IO."""
+    import torch
+    from gx1.contracts import market_state_ta_integrated_model_v1 as factory
+    original=original_fit();runtime={'actual':'synthetic-runtime'};initial={'path':'/original/INITIAL_SCORE.json','sha256':'1'*64}
+    binding={'path':'/new/'+lane+'.json','sha256':'2'*64};checkpoint_binding={'path':'/original/CURSOR001.pt','sha256':'3'*64}
+    trajectory=owner.development_trajectory(original);rng={'value':0};events={'steps':[],'scores':[],'checkpoints':[],'json':[],'loads':[]}
+    class Handle:
+        def remove(self):pass
+    class Part:
+        def register_forward_pre_hook(self,fn):return Handle()
+    class Model(Part):
+        def __init__(self):self.value=0;self.training=True;self.backbone=Part();self.readout=Part();self.research_objective=original['model_contract']
+        def state_dict(self):return {'weight':self.value}
+        def named_parameters(self):return [('readout.weight',object())]
+        def parameters(self):return []
+    class Optimizer:
+        def __init__(self,*a,**k):self.value=0;self.state={}
+        def state_dict(self):return {'moment':self.value}
+    monkeypatch.setattr(owner.core,'training_rng',lambda:dict(rng))
+    monkeypatch.setattr(owner.core,'future_cuda_seed_and_runtime',lambda p:rng.update(value=0))
+    original['initial_reference']['model_state_sha256']=owner.core.state_sha({'weight':0})
+    original['initial_reference']['rng_sha256']=owner.core.state_sha({'value':0})
+    model=Model();optimizer=Optimizer();model.value=optimizer.value=1;rng['value']=1
+    first={'logical_step':1,'skip_update':False,'loss':1.}
+    cp=owner.train.make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=owner.DEV_RECOVERY_ORIGINAL,lane='fit',cursor=1,steps=[first],scores={'INITIAL':initial},producer_runtime=runtime)
+    receipt={'producer_runtime':runtime,'proof':owner.train.checkpoint_proof(cp)}
+    model.value=optimizer.value=2;rng['value']=2
+    expected=owner.train.make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=binding,lane='reference',cursor=2,steps=[first,{'logical_step':2,'skip_update':False,'loss':1.}],scores={'INITIAL':initial},producer_runtime=runtime)
+    reference={'proof':owner.train.checkpoint_proof(expected)}
+    plan={'lane':lane,'metadata':{'original':original,'receipt':receipt,'trajectory':trajectory},'inputs':{'original_INITIAL_score':initial,'original_checkpoint':checkpoint_binding,'reference_cursor2_receipt':{'path':'/reference/C2.json','sha256':'4'*64}},'limits':owner.recovery_limits(lane,original),'execution':original['execution'],'starting_cursor':0 if lane=='reference'else 1,'ending_cursor':432 if lane=='recovery'else 2}
+    monkeypatch.setattr(factory,'build_native_future_state_model',lambda **k:Model())
+    monkeypatch.setattr(torch.optim,'AdamW',Optimizer)
+    monkeypatch.setattr(torch.cuda,'max_memory_reserved',lambda:0)
+    context={'normalization':{},'input_binding':{},'prior':{},'target_contract':original['metadata']['target_contract'],'batches':list(range(216)),'schedule':original['schedule']}
+    monkeypatch.setattr(owner,'development_nn_context',lambda p:context)
+    monkeypatch.setattr(owner.adapter,'packet',lambda c,take:{'take':take})
+    def step(m,opt,packet,p,counts,j):
+        assert p is original
+        events['steps'].append((j,packet['take']));m.value+=1;opt.value+=1;opt.state={'initialized':True};rng['value']+=1
+        for k in ('optimizer_steps','backward_calls','model_forwards','backbone_forwards','readout_forwards'):counts[k]+=1
+        return {'logical_step':j+1,'skip_update':False,'loss':1.}
+    monkeypatch.setattr(owner.train,'training_step',step)
+    def save(root,name,value,counts,execution):
+        events['checkpoints'].append((name,copy.deepcopy(value)))
+        for k in ('checkpoint_writes','checkpoint_readbacks','checkpoint_receipt_writes','checkpoint_prepublication_loads'):counts[k]+=1
+        return {'path':str(root/Path(name).with_suffix('.json')),'sha256':'5'*64}
+    monkeypatch.setattr(owner,'development_checkpoint',save)
+    monkeypatch.setattr(owner,'development_publish',lambda root,name,value:events['json'].append((name,copy.deepcopy(value)))or{'path':str(root/name),'sha256':'6'*64})
+    monkeypatch.setattr(owner,'ref',lambda path:checkpoint_binding)
+    monkeypatch.setattr(torch,'load',lambda *a,**k:events['loads'].append(a[0])or copy.deepcopy(cp))
+    def restore(m,opt,c,**kwargs):
+        assert c['producer']['lane']=='fit'and kwargs['expected_state_proof']==receipt['proof']
+        m.value=c['model_state']['weight'];opt.value=c['optimizer_state']['moment'];rng.update(c['rng_state'])
+        return c['position']
+    monkeypatch.setattr(owner.train,'strict_restore',restore)
+    monkeypatch.setattr(owner,'read',lambda ref:reference)
+    monkeypatch.setattr(owner.train,'release_phase_allocator_cache',lambda *a,**k:None)
+    def score(m,c,p,root,label,counts):
+        assert p is original;events['scores'].append(label)
+        for k in ('model_forwards','backbone_forwards','readout_forwards'):counts[k]+=81
+        counts['logit_archive_writes']+=1;counts['logit_archive_readbacks']+=1
+        return {'path':str(root/(label+'_SCORE.json')),'sha256':'7'*64}
+    monkeypatch.setattr(owner,'development_score',score)
+    def gradient(m,packet,p,counts):
+        for k in ('model_forwards','backbone_forwards','readout_forwards'):counts[k]+=1
+        counts['autograd_calls']+=3;return {'synthetic':True}
+    monkeypatch.setattr(owner.core,'future_cuda_gradient_probe',gradient)
+    return plan,binding,runtime,events,receipt,reference
+
+
+@pytest.mark.parametrize('lane',owner.DEV_RECOVERY_LANES)
+def test_exact_recovery_state_machine_preserves_original_trajectory(monkeypatch,tmp_path,lane):
+    plan,binding,runtime,events,receipt,reference=fake_recovery(monkeypatch,lane)
+    report=owner.recovery_nn(plan,binding,tmp_path,runtime)
+    assert report['counts']==plan['limits']
+    assert len(events['loads'])==(0 if lane=='reference' else 1)
+    assert report['scores']['INITIAL']==plan['inputs']['original_INITIAL_score']
+    assert report['original_uncheckpointed_updates']=='UNKNOWN'
+    name,cp=events['checkpoints'][-1]
+    assert cp['producer']['runtime']==runtime and cp['producer']['lane']==lane
+    assert cp['producer']['original_plan']==(binding if lane=='reference'else owner.DEV_RECOVERY_ORIGINAL)
+    if lane=='reference':
+        assert events['steps']==[(0,0),(1,1)]and report['original_C1_all10_equal']
+        assert owner.train.checkpoint_proof(cp)==reference['proof']
+        assert events['json'][0][1]['actual_producer']['original_plan']==binding
+    elif lane=='cold':
+        assert events['steps']==[(1,1)]and report['all10_proofs_equal']
+    else:
+        assert len(events['steps'])==431 and events['steps'][0]==(1,1)and events['steps'][-1]==(431,215)
+        assert events['scores']==['PASS1','PASS2']and cp['position']['optimizer_updates']==432
+        assert len(cp['steps'])==432 and name=='FINAL.pt'
+
+
+def test_reference_c1_mismatch_stops_before_second_update_or_checkpoint(monkeypatch,tmp_path):
+    plan,binding,runtime,events,receipt,_=fake_recovery(monkeypatch,'reference')
+    receipt['proof']['steps']='wrong'
+    with pytest.raises(ValueError,match='INDEPENDENT_C1_ALL10'):owner.recovery_nn(plan,binding,tmp_path,runtime)
+    assert events['steps']==[(0,0)]and not events['checkpoints']and not events['json']
+
+
+def test_cold_c2_mismatch_never_publishes_replayed_checkpoint(monkeypatch,tmp_path):
+    plan,binding,runtime,events,_,reference=fake_recovery(monkeypatch,'cold')
+    reference['proof']['model_state']='wrong'
+    with pytest.raises(ValueError,match='COLD_C2_ALL10'):owner.recovery_nn(plan,binding,tmp_path,runtime)
+    assert events['steps']==[(1,1)]and not events['checkpoints']
+
+
+@pytest.mark.parametrize('admitted',(False,True))
+@pytest.mark.parametrize('field',('remaining_invocations','execution_authorized','relaunch_allowed','training_authorized','test_authorized'))
+def test_recovery_gate_rejects_bool_integer_type_aliases(admitted,field):
+    binding={'path':'/new/plan.json','sha256':'1'*64};gate=owner.recovery_gate(binding,'reference',admitted)
+    owner.recovery_require_gate(gate,binding,'reference',admitted)
+    gate[field]=bool(gate[field])if field=='remaining_invocations'else int(gate[field])
+    with pytest.raises(ValueError,match='GATE_TYPES'):owner.recovery_require_gate(gate,binding,'reference',admitted)
+
+
+def test_recovery_hash_checks_allow_all_declared_payloads_without_decoding(monkeypatch,tmp_path):
+    inputs={}
+    for role,suffix in [('feature_archive','.npz'),('target_arrays','.npz'),('original_checkpoint','.pt'),('original_INITIAL_logits','.npz')]:
+        path=tmp_path/(role+suffix);path.write_bytes(b'hash-only synthetic bytes');inputs[role]=owner.ref(path)
+    plan={'lane':'reference','inputs':inputs,'source_commit':'head','source_owners':{},'metadata_input_roles':[]}
+    allowed=owner.recovery_allowed_payloads(plan);opened=[];real_open=Path.open
+    def guarded(path,*a,**k):
+        owner.development_io_audit(allowed,'open',(str(path),'r',0));opened.append(str(path));return real_open(path,*a,**k)
+    monkeypatch.chdir(owner.REPO)
+    monkeypatch.setattr(owner.subprocess,'check_output',lambda argv,**k:'work/gx1-current'if argv[1]=='branch'else'head')
+    monkeypatch.setattr(Path,'open',guarded)
+    owner.recovery_check_inputs(plan,physical=True)
+    assert set(opened)=={v['path']for v in inputs.values()}
+    with pytest.raises(RuntimeError):owner.development_io_audit(allowed,'open',(str(tmp_path/'undeclared.pt'),'r',0))
+
+
+@pytest.mark.parametrize('bad',(None,'sha','lane','flags','protocol','counter','scope'))
+def test_recovery_immutable_admission_snapshot_is_exact(monkeypatch,bad):
+    binding={'path':'/new/plan.json','sha256':'1'*64};protocol={'path':'/new/protocol.json','sha256':'2'*64};snapshot_ref={'path':'/immutable/admission.json','sha256':'3'*64};policy_ref={'path':str(owner.POLICY),'sha256':snapshot_ref['sha256']}
+    value={k:False for k in owner.DEV_FLAGS};value.update(training_enabled=True,native_training_enabled=True)
+    parent={'protocol':protocol,'original_plan':owner.DEV_RECOVERY_ORIGINAL,'checkpoint_receipt':owner.DEV_RECOVERY_RECEIPT,'execution_authorized':True,'active_lane':'reference','main_fit_authorized':False,'test_authorized':False,'spending_authorized':False,'lane_gates':{'reference':owner.recovery_gate(binding,'reference',True)}};value[owner.DEV_RECOVERY_STAGE]=parent
+    if bad=='sha':policy_ref['sha256']='4'*64
+    if bad=='lane':parent['active_lane']='cold'
+    if bad=='flags':value['full_epoch_training_allowed']=True
+    if bad=='protocol':parent['protocol']={'path':'/wrong.json','sha256':'2'*64}
+    if bad=='counter':parent['lane_gates']['reference']['remaining_invocations']=True
+    if bad=='scope':parent['test_authorized']=True
+    seen=[]
+    monkeypatch.setattr(owner,'ref',lambda p:seen.append(str(p))or snapshot_ref)
+    monkeypatch.setattr(owner,'read',lambda r:value)
+    if bad is None:
+        assert owner.recovery_admission_snapshot('reference',binding,protocol,policy_ref)==snapshot_ref
+        assert seen==[str(owner.E/'V3_FIT004_EXACT_RECOVERY_REFERENCE_ADMITTED_POLICY_20261128_001.json')]
+    else:
+        with pytest.raises(ValueError):owner.recovery_admission_snapshot('reference',binding,protocol,policy_ref)
+
+
+@pytest.mark.parametrize('changed',(False,True))
+def test_own_admission_snapshot_is_part_of_six_bookend_inputs(monkeypatch,tmp_path,changed):
+    binding={'path':str(owner.DEV_RECOVERY_PLANS['reference']),'sha256':'1'*64};pref={'path':str(owner.POLICY),'sha256':'2'*64};boot={'physical_windows_boot_id':4,'wsl_boot_id':'boot'}
+    plan={'lane':'reference','protocol':{},'source_owners':{},'inputs':{},'source_commit':'head'}
+    monkeypatch.setattr(owner,'ref',lambda p:pref if str(p)==str(owner.POLICY)else binding)
+    monkeypatch.setattr(owner.core,'physical_windows_boot_id',lambda:4)
+    real_read=Path.read_text
+    monkeypatch.setattr(Path,'read_text',lambda p,*a,**k:'boot'if str(p)=='/proc/sys/kernel/random/boot_id'else real_read(p,*a,**k))
+    monkeypatch.setattr(owner.subprocess,'check_output',lambda *a,**k:'head')
+    def snapshot(*a):
+        if changed:raise ValueError('snapshot bytes changed')
+        return {'path':'/immutable/snapshot.json','sha256':pref['sha256']}
+    monkeypatch.setattr(owner,'recovery_admission_snapshot',snapshot)
+    checks=owner.recovery_bookends(plan,binding,pref,boot)
+    assert set(checks)=={'plan','sources','inputs','policy','boots','HEAD'}
+    assert checks['inputs']is(not changed)and all(v for k,v in checks.items()if k!='inputs')

@@ -2819,6 +2819,7 @@ def native_provider_hlc_v3_development_source_bridge(producer_hashes,*,producer_
     before={n:subprocess.check_output(['git','show',producer_commit+':'+n],cwd=repo).decode()for n in names}
     original={n:hashlib.sha256(v.encode()).hexdigest()for n,v in before.items()};require(producer_hashes==original,'BRIDGE_PRODUCER_HASHES')
     current={n:(repo/n).read_text()for n in names}
+    current=_native_v3_recovery_without_additions(current)
     begin='# BEGIN GX1 V3 DEVELOPMENT GUARDS 20261127 001\n';end='# END GX1 V3 DEVELOPMENT GUARDS 20261127 001\n\n'
     text=current[names[0]];require(text.count(begin)==text.count(end)==1,'ONE_DEVELOPMENT_BLOCK')
     first,tail=text.split(begin);body,last=tail.split(end);nodes=ast.parse(body).body
@@ -2836,9 +2837,150 @@ def native_provider_hlc_v3_development_source_bridge(producer_hashes,*,producer_
     require(shell==before[names[1]],'UNCHANGED_PREDECESSOR_SHELL')
     return {'producer_commit':producer_commit,'checked_guard_owners':2,'old_guard_routes_preserved':True,
         'old_numeric_resource_environment_function_unchanged':True,'owners':{n:{'original_sha256':original[n],
-        'current_sha256':hashlib.sha256(current[n].encode()).hexdigest()}for n in names}}
+        'current_sha256':hashlib.sha256((repo/n).read_text().encode()).hexdigest()}for n in names}}
 
 # END GX1 V3 DEVELOPMENT GUARDS 20261127 001
+
+# BEGIN GX1 V3 RECOVERY GUARDS 20261128 001
+_V3_RECOVERY_NAME = 'NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_001'
+_V3_RECOVERY_PARENT = '0330fe6c8bb0af4d1f107a3f86ed72ed98692518'
+_V3_RECOVERY_SHELL_ADDITIONS = (('NATIVE_V3_DEVELOPMENT=false\n', 'before', 'NATIVE_V3_RECOVERY=false\nNATIVE_V3_RECOVERY_PLAN_SHA256=\nNATIVE_V3_RECOVERY_LANE=\n'), ('# BEGIN GX1 V3 DEVELOPMENT ROUTE 20261127 001\n', 'before', '# BEGIN GX1 V3 RECOVERY ROUTE 20261128 001\nmatches_bound_native_v3_recovery() {\n  if [[ $# -eq 8 ]]; then\n    [[ "$8" == --preflight ]] || return 1\n    set -- "${@:1:7}"\n  fi\n  [[ $# -eq 7 && "$(pwd -P)" == "$REPO_ROOT" \\\n    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \\\n    && "$3" == gx1.audit.native_provider_hlc_learning_v1 \\\n    && "$4" == --v3-development-recovery-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ \\\n    && "$6" == --lane ]] || return 1\n  case "$7" in reference|cold|recovery) ;; *) return 1 ;; esac\n  local plan_suffix="${7^^}"\n  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_001_${plan_suffix}.json"\n  [[ -f "$expected_plan" && ! -L "$expected_plan" \\\n    && "$(readlink -f "$expected_plan")" == "$expected_plan" \\\n    && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk \'{print $1}\')" == "$5" ]]\n}\nconfigure_native_v3_recovery() {\n  matches_bound_native_v3_recovery "$@" || { echo \'FATAL: exact V3 development CLI/plan required\' >&2; exit 75; }\n  [[ "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \\\n    && "$SWAP" == 512M && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {\n    echo \'FATAL: V3 development forbids alternate resource modes\' >&2; exit 75;\n  }\n  local output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_001_$7"\n  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \\\n    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {\n    echo \'FATAL: V3 development output must be fresh and canonical\' >&2; exit 75;\n  }\n  NATIVE_V3_RECOVERY=true\n  NATIVE_V3_RECOVERY_PLAN_SHA256="$5"\n  NATIVE_V3_RECOVERY_LANE="$7"\n  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G ]] || { echo \'FATAL: V3 NN requires canonical trainer20G\' >&2; exit 75; }\n  TRAINER_DEVICE=cuda\n  TRAINER_EXECUTION_MODE=canonical\n  TRAINER_OUT_BUNDLE_DIR="$output"\n  TRAINER_MAX_WALL_SECONDS=1800\n  TRAINER_MODEL_MAX_WALL_SECONDS=1770\n  if [[ "$7" == recovery ]]; then TRAINER_MAX_WALL_SECONDS=5400; TRAINER_MODEL_MAX_WALL_SECONDS=5370; fi\n  TRAINER_GPU_INDEX=0\n  TRAINER_GPU_MAX_POWER_LIMIT_W=250\n  TRAINER_GPU_MAX_POWER_DRAW_W=250\n  TRAINER_GPU_MAX_CORE_TEMP_C=75\n  TRAINER_GPU_MAX_MEMORY_TEMP_C=80\n  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288\n  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1\n  TRAINER_CPU_MAX_TEMP_C=80\n  TRAINER_CPU_MAX_PACKAGE_POWER_W=125\n  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592\n  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592\n}\n# END GX1 V3 RECOVERY ROUTE 20261128 001\n\n'), ('# BEGIN GX1 V3 DEVELOPMENT DISPATCH 20261127 001\n', 'before', '# BEGIN GX1 V3 RECOVERY DISPATCH 20261128 001\n  local recovery_arg\n  for recovery_arg in "$@"; do\n    case "$recovery_arg" in\n      --v3-development-recovery-plan-sha256|--v3-development-recovery-plan-sha256=*) configure_native_v3_recovery "$@"; return ;;\n    esac\n  done\n# END GX1 V3 RECOVERY DISPATCH 20261128 001\n'), ('  --setenv=GX1_NATIVE_V3_DEVELOPMENT="$NATIVE_V3_DEVELOPMENT" \\\n', 'before', '  --setenv=GX1_NATIVE_V3_RECOVERY="$NATIVE_V3_RECOVERY" \\\n  --setenv=GX1_NATIVE_V3_RECOVERY_PLAN_SHA256="$NATIVE_V3_RECOVERY_PLAN_SHA256" \\\n  --setenv=GX1_NATIVE_V3_RECOVERY_LANE="$NATIVE_V3_RECOVERY_LANE" \\\n'))
+_V3_RECOVERY_CHECKPOINT_RECEIPT_SHA256 = 'adcc8717242aa5bac0505332fbe360dc3578315bb49f5e6230ebefe15e871529'
+
+
+def _native_v3_recovery_execution(lane):
+    _native_v3_development_require(lane in ('reference','cold','recovery'),'RECOVERY_LANE')
+    return _native_v3_development_execution('fit' if lane=='recovery' else 'cold' if lane=='cold' else 'warm')
+
+def _native_v3_recovery_bound_plan(plan_sha256,lane):
+    import hashlib,subprocess
+    require=_native_v3_development_require
+    require(type(plan_sha256)is str and re.fullmatch('[0-9a-f]{64}',plan_sha256)is not None,'RECOVERY_PLAN_SHA')
+    require(type(lane)is str and lane in ('reference','cold','recovery'),'RECOVERY_LANE')
+    repo=Path(__file__).resolve().parents[2];name=_V3_RECOVERY_NAME
+    args=['--v3-development-recovery-plan-sha256',plan_sha256,'--lane',lane]
+    preflight=sys.argv[-1:]==['--preflight']
+    if preflight:args+=['--preflight']
+    require(Path.cwd().resolve()==repo and Path(sys.argv[0]).resolve()==repo/'gx1/audit/native_provider_hlc_learning_v1.py'
+        and Path(sys.executable).absolute()==repo/'.venv/bin/python'and sys.argv[1:]==args,'RECOVERY_EXACT_ARGV')
+    path=repo/'configs/research'/(name+'_'+lane.upper()+'.json');plan=_native_v3_development_read(path,plan_sha256)
+    output=Path('/home/andre2/GX1_RUNS')/(name+'_'+lane)
+    require(plan.get('schema_version')=='gx1_native_all_tf_provider_hlc_v3_development_recovery_plan_v1'
+        and plan.get('lane')==lane and plan.get('stage')==(name+'_'+lane).lower()
+        and plan.get('output_root')==str(output),'RECOVERY_PLAN_IDENTITY')
+    require(not output.exists()and not output.is_symlink()and output.parent.is_dir()
+        and not output.parent.is_symlink()and output.parent.resolve()==output.parent,'RECOVERY_FRESH_OUTPUT')
+    require(plan.get('source_commit')==subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),'RECOVERY_SOURCE_COMMIT')
+    require(plan.get('execution')==_native_v3_recovery_execution(lane),'RECOVERY_EXACT_EXECUTION')
+    original_ref={'path':str(repo/'configs/research'/(_V3_DEVELOPMENT_NAME+'_FIT_004.json')),
+        'sha256':'ebf7222c9fb403cf0adc26738cc682c088035dc2b2dc2fc5aff603a741660437'}
+    receipt_ref={'path':str(Path('/home/andre2/GX1_RUNS')/(_V3_DEVELOPMENT_NAME+'_fit_004')/'CURSOR001.json'),
+        'sha256':_V3_RECOVERY_CHECKPOINT_RECEIPT_SHA256}
+    require(plan.get('original_plan')==original_ref and plan.get('checkpoint_receipt')==receipt_ref,'RECOVERY_ORIGINAL_BINDINGS')
+    original=_native_v3_development_read(original_ref['path'],original_ref['sha256'])
+    receipt=_native_v3_development_read(receipt_ref['path'],receipt_ref['sha256'])
+    require(original.get('schema_version')=='gx1_native_all_tf_provider_hlc_v3_development_plan_v1'
+        and original.get('phase')=='fit' and original.get('output_root')==str(Path(receipt_ref['path']).parent)
+        and receipt.get('original_plan')==receipt.get('execution_plan')==original_ref
+        and receipt.get('logical_cursor')==receipt.get('optimizer_updates')==1,'RECOVERY_ORIGINAL_CURSOR1')
+    require(plan.get('metadata',{}).get('original')==original and plan.get('metadata',{}).get('receipt')==receipt
+        and plan.get('recipe')==original.get('recipe') and plan.get('model_contract')==original.get('model_contract')
+        and plan.get('backbone_gradient_policy')is original.get('backbone_gradient_policy')is None,'RECOVERY_ORIGINAL_FUNCTION')
+    proto_ref=plan.get('protocol');proto_path=repo/'configs/research'/(_V3_RECOVERY_NAME.replace('_20261128_001','_PROTOCOL_20261128_001')+'.json')
+    require(type(proto_ref)is dict and set(proto_ref)=={'path','sha256'}and proto_ref['path']==str(proto_path)
+        and type(proto_ref['sha256'])is str and re.fullmatch('[0-9a-f]{64}',proto_ref['sha256'])is not None,'RECOVERY_PROTOCOL_REF')
+    protocol=_native_v3_development_read(proto_path,proto_ref['sha256'])
+    require(protocol.get('schema_version')=='gx1_native_v3_exact_recovery_protocol_v1'
+        and protocol.get('experiment_id')==name and protocol.get('original_plan')==original_ref
+        and protocol.get('checkpoint_receipt')==receipt_ref and protocol.get('original_protocol')==original.get('protocol')
+        and protocol.get('original_trajectory')==plan.get('metadata',{}).get('trajectory'),'RECOVERY_COMMON_PROTOCOL')
+    require(original.get('model_contract',{}).get('contract_sha256')=='ded7f2a05417d108ef8bed4d88f31d40ea1de21292e964586598ddaa818010c3'
+        and original.get('metadata',{}).get('target_contract',{}).get('contract_sha256')=='58fd7f15bdf35646680829a718caa2991f2029ed99f48030e3a85c86aae380c5'
+        and type(plan.get('limits',{}).get('optimizer_steps'))is int
+        and plan['limits']['optimizer_steps']=={'reference':2,'cold':1,'recovery':431}[lane],'RECOVERY_FUNCTION_BUDGET')
+    owners=plan.get('source_owners');require(type(owners)is dict and {'gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh','gx1/audit/native_provider_hlc_learning_v1.py'}<=set(owners),'RECOVERY_SOURCE_INVENTORY')
+    for owner,digest in owners.items():
+        p=repo/owner
+        require(type(owner)is str and not Path(owner).is_absolute()and '..'not in Path(owner).parts
+            and p.is_file()and not p.is_symlink()and p.resolve()==p and hashlib.sha256(p.read_bytes()).hexdigest()==digest,'RECOVERY_SOURCE_SHA')
+    bridge=plan.get('guard_source_bridge',{});old={n:v['original_sha256']for n,v in bridge.get('owners',{}).items()}
+    require(bridge==native_provider_hlc_v3_development_recovery_source_bridge(old,producer_commit=bridge.get('producer_commit')),'RECOVERY_SOURCE_BRIDGE')
+    policy=_native_v3_development_read(repo/'NEXT_RUN_POLICY.json');parent=policy.get('native_v3_fit004_exact_recovery_20261128_001',{})
+    require(parent.get('original_plan')==original_ref and parent.get('checkpoint_receipt')==receipt_ref
+        and parent.get('protocol')==proto_ref and parent.get('main_fit_authorized')is False
+        and parent.get('test_authorized')is False and parent.get('spending_authorized')is False,'RECOVERY_PARENT_SCOPE')
+    old_parent=policy.get('native_v3_bounded_development_test_20261127_001',{})
+    require(old_parent.get('execution_authorized')is False and old_parent.get('active_phase')in(None,'')
+        and all(type(v)is dict and v.get('execution_authorized')is False and type(v.get('remaining_invocations'))is int and v['remaining_invocations']==0 for v in old_parent.get('phase_gates',{}).values()),'RECOVERY_CONSUMED_DEVELOPMENT_CLOSED')
+    flags=('training_enabled','native_training_enabled','native_launch_authorized','full_epoch_training_allowed','full_val_allowed','exit_training_and_evaluation_this_wave')
+    require(all(policy.get(k)is (not preflight and k in flags[:2])for k in flags),'RECOVERY_EXACT_FLAGS')
+    lanes=parent.get('lane_gates',{});require(type(lanes)is dict and set(lanes)<=set(('reference','cold','recovery'))
+        and all(type(v)is dict and type(v.get('remaining_invocations'))is int for v in lanes.values()),'RECOVERY_LANE_GATES')
+    if preflight:
+        require(parent.get('execution_authorized')is False and parent.get('active_lane')in(None,'')
+            and all(v.get('execution_authorized')is False and v.get('remaining_invocations')==0 for v in lanes.values()),'RECOVERY_PREFLIGHT_CLOSED')
+    else:
+        status='ADMITTED_EXACT_V3_RECOVERY_'+lane.upper()
+        gate={'status':status,'plan':{'path':str(path),'sha256':plan_sha256},'execution_authorized':True,
+            'remaining_invocations':1,'relaunch_allowed':False,'training_authorized':True,'test_authorized':False}
+        require(parent.get('status')==status and parent.get('execution_authorized')is True
+            and parent.get('active_lane')==lane and lanes.get(lane)==gate
+            and all(v.get('execution_authorized')is False and v.get('remaining_invocations')==0 for k,v in lanes.items()if k!=lane),'RECOVERY_ONE_USE_GATE')
+    return {'plan':{'path':str(path),'sha256':plan_sha256},'output_root':str(output),'preflight':preflight,'execution':plan['execution']}
+
+def _native_v3_recovery_environment(plan_sha256,lane):
+    require=_native_v3_development_require;prefix='GX1_NATIVE_V3_RECOVERY';execution=_native_v3_recovery_execution(lane)
+    expected={prefix:'true',prefix+'_PLAN_SHA256':plan_sha256,prefix+'_LANE':lane,
+        'GX1_POWER_BENCHMARK_SCOPE_JSON':'','GX1_POWER_BENCHMARK_SCOPE_SHA256':''}
+    require(all(not k.startswith(prefix)or k in expected for k in os.environ),'UNKNOWN_RECOVERY_ENV')
+    require(all(v in('false','')for k,v in os.environ.items()if k.startswith('GX1_NATIVE_')and not k.startswith(prefix)),'RECOVERY_MIXED_LEGACY_ENV')
+    fields={'MAX_WALL_SECONDS':execution['outer_seconds'],'MODEL_MAX_WALL_SECONDS':execution['internal_seconds'],
+        'ATTENDED_STAGE_REQUIRED':'false','GPU_INDEX':0,'GPU_MAX_POWER_LIMIT_W':250,'GPU_MAX_POWER_DRAW_W':250,
+        'GPU_MAX_CORE_TEMP_C':75,'GPU_MAX_MEMORY_TEMP_C':80,'GPU_MAX_MEMORY_USED_MIB':12288,
+        'GPU_MONITOR_INTERVAL_SECONDS':1,'CPU_MAX_TEMP_C':80,'CPU_MAX_PACKAGE_POWER_W':125,
+        'HOST_MIN_AVAILABLE_MEMORY_BYTES':8589934592,'HOST_MIN_COMMIT_HEADROOM_BYTES':8589934592}
+    expected.update({'GX1_TRAINER_'+k:str(v)for k,v in fields.items()})
+    require(all(os.environ.get(k)==v for k,v in expected.items()),'RECOVERY_EXACT_RESOURCE_ENV')
+    return require_guarded_cuda_trainer_execution()
+
+def require_native_all_tf_provider_hlc_v3_development_recovery_execution(*,plan_sha256,lane):
+    # Exact original-trajectory recovery containment; the leaf owns atomic CLAIM.
+    bound=_native_v3_recovery_bound_plan(plan_sha256,lane)
+    proof=_native_v3_recovery_environment(plan_sha256,lane)
+    return {**proof,**bound,'kind':'provider_hlc_all_tf_v3_development_recovery','lane':lane,
+        'resource_proof_only':True,'training_authority_granted':False,'optimizer_authority_granted':False}
+
+
+def _native_v3_recovery_without_additions(current):
+    require=_native_v3_development_require;names=('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')
+    current=dict(current);begin='# BEGIN GX1 V3 RECOVERY GUARDS 20261128 001\n';end='# END GX1 V3 RECOVERY GUARDS 20261128 001\n\n'
+    text=current[names[0]];require(text.count(begin)==text.count(end)==1,'ONE_RECOVERY_BLOCK')
+    first,tail=text.split(begin);_,last=tail.split(end);text=first+last
+    hook='    current=_native_v3_recovery_without_additions(current)\n'
+    require(text.count(hook)==1,'ONE_RECOVERY_BRIDGE_HOOK');text=text.replace(hook,'',1)
+    actual="hashlib.sha256((repo/n).read_text().encode()).hexdigest()"
+    require(text.count(actual)==1,'ONE_RECOVERY_ACTUAL_HASH');text=text.replace(actual,"hashlib.sha256(current[n].encode()).hexdigest()",1)
+    current[names[0]]=text
+    shell=current[names[1]]
+    for anchor,position,fragment in _V3_RECOVERY_SHELL_ADDITIONS:
+        require(position=='before'and shell.count(anchor)==shell.count(fragment)==shell.count(fragment+anchor)==1,'EXACT_RECOVERY_SHELL_ADDITION')
+        shell=shell.replace(fragment+anchor,anchor,1)
+    current[names[1]]=shell
+    return current
+
+def native_provider_hlc_v3_development_recovery_source_bridge(producer_hashes,*,producer_commit=_V3_RECOVERY_PARENT):
+    import hashlib,subprocess
+    require=_native_v3_development_require;require(producer_commit==_V3_RECOVERY_PARENT,'RECOVERY_BRIDGE_PARENT')
+    repo=Path(__file__).resolve().parents[2];names=('gx1/contracts/gx1_capped_execution_v1.py','scripts/gx1_capped_run.sh')
+    before={n:subprocess.check_output(['git','show',producer_commit+':'+n],cwd=repo).decode()for n in names}
+    original={n:hashlib.sha256(v.encode()).hexdigest()for n,v in before.items()};require(producer_hashes==original,'RECOVERY_BRIDGE_PRODUCER_HASHES')
+    current={n:(repo/n).read_text()for n in names}
+    require(_native_v3_recovery_without_additions(current)==before,'RECOVERY_UNCHANGED_PREDECESSOR')
+    return {'producer_commit':producer_commit,'checked_guard_owners':2,'old_guard_routes_preserved':True,
+        'old_numeric_resource_environment_function_unchanged':True,'new_recovery_controlflow_requires_scoped_review':True,
+        'owners':{n:{'original_sha256':original[n],'current_sha256':hashlib.sha256(current[n].encode()).hexdigest()}for n in names}}
+
+# END GX1 V3 RECOVERY GUARDS 20261128 001
 
 def _main() -> int:
     parser = argparse.ArgumentParser(description="Canonical capped-runner lock proof")

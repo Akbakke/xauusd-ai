@@ -242,3 +242,204 @@ def test_bridge_rejects_unproven_source_delta(monkeypatch,bad):
             return text
         monkeypatch.setattr(Path,'read_text',changed)
     with pytest.raises(RuntimeError):g.native_provider_hlc_v3_development_source_bridge(owners)
+
+
+RECOVERY_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_FIT004_RECOVERY_20261128_001'
+RECOVERY_LANES=('reference','cold','recovery')
+
+
+def recovery_fixture(monkeypatch,tmp_path,lane='recovery',preflight=False,bad=None):
+    f=fixture(monkeypatch,tmp_path,'fit' if lane=='recovery' else 'cold' if lane=='cold' else 'warm',preflight)
+    repo,runs=f['repo'],f['runs'];old=json.loads(f['path'].read_text())
+    original=copy.deepcopy(old)
+    original.update(phase='fit',output_root=str(runs/(NAME+'_fit_004')),limits={'optimizer_steps':432})
+    original_ref=dict(path=str(repo/'configs/research'/(NAME+'_FIT_004.json')),
+        sha256='ebf7222c9fb403cf0adc26738cc682c088035dc2b2dc2fc5aff603a741660437')
+    receipt_ref=dict(path=str(runs/(NAME+'_fit_004')/'CURSOR001.json'),
+        sha256=g._V3_RECOVERY_CHECKPOINT_RECEIPT_SHA256)
+    receipt=dict(original_plan=original_ref,execution_plan=original_ref,logical_cursor=1,optimizer_updates=1)
+    trajectory={'original_trajectory':'synthetic_original_only'}
+    protocol=dict(schema_version='gx1_native_v3_exact_recovery_protocol_v1',experiment_id=RECOVERY_NAME,
+        original_plan=original_ref,checkpoint_receipt=receipt_ref,original_protocol=original['protocol'],
+        original_trajectory=trajectory)
+    if bad=='protocol':protocol['original_protocol']={}
+    if bad=='trajectory':protocol['original_trajectory']={}
+    proto=repo/'configs/research'/(RECOVERY_NAME.replace('_20261128_001','_PROTOCOL_20261128_001')+'.json')
+    proto.write_text(json.dumps(protocol));proto_ref=dict(path=str(proto),sha256=hashlib.sha256(proto.read_bytes()).hexdigest())
+    bridge=dict(producer_commit=g._V3_RECOVERY_PARENT,
+        owners={n:dict(original_sha256='f'*64,current_sha256=old['source_owners'][n])for n in OWNERS})
+    output=runs/(RECOVERY_NAME+'_'+lane)
+    plan=dict(schema_version='gx1_native_all_tf_provider_hlc_v3_development_recovery_plan_v1',
+        lane=lane,stage=(RECOVERY_NAME+'_'+lane).lower(),source_commit='a'*40,output_root=str(output),
+        execution=g._native_v3_recovery_execution(lane),original_plan=original_ref,checkpoint_receipt=receipt_ref,
+        protocol=proto_ref,recipe=original['recipe'],model_contract=original['model_contract'],backbone_gradient_policy=None,
+        metadata={'original':original,'receipt':receipt,'trajectory':trajectory},
+        limits={'optimizer_steps':dict(reference=2,cold=1,recovery=431)[lane]},
+        source_owners=old['source_owners'],guard_source_bridge=bridge)
+    if bad=='schema':plan['schema_version']='old'
+    if bad=='execution':plan['execution']['GPU_draw_stop_W']+=1
+    if bad=='steps':plan['limits']['optimizer_steps']+=1
+    if bad=='original_ref':plan['original_plan']={**original_ref,'sha256':'0'*64}
+    if bad=='receipt_ref':plan['checkpoint_receipt']={**receipt_ref,'sha256':'0'*64}
+    if bad=='metadata_original':plan['metadata']['original']={}
+    if bad=='metadata_receipt':plan['metadata']['receipt']={}
+    if bad=='recipe':plan['recipe']={**original['recipe'],'passes':3}
+    if bad=='model':plan['model_contract']={}
+    if bad=='gradient_policy':plan['backbone_gradient_policy']='M5_primary'
+    if bad=='owner':plan['source_owners']={**plan['source_owners'],OWNERS[0]:'0'*64}
+    if bad=='bridge':plan['guard_source_bridge']={**bridge,'unsafe':True}
+    path=repo/'configs/research'/(RECOVERY_NAME+'_'+lane.upper()+'.json')
+    path.write_text(json.dumps(plan));digest=hashlib.sha256(path.read_bytes()).hexdigest()
+    gate=dict(status='ADMITTED_EXACT_V3_RECOVERY_'+lane.upper(),plan=dict(path=str(path),sha256=digest),
+        execution_authorized=True,remaining_invocations=1,relaunch_allowed=False,training_authorized=True,test_authorized=False)
+    parent=dict(original_plan=original_ref,checkpoint_receipt=receipt_ref,protocol=proto_ref,
+        main_fit_authorized=False,test_authorized=False,spending_authorized=False,
+        execution_authorized=not preflight,active_lane=None if preflight else lane,
+        status='PREPARED' if preflight else gate['status'],lane_gates={}if preflight else{lane:gate})
+    policy=json.loads((repo/'NEXT_RUN_POLICY.json').read_text())
+    old_parent=policy['native_v3_bounded_development_test_20261127_001']
+    old_parent.update(execution_authorized=False,active_phase=None,phase_gates={'fit':{'execution_authorized':False,'remaining_invocations':0}})
+    policy['native_v3_fit004_exact_recovery_20261128_001']=parent
+    if bad=='old_live':old_parent['execution_authorized']=True
+    if bad=='spent':gate['remaining_invocations']=0
+    if bad=='second_lane':parent['lane_gates']['reference'if lane!='reference'else'cold']=gate
+    if bad=='active_lane':parent['active_lane']='wrong'
+    if bad=='parent_protocol':parent['protocol']={}
+    if bad=='flags':policy['native_launch_authorized']=True
+    (repo/'NEXT_RUN_POLICY.json').write_text(json.dumps(policy))
+    if bad=='existing':output.mkdir()
+    if bad=='symlink':
+        original_path=path.with_suffix('.original');path.rename(original_path);path.symlink_to(original_path)
+    read=g._native_v3_development_read
+    def fixture_read(path,digest=None):
+        if str(path)==original_ref['path']:
+            assert digest==original_ref['sha256'];return original
+        if str(path)==receipt_ref['path']:
+            assert digest==receipt_ref['sha256'];return receipt
+        return read(path,digest)
+    monkeypatch.setattr(g,'_native_v3_development_read',fixture_read)
+    monkeypatch.setattr(g,'native_provider_hlc_v3_development_recovery_source_bridge',lambda*a,**k:bridge)
+    monkeypatch.setattr(sys,'argv',[str(repo/'gx1/audit/native_provider_hlc_learning_v1.py'),
+        '--v3-development-recovery-plan-sha256',digest,'--lane',lane]+(['--preflight']if preflight else[])+(['--unsafe']if bad=='argv'else[]))
+    for k in list(os.environ):
+        if k.startswith('GX1_NATIVE_'):monkeypatch.delenv(k)
+    env=dict(GX1_NATIVE_V3_RECOVERY='true',GX1_NATIVE_V3_RECOVERY_PLAN_SHA256=digest,GX1_NATIVE_V3_RECOVERY_LANE=lane,
+        GX1_NATIVE_V3_DEVELOPMENT='false')
+    if bad=='hardware_env':env['GX1_TRAINER_GPU_MAX_POWER_DRAW_W']='251'
+    if bad=='unknown_env':env['GX1_NATIVE_V3_RECOVERY_UNSAFE']='false'
+    if bad=='legacy_env':env['GX1_NATIVE_V3_DEVELOPMENT']='true'
+    for k,v in env.items():monkeypatch.setenv(k,v)
+    return dict(f,plan=plan,path=path,digest=digest,output=output,lane=lane,
+        call=lambda:g.require_native_all_tf_provider_hlc_v3_development_recovery_execution(plan_sha256=digest,lane=lane))
+
+
+@pytest.mark.parametrize('lane',RECOVERY_LANES)
+@pytest.mark.parametrize('preflight',(False,True))
+def test_exact_original_recovery_resource_guard(monkeypatch,tmp_path,lane,preflight):
+    f=recovery_fixture(monkeypatch,tmp_path,lane,preflight);proof=f['call']()
+    assert proof['lane']==lane and proof['plan']['sha256']==f['digest']
+    assert proof['resource_proof_only']is True
+    assert proof['training_authority_granted']is proof['optimizer_authority_granted']is False
+    assert f['called']==['cuda'] and not f['output'].exists()
+
+
+@pytest.mark.parametrize('bad',('schema','execution','steps','original_ref','receipt_ref','metadata_original',
+    'metadata_receipt','recipe','model','gradient_policy','owner','bridge','protocol','trajectory','old_live',
+    'spent','second_lane','active_lane','parent_protocol','flags','existing','symlink','argv',
+    'hardware_env','unknown_env','legacy_env'))
+def test_recovery_rejects_before_kernel_or_claim(monkeypatch,tmp_path,bad):
+    f=recovery_fixture(monkeypatch,tmp_path,bad=bad)
+    with pytest.raises(RuntimeError):f['call']()
+    assert not f['called'] and not(f['output']/'CLAIM.json').exists()
+
+
+@pytest.mark.parametrize('lane',RECOVERY_LANES)
+def test_recovery_shell_reuses_exact_profiles_and_rejects_consumed_cli(monkeypatch,tmp_path,lane):
+    f=recovery_fixture(monkeypatch,tmp_path,lane)
+    variables,functions,dispatch,_=[v[2]for v in g._V3_RECOVERY_SHELL_ADDITIONS]
+    functions=functions.replace('/home/andre2/GX1_RUNS',str(f['runs']))
+    state=dict(REPO_ROOT=str(f['repo']),CANONICAL_TRAINER_PYTHON=str(f['repo']/'.venv/bin/python'),
+        JOB_CLASS='trainer',MEM='20G',SWAP='512M',ATTENDED_SMOKE='false',CUDA_PRODUCER_GUARD='false',
+        POWER_BENCHMARK_SCOPE_JSON='',POWER_BENCHMARK_SCOPE_SHA256='')
+    script='set -eu\n'+''.join(k+'='+shlex.quote(v)+'\n'for k,v in state.items())+variables+functions
+    script+='validate_target_command() {\n'+dispatch+'return 88\n}\n'
+    argv=[state['CANONICAL_TRAINER_PYTHON'],'-m','gx1.audit.native_provider_hlc_learning_v1',
+        '--v3-development-recovery-plan-sha256',f['digest'],'--lane',lane]
+    for wrong in (False,True):
+        args=list(argv)
+        if wrong:args[3]='--v3-development-plan-sha256'
+        tail='validate_target_command '+' '.join(map(shlex.quote,args))+'\nprintf "%s,%s,%s,%s\n" "$NATIVE_V3_RECOVERY_LANE" "$TRAINER_MAX_WALL_SECONDS" "$TRAINER_MODEL_MAX_WALL_SECONDS" "$TRAINER_OUT_BUNDLE_DIR"\n'
+        result=subprocess.run(['bash','-c',script+tail],cwd=f['repo'],capture_output=True,text=True)
+        assert result.returncode==(88 if wrong else 0),result.stderr
+        if not wrong:
+            execution=g._native_v3_recovery_execution(lane)
+            assert result.stdout.strip()==','.join(map(str,[lane,execution['outer_seconds'],execution['internal_seconds'],f['output']]))
+
+
+def _actual_recovery_owners():
+    repo=Path(g.__file__).resolve().parents[2]
+    return {n:hashlib.sha256(subprocess.check_output(['git','show',g._V3_RECOVERY_PARENT+':'+n],cwd=repo)).hexdigest()for n in OWNERS}
+
+
+def test_recovery_bridge_preserves_all_original_guard_bytes():
+    proof=g.native_provider_hlc_v3_development_recovery_source_bridge(_actual_recovery_owners())
+    assert proof['old_guard_routes_preserved']and proof['old_numeric_resource_environment_function_unchanged']
+    assert proof['new_recovery_controlflow_requires_scoped_review']is True
+    for n,v in proof['owners'].items():
+        assert v['current_sha256']==hashlib.sha256((Path(g.__file__).resolve().parents[2]/n).read_bytes()).hexdigest()
+
+
+@pytest.mark.parametrize('bad',('legacy_resource','recovery_shell_limit','producer_hash'))
+def test_recovery_bridge_rejects_unreviewed_changes(monkeypatch,bad):
+    owners=_actual_recovery_owners()
+    if bad=='producer_hash':owners[OWNERS[0]]='0'*64
+    else:
+        original=Path.read_text;repo=Path(g.__file__).resolve().parents[2]
+        def changed(path,*a,**kw):
+            text=original(path,*a,**kw)
+            if path==repo/OWNERS[0]and bad=='legacy_resource':
+                text=text.replace('_MAX_MEMORY_BYTES = 20 * 1024**3','_MAX_MEMORY_BYTES = 21 * 1024**3',1)
+            if path==repo/OWNERS[1]and bad=='recovery_shell_limit':
+                fragment=g._V3_RECOVERY_SHELL_ADDITIONS[1][2]
+                text=text.replace(fragment,fragment.replace('TRAINER_GPU_MAX_POWER_DRAW_W=250','TRAINER_GPU_MAX_POWER_DRAW_W=251'),1)
+            return text
+        monkeypatch.setattr(Path,'read_text',changed)
+    with pytest.raises(RuntimeError):g.native_provider_hlc_v3_development_recovery_source_bridge(owners)
+
+
+@pytest.mark.parametrize('old_suffix',('','_002','_003','_004'))
+def test_recovery_rejects_every_consumed_fit_namespace(monkeypatch,tmp_path,old_suffix):
+    f=recovery_fixture(monkeypatch,tmp_path,preflight=True)
+    old_plan=f['repo']/'configs/research'/(NAME+'_FIT'+old_suffix+'.json')
+    f['path'].rename(old_plan)
+    with pytest.raises(RuntimeError,match='CANONICAL_JSON'):f['call']()
+    assert not f['called']
+
+
+@pytest.mark.parametrize('lane',RECOVERY_LANES)
+def test_recovery_kernel_guard_requests_only_exported_environment(monkeypatch,tmp_path,lane):
+    f=recovery_fixture(monkeypatch,tmp_path,lane,preflight=True)
+    wrapper=(Path(__file__).resolve().parents[1]/'scripts/gx1_capped_run.sh').read_text()
+    exported=set(re.findall(r'--setenv=([A-Z0-9_]+)=',wrapper))
+    requested=set()
+    class ActualWrapperEnvironment(dict):
+        def get(self,key,default=None):
+            requested.add(key);return super().get(key,default)
+    actual={key:value for key,value in os.environ.items()if not key.startswith('GX1_')or key in exported}
+    monkeypatch.setattr(os,'environ',ActualWrapperEnvironment(actual))
+    f['call']()
+    assert requested<=exported and f['called']==['cuda']
+
+
+@pytest.mark.parametrize('location',('active','inactive','preflight','old_development'))
+def test_recovery_rejects_boolean_invocation_counts(monkeypatch,tmp_path,location):
+    f=recovery_fixture(monkeypatch,tmp_path,preflight=location=='preflight')
+    policy_path=f['repo']/'NEXT_RUN_POLICY.json';policy=json.loads(policy_path.read_text())
+    parent=policy['native_v3_fit004_exact_recovery_20261128_001']
+    if location=='active':parent['lane_gates'][f['lane']]['remaining_invocations']=True
+    elif location=='inactive':parent['lane_gates']['reference']={'execution_authorized':False,'remaining_invocations':False}
+    elif location=='preflight':parent['lane_gates'][f['lane']]={'execution_authorized':False,'remaining_invocations':False}
+    else:policy['native_v3_bounded_development_test_20261127_001']['phase_gates']['fit']['remaining_invocations']=False
+    policy_path.write_text(json.dumps(policy))
+    with pytest.raises(RuntimeError):f['call']()
+    assert not f['called']

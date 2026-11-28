@@ -83,7 +83,12 @@ produsentmetadata skal være ekte; full checkpoint-SHA forventes forskjellig
 mellom utførelser. Første C1 kan legitimt ha null backbone-momenter.
 Kun semantiske bevis sammenlignes på tvers av tekniske utførelser.
 Designkvittering: policyfeltet `fit004_exact_recovery_design`.
-Ingen recoverykode, fysiske replaybevis eller ny admission finnes ennå.
+Recoverykode er implementert i eksisterende eiere. 102 guardtester og 62
+ulike syntetiske leaf-tester består; opprinnelige feilkvitteringer er bevart.
+Ekte input-/normaliserings-/modellkontrakt er validert uten tensor-dekoding.
+Kildebroer og uavhengig review består. Faktisk C1/C2-paritet er fortsatt ubevist.
+Aktiv scope er `native_v3_fit004_exact_recovery_20261128_001`. Alle seks flagg
+er fortsatt false; fysisk paritet og ny admission gjenstår.
 
 ## Vedlikeholdslogging — ferdig
 
@@ -105,8 +110,8 @@ taskdefinisjon og alle sikkerhetsgrenser er bevart. Ingen helinstaller kjørt.
 utrulling og faktisk signert sensorkontroll består. Originalkode/logg og
 rollback er bevart. Første kalde forespørsel timeoutet på uendret 2 s;
 etter readonly kontroll bestod neste forespørsel. Faktisk idle-vitne og
-deduplisering er lest tilbake. Aktiv vedlikeholdshendelse i produksjon er
-ennå ikke observert i ny journal; positive/negative baner er syntetisk testet.
+deduplisering er lest tilbake. FIT004 ga senere et faktisk aktivt MoUso-vitne i journalen; eksakt snapshot
+og korrelasjonsgrenser er bundet i `fit004_maintenance_diagnosis`.
 
 Flagget betyr tilstedeværelse av TiWorker/MoUsoCoreWorker/SetupHost/SetupPrep/
 WindowsUpdateBox/wuauclt, også en idle worker, eller setup/OOBE/reboot-in-progress.
