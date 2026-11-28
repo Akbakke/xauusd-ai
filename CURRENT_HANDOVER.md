@@ -109,7 +109,10 @@ Eksakte øvrige original-/policy-/proofbindinger ligger i det lukkede feltet.
 ### Neste konkrete arbeid — eksakt videreføring
 
 Design er bundet i V3_BLOCK_ORDER_EXACT_RECOVERY_DESIGN_20261128_001.json.
-Kvalifiser minste adapter i eksisterende eiere; ikke ny modell eller freshfit:
+Adapteren i eksisterende eiere er kildekvalifisert: 73 guard-/kildebrotester
+og 18 syntetiske rollekontroller består. Faktisk C1-/protokollmetadata og 78
+kildefiler er validert uten NN eller tensor-dekoding. Fysisk paritet gjenstår.
+Felles protokoll er bundet i policy. Neste er de tre eksakte rollene:
 
 1. REFERENCE: fersk samme factory/full RNG, opprinnelige batcher 116→131.
    Alle ti C1-bevis må matche ekte order-C1 før C2 godtas. Ny produsent er ekte;

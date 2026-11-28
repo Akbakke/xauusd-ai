@@ -838,3 +838,208 @@ def test_direction_block_order_bridge_rejects_unreviewed_delta(monkeypatch,bad):
             return text
         monkeypatch.setattr(Path,'read_text',changed)
     with pytest.raises(RuntimeError):g.native_v3_direction_block_order_source_bridge(owners)
+
+
+ORDER_RECOVERY_NAME='NATIVE_ALL_TF_PROVIDER_HLC_V3_BLOCK_ORDER_RECOVERY_20261128_001'
+
+
+def block_order_recovery_fixture(monkeypatch,tmp_path,lane='recovery',preflight=False,bad=None):
+    f=direction_block_order_fixture(monkeypatch,tmp_path,preflight=True)
+    repo,runs=f['repo'],f['runs'];original=f['plan']
+    original['schedule']['contract_sha256']='dba16db2b9c04c1fd988a79d3fd713b9719bbfc3514b76b38174b92ccfef19de'
+    original['metadata']['trajectory']['contract_sha256']='214fceb7d316c33edd928936612fa0ad3fc2fd3f9843396cea35e41fcbd3a0b6'
+    original_ref=dict(path=str(f['path']),sha256='15a59b3840d61d57d6e217967312a6b76e4e89d256ea902b619ec3fa8099a008')
+    receipt_ref=dict(path=str(runs/BLOCK_ORDER_NAME/'CURSOR001.json'),
+        sha256='9d6f3ec4908f2cd2c60f1a6c5e8c9980f59bd8b2933dd0500e50bf8b3548a7f7')
+    receipt=dict(logical_cursor=1,optimizer_updates=1,producer_lane='block_order',
+        original_plan=original_ref,execution_plan=original_ref,trajectory_sha256=original['metadata']['trajectory']['contract_sha256'])
+    if bad=='producer_lane':receipt['producer_lane']='fit'
+    design_ref=dict(path=str(runs/'GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001'/'V3_BLOCK_ORDER_EXACT_RECOVERY_DESIGN_20261128_001.json'),
+        sha256='737dd510ca83958d1f1bb192ef22ca40e072c0aa9b5c757cc3787bb464ebb830')
+    protocol=dict(schema_version='gx1_v3_block_order_recovery_protocol_v1',experiment_id=ORDER_RECOVERY_NAME,
+        original_plan=original_ref,checkpoint_receipt=receipt_ref,
+        original_trajectory=original['metadata']['trajectory'],original_schedule=original['schedule'])
+    if bad=='protocol_schedule':protocol['original_schedule']={}
+    if bad=='protocol_trajectory':protocol['original_trajectory']={}
+    proto=repo/'configs/research'/(ORDER_RECOVERY_NAME.replace('_20261128_001','_PROTOCOL_20261128_001')+'.json')
+    proto.write_text(json.dumps(protocol));protocol_ref=dict(path=str(proto),sha256=hashlib.sha256(proto.read_bytes()).hexdigest())
+    limits=dict.fromkeys(original['limits'],0);updates=dict(reference=2,cold=1,recovery=431)[lane];fw=dict(reference=2,cold=1,recovery=596)[lane]
+    limits.update(model_constructions=1,optimizer_constructions=1,feature_cache_payload_loads=1,
+        target_archive_loads=1,model_forwards=fw,backbone_forwards=fw,readout_forwards=fw,
+        optimizer_steps=updates,backward_calls=updates,checkpoint_writes=1,checkpoint_readbacks=1,
+        checkpoint_receipt_writes=1,checkpoint_prepublication_loads=1)
+    if lane!='reference':limits.update(checkpoint_loads=1,model_restores=1)
+    if lane=='recovery':limits.update(autograd_calls=9,logit_archive_writes=2,logit_archive_readbacks=2)
+    bridge=dict(producer_commit=g._V3_BLOCK_ORDER_RECOVERY_PARENT,
+        owners={n:dict(original_sha256='f'*64,current_sha256=original['source_owners'][n])for n in OWNERS})
+    output=runs/(ORDER_RECOVERY_NAME+'_'+lane)
+    plan=dict(schema_version='gx1_native_v3_block_order_recovery_plan_v1',stage=ORDER_RECOVERY_NAME.lower(),
+        lane=lane,source_commit='a'*40,output_root=str(output),execution=g._native_v3_recovery_execution(lane),
+        original_plan=original_ref,checkpoint_receipt=receipt_ref,design=design_ref,protocol=protocol_ref,
+        metadata={'original':original,'receipt':receipt,'trajectory':original['metadata']['trajectory']},
+        schedule=original['schedule'],recipe=original['recipe'],model_contract=original['model_contract'],
+        initial_reference=original['initial_reference'],limits=limits,
+        source_owners=original['source_owners'],guard_source_bridge=bridge)
+    if bad=='schema':plan['schema_version']='old'
+    if bad=='execution':plan['execution']['GPU_draw_stop_W']+=1
+    if bad=='chronological_original':plan['original_plan']=original['original_plan']
+    if bad=='chronological_receipt':plan['checkpoint_receipt']={'path':str(runs/(NAME+'_fit_004')/'CURSOR001.json'),'sha256':'adcc8717242aa5bac0505332fbe360dc3578315bb49f5e6230ebefe15e871529'}
+    if bad=='design':plan['design']={**design_ref,'sha256':'0'*64}
+    if bad=='metadata_receipt':plan['metadata']['receipt']={}
+    if bad=='trajectory':plan['metadata']['trajectory']={}
+    if bad=='schedule':plan['schedule']={}
+    if bad=='model':plan['model_contract']={}
+    if bad=='initializer':plan['initial_reference']={'checkpoint':'technical_C2.pt'}
+    if bad=='recipe':plan['recipe']={**original['recipe'],'seed':1}
+    if bad in ('optimizer_steps','model_forwards','checkpoint_writes','checkpoint_loads'):
+        limits[bad]+=1
+    if bad=='budget_bool':limits['model_constructions']=True
+    if bad=='owner':plan['source_owners']={**plan['source_owners'],OWNERS[0]:'0'*64}
+    if bad=='bridge':plan['guard_source_bridge']={**bridge,'extra':True}
+    path=repo/'configs/research'/(ORDER_RECOVERY_NAME+'_'+lane.upper()+'.json')
+    path.write_text(json.dumps(plan));digest=hashlib.sha256(path.read_bytes()).hexdigest()
+    gate=dict(status='ADMITTED_EXACT_V3_BLOCK_ORDER_RECOVERY_'+lane.upper(),
+        plan=dict(path=str(path),sha256=digest),execution_authorized=True,remaining_invocations=1,
+        relaunch_allowed=False,training_authorized=True,test_authorized=False)
+    parent=dict(original_plan=original_ref,checkpoint_receipt=receipt_ref,design=design_ref,protocol=protocol_ref,
+        main_fit_authorized=False,test_authorized=False,spending_authorized=False,
+        execution_authorized=not preflight,active_lane=None if preflight else lane,
+        status='SOURCE_PREPARATION_ONLY'if preflight else gate['status'],lane_gates={}if preflight else{lane:gate})
+    policy_path=repo/'NEXT_RUN_POLICY.json';policy=json.loads(policy_path.read_text())
+    for k in ('training_enabled','native_training_enabled'):policy[k]=not preflight
+    policy[ORDER_RECOVERY_NAME.lower()]=parent
+    if bad=='bool_gate':gate['remaining_invocations']=True
+    if bad=='spent':gate['remaining_invocations']=0
+    if bad=='inactive_bool':
+        parent['lane_gates']['reference'if lane!='reference'else'cold']={'execution_authorized':False,'remaining_invocations':False,
+            'training_authorized':False,'test_authorized':False,'relaunch_allowed':False}
+    if bad=='second_lane':parent['lane_gates']['reference'if lane!='reference'else'cold']=gate
+    if bad=='parent_protocol':parent['protocol']={}
+    if bad=='flags':policy['full_val_allowed']=True
+    if bad=='old_fit':policy[BLOCK_ORDER_NAME.lower()]['execution_authorized']=True
+    if bad=='diagnostic':policy[DIRECTION_NAME.lower()]['execution_authorized']=True
+    policy_path.write_text(json.dumps(policy))
+    if bad=='existing':output.mkdir()
+    if bad=='symlink':
+        old=path.with_suffix('.original');path.rename(old);path.symlink_to(old)
+    read=g._native_v3_development_read
+    def fixture_read(path,digest=None):
+        if str(path)==original_ref['path']:
+            assert digest==original_ref['sha256'];return original
+        if str(path)==receipt_ref['path']:
+            assert digest==receipt_ref['sha256'];return receipt
+        if str(path)==design_ref['path']:
+            assert digest==design_ref['sha256'];return {}
+        return read(path,digest)
+    monkeypatch.setattr(g,'_native_v3_development_read',fixture_read)
+    monkeypatch.setattr(g,'native_v3_block_order_recovery_source_bridge',lambda*a,**k:bridge)
+    argv=[str(repo/'gx1/audit/native_provider_hlc_learning_v1.py'),
+        '--v3-block-order-recovery-plan-sha256',digest,'--lane',lane]
+    if preflight:argv+=['--preflight']
+    if bad=='argv':argv+=['--phase','fit']
+    monkeypatch.setattr(sys,'argv',argv)
+    for k in list(os.environ):
+        if k.startswith('GX1_NATIVE_'):monkeypatch.delenv(k)
+    env=dict(GX1_NATIVE_V3_BLOCK_ORDER_RECOVERY='true',GX1_NATIVE_V3_BLOCK_ORDER_RECOVERY_PLAN_SHA256=digest,
+        GX1_NATIVE_V3_BLOCK_ORDER_RECOVERY_LANE=lane,GX1_TRAINER_MAX_WALL_SECONDS='5400'if lane=='recovery'else'1800',
+        GX1_TRAINER_MODEL_MAX_WALL_SECONDS='5370'if lane=='recovery'else'1770')
+    if bad=='hardware_env':env['GX1_TRAINER_GPU_MAX_POWER_DRAW_W']='251'
+    if bad=='unknown_env':env['GX1_NATIVE_V3_BLOCK_ORDER_RECOVERY_UNSAFE']='false'
+    if bad=='legacy_env':env['GX1_NATIVE_V3_DIRECTION_BLOCK_ORDER']='true'
+    for k,v in env.items():monkeypatch.setenv(k,v)
+    return dict(f,path=path,digest=digest,plan=plan,output=output,lane=lane,
+        call=lambda:g.require_native_v3_block_order_recovery_execution(plan_sha256=digest,lane=lane))
+
+
+@pytest.mark.parametrize('lane',RECOVERY_LANES)
+@pytest.mark.parametrize('preflight',(False,True))
+def test_block_order_recovery_exact_original_order_and_scoped_roles(monkeypatch,tmp_path,lane,preflight):
+    f=block_order_recovery_fixture(monkeypatch,tmp_path,lane,preflight);proof=f['call']()
+    assert proof['lane']==lane and proof['preflight']is preflight
+    assert proof['training_authority_granted']is proof['optimizer_authority_granted']is False
+    assert f['called']==['cuda']and not f['output'].exists()
+
+
+@pytest.mark.parametrize('bad',('schema','execution','chronological_original','chronological_receipt','design',
+    'metadata_receipt','producer_lane','trajectory','schedule','model','initializer','recipe','protocol_schedule',
+    'protocol_trajectory','optimizer_steps','model_forwards','checkpoint_writes','checkpoint_loads','budget_bool',
+    'owner','bridge','bool_gate','inactive_bool','spent','second_lane','parent_protocol','flags','old_fit','diagnostic',
+    'existing','symlink','argv','hardware_env','unknown_env','legacy_env'))
+def test_block_order_recovery_rejects_wrong_lineage_or_scope(monkeypatch,tmp_path,bad):
+    f=block_order_recovery_fixture(monkeypatch,tmp_path,bad=bad)
+    with pytest.raises(RuntimeError):f['call']()
+    assert not f['called']and not(f['output']/'CLAIM.json').exists()
+
+
+def test_block_order_recovery_preflight_rejects_false_boolean_count(monkeypatch,tmp_path):
+    f=block_order_recovery_fixture(monkeypatch,tmp_path,preflight=True)
+    policy_path=f['repo']/'NEXT_RUN_POLICY.json';policy=json.loads(policy_path.read_text())
+    policy[ORDER_RECOVERY_NAME.lower()]['lane_gates'][f['lane']]={'execution_authorized':False,'remaining_invocations':False,
+        'training_authorized':False,'test_authorized':False,'relaunch_allowed':False}
+    policy_path.write_text(json.dumps(policy))
+    with pytest.raises(RuntimeError,match='BLOCK_ORDER_RECOVERY_TYPED_LANES'):f['call']()
+    assert not f['called']
+
+
+@pytest.mark.parametrize('lane',RECOVERY_LANES)
+def test_block_order_recovery_shell_exact_lane_profiles(monkeypatch,tmp_path,lane):
+    f=block_order_recovery_fixture(monkeypatch,tmp_path,lane)
+    variables,functions,dispatch,_=[v[2]for v in g._V3_BLOCK_ORDER_RECOVERY_SHELL_ADDITIONS]
+    functions=functions.replace('/home/andre2/GX1_RUNS',str(f['runs']))
+    state=dict(REPO_ROOT=str(f['repo']),CANONICAL_TRAINER_PYTHON=str(f['repo']/'.venv/bin/python'),
+        JOB_CLASS='trainer',MEM='20G',SWAP='512M',ATTENDED_SMOKE='false',CUDA_PRODUCER_GUARD='false',
+        POWER_BENCHMARK_SCOPE_JSON='',POWER_BENCHMARK_SCOPE_SHA256='')
+    script='set -eu\n'+''.join(k+'='+shlex.quote(v)+'\n'for k,v in state.items())+variables+functions
+    script+='validate_target_command() {\n'+dispatch+'return 88\n}\n'
+    argv=[state['CANONICAL_TRAINER_PYTHON'],'-m','gx1.audit.native_provider_hlc_learning_v1',
+        '--v3-block-order-recovery-plan-sha256',f['digest'],'--lane',lane]
+    for extra in ([],['--preflight'],['--phase','fit']):
+        tail='validate_target_command '+' '.join(map(shlex.quote,argv+extra))
+        tail+='\nprintf "%s,%s,%s,%s\n" "$NATIVE_V3_BLOCK_ORDER_RECOVERY_LANE" "$TRAINER_MAX_WALL_SECONDS" "$TRAINER_MODEL_MAX_WALL_SECONDS" "$TRAINER_OUT_BUNDLE_DIR"\n'
+        result=subprocess.run(['bash','-c',script+tail],cwd=f['repo'],capture_output=True,text=True)
+        assert result.returncode==(75 if extra==['--phase','fit']else 0),result.stderr
+        if result.returncode==0:
+            timing=['5400','5370']if lane=='recovery'else['1800','1770']
+            assert result.stdout.strip()==','.join([lane,*timing,str(f['output'])])
+
+
+@pytest.mark.parametrize('lane',RECOVERY_LANES)
+def test_block_order_recovery_requests_only_wrapper_exports(monkeypatch,tmp_path,lane):
+    f=block_order_recovery_fixture(monkeypatch,tmp_path,lane,preflight=True)
+    wrapper=(Path(__file__).resolve().parents[1]/'scripts/gx1_capped_run.sh').read_text()
+    exported=set(re.findall(r'--setenv=([A-Z0-9_]+)=',wrapper));requested=set()
+    class ActualWrapperEnvironment(dict):
+        def get(self,key,default=None):
+            requested.add(key);return super().get(key,default)
+    actual={k:v for k,v in os.environ.items()if not k.startswith('GX1_')or k in exported}
+    monkeypatch.setattr(os,'environ',ActualWrapperEnvironment(actual));f['call']()
+    assert requested<=exported and f['called']==['cuda']
+
+
+def _actual_block_order_recovery_owners():
+    repo=Path(g.__file__).resolve().parents[2]
+    return {n:hashlib.sha256(subprocess.check_output(['git','show',g._V3_BLOCK_ORDER_RECOVERY_PARENT+':'+n],cwd=repo)).hexdigest()for n in OWNERS}
+
+
+def test_block_order_recovery_bridge_preserves_all_previous_bytes():
+    proof=g.native_v3_block_order_recovery_source_bridge(_actual_block_order_recovery_owners())
+    assert proof['old_guard_routes_preserved']and proof['old_numeric_resource_environment_function_unchanged']
+    assert proof['new_order_recovery_controlflow_requires_scoped_review']is True
+
+
+@pytest.mark.parametrize('bad',('legacy_resource','new_shell_limit','producer_hash'))
+def test_block_order_recovery_bridge_rejects_unreviewed_delta(monkeypatch,bad):
+    owners=_actual_block_order_recovery_owners()
+    if bad=='producer_hash':owners[OWNERS[0]]='0'*64
+    else:
+        original=Path.read_text;repo=Path(g.__file__).resolve().parents[2]
+        def changed(path,*a,**kw):
+            text=original(path,*a,**kw)
+            if path==repo/OWNERS[0]and bad=='legacy_resource':
+                text=text.replace('_MAX_MEMORY_BYTES = 20 * 1024**3','_MAX_MEMORY_BYTES = 21 * 1024**3',1)
+            if path==repo/OWNERS[1]and bad=='new_shell_limit':
+                fragment=g._V3_BLOCK_ORDER_RECOVERY_SHELL_ADDITIONS[1][2]
+                text=text.replace(fragment,fragment.replace('TRAINER_GPU_MAX_POWER_DRAW_W=250','TRAINER_GPU_MAX_POWER_DRAW_W=251'),1)
+            return text
+        monkeypatch.setattr(Path,'read_text',changed)
+    with pytest.raises(RuntimeError):g.native_v3_block_order_recovery_source_bridge(owners)

@@ -140,7 +140,7 @@ def test_semantic_proof_excludes_producer_but_binds_every_state_component():
         assert owner.train.checkpoint_proof(a)!=owner.train.checkpoint_proof(changed)
 
 
-def fake_recovery(monkeypatch,lane):
+def fake_recovery(monkeypatch,lane,restore_lane='fit'):
     """Synthetic state-machine test: no tensors, model construction, CUDA or file IO."""
     import torch
     from gx1.contracts import market_state_ta_integrated_model_v1 as factory
@@ -192,7 +192,7 @@ def fake_recovery(monkeypatch,lane):
     monkeypatch.setattr(owner,'ref',lambda path:checkpoint_binding)
     monkeypatch.setattr(torch,'load',lambda *a,**k:events['loads'].append(a[0])or copy.deepcopy(cp))
     def restore(m,opt,c,**kwargs):
-        assert c['producer']['lane']=='fit'and kwargs['expected_state_proof']==receipt['proof']
+        assert c['producer']['lane']==restore_lane and kwargs['expected_state_proof']==receipt['proof']
         m.value=c['model_state']['weight'];opt.value=c['optimizer_state']['moment'];rng.update(c['rng_state'])
         return c['position']
     monkeypatch.setattr(owner.train,'strict_restore',restore)
@@ -546,3 +546,95 @@ def test_block_order_typed_gate_and_only_exact_training_flags(admitted,field):
     with pytest.raises(ValueError):owner.block_order_flags(p,admitted)
     gate[field]=bool(gate[field])if field=='remaining_invocations'else int(gate[field])
     with pytest.raises(ValueError):owner.block_order_require_gate(gate,binding,admitted)
+
+def test_block_recovery_all_legacy_leaf_bridges_remain_exact():
+    assert owner.block_recovery_source_bridge()['all_old_numeric_order_and_recovery_paths_unchanged']
+    assert owner.block_order_source_bridge()['all_old_numeric_functions_unchanged']
+    assert owner.direction_gradient_source_bridge()['old_numeric_and_recovery_functions_unchanged']
+    assert owner.recovery_source_bridge()['original_development_nn_and_numeric_paths_unchanged']
+    assert owner.development_source_bridge()['baseline74_numeric_functions_changed']==0
+
+
+def fake_block_recovery(monkeypatch,lane):
+    import numpy as np
+    import torch
+    from gx1.contracts import market_state_ta_integrated_model_v1 as factory
+    p0,_,runtime,events,old_receipt,_=fake_recovery(monkeypatch,'reference',restore_lane='block_order')
+    nn=p0['metadata']['original'];batches=owner.core.all_score_batches(np.arange(20727,dtype=np.int64),96);source=np.arange(20727,dtype=np.int64);issues=source+100
+    canonical={k:copy.deepcopy(v)for k,v in nn['schedule'].items()if k!='contract_sha256'}
+    canonical['batch_source_rows_sha256']=[owner.core.digest(source[take])for take in batches];canonical['batch_issue_ns_sha256']=[owner.core.digest(issues[take])for take in batches];nn['schedule']=owner.train.seal(canonical)
+    schedule=owner.block_order_schedule(nn);trajectory=owner.block_order_trajectory(nn,schedule);original_ref={'path':'/original/order.json','sha256':'a'*64};initial=p0['inputs']['original_INITIAL_score']
+    original={'metadata':{'original':nn,'trajectory':trajectory},'schedule':schedule,'recipe':nn['recipe'],'model_contract':nn['model_contract'],'initial_reference':nn['initial_reference'],'panel_indices':[0,107,214],'initial_reuse':{'truth_sha256':'synthetic-truth'}}
+    context={'normalization':{},'input_binding':{},'prior':{},'target_contract':nn['metadata']['target_contract'],'batches':batches,'source_rows':source,'truth':{'issue_ns':issues},'truth_sha256':'synthetic-truth','schedule':nn['schedule']}
+    def context_loader(p):
+        assert p is nn
+        return context
+    monkeypatch.setattr(owner,'development_nn_context',context_loader)
+    model=factory.build_native_future_state_model();optimizer=torch.optim.AdamW(model.parameters());owner.core.future_cuda_seed_and_runtime({})
+    steps=[];dummy={k:0 for k in owner.development_limits('fit')}
+    def make(cursor):
+        return owner.train.make_checkpoint(model,optimizer,trajectory=trajectory,original_plan_ref=original_ref,lane='block_order',cursor=cursor,steps=copy.deepcopy(steps),scores={'INITIAL':initial},producer_runtime=runtime)
+    for j in range(2):
+        record=owner.train.training_step(model,optimizer,{'take':batches[schedule['logical_original_batch_ids'][j]]},nn,dummy,j);record['order_binding']=owner.block_order_step_binding(schedule,j);steps.append(record)
+        if j==0:c1=make(1)
+    reference={'proof':owner.train.checkpoint_proof(make(2))};receipt={'producer_runtime':runtime,'proof':owner.train.checkpoint_proof(c1)};old_receipt['proof']=receipt['proof']
+    binding={'path':'/new/'+lane+'.json','sha256':'b'*64};cp_ref=p0['inputs']['original_checkpoint'];plan={'lane':lane,'metadata':{'original':original,'receipt':receipt,'trajectory':trajectory},'original_plan':original_ref,'checkpoint_receipt':{'path':'/original/CURSOR001.json','sha256':'c'*64},'inputs':{'original_INITIAL_score':initial,'original_checkpoint':cp_ref,'reference_cursor2_receipt':{'path':'/reference/C2.json','sha256':'d'*64}},'limits':owner.recovery_limits(lane,nn),'execution':nn['execution'],'starting_cursor':0 if lane=='reference'else 1,'ending_cursor':432 if lane=='recovery'else 2}
+    monkeypatch.setattr(torch,'load',lambda *a,**k:events['loads'].append(a[0])or copy.deepcopy(c1));monkeypatch.setattr(owner,'read',lambda r:reference)
+    for values in events.values():values.clear()
+    return plan,binding,runtime,events,receipt,reference,c1,batches
+
+
+@pytest.mark.parametrize('lane',('reference','cold','recovery'))
+def test_block_recovery_synthetic_roles_preserve_exact_order_and_initializer(monkeypatch,tmp_path,lane):
+    plan,binding,runtime,events,receipt,reference,c1,batches=fake_block_recovery(monkeypatch,lane)
+    report=owner.block_recovery_physical(plan,binding,tmp_path,runtime);original=plan['metadata']['original'];ids=original['schedule']['logical_original_batch_ids']
+    assert report['counts']==plan['limits']and report['scores']['INITIAL']==plan['inputs']['original_INITIAL_score']
+    assert len(events['loads'])==(0 if lane=='reference'else 1)
+    start=0 if lane=='reference'else 1;end=432 if lane=='recovery'else 2
+    assert len(events['steps'])==end-start
+    for j,(index,take)in zip(range(start,end),events['steps']):assert index==j and __import__('numpy').array_equal(take,batches[ids[j]])
+    name,cp=events['checkpoints'][-1]
+    assert cp['producer']=={'original_plan':binding if lane=='reference'else plan['original_plan'],'lane':lane,'runtime':runtime}
+    assert cp['trajectory']==plan['metadata']['trajectory']and len(cp['steps'])==end
+    assert name==('REFERENCE_CURSOR002.pt'if lane=='reference'else'REPLAYED_CURSOR002.pt'if lane=='cold'else'FINAL.pt')
+    if lane=='reference':
+        assert report['original_C1_all10_equal']and owner.train.checkpoint_proof(cp)==reference['proof']
+        assert events['json'][0][1]['actual_producer']['original_plan']==binding
+    if lane=='cold':assert report['all10_proofs_equal']and not events['scores']
+    if lane=='recovery':assert events['scores']==['PASS1','PASS2']and report['new_optimizer_updates']==431 and report['final_order_cursor']['next_original_batch']is None
+
+
+def test_block_recovery_reference_mismatch_stops_before_batch131(monkeypatch,tmp_path):
+    plan,binding,runtime,events,receipt,*_=fake_block_recovery(monkeypatch,'reference');receipt['proof']['steps']='wrong'
+    with pytest.raises(ValueError,match='REFERENCE_C1_ALL10'):owner.block_recovery_physical(plan,binding,tmp_path,runtime)
+    assert len(events['steps'])==1 and not events['checkpoints']and not events['json']
+
+
+def test_block_recovery_cold_mismatch_does_not_publish_C2(monkeypatch,tmp_path):
+    plan,binding,runtime,events,receipt,reference,*_=fake_block_recovery(monkeypatch,'cold');reference['proof']['optimizer_state']='wrong'
+    with pytest.raises(ValueError,match='COLD_C2_ALL10'):owner.block_recovery_physical(plan,binding,tmp_path,runtime)
+    assert len(events['steps'])==1 and not events['checkpoints']
+
+
+@pytest.mark.parametrize('bad',('lane','original_plan','runtime','trajectory','order_binding','scores'))
+def test_block_recovery_rejects_old_or_forged_C1_before_generic_restore(monkeypatch,bad):
+    plan,binding,runtime,events,receipt,reference,cp,_=fake_block_recovery(monkeypatch,'cold')
+    if bad in('lane','original_plan','runtime'):cp['producer'][bad]='wrong'
+    if bad=='trajectory':cp['trajectory']=owner.development_trajectory(plan['metadata']['original']['metadata']['original'])
+    if bad=='order_binding':cp['steps'][0]['order_binding']['original_batch_id']=0
+    if bad=='scores':cp['scores']={'INITIAL':{'path':'/new/INITIAL.json','sha256':'e'*64}}
+    copied=[];monkeypatch.setattr(owner.train,'strict_restore',lambda *a,**k:copied.append(True))
+    with pytest.raises(ValueError):owner.block_recovery_restore(None,None,cp,plan,runtime)
+    assert not copied
+
+
+@pytest.mark.parametrize('lane',('reference','cold','recovery'))
+@pytest.mark.parametrize('bad',(False,True))
+def test_block_recovery_snapshot_requires_typed_one_use_and_exact_role(monkeypatch,lane,bad):
+    binding={'path':'/new/'+lane+'.json','sha256':'1'*64};protocol={'path':'/new/protocol.json','sha256':'2'*64};sr={'path':str(owner.block_recovery_snapshot_path(lane)),'sha256':'3'*64};pref={'path':str(owner.POLICY),'sha256':'3'*64}
+    p={k:(k in owner.DEV_FLAGS[:2])for k in owner.DEV_FLAGS};p[owner.BLOCK_RECOVERY_STAGE]={'execution_authorized':True,'active_lane':lane,'protocol':protocol,'design':owner.BLOCK_RECOVERY_DESIGN,'main_fit_authorized':False,'test_authorized':False,'spending_authorized':False,'lane_gates':{lane:owner.block_recovery_gate(binding,lane,True)}}
+    if bad:p[owner.BLOCK_RECOVERY_STAGE]['lane_gates'][lane]['remaining_invocations']=True
+    monkeypatch.setattr(owner,'ref',lambda path:sr);monkeypatch.setattr(owner,'read',lambda ref:p)
+    if bad:
+        with pytest.raises(ValueError):owner.block_recovery_admission_snapshot(lane,binding,protocol,pref)
+    else:assert owner.block_recovery_admission_snapshot(lane,binding,protocol,pref)==sr

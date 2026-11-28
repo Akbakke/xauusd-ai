@@ -148,6 +148,9 @@ NATIVE_PROVIDER_HLC_ALL_TF_REPLAY_LANE=
 # END GX1 PROVIDER HLC ALL TF ROUTES 20261124 001 STATE
 # BEGIN GX1 PROVIDER HLC INITIAL ROUTE 20261123 001 STATE
 NATIVE_PROVIDER_HLC_INITIAL_MODULE=gx1.audit.native_future_state_provider_hlc_initial_v1
+NATIVE_V3_BLOCK_ORDER_RECOVERY=false
+NATIVE_V3_BLOCK_ORDER_RECOVERY_PLAN_SHA256=
+NATIVE_V3_BLOCK_ORDER_RECOVERY_LANE=
 NATIVE_V3_DIRECTION_BLOCK_ORDER=false
 NATIVE_V3_DIRECTION_BLOCK_ORDER_PLAN_SHA256=
 NATIVE_V3_DIRECTION_GRADIENT=false
@@ -1362,6 +1365,59 @@ configure_native_provider_hlc_learning_resume() {
 }
 # END GX1 PROVIDER HLC LEARNING RESUME ROUTE 20261123 001 MATCHERS
 
+# BEGIN GX1 V3 BLOCK ORDER RECOVERY ROUTE 20261128 001
+matches_bound_native_v3_block_order_recovery() {
+  if [[ $# -eq 8 ]]; then
+    [[ "$8" == --preflight ]] || return 1
+    set -- "${@:1:7}"
+  fi
+  [[ $# -eq 7 && "$(pwd -P)" == "$REPO_ROOT" \
+    && "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == gx1.audit.native_provider_hlc_learning_v1 \
+    && "$4" == --v3-block-order-recovery-plan-sha256 && "$5" =~ ^[0-9a-f]{64}$ \
+    && "$6" == --lane ]] || return 1
+  case "$7" in reference|cold|recovery) ;; *) return 1 ;; esac
+  local plan_suffix="${7^^}"
+  local expected_plan="$REPO_ROOT/configs/research/NATIVE_ALL_TF_PROVIDER_HLC_V3_BLOCK_ORDER_RECOVERY_20261128_001_${plan_suffix}.json"
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" \
+    && "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$5" ]]
+}
+configure_native_v3_block_order_recovery() {
+  matches_bound_native_v3_block_order_recovery "$@" || { echo 'FATAL: exact V3 development CLI/plan required' >&2; exit 75; }
+  [[ "$ATTENDED_SMOKE" == false && "$CUDA_PRODUCER_GUARD" == false \
+    && "$SWAP" == 512M && -z "$POWER_BENCHMARK_SCOPE_JSON" && -z "$POWER_BENCHMARK_SCOPE_SHA256" ]] || {
+    echo 'FATAL: V3 development forbids alternate resource modes' >&2; exit 75;
+  }
+  local output="/home/andre2/GX1_RUNS/NATIVE_ALL_TF_PROVIDER_HLC_V3_BLOCK_ORDER_RECOVERY_20261128_001_$7"
+  [[ ! -e "$output" && ! -L "$output" && -d "${output%/*}" \
+    && ! -L "${output%/*}" && "$(readlink -f "${output%/*}")" == "${output%/*}" ]] || {
+    echo 'FATAL: V3 development output must be fresh and canonical' >&2; exit 75;
+  }
+  NATIVE_V3_BLOCK_ORDER_RECOVERY=true
+  NATIVE_V3_BLOCK_ORDER_RECOVERY_PLAN_SHA256="$5"
+  NATIVE_V3_BLOCK_ORDER_RECOVERY_LANE="$7"
+  [[ "$JOB_CLASS" == trainer && "$MEM" == 20G ]] || { echo 'FATAL: V3 NN requires canonical trainer20G' >&2; exit 75; }
+  TRAINER_DEVICE=cuda
+  TRAINER_EXECUTION_MODE=canonical
+  TRAINER_OUT_BUNDLE_DIR="$output"
+  TRAINER_MAX_WALL_SECONDS=1800
+  TRAINER_MODEL_MAX_WALL_SECONDS=1770
+  if [[ "$7" == recovery ]]; then TRAINER_MAX_WALL_SECONDS=5400; TRAINER_MODEL_MAX_WALL_SECONDS=5370; fi
+  TRAINER_GPU_INDEX=0
+  TRAINER_GPU_MAX_POWER_LIMIT_W=250
+  TRAINER_GPU_MAX_POWER_DRAW_W=250
+  TRAINER_GPU_MAX_CORE_TEMP_C=75
+  TRAINER_GPU_MAX_MEMORY_TEMP_C=80
+  TRAINER_GPU_MAX_MEMORY_USED_MIB=12288
+  TRAINER_GPU_MONITOR_INTERVAL_SECONDS=1
+  TRAINER_CPU_MAX_TEMP_C=80
+  TRAINER_CPU_MAX_PACKAGE_POWER_W=125
+  TRAINER_HOST_MIN_AVAILABLE_MEMORY_BYTES=8589934592
+  TRAINER_HOST_MIN_COMMIT_HEADROOM_BYTES=8589934592
+}
+# END GX1 V3 BLOCK ORDER RECOVERY ROUTE 20261128 001
+
 # BEGIN GX1 V3 DIRECTION BLOCK ORDER ROUTE 20261128 001
 matches_bound_native_v3_direction_block_order() {
   if [[ $# -eq 6 ]]; then
@@ -2323,6 +2379,14 @@ validate_target_command() {
     return
   fi
 # END GX1 PROVIDER HLC ENDPOINT CROSS ROUTE 20261124 001 DISPATCH
+# BEGIN GX1 V3 BLOCK ORDER RECOVERY DISPATCH 20261128 001
+  local block_order_recovery_arg
+  for block_order_recovery_arg in "$@"; do
+    case "$block_order_recovery_arg" in
+      --v3-block-order-recovery-plan-sha256|--v3-block-order-recovery-plan-sha256=*) configure_native_v3_block_order_recovery "$@"; return ;;
+    esac
+  done
+# END GX1 V3 BLOCK ORDER RECOVERY DISPATCH 20261128 001
 # BEGIN GX1 V3 DIRECTION BLOCK ORDER DISPATCH 20261128 001
   local direction_block_order_arg
   for direction_block_order_arg in "$@"; do
@@ -4318,6 +4382,9 @@ systemd-run --user --scope --quiet \
   --setenv=GX1_NATIVE_PROVIDER_HLC_GRADIENT_PROFILE_PLAN_SHA256="$NATIVE_PROVIDER_HLC_GRADIENT_PROFILE_PLAN_SHA256" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS="$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS" \
   --setenv=GX1_NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256="$NATIVE_PROVIDER_HLC_ENDPOINT_CROSS_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_V3_BLOCK_ORDER_RECOVERY="$NATIVE_V3_BLOCK_ORDER_RECOVERY" \
+  --setenv=GX1_NATIVE_V3_BLOCK_ORDER_RECOVERY_PLAN_SHA256="$NATIVE_V3_BLOCK_ORDER_RECOVERY_PLAN_SHA256" \
+  --setenv=GX1_NATIVE_V3_BLOCK_ORDER_RECOVERY_LANE="$NATIVE_V3_BLOCK_ORDER_RECOVERY_LANE" \
   --setenv=GX1_NATIVE_V3_DIRECTION_BLOCK_ORDER="$NATIVE_V3_DIRECTION_BLOCK_ORDER" \
   --setenv=GX1_NATIVE_V3_DIRECTION_BLOCK_ORDER_PLAN_SHA256="$NATIVE_V3_DIRECTION_BLOCK_ORDER_PLAN_SHA256" \
   --setenv=GX1_NATIVE_V3_DIRECTION_GRADIENT="$NATIVE_V3_DIRECTION_GRADIENT" \
