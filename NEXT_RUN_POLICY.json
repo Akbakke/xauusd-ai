@@ -2109,7 +2109,7 @@
     "actual_optimizer_steps": 0,
     "source_unchanged": true
   },
-  "status": "OBSERVED_TRAIN_CONTINUATION_COMPLETE",
+  "status": "OBSERVED_TRAIN_CONTINUATION_002_SOURCE_QUALIFIED_PLAN_PENDING",
   "storage_cursor_runtime_cleanup_20261117_001": {
     "deleted_allocated_bytes": 1767837696,
     "deleted_old_version_count": 4,
@@ -5816,7 +5816,7 @@
     "test_authorized": false,
     "economic_edge_proven": false
   },
-  "next_action": "Prepareminimumnewexact216updatecontinuationfromauthFINAL648to864; reusequalifiedmath/observer/fullscore; noNNuntilnewsource/backup/host/admission.",
+  "next_action": "Commitqualified002source thenfreshplan/preflight/SOURCEbackup beforeexact648to864admission; noautomaticseries.",
   "ta_fold2_F_frozen_readout_20261117_001": {
     "status": "COMPLETE_CONSUMED_NO_TRANSFER_GAIN",
     "plan": {
@@ -110903,7 +110903,7 @@
     }
   },
   "native_v3_observed_train_continuation_20261128_002": {
-    "status": "DESIGNED_SOURCE_PREPARATION_ONLY_CLOSED",
+    "status": "SOURCE_QUALIFIED_PLAN_PENDING",
     "design": {
       "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_DESIGN_20261128_002.json",
       "sha256": "f52d056a1715f13180b6aee375ae17fd45eb992644bf447f38a0239ebf34bf30"
@@ -110913,6 +110913,10 @@
     "training_authorized": false,
     "remaining_invocations": 0,
     "relaunch_allowed": false,
-    "next_action": "Prepareminimumnewexact216updatecontinuationfromauthFINAL648to864; reusequalifiedmath/observer/fullscore; noNNuntilnewsource/backup/host/admission."
+    "next_action": "Prepareminimumnewexact216updatecontinuationfromauthFINAL648to864; reusequalifiedmath/observer/fullscore; noNNuntilnewsource/backup/host/admission.",
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/GX1_NATIVE_TWENTY_STEP_QUALIFICATION_20261123_001/V3_OBSERVED_TRAIN_CONTINUATION_SOURCE_QUALIFICATION_20261128_002.json",
+      "sha256": "8a9b2fc84e97403779a2eb7622e2db327868121626ae63f762f67ba605cc5209"
+    }
   }
 }
